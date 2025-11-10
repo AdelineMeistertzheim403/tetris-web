@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import  { useEffect, useRef, useState, useCallback } from "react";
 import { useGameLoop } from "../hooks/useGameLoop";
 import { useKeyboardControls } from "../hooks/useKeyboardControls";
 import {

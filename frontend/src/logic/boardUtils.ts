@@ -2,7 +2,6 @@ import type { ShapeMatrix } from "./shapes";
 import { SHAPES, COLORS } from "./shapes";
 
 export function rotateMatrix(matrix: ShapeMatrix): ShapeMatrix {
-  const size = matrix.length;
   const rotated = matrix[0].map((_, i) => matrix.map(row => row[i]).reverse());
   return rotated;
 }
