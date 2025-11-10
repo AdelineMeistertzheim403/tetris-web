@@ -5,11 +5,10 @@ services:
     build: ./frontend
     container_name: tetris-frontend
     restart: always
-    expose:
-      - "5173"
+    ports:
+      - "5173:5173"
     environment:
       - NODE_ENV=production
-    command: npm run build && npx serve -s dist -l 5173
     volumes:
       - ./frontend:/app
       - /app/node_modules
