@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 
-export function useGameLoop() {
+export function useGameLoop(active: boolean) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    if (!active) return;
     const interval = setInterval(() => setTick((t) => t + 1), 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [active]);
 
-  return tick; // valeur qui s'incrémente à chaque tick du jeu
+  return tick;
 }
