@@ -7,7 +7,7 @@ const router = Router();
 /**
  * 🧠 Enregistrer un nouveau score
  */
-router.post("/", verifyToken, async (req: AuthRequest, res) => {
+router.post("/score", verifyToken, async (req: AuthRequest, res) => {
   try {
     const { value, level, lines } = req.body;
     const userId = req.user?.id;

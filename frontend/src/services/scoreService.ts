@@ -8,7 +8,7 @@ const API_URL =
 // ✅ Ajouter un score
 export async function addScore(value: number, level: number, lines: number) {
   const token = getToken();
-  const res = await fetch(`${API_URL}`, {
+  const res = await fetch(`${API_URL}/score`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
