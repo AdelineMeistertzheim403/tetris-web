@@ -17,7 +17,7 @@ services:
     container_name: tetris-backend
     restart: always
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT}:${BACKEND_INTERNAL_PORT}"
     env_file:
       - ./backend/.env
     depends_on:
