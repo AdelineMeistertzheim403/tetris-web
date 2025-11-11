@@ -1,13 +1,20 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  safelist: ["neon-navbar"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
   theme: {
     extend: {
       fontFamily: {
         retro: ['"Press Start 2P"', 'cursive'],
       },
+      colors: {
+        pink: {
+          400: "#ff33cc",
+        },
+      },
     },
   },
   plugins: [],
-};
+}
