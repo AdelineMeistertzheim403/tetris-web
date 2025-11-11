@@ -1,6 +1,9 @@
 import { getToken } from "./authService";
 
-const API_URL = import.meta.env.VITE_API_URL?.replace("/auth", "/scores") || "http://localhost:8080/api/scores";
+const API_URL =
+  import.meta.env.MODE === "development"
+    ? "/api" // proxy local
+    : "https://api.tetris.adelinemeistertzheim.fr/api"; // backend prod
 
 // ✅ Ajouter un score
 export async function addScore(value: number, level: number, lines: number) {

@@ -7,24 +7,27 @@ import scoreRoutes from "./routes/score.routes";
 dotenv.config();
 
 const app = express();
+
+const allowedOrigins = [
+  "http://localhost:5173",                    // dev local
+  "https://tetris.adelinemeistertzheim.fr",   // front prod
+  "https://www.tetris.adelinemeistertzheim.fr", // si tu veux gérer le www
+];
+
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = [
-      "http://localhost:5173",
-      "https://tetris.adelinemeistertzheim.fr"
-    ];
-    if (!origin || allowed.includes(origin)) {
+    // autorise si aucune origine (ex: Postman) ou si dans la liste
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.warn("❌ CORS rejeté pour :", origin);
-      callback(new Error("CORS not allowed"));
+      callback(new Error("CORS non autorisé"));
     }
   },
   credentials: true,
 }));
 
 app.use(express.json());
-
 app.use("/api/auth", authRoutes);
 app.use("/api/scores", scoreRoutes);
 
