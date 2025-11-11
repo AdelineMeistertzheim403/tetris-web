@@ -1,28 +1,29 @@
-FROM node:20-slim
+# ---- Étape 1 : build TypeScript ----
+FROM node:20-slim AS builder
 
-# 1️⃣ Installer OpenSSL
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-
-# 2️⃣ Dossier de travail
 WORKDIR /app
-
-# 3️⃣ Copier les dépendances
 COPY package*.json ./
 RUN npm ci
 
-# 4️⃣ Copier le code + le .env
 COPY . .
+RUN npx prisma generate
+RUN npx tsc
 
-# 5️⃣ ✅ Définir une valeur temporaire de DATABASE_URL pour la génération Prisma
-# (peu importe si elle n’existe pas, c’est juste pour éviter l’erreur)
-ENV DATABASE_URL="postgresql://placeholder_user:placeholder_pass@localhost:5432/placeholder_db"
+# ---- Étape 2 : exécution en production ----
+FROM node:20-slim
 
-# 6️⃣ Générer le client Prisma
-RUN npx prisma generate && npx tsc
+WORKDIR /app
+
+# Copie les fichiers compilés depuis le builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/.env ./ 
 
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# 7️⃣ Exposer et lancer
 EXPOSE 8080
+
 CMD ["node", "dist/server.js"]
