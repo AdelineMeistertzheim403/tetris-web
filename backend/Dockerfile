@@ -1,6 +1,8 @@
 # ---- Étape 1 : build TypeScript ----
 FROM node:20-slim AS builder
 
+RUN apt-get update -y && apt-get install -y openssl
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
