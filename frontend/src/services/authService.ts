@@ -1,7 +1,4 @@
-const API_URL =
-  import.meta.env.MODE === "development"
-    ? "/api" // proxy local
-    : "https://api.tetris.adelinemeistertzheim.fr/api"; // backend prod
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ✅ Connexion
 export async function login(email: string, password: string) {

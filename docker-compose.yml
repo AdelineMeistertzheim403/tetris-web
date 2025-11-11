@@ -10,7 +10,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - NODE_ENV=production
+      - VITE_API_URL=https://api.tetris.adelinemeistertzheim.fr/api
 
   backend:
     build: ./backend
