@@ -18,8 +18,11 @@ COPY . .
 ENV DATABASE_URL="postgresql://placeholder_user:placeholder_pass@localhost:5432/placeholder_db"
 
 # 6️⃣ Générer le client Prisma
-RUN npx prisma generate
+RUN npx prisma generate && npx tsc
+
+ENV NODE_ENV=production
+ENV PORT=8080
 
 # 7️⃣ Exposer et lancer
 EXPOSE 8080
-CMD ["npm", "run", "dev"]
+CMD ["node", "dist/server.js"]
