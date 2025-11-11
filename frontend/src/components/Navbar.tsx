@@ -13,13 +13,12 @@ export default function Navbar() {
                  font-retro uppercase tracking-wider"
     >
       {/* 🔹 Logo */}
-      <Link
-        to="/"
+      <span
         className="text-3xl text-pink-400 hover:text-yellow-400 transition duration-300
                    drop-shadow-[0_0_6px_rgba(255,0,150,0.5)] relative neon-link"
       >
         Tetris
-      </Link>
+      </span>
 
       {/* 🔹 Liens principaux */}
       <div className="flex gap-16 text-lg items-center">
@@ -32,10 +31,13 @@ export default function Navbar() {
             Accueil
           </Link>
         )}
-
-        <Link to="/game" className="neon-link text-pink-400">
+        {user ? (
+          <Link to="/game" className="neon-link text-pink-400">
           Jouer
         </Link>
+        ) : (
+          <div></div>
+        )}
 
         <Link to="/leaderboard" className="neon-link text-pink-400">
           Classement
@@ -45,7 +47,8 @@ export default function Navbar() {
       {/* 🔹 Section droite */}
       <div className="flex items-center gap-6">
         {user ? (
-          <span className="text-yellow-400 text-sm">{user.pseudo}</span>
+          <span className="text-3xl text-pink-400 hover:text-yellow-400 transition duration-300
+                   drop-shadow-[0_0_6px_rgba(255,0,150,0.5)] relative neon-link">{user.pseudo}</span>
         ) : (
           <Link to="/login" className="neon-link text-pink-400">
             Connexion

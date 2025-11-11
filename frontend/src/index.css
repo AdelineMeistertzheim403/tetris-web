@@ -29,13 +29,21 @@ html, body, #root {
   margin: 0;
 }
 
-body {
-  min-height: 100vh;
-  color: #fff; /* Couleur par défaut, mais pas forcée */
+html {
+  height: 100%;
   background: url("./assets/bg-retro.png") no-repeat center center fixed;
   background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+body {
+  min-height: 100%;
+  margin: 0;
+  color: #fff;
   font-family: 'Press Start 2P', cursive;
   image-rendering: pixelated;
+  background: transparent; /* 👈 Important pour que le html se voie */
 }
 
 a {
@@ -50,6 +58,10 @@ a:hover {
   text-shadow: 0 0 6px #ff00ff, 0 0 12px #ffff00;
 }
 
+h1, h2, h3, p {
+  text-shadow: 0 0 6px #ff33cc, 0 0 10px #ff33cc, 0 0 12px #00ffff;
+}
+
 
 /* =========================================================
    3️⃣  COMPOSANTS SPÉCIFIQUES (boutons, navbar, formulaires…)
@@ -60,7 +72,9 @@ button, .retro-btn {
   background-color: transparent;
   border: 2px solid #ff00ff;
   color: #fff;
+  text-shadow: 0 0 6px #ff33cc, 0 0 10px #ff33cc, 0 0 12px #00ffff;
   padding: 10px 20px;
+  margin-bottom: 20px;
   font-family: 'Press Start 2P', cursive;
   font-size: 0.8rem;
   text-transform: uppercase;

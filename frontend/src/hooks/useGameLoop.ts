@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 
-export function useGameLoop(active: boolean) {
+export function useGameLoop(running: boolean, speed: number) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (!active) return;
-    const interval = setInterval(() => setTick((t) => t + 1), 500);
+    if (!running) return;
+    const interval = setInterval(() => setTick((t) => t + 1), speed);
     return () => clearInterval(interval);
-  }, [active]);
+  }, [running, speed]);
 
   return tick;
 }
