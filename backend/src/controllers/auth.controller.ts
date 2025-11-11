@@ -20,9 +20,9 @@ export const register = async (req: Request, res: Response) => {
     });
 
     res.status(201).json({ message: "Utilisateur créé", user });
-  } catch (err) {
+  } catch (err: any) {
     console.error("❌ Erreur Prisma:", err);
-    res.status(400).json({ error: "Erreur lors de l'inscription" });
+    res.status(400).json({ error: "Erreur lors de l'inscription" , details: err.message});
   }
 };
 
