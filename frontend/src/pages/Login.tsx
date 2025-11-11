@@ -1,13 +1,24 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { login } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { setUser } = useAuth(); // ✅ accès au contexte
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ email, password });
+    try {
+      const loggedUser = await login(email, password); // 🔹 récupère le user
+      setUser(loggedUser); // ✅ met à jour le contexte global
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Email ou mot de passe invalide");
+    }
   };
 
   return (
@@ -45,6 +56,8 @@ export default function Login() {
             required
           />
         </div>
+
+        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
         <button type="submit" className="retro-btn mt-4">
           Se connecter

@@ -9,6 +9,7 @@ import {
   clearFullLines,
 } from "../logic/boardUtils";
 import NextPiece from "./NextPiece";
+import { addScore } from "../services/scoreService";
 
 const ROWS = 20;
 const COLS = 10;
@@ -26,8 +27,10 @@ export default function TetrisBoard() {
   const [gameOver, setGameOver] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(3);
   const [running, setRunning] = useState(false); // contrôle la boucle
+  const [level, setLevel] = useState(1);
+const [speed, setSpeed] = useState(1000);
 
-  const tick = useGameLoop(running);
+  const tick = useGameLoop(running, speed);
 
   // 🕹️ Mouvement clavier
   const movePiece = useCallback(
@@ -49,6 +52,21 @@ export default function TetrisBoard() {
     [piece, board, running]
   );
 
+  async function handleGameOver() {
+  setRunning(false);
+  setGameOver(true);
+
+  // Déterminer le niveau (exemple simple)
+  const level = Math.floor(lines / 10) + 1;
+
+  try {
+    await addScore(score, level, lines);
+    console.log("✅ Score sauvegardé :", { score, level, lines });
+  } catch (err) {
+    console.error("❌ Erreur enregistrement score :", err);
+  }
+}
+
   useKeyboardControls(movePiece);
 
   // 🎮 Descente automatique
@@ -62,18 +80,25 @@ export default function TetrisBoard() {
       const { newBoard, linesCleared } = clearFullLines(merged);
 
       if (linesCleared > 0) {
-        setScore((prev) => prev + linesCleared * 100);
-        setLines((prev) => prev + linesCleared);
-      }
+  setScore((prev) => prev + linesCleared * 100);
+  setLines((prev) => {
+    const total = prev + linesCleared;
+    // 🔹 Passage de niveau tous les 10 lignes
+    const newLevel = Math.floor(total / 10) + 1;
+    setLevel(newLevel);
+    // 🔹 Ajuster la vitesse (plus le niveau est haut, plus c’est rapide)
+    setSpeed(Math.max(200, 1000 - (newLevel - 1) * 100)); // limite min 200ms
+    return total;
+  });
+}
 
       setBoard(newBoard);
 
       const newPiece = nextPiece;
       if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
-        setGameOver(true);
-        setRunning(false);
-        return;
-      }
+  handleGameOver();
+  return;
+}
 
       setPiece(newPiece);
       setNextPiece(getRandomPiece());
@@ -146,6 +171,8 @@ export default function TetrisBoard() {
     setRunning(false);
     setScore(0);
     setLines(0);
+    setLevel(1);
+    setSpeed(1000);
     setBoard(Array.from({ length: ROWS }, () => Array(COLS).fill(0)));
     setPiece(getRandomPiece());
     setNextPiece(getRandomPiece());
@@ -235,7 +262,21 @@ export default function TetrisBoard() {
               {lines}
             </div>
           </div>
-
+          <div style={{ textAlign: "center" }}>
+  <h3 style={{ margin: "10px 0 5px" }}>Niveau</h3>
+  <div
+    style={{
+      background: "#000",
+      border: "2px solid #333",
+      borderRadius: "5px",
+      padding: "10px 20px",
+      fontSize: "1.1rem",
+      color: "#facc15",
+    }}
+  >
+    {level}
+  </div>
+  </div>
           <div style={{ textAlign: "center" }}>
             <NextPiece piece={nextPiece} />
           </div>

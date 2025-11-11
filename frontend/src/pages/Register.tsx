@@ -1,19 +1,28 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { register } from "../services/authService";
 
 export default function Register() {
   const [pseudo, setPseudo] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirm) {
       alert("Les mots de passe ne correspondent pas !");
       return;
+    } else {
+      try {
+      await register(pseudo, email, password);
+      navigate("/login");
+    } catch (err) {
+      setError("Erreur lors de l'inscription");
     }
-    console.log({ pseudo, email, password });
+    }
   };
 
   return (
