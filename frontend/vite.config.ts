@@ -7,8 +7,15 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     allowedHosts: [
-      "tetris.adelinemeistertzheim.fr", 
-      "localhost",                      
+      "tetris.adelinemeistertzheim.fr",
+      "localhost",
     ],
+    proxy: {
+      "/api": {
+        target: "http://backend:8080", 
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });
