@@ -24,4 +24,4 @@ jobs:
             cd ~/tetris-web
             git pull
             docker compose down
-            docker compose up -d --build
+            docker compose -f docker-compose.prod.yml up --build -d

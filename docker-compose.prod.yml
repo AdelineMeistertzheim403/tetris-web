@@ -11,9 +11,13 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_URL=https://api.tetris.adelinemeistertzheim.fr/api
+    depends_on:
+      - backend
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     container_name: tetris-backend
     restart: always
     ports:
