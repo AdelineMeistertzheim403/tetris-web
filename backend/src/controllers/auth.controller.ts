@@ -7,15 +7,21 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body;
+    const { pseudo, email, password } = req.body;
+
+    if (!pseudo || !email || !password) {
+      return res.status(400).json({ error: "Champs manquants" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { username, email, password: hashedPassword },
+      data: { pseudo, email, password: hashedPassword },
     });
 
     res.status(201).json({ message: "Utilisateur créé", user });
   } catch (err) {
+    console.error("❌ Erreur Prisma:", err);
     res.status(400).json({ error: "Erreur lors de l'inscription" });
   }
 };
