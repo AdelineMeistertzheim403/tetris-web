@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 // ✅ Ajouter un score
 export async function addScore(value: number, level: number, lines: number) {
   const token = getToken();
-  const res = await fetch(`${API_URL}/score`, {
+  const res = await fetch(`${API_URL}/scores`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -21,7 +21,7 @@ export async function addScore(value: number, level: number, lines: number) {
 // ✅ Récupérer mes scores
 export async function getMyScores() {
   const token = getToken();
-  const res = await fetch(`${API_URL}/me`, {
+  const res = await fetch(`${API_URL}/scores/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error("Erreur de récupération des scores");
@@ -30,7 +30,7 @@ export async function getMyScores() {
 
 // ✅ Récupérer le classement
 export async function getLeaderboard() {
-  const res = await fetch(`${API_URL}/leaderboard`);
+  const res = await fetch(`${API_URL}/scores/leaderboard`);
   if (!res.ok) throw new Error("Erreur de récupération du classement");
   return res.json();
 }
