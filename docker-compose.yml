@@ -19,6 +19,7 @@ services:
     ports:
       - "${BACKEND_PORT}:${BACKEND_INTERNAL_PORT}"
     env_file:
+      - .env
       - ./backend/.env
     depends_on:
       - db

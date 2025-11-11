@@ -9,7 +9,7 @@ const router = Router();
  */
 router.post("/", verifyToken, async (req: AuthRequest, res) => {
   try {
-    const { value, level, lines } = req.body;
+    const { value, level, lines, mode } = req.body;
     const userId = req.user?.id;
 
     if (!userId) return res.status(401).json({ error: "Utilisateur non authentifié" });
@@ -17,7 +17,7 @@ router.post("/", verifyToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Champs manquants" });
 
     const score = await prisma.score.create({
-      data: { value, level, lines, userId },
+      data: { value, level, lines, userId, mode },
     });
 
     res.status(201).json({ message: "Score enregistré", score });

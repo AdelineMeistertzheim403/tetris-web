@@ -7,6 +7,7 @@ import Game from "./pages/Game";
 import Leaderboard from "./pages/Leaderboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
+import Sprint from "./pages/Sprint";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/sprint" element={<Sprint />} />
       </Routes>
     </>
   );

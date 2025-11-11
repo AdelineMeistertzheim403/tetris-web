@@ -28,6 +28,22 @@ export async function getMyScores() {
   return res.json();
 }
 
+export async function saveScore(scoreData: {
+  userId: number;
+  value: number;
+  level: number;
+  lines: number;
+  mode?: string;
+}) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(scoreData),
+  });
+  if (!res.ok) throw new Error("Erreur lors de l'enregistrement du score");
+  return res.json();
+}
+
 // ✅ Récupérer le classement
 export async function getLeaderboard() {
   const res = await fetch(`${API_URL}/leaderboard`);
