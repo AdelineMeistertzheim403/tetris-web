@@ -18,9 +18,6 @@ export default function Home() {
         <Link to="/register" className="retro-btn">
           Inscription
         </Link>
-        <Link to="/game" className="retro-btn">
-          Jouer
-        </Link>
       </div>
     </div>
   );
