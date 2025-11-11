@@ -1,6 +1,7 @@
 # ---- Étape 1 : build TypeScript ----
 FROM node:20-slim AS builder
 
+# 🧰 Ajout de OpenSSL
 RUN apt-get update -y && apt-get install -y openssl
 
 WORKDIR /app
@@ -10,23 +11,23 @@ RUN npm ci
 COPY . .
 ENV DATABASE_URL="postgresql://placeholder_user:placeholder_pass@localhost:5432/placeholder_db"
 RUN npx prisma generate
-RUN npx tsc
+RUN npm run build
 
 # ---- Étape 2 : exécution en production ----
 FROM node:20-slim
 
-WORKDIR /app
+# 🧰 Ajout de OpenSSL aussi ici
+RUN apt-get update -y && apt-get install -y openssl
 
-# Copie les fichiers compilés depuis le builder
+WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/.env ./ 
+COPY --from=builder /app/.env ./
 
 ENV NODE_ENV=production
 ENV PORT=8080
 
 EXPOSE 8080
-
-CMD ["node", "dist/server.js"]
+CMD ["npm", "run", "start"]
