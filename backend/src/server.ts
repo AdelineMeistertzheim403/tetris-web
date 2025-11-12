@@ -9,22 +9,22 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",                    // dev local
-  "https://tetris.adelinemeistertzheim.fr",   // front prod
-  "https://www.tetris.adelinemeistertzheim.fr", // si tu veux gérer le www
-];
-
+// CORS correctement appliqué
 app.use(cors(corsOptions));
+
+// Fix OPTIONS pour éviter l’erreur path-to-regexp
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
-    res.sendStatus(204);
-  } else {
-    next();
+    res.set("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    return res.sendStatus(204);
   }
+  next();
 });
 
 app.use(express.json());
+
 app.use("/api/auth", authRoutes);
 app.use("/api/scores", scoreRoutes);
 
