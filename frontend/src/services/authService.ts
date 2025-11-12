@@ -1,8 +1,8 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/auth";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ✅ Connexion
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API_URL}/login`, {
+  const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -18,7 +18,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function register(pseudo: string, email: string, password: string) {
-  const res = await fetch(`${API_URL}/register`, {
+  const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pseudo, email, password }),

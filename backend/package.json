@@ -1,11 +1,10 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "type": "module",
-  "main": "src/server.ts",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "npx prisma generate && tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "npx prisma generate && tsc",
     "start": "node dist/server.js",
     "prisma:generate": "cross-env DATABASE_URL=postgresql://tetris_user:tetris_pass@localhost:5432/tetris_db?schema=public prisma generate"
   },
