@@ -16,7 +16,13 @@ const allowedOrigins = [
 ];
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+  } else {
+    next();
+  }
+});
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);
