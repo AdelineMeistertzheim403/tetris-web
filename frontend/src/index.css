@@ -244,4 +244,22 @@ label {
   }
 }
 
+.retro-select {
+  font-family: 'Press Start 2P', monospace;
+  appearance: none;
+  background: repeating-linear-gradient(
+    45deg,
+    #1a001a,
+    #1a001a 10px,
+    #2b003b 10px,
+    #2b003b 20px
+  );
+  text-shadow: 0 0 6px #ff00ff;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+.retro-select option {
+  background: #0b001a;
+  color: #fff;
+}
+
 

@@ -9,7 +9,7 @@ const router = Router();
  */
 router.post("/", verifyToken, async (req: AuthRequest, res) => {
   try {
-    const { value, level, lines } = req.body;
+    const { value, level, lines, mode } = req.body;
     const userId = req.user?.id;
 
     if (!userId) return res.status(401).json({ error: "Utilisateur non authentifié" });
@@ -17,7 +17,7 @@ router.post("/", verifyToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Champs manquants" });
 
     const score = await prisma.score.create({
-      data: { value, level, lines, userId },
+      data: { value, level, lines, userId, mode },
     });
 
     res.status(201).json({ message: "Score enregistré", score });
@@ -30,15 +30,23 @@ router.post("/", verifyToken, async (req: AuthRequest, res) => {
 /**
  * 🔍 Récupérer les scores du joueur connecté
  */
-router.get("/me", verifyToken, async (req: AuthRequest, res) => {
+router.get("/me/:mode", verifyToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
+    const { mode } = req.params; // récupère "CLASSIQUE" ou "SPRINT"
+
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+
     const scores = await prisma.score.findMany({
-      where: { userId },
+      where: { userId, mode },
       orderBy: { createdAt: "desc" },
     });
+
     res.json(scores);
   } catch (err) {
+    console.error("Erreur récupération des scores:", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
@@ -46,11 +54,13 @@ router.get("/me", verifyToken, async (req: AuthRequest, res) => {
 /**
  * 🏆 Classement général
  */
-router.get("/leaderboard", async (_req, res) => {
+router.get("/leaderboard/:mode", async (_req, res) => {
   try {
+     const { mode } = _req.params;
     const leaderboard = await prisma.score.findMany({
+      where: { mode },
       include: { user: { select: { pseudo: true } } },
-      orderBy: { value: "desc" },
+      orderBy: mode === "SPRINT" ? { value: "asc" } : { value: "desc" },
       take: 10,
     });
     res.json(leaderboard);
