@@ -17,7 +17,7 @@ router.post("/", verifyToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Champs manquants" });
 
     const score = await prisma.score.create({
-      data: { value, level, lines, userId, mode },
+      data: { value, level, lines, userId, mode: mode as any },
     });
 
     res.status(201).json({ message: "Score enregistré", score });
