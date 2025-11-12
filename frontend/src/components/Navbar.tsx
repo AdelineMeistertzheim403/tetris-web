@@ -39,7 +39,7 @@ export default function Navbar() {
           <div></div>
         )}
         {user ? (
-          <Link to="/sprint" className="text-pink-400 hover:text-yellow-400">
+          <Link to="/sprint" className="neon-link text-pink-400">
   Sprint
 </Link>
 

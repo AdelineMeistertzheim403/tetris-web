@@ -60,7 +60,7 @@ const [speed, setSpeed] = useState(1000);
   const level = Math.floor(lines / 10) + 1;
 
   try {
-    await addScore(score, level, lines);
+    await addScore(score, level, lines, "CLASSIQUE");
     console.log("✅ Score sauvegardé :", { score, level, lines });
   } catch (err) {
     console.error("❌ Erreur enregistrement score :", err);
