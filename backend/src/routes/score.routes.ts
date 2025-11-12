@@ -1,9 +1,10 @@
 import { Router } from "express";
-import prisma from "../prisma/client";
+import { PrismaClient } from "@prisma/client"; // ✅ import enum
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
+import { GameMode } from "../types/GameMode";
 
 const router = Router();
-
+const prisma = new PrismaClient();
 /**
  * 🧠 Enregistrer un nouveau score
  */
@@ -11,13 +12,16 @@ router.post("/", verifyToken, async (req: AuthRequest, res) => {
   try {
     const { value, level, lines, mode } = req.body;
     const userId = req.user?.id;
+    const prismaMode =
+  mode === "SPRINT" ? GameMode.SPRINT : GameMode.CLASSIQUE;
+
 
     if (!userId) return res.status(401).json({ error: "Utilisateur non authentifié" });
     if (value === undefined || level === undefined || lines === undefined)
       return res.status(400).json({ error: "Champs manquants" });
 
     const score = await prisma.score.create({
-      data: { value, level, lines, userId, mode: mode as any },
+      data: { value, level, lines, userId, mode: prismaMode  },
     });
 
     res.status(201).json({ message: "Score enregistré", score });
