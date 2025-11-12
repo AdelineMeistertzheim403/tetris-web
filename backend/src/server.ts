@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import scoreRoutes from "./routes/score.routes";
+import { corsOptions } from "./config/cors.config";
 
 dotenv.config();
 
@@ -14,18 +15,7 @@ const allowedOrigins = [
   "https://www.tetris.adelinemeistertzheim.fr", // si tu veux gérer le www
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // autorise si aucune origine (ex: Postman) ou si dans la liste
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn("❌ CORS rejeté pour :", origin);
-      callback(new Error("CORS non autorisé"));
-    }
-  },
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);
