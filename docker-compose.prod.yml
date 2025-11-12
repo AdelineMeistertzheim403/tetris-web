@@ -10,10 +10,14 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - NODE_ENV=production
+      - VITE_API_URL=https://api.tetris.adelinemeistertzheim.fr/api
+    depends_on:
+      - backend
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     container_name: tetris-backend
     restart: always
     ports:
@@ -23,9 +27,6 @@ services:
       - ./backend/.env
     depends_on:
       - db
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
 
   db:
     image: postgres:16
