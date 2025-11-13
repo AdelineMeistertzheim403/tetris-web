@@ -1,19 +1,13 @@
 import express from "express";
-import cors from "cors";
+
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import scoreRoutes from "./routes/score.routes";
-import { corsOptions } from "./config/cors.config";
+
 
 dotenv.config();
 
 const app = express();
-
-// ====== CORS global ======
-app.use(cors(corsOptions));
-
-// ====== Préflight OPTIONS (compatible Express 5 / path-to-regexp) ======
-app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 
