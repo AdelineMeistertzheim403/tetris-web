@@ -9,30 +9,17 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",                    // dev local
-  "https://tetris.adelinemeistertzheim.fr",   // front prod
-  "https://www.tetris.adelinemeistertzheim.fr", // si tu veux gérer le www
-];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // autorise si aucune origine (ex: Postman) ou si dans la liste
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn("❌ CORS rejeté pour :", origin);
-      callback(new Error("CORS non autorisé"));
-    }
-  },
-  credentials: true,
-}));
+// ✅ CORS global avant les routes
+app.use(cors(corsOptions));
 
 app.use(express.json());
+
+// ✅ Routes API
 app.use("/api/auth", authRoutes);
 app.use("/api/scores", scoreRoutes);
 
+// ✅ Route de test
 app.get("/", (_, res) => res.send("✅ Tetris backend en ligne"));
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
