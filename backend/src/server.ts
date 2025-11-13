@@ -9,16 +9,18 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS global avant les routes
+// ====== CORS global ======
 app.use(cors(corsOptions));
+
+// ====== Préflight OPTIONS (compatible Express 5 / path-to-regexp) ======
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 
-// ✅ Routes API
+// ====== Routes ======
 app.use("/api/auth", authRoutes);
 app.use("/api/scores", scoreRoutes);
 
-// ✅ Route de test
 app.get("/", (_, res) => res.send("✅ Tetris backend en ligne"));
 
 const PORT = Number(process.env.PORT) || 8080;
