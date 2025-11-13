@@ -14,7 +14,7 @@ app.use(cors(corsOptions));
 
 // ❌ NE JAMAIS gérer manuellement OPTIONS avec regex
 // Express + cors gère déjà automatiquement les preflight
-app.options("*", cors(corsOptions));
+
 
 // Body parser
 app.use(express.json());
