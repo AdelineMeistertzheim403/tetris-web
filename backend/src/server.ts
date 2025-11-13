@@ -9,26 +9,21 @@ dotenv.config();
 
 const app = express();
 
-// CORS correctement appliqué
+// ✅ CORS doit être appliqué AVANT toute route
 app.use(cors(corsOptions));
 
-// Fix OPTIONS pour éviter l’erreur path-to-regexp
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    return res.sendStatus(204);
-  }
-  next();
-});
+// ❌ NE JAMAIS gérer manuellement OPTIONS avec regex
+// Express + cors gère déjà automatiquement les preflight
+app.options("*", cors(corsOptions));
 
+// Body parser
 app.use(express.json());
 
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/scores", scoreRoutes);
 
 app.get("/", (_, res) => res.send("✅ Tetris backend en ligne"));
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
