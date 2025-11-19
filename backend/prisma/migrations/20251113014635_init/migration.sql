@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "GameMode" AS ENUM ('CLASSIQUE', 'SPRINT');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
@@ -17,6 +20,7 @@ CREATE TABLE "Score" (
     "lines" INTEGER NOT NULL,
     "userId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "mode" "GameMode" NOT NULL DEFAULT 'CLASSIQUE',
 
     CONSTRAINT "Score_pkey" PRIMARY KEY ("id")
 );
