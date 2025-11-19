@@ -43,7 +43,6 @@ export default function NextPiece({ piece }: Props) {
 
   return (
     <div style={{ textAlign: "center" }}>
-      <h3>Prochaine pièce</h3>
       <canvas
         ref={canvasRef}
         width={4 * CELL_SIZE}

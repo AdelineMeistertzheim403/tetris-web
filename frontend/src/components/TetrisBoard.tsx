@@ -1,4 +1,4 @@
-import  { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useGameLoop } from "../hooks/useGameLoop";
 import { useKeyboardControls } from "../hooks/useKeyboardControls";
 import {
@@ -10,28 +10,71 @@ import {
 } from "../logic/boardUtils";
 import NextPiece from "./NextPiece";
 import { addScore } from "../services/scoreService";
+import type { Piece } from "../types/Piece";
+
 
 const ROWS = 20;
 const COLS = 10;
 const CELL_SIZE = 30;
+const PREVIEW_SIZE = 4 * CELL_SIZE;
 
 export default function TetrisBoard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [board, setBoard] = useState<number[][]>(
     Array.from({ length: ROWS }, () => Array(COLS).fill(0))
   );
-  const [piece, setPiece] = useState(getRandomPiece());
-  const [nextPiece, setNextPiece] = useState(getRandomPiece());
+  const [piece, setPiece] = useState<Piece>(getRandomPiece());
+  const [nextPiece, setNextPiece] = useState<Piece>(getRandomPiece());
   const [score, setScore] = useState(0);
   const [lines, setLines] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(3);
   const [running, setRunning] = useState(false); // contrôle la boucle
   const [level, setLevel] = useState(1);
-const [speed, setSpeed] = useState(1000);
+  const [speed, setSpeed] = useState(1000);
+  const [ghostPiece, setGhostPiece] = useState<Piece | null>(null);
+  const [holdPiece, setHoldPiece] = useState<Piece | null>(null);
+  const [canHold, setCanHold] = useState(true);
 
   const tick = useGameLoop(running, speed);
 
+  const computeGhostPiece = useCallback(() => {
+    if (!piece) return;
+
+    let ghostY = piece.y;
+
+    while (!checkCollision(board, piece.shape, piece.x, ghostY + 1)) {
+      ghostY++;
+    }
+
+    setGhostPiece({
+      ...piece,
+      y: ghostY,
+      ghost: true,
+    });
+  }, [piece, board]);
+
+  const handleHold = useCallback(() => {
+    if (!canHold || !piece) return;
+
+    if (!holdPiece) {
+      // Pas de pièce dans le hold → on stocke et on prend la next
+      setHoldPiece(piece);
+      setPiece(nextPiece);
+      setNextPiece(getRandomPiece());
+    } else {
+      // Switch : échange piece <-> hold
+      const swapped = holdPiece;
+      setHoldPiece(piece);
+      setPiece({
+        ...swapped,
+        x: COLS / 2 - Math.floor(swapped.shape[0].length / 2),
+        y: 0,
+      });
+    }
+
+    setCanHold(false); // On bloque jusqu'à la prochaine pièce
+  }, [piece, holdPiece, nextPiece, canHold]);
   // 🕹️ Mouvement clavier
   const movePiece = useCallback(
     (dir: "left" | "right" | "down" | "rotate") => {
@@ -53,19 +96,19 @@ const [speed, setSpeed] = useState(1000);
   );
 
   async function handleGameOver() {
-  setRunning(false);
-  setGameOver(true);
+    setRunning(false);
+    setGameOver(true);
 
-  // Déterminer le niveau (exemple simple)
-  const level = Math.floor(lines / 10) + 1;
+    // Déterminer le niveau (exemple simple)
+    const level = Math.floor(lines / 10) + 1;
 
-  try {
-    await addScore(score, level, lines, "CLASSIQUE");
-    console.log("✅ Score sauvegardé :", { score, level, lines });
-  } catch (err) {
-    console.error("❌ Erreur enregistrement score :", err);
+    try {
+      await addScore(score, level, lines, "CLASSIQUE");
+      console.log("✅ Score sauvegardé :", { score, level, lines });
+    } catch (err) {
+      console.error("❌ Erreur enregistrement score :", err);
+    }
   }
-}
 
   useKeyboardControls(movePiece);
 
@@ -77,28 +120,29 @@ const [speed, setSpeed] = useState(1000);
 
     if (checkCollision(board, piece.shape, piece.x, newY)) {
       const merged = mergePiece(board, piece.shape, piece.x, piece.y);
+      setCanHold(true);
       const { newBoard, linesCleared } = clearFullLines(merged);
 
       if (linesCleared > 0) {
-  setScore((prev) => prev + linesCleared * 100);
-  setLines((prev) => {
-    const total = prev + linesCleared;
-    // 🔹 Passage de niveau tous les 10 lignes
-    const newLevel = Math.floor(total / 10) + 1;
-    setLevel(newLevel);
-    // 🔹 Ajuster la vitesse (plus le niveau est haut, plus c’est rapide)
-    setSpeed(Math.max(200, 1000 - (newLevel - 1) * 100)); // limite min 200ms
-    return total;
-  });
-}
+        setScore((prev) => prev + linesCleared * 100);
+        setLines((prev) => {
+          const total = prev + linesCleared;
+          // 🔹 Passage de niveau tous les 10 lignes
+          const newLevel = Math.floor(total / 10) + 1;
+          setLevel(newLevel);
+          // 🔹 Ajuster la vitesse (plus le niveau est haut, plus c’est rapide)
+          setSpeed(Math.max(200, 1000 - (newLevel - 1) * 100)); // limite min 200ms
+          return total;
+        });
+      }
 
       setBoard(newBoard);
 
       const newPiece = nextPiece;
       if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
-  handleGameOver();
-  return;
-}
+        handleGameOver();
+        return;
+      }
 
       setPiece(newPiece);
       setNextPiece(getRandomPiece());
@@ -107,13 +151,23 @@ const [speed, setSpeed] = useState(1000);
     }
   }, [tick]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Shift" || e.key.toLowerCase() === "c") {
+        handleHold();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleHold]);
+
   // 🎨 Dessin du plateau
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
 
     ctx.clearRect(0, 0, COLS * CELL_SIZE, ROWS * CELL_SIZE);
-
+    computeGhostPiece();
     // plateau
     board.forEach((row, y) =>
       row.forEach((cell, x) => {
@@ -123,6 +177,22 @@ const [speed, setSpeed] = useState(1000);
         }
       })
     );
+
+    if (ghostPiece) {
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ghostPiece.shape.forEach((row, dy) =>
+        row.forEach((val, dx) => {
+          if (val) {
+            ctx.fillRect(
+              (ghostPiece.x + dx) * CELL_SIZE,
+              (ghostPiece.y + dy) * CELL_SIZE,
+              CELL_SIZE,
+              CELL_SIZE
+            );
+          }
+        })
+      );
+    }
 
     // pièce active
     ctx.fillStyle = piece.color;
@@ -218,69 +288,161 @@ const [speed, setSpeed] = useState(1000);
           />
         </div>
 
-        {/* Panneau latéral */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "20px",
-            background: "#1c1c1c",
-            borderRadius: "10px",
-            padding: "20px 30px",
-            boxShadow: "0 0 15px rgba(0,0,0,0.6)",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <h2 style={{ margin: "0 0 10px" }}>Score</h2>
-            <div
-              style={{
-                background: "#000",
-                border: "2px solid #333",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                fontSize: "1.2rem",
-                minWidth: "100px",
-                textAlign: "center",
-              }}
-            >
-              {score}
-            </div>
-          </div>
+       {/* Panneau latéral modernisé façon Tetris 99 */}
+<div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "25px",
+    background: "#141414",
+    borderRadius: "12px",
+    padding: "25px 30px",
+    boxShadow: "0 0 20px rgba(0,0,0,0.6)",
+    width: "220px",
+  }}
+>
+  {/* SCORE */}
+  <div style={{ width: "100%", textAlign: "center" }}>
+    <h2
+      style={{
+        marginBottom: "8px",
+        fontSize: "1.1rem",
+        letterSpacing: "1px",
+        color: "#f5f5f5",
+      }}
+    >
+      SCORE
+    </h2>
+    <div
+      style={{
+        background: "#000",
+        border: "2px solid #444",
+        borderRadius: "6px",
+        padding: "12px",
+        fontSize: "1.4rem",
+        fontWeight: "bold",
+        color: "#00eaff",
+        textShadow: "0 0 6px rgba(0,234,255,0.7)",
+      }}
+    >
+      {score}
+    </div>
+  </div>
 
-          <div style={{ textAlign: "center" }}>
-            <h3 style={{ margin: "10px 0 5px" }}>Lignes</h3>
-            <div
-              style={{
-                background: "#000",
-                border: "2px solid #333",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                fontSize: "1.1rem",
-              }}
-            >
-              {lines}
-            </div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-  <h3 style={{ margin: "10px 0 5px" }}>Niveau</h3>
-  <div
-    style={{
-      background: "#000",
-      border: "2px solid #333",
-      borderRadius: "5px",
-      padding: "10px 20px",
-      fontSize: "1.1rem",
-      color: "#facc15",
-    }}
-  >
-    {level}
+  {/* LIGNES */}
+  <div style={{ width: "100%", textAlign: "center" }}>
+    <h3
+      style={{
+        marginBottom: "8px",
+        fontSize: "1rem",
+        letterSpacing: "1px",
+        color: "#cccccc",
+      }}
+    >
+      LIGNES
+    </h3>
+    <div
+      style={{
+        background: "#000",
+        border: "2px solid #444",
+        borderRadius: "6px",
+        padding: "10px",
+        fontSize: "1.2rem",
+        color: "#9eff8c",
+        fontWeight: "bold",
+      }}
+    >
+      {lines}
+    </div>
   </div>
+
+  {/* NIVEAU */}
+  <div style={{ width: "100%", textAlign: "center" }}>
+    <h3
+      style={{
+        marginBottom: "8px",
+        fontSize: "1rem",
+        letterSpacing: "1px",
+        color: "#cccccc",
+      }}
+    >
+      NIVEAU
+    </h3>
+    <div
+      style={{
+        background: "#000",
+        border: "2px solid #444",
+        borderRadius: "6px",
+        padding: "10px",
+        fontSize: "1.2rem",
+        color: "#facc15",
+        fontWeight: "bold",
+      }}
+    >
+      {level}
+    </div>
   </div>
-          <div style={{ textAlign: "center" }}>
-            <NextPiece piece={nextPiece} />
-          </div>
-        </div>
+
+  {/* HOLD + NEXT alignés */}
+<div
+  style={{
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "20px",
+    width: "100%",
+    marginTop: "10px",
+    padding: "10px 0",
+    borderTop: "1px solid #333",
+  }}
+>
+  {/* HOLD */}
+  <div style={{ textAlign: "center" }}>
+    <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+      HOLD
+    </h3>
+
+    <div
+      style={{
+        width: PREVIEW_SIZE,
+        height: PREVIEW_SIZE,
+        border: "2px solid #333",
+        background: "#111",
+        borderRadius: "6px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {holdPiece && <NextPiece piece={holdPiece} />}
+    </div>
+  </div>
+
+  {/* NEXT */}
+  <div style={{ textAlign: "center" }}>
+    <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+      NEXT
+    </h3>
+
+    <div
+      style={{
+        width: PREVIEW_SIZE,
+        height: PREVIEW_SIZE,
+        border: "2px solid #333",
+        background: "#111",
+        borderRadius: "6px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <NextPiece piece={nextPiece} />
+    </div>
+  </div>
+</div>
+</div>
       </div>
 
       {/* 🩸 Écran de Game Over */}
