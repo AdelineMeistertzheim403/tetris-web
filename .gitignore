@@ -1,0 +1,17 @@
+# Node
+node_modules
+npm-debug.log
+pnpm-lock.yaml
+yarn.lock
+dist
+.turbo
+.parcel-cache
+.vite
+
+# Env files
+.env
+backend/.env
+frontend/.env
+
+# Logs
+*.log

@@ -6,7 +6,8 @@
     "dev": "npx prisma generate && tsx watch src/server.ts",
     "build": "npx prisma generate && tsc",
     "start": "node dist/server.js",
-    "prisma:generate": "cross-env DATABASE_URL=postgresql://tetris_user:tetris_pass@localhost:5432/tetris_db?schema=public prisma generate"
+    "prisma:generate": "cross-env DATABASE_URL=postgresql://tetris_user:tetris_pass@localhost:5432/tetris_db?schema=public prisma generate",
+    "test": "cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub prisma generate --schema prisma/schema.prisma && cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub vitest run"
   },
   "keywords": [],
   "author": "",
@@ -15,23 +16,32 @@
   "dependencies": {
     "@prisma/client": "^6.19.0",
     "bcrypt": "^6.0.0",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
+    "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
+    "pino": "^9.5.0",
+    "pino-http": "^10.3.0",
+    "pino-pretty": "^11.3.0",
     "prisma": "^6.19.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.0",
+    "@types/supertest": "^6.0.3",
     "cross-env": "^10.1.0",
+    "supertest": "^7.0.0",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.4"
   }
 }
