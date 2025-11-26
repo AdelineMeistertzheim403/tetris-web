@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export type Direction = "left" | "right" | "down" | "rotate";
+export type Direction = "left" | "right" | "down" | "rotate" | "harddrop" | "hold";
 
 /**
  * Ajoute un unique listener document-level, non-passif,
@@ -34,6 +34,15 @@ export function useKeyboardControls(onMove: (dir: Direction) => void) {
           break;
         case "ArrowUp":
           cbRef.current("rotate");
+          break;
+        case " ":
+          e.preventDefault();
+          cbRef.current("harddrop");
+          break;
+        case "Shift":
+        case "c":
+        case "C":
+          cbRef.current("hold");
           break;
       }
     };
