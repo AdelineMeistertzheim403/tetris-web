@@ -38,8 +38,18 @@ export default function TetrisBoardSprint() {
     },
   });
 
-  const { board, piece, nextPiece, lines, gameOver, ghostPiece, holdPiece, elapsedMs, completed } =
-    state;
+  const {
+    board,
+    piece,
+    nextPiece,
+    lines,
+    gameOver,
+    ghostPiece,
+    holdPiece,
+    elapsedMs,
+    completed,
+    running,
+  } = state;
   const { movePiece, hardDrop, handleHold, reset, start } = actions;
 
   useKeyboardControls((dir) => {
@@ -120,6 +130,13 @@ export default function TetrisBoardSprint() {
     reset();
     setCountdown(3);
   }, [reset]);
+
+  // Filet de sécurité : si le compte à rebours est fini mais que la boucle n'a pas démarré, on démarre.
+  useEffect(() => {
+    if (countdown === null && !running && !gameOver && !completed) {
+      start();
+    }
+  }, [countdown, running, gameOver, completed, start]);
 
   const timeSec = (elapsedMs / 1000).toFixed(2);
 

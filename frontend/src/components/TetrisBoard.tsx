@@ -26,7 +26,8 @@ export default function TetrisBoard() {
     },
   });
 
-  const { board, piece, nextPiece, score, lines, level, gameOver, ghostPiece, holdPiece } = state;
+  const { board, piece, nextPiece, score, lines, level, gameOver, ghostPiece, holdPiece, running } =
+    state;
   const { movePiece, hardDrop, handleHold, reset, start } = actions;
 
   useKeyboardControls((dir) => {
@@ -106,6 +107,13 @@ export default function TetrisBoard() {
     reset();
     setCountdown(3);
   }, [reset]);
+
+  // Filet de sécurité : si le compte à rebours est fini mais que la boucle n'a pas démarré, on démarre.
+  useEffect(() => {
+    if (countdown === null && !running && !gameOver) {
+      start();
+    }
+  }, [countdown, running, gameOver, start]);
 
   return (
     <div className="relative flex items-start justify-center gap-8">
