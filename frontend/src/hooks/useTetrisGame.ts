@@ -38,6 +38,7 @@ export function useTetrisGame({
   const [level, setLevel] = useState(1);
   const [gameOver, setGameOver] = useState(false);
   const [running, setRunning] = useState(false);
+  const [tick, setTick] = useState(0);
   const [speedMs, setSpeedMs] = useState(speed);
   const [ghostPiece, setGhostPiece] = useState<Piece | null>(null);
   const [holdPiece, setHoldPiece] = useState<Piece | null>(null);
@@ -48,6 +49,7 @@ export function useTetrisGame({
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const moveRef = useRef<(dir: "left" | "right" | "down" | "rotate") => void>(() => {});
 
   const computeGhost = useCallback(
     (current: Piece, stateBoard: number[][]) => {
@@ -156,16 +158,35 @@ export function useTetrisGame({
   }, [canHold, cols, holdPiece, nextPiece, piece]);
 
   // ----- Tick -----
+  // Boucle de jeu : tick basé sur setInterval, sépare le timer et le mouvement
   useEffect(() => {
+    // Toujours nettoyer l'intervalle courant quand les dépendances changent
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (!running || gameOver) return;
-    intervalRef.current && clearInterval(intervalRef.current);
+
     intervalRef.current = setInterval(() => {
-      movePiece("down");
+      setTick((t) => t + 1);
     }, speedMs);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
     };
-  }, [running, gameOver, movePiece, speedMs]);
+  }, [running, gameOver, speedMs]);
+
+  // Déplacement vertical sur chaque tick
+  useEffect(() => {
+    moveRef.current = movePiece;
+  }, [movePiece]);
+
+  useEffect(() => {
+    if (!running || gameOver) return;
+    moveRef.current("down");
+  }, [tick, running, gameOver]);
 
   // Ghost recompute
   useEffect(() => {
@@ -193,7 +214,10 @@ export function useTetrisGame({
   }, []);
 
   const reset = useCallback(() => {
-    intervalRef.current && clearInterval(intervalRef.current);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setBoard(Array.from({ length: rows }, () => Array(cols).fill(0)));
     setPiece(generateBagPiece());
     setNextPiece(generateBagPiece());
@@ -202,6 +226,7 @@ export function useTetrisGame({
     setLevel(1);
     setGameOver(false);
     setRunning(false);
+    setTick(0);
     setSpeedMs(speed);
     setGhostPiece(null);
     setHoldPiece(null);

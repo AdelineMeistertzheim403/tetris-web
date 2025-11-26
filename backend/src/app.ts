@@ -25,9 +25,10 @@ const allowedOrigins = env.allowedOrigins
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
+const isProd = env.nodeEnv === "production";
 
 const corsConfig = {
-  origin: allowedOrigins,
+  origin: isProd ? allowedOrigins : true, // en dev on reflète l'origine pour éviter les blocages locaux
   credentials: true,
 };
 
@@ -41,8 +42,6 @@ app.use(
 );
 app.use(compression());
 app.use(express.json({ limit: "1mb" }));
-// OPTIONS preflight pour les routes API
-app.options("/api/*", cors(corsConfig));
 
 // Limiteur global léger pour freiner les abus
 const globalLimiter = rateLimit({
