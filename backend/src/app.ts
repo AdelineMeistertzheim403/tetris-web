@@ -26,11 +26,13 @@ const allowedOrigins = env.allowedOrigins
   .map((o) => o.trim())
   .filter(Boolean);
 
+const corsConfig = {
+  origin: allowedOrigins,
+  credentials: true,
+};
+
 app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
+  cors(corsConfig)
 );
 app.use(
   helmet({
@@ -39,6 +41,7 @@ app.use(
 );
 app.use(compression());
 app.use(express.json({ limit: "1mb" }));
+app.options("*", cors(corsConfig));
 
 // Limiteur global léger pour freiner les abus
 const globalLimiter = rateLimit({
