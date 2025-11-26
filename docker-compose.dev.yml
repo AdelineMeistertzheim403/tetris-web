@@ -24,7 +24,8 @@ services:
       - /app/node_modules
     environment:
       DATABASE_URL: postgresql://tetris_user:tetris_pass@db:5432/tetris_db?schema=public
-      JWT_SECRET: dev_secret
+      JWT_SECRET: super_secret_tetris_key_dev
+      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
     depends_on:
       - db
 

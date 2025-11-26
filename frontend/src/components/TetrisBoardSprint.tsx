@@ -1,116 +1,53 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useGameLoop } from "../hooks/useGameLoop";
+import { useEffect, useRef, useState } from "react";
 import { useKeyboardControls } from "../hooks/useKeyboardControls";
-import {
-  getRandomPiece,
-  checkCollision,
-  mergePiece,
-  rotateMatrix,
-  clearFullLines,
-} from "../logic/boardUtils";
 import NextPiece from "./NextPiece";
+import FullScreenOverlay from "./FullScreenOverlay";
+import StatCard from "./StatCard";
+import GameLayout from "./GameLayout";
 import { saveScore } from "../services/scoreService";
 import { useAuth } from "../context/AuthContext";
+import { useTetrisGame } from "../hooks/useTetrisGame";
 
 const ROWS = 20;
 const COLS = 10;
 const CELL_SIZE = 30;
+const PREVIEW_SIZE = 4 * CELL_SIZE;
+const TARGET_LINES = 40;
 
 export default function TetrisBoardSprint() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { user } = useAuth();
-
-  const [board, setBoard] = useState<number[][]>(
-    Array.from({ length: ROWS }, () => Array(COLS).fill(0))
-  );
-  const [piece, setPiece] = useState(getRandomPiece());
-  const [nextPiece, setNextPiece] = useState(getRandomPiece());
-  const [lines, setLines] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
-  const [completed, setCompleted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(3);
-  const [running, setRunning] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [elapsed, setElapsed] = useState<number>(0);
 
-  const tick = useGameLoop(running, 500);
-
-  // 🕹️ Mouvement clavier
-  const movePiece = useCallback(
-    (dir: "left" | "right" | "down" | "rotate") => {
-      if (!running || gameOver || completed) return;
-      let newX = piece.x;
-      let newY = piece.y;
-      let newShape = piece.shape;
-
-      if (dir === "left") newX--;
-      if (dir === "right") newX++;
-      if (dir === "down") newY++;
-      if (dir === "rotate") newShape = rotateMatrix(piece.shape);
-
-      if (!checkCollision(board, newShape, newX, newY)) {
-        setPiece({ ...piece, x: newX, y: newY, shape: newShape });
+  const { state, actions } = useTetrisGame({
+    mode: "SPRINT",
+    targetLines: TARGET_LINES,
+    onComplete: async (elapsedMs) => {
+      if (!user) return;
+      try {
+        await saveScore({
+          userId: user.id,
+          value: Math.round(elapsedMs / 1000),
+          level: 1,
+          lines: TARGET_LINES,
+          mode: "SPRINT",
+        });
+      } catch (err) {
+        console.error("Erreur enregistrement score sprint :", err);
       }
     },
-    [piece, board, running, gameOver, completed]
-  );
+  });
 
-  useKeyboardControls(movePiece);
+  const { board, piece, nextPiece, lines, gameOver, ghostPiece, holdPiece, elapsedMs, completed } =
+    state;
+  const { movePiece, hardDrop, handleHold, reset, start } = actions;
 
-  // 🎯 Descente automatique
-  useEffect(() => {
-    if (!running || gameOver || completed) return;
+  useKeyboardControls((dir) => {
+    if (dir === "harddrop") return hardDrop();
+    if (dir === "hold") return handleHold();
+    movePiece(dir as "left" | "right" | "down" | "rotate");
+  });
 
-    const newY = piece.y + 1;
-
-    if (checkCollision(board, piece.shape, piece.x, newY)) {
-      const merged = mergePiece(board, piece.shape, piece.x, piece.y);
-      const { newBoard, linesCleared } = clearFullLines(merged);
-
-      if (piece.y <= 0) {
-        setGameOver(true);
-        setRunning(false);
-        return;
-      }
-
-      if (linesCleared > 0) {
-        const totalLines = lines + linesCleared;
-        setLines(totalLines);
-
-        if (totalLines >= 40) {
-          setCompleted(true);
-          setRunning(false);
-          setElapsed(Date.now() - (startTime ?? Date.now()));
-
-          if (user) {
-            saveScore({
-              userId: user.id,
-              value: Math.round((Date.now() - (startTime ?? 0)) / 1000),
-              level: 1,
-              lines: 40,
-              mode: "SPRINT",
-            });
-          }
-          return;
-        }
-      }
-
-      setBoard(newBoard);
-      const newPiece = nextPiece;
-      if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
-        setGameOver(true);
-        setRunning(false);
-        return;
-      }
-
-      setPiece(newPiece);
-      setNextPiece(getRandomPiece());
-    } else {
-      setPiece({ ...piece, y: newY });
-    }
-  }, [tick]);
-
-  // 🎨 Dessin du plateau
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
@@ -125,6 +62,22 @@ export default function TetrisBoardSprint() {
         }
       })
     );
+
+    if (ghostPiece) {
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ghostPiece.shape.forEach((row, dy) =>
+        row.forEach((val, dx) => {
+          if (val) {
+            ctx.fillRect(
+              (ghostPiece.x + dx) * CELL_SIZE,
+              (ghostPiece.y + dy) * CELL_SIZE,
+              CELL_SIZE,
+              CELL_SIZE
+            );
+          }
+        })
+      );
+    }
 
     ctx.fillStyle = piece.color;
     piece.shape.forEach((row, dy) =>
@@ -146,15 +99,13 @@ export default function TetrisBoardSprint() {
         ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
     }
-  }, [board, piece]);
+  }, [board, piece, ghostPiece]);
 
-  // 🧮 Compte à rebours (comme dans le mode classique)
   useEffect(() => {
     if (countdown === null) return;
     if (countdown < 0) {
       setCountdown(null);
-      setRunning(true);
-      setStartTime(Date.now());
+      start();
       return;
     }
 
@@ -163,53 +114,19 @@ export default function TetrisBoardSprint() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, start]);
 
-  // ⏱️ Timer
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
-    if (running && startTime) {
-      timer = setInterval(() => {
-        setElapsed(Date.now() - startTime);
-      }, 100);
-    }
-    return () => clearInterval(timer);
-  }, [running, startTime]);
-
-  // 🔁 Redémarrage
-  function handleRestart() {
-    setBoard(Array.from({ length: ROWS }, () => Array(COLS).fill(0)));
-    setPiece(getRandomPiece());
-    setNextPiece(getRandomPiece());
-    setLines(0);
-    setGameOver(false);
-    setCompleted(false);
-    setRunning(false);
+    reset();
     setCountdown(3);
-    setElapsed(0);
-  }
+  }, [reset]);
 
-  // Démarrage initial
-  useEffect(() => {
-    handleRestart();
-  }, []);
+  const timeSec = (elapsedMs / 1000).toFixed(2);
 
   return (
     <div className="relative flex items-start justify-center gap-8">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "flex-start",
-          gap: "60px",
-          minHeight: "70vh",
-          background: "linear-gradient(180deg, #0d0d0d 0%, #1a1a1a 100%)",
-          color: "white",
-          paddingTop: "40px",
-        }}
-      >
-        {/* 🎮 Grille */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <GameLayout
+        canvas={
           <canvas
             ref={canvasRef}
             width={COLS * CELL_SIZE}
@@ -220,65 +137,89 @@ export default function TetrisBoardSprint() {
               boxShadow: "0 0 20px rgba(0,0,0,0.8)",
             }}
           />
-        </div>
+        }
+        sidebar={
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "20px",
+              background: "#1c1c1c",
+              borderRadius: "10px",
+              padding: "20px 30px",
+              boxShadow: "0 0 15px rgba(0,0,0,0.6)",
+              width: "240px",
+            }}
+          >
+            <h2 style={{ color: "#facc15" }}>Mode Sprint</h2>
+            <StatCard label="Temps" value={`${timeSec}s`} valueColor="#f472b6" accentColor="#cccccc" />
+            <StatCard
+              label="Lignes"
+              value={`${lines}/${TARGET_LINES}`}
+              valueColor="#93c5fd"
+              accentColor="#cccccc"
+            />
 
-        {/* 📊 Panneau latéral */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "20px",
-            background: "#1c1c1c",
-            borderRadius: "10px",
-            padding: "20px 30px",
-            boxShadow: "0 0 15px rgba(0,0,0,0.6)",
-          }}
-        >
-          <h2 style={{ color: "#facc15" }}>🏁 Mode Sprint</h2>
-          <div style={{ textAlign: "center" }}>
-            <h3>Temps</h3>
             <div
               style={{
-                background: "#000",
-                border: "2px solid #333",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                fontSize: "1.2rem",
-                color: "#f472b6",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "16px",
+                width: "100%",
+                paddingTop: "10px",
+                borderTop: "1px solid #333",
               }}
             >
-              {(elapsed / 1000).toFixed(1)}s
+              <div style={{ textAlign: "center" }}>
+                <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+                  HOLD
+                </h3>
+                <div
+                  style={{
+                    width: PREVIEW_SIZE,
+                    height: PREVIEW_SIZE,
+                    border: "2px solid #333",
+                    background: "#111",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {holdPiece && <NextPiece piece={holdPiece} />}
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+                  NEXT
+                </h3>
+                <div
+                  style={{
+                    width: PREVIEW_SIZE,
+                    height: PREVIEW_SIZE,
+                    border: "2px solid #333",
+                    background: "#111",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <NextPiece piece={nextPiece} />
+                </div>
+              </div>
             </div>
           </div>
+        }
+      />
 
-          <div style={{ textAlign: "center" }}>
-            <h3>Lignes</h3>
-            <div
-              style={{
-                background: "#000",
-                border: "2px solid #333",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                fontSize: "1.1rem",
-                color: "#93c5fd",
-              }}
-            >
-              {lines}/40
-            </div>
-          </div>
-
-          <NextPiece piece={nextPiece} />
-        </div>
-      </div>
-
-      {/* 💀 Game Over */}
-      {gameOver && (
+      <FullScreenOverlay show={gameOver}>
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.8)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -286,13 +227,16 @@ export default function TetrisBoardSprint() {
             color: "white",
             fontSize: "2rem",
             fontWeight: "bold",
+            gap: "12px",
           }}
         >
           <p>GAME OVER</p>
           <button
-            onClick={handleRestart}
+            onClick={() => {
+              reset();
+              setCountdown(3);
+            }}
             style={{
-              marginTop: "20px",
               padding: "10px 20px",
               background: "#e11d48",
               border: "none",
@@ -304,15 +248,11 @@ export default function TetrisBoardSprint() {
             Rejouer
           </button>
         </div>
-      )}
+      </FullScreenOverlay>
 
-      {/* 🏆 Fin du sprint */}
-      {completed && (
+      <FullScreenOverlay show={completed}>
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.8)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -320,14 +260,17 @@ export default function TetrisBoardSprint() {
             color: "#4ade80",
             fontSize: "2rem",
             fontWeight: "bold",
+            gap: "12px",
           }}
         >
-          <p>🎉 Sprint terminé 🎉</p>
-          <p>Temps final : {(elapsed / 1000).toFixed(2)}s</p>
+          <p>Sprint terminé</p>
+          <p>Temps final : {timeSec}s</p>
           <button
-            onClick={handleRestart}
+            onClick={() => {
+              reset();
+              setCountdown(3);
+            }}
             style={{
-              marginTop: "20px",
               padding: "10px 20px",
               background: "#22c55e",
               border: "none",
@@ -339,18 +282,11 @@ export default function TetrisBoardSprint() {
             Rejouer
           </button>
         </div>
-      )}
+      </FullScreenOverlay>
 
-      {/* ⏳ Compte à rebours (identique au mode classique) */}
-      {countdown !== null && (
+      <FullScreenOverlay show={countdown !== null}>
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "rgba(0,0,0,0.8)",
             color: "white",
             fontSize: countdown === 0 ? "3rem" : "8rem",
             fontWeight: "bold",
@@ -359,7 +295,7 @@ export default function TetrisBoardSprint() {
         >
           {countdown === 0 ? "GO!" : countdown}
         </div>
-      )}
+      </FullScreenOverlay>
     </div>
   );
 }
