@@ -41,7 +41,8 @@ app.use(
 );
 app.use(compression());
 app.use(express.json({ limit: "1mb" }));
-app.options("*", cors(corsConfig));
+// OPTIONS preflight pour les routes API
+app.options("/api/*", cors(corsConfig));
 
 // Limiteur global léger pour freiner les abus
 const globalLimiter = rateLimit({
