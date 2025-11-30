@@ -8,6 +8,7 @@ import Leaderboard from "./pages/Leaderboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import Sprint from "./pages/Sprint";
+import Versus from "./pages/Versus";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         }
       />
       <Route path="/sprint" element={<Sprint />} />
+      <Route path="/versus" element={<Versus />} />
       </Routes>
     </>
   );

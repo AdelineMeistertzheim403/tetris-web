@@ -7,17 +7,42 @@ import GameLayout from "./GameLayout";
 import { addScore } from "../services/scoreService";
 import { useTetrisGame } from "../hooks/useTetrisGame";
 
+type TetrisBoardProps = {
+  bagSequence?: string[];
+  incomingGarbage?: number;
+  onConsumeLines?: (lines: number) => void;
+  onGarbageConsumed?: () => void;
+  autoStart?: boolean;
+  onBoardUpdate?: (board: number[][]) => void;
+  onLocalGameOver?: (score: number, lines: number) => void;
+  hideGameOverOverlay?: boolean;
+};
+
 const ROWS = 20;
 const COLS = 10;
 const CELL_SIZE = 30;
 const PREVIEW_SIZE = 4 * CELL_SIZE;
 
-export default function TetrisBoard() {
+export default function TetrisBoard({
+  bagSequence,
+  incomingGarbage = 0,
+  onConsumeLines,
+  onGarbageConsumed,
+  autoStart = true,
+  onBoardUpdate,
+  onLocalGameOver,
+  hideGameOverOverlay = false,
+}: TetrisBoardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [countdown, setCountdown] = useState<number | null>(3);
+  const [countdown, setCountdown] = useState<number | null>(autoStart ? 3 : null);
   const { state, actions } = useTetrisGame({
     mode: "CLASSIQUE",
+    bagSequence,
+    onConsumeLines,
+    incomingGarbage,
+    onGarbageConsumed,
     onGameOver: async (score, level, lines) => {
+      if (onLocalGameOver) onLocalGameOver(score, lines);
       try {
         await addScore(score, level, lines, "CLASSIQUE");
       } catch (err) {
@@ -26,8 +51,17 @@ export default function TetrisBoard() {
     },
   });
 
-  const { board, piece, nextPiece, score, lines, level, gameOver, ghostPiece, holdPiece, running } =
-    state;
+  const {
+    board,
+    piece,
+    nextPiece,
+    score,
+    lines,
+    level,
+    gameOver,
+    ghostPiece,
+    holdPiece,
+  } = state;
   const { movePiece, hardDrop, handleHold, reset, start } = actions;
 
   useKeyboardControls((dir) => {
@@ -86,6 +120,8 @@ export default function TetrisBoard() {
         ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
     }
+
+    if (onBoardUpdate) onBoardUpdate(board);
   }, [board, piece, ghostPiece]);
 
   useEffect(() => {
@@ -105,15 +141,8 @@ export default function TetrisBoard() {
 
   useEffect(() => {
     reset();
-    setCountdown(3);
-  }, [reset]);
-
-  // Filet de sécurité : si le compte à rebours est fini mais que la boucle n'a pas démarré, on démarre.
-  useEffect(() => {
-    if (countdown === null && !running && !gameOver) {
-      start();
-    }
-  }, [countdown, running, gameOver, start]);
+    if (autoStart) setCountdown(3);
+  }, [reset, autoStart]);
 
   return (
     <div className="relative flex items-start justify-center gap-8">
@@ -205,7 +234,8 @@ export default function TetrisBoard() {
         }
       />
 
-      <FullScreenOverlay show={gameOver && countdown === null}>
+      {!hideGameOverOverlay && (
+        <FullScreenOverlay show={gameOver && countdown === null}>
         <div
           style={{
             display: "flex",
@@ -222,7 +252,7 @@ export default function TetrisBoard() {
           <button
             onClick={() => {
               reset();
-              setCountdown(3);
+              if (autoStart) setCountdown(3);
             }}
             style={{
               padding: "10px 20px",
@@ -237,7 +267,8 @@ export default function TetrisBoard() {
             Rejouer
           </button>
         </div>
-      </FullScreenOverlay>
+        </FullScreenOverlay>
+      )}
 
       <FullScreenOverlay show={countdown !== null}>
         <div
