@@ -74,6 +74,7 @@ button, .retro-btn {
   color: #fff;
   text-shadow: 0 0 6px #ff33cc, 0 0 10px #ff33cc, 0 0 12px #00ffff;
   padding: 10px 20px;
+  margin-top: 20px;
   margin-bottom: 20px;
   font-family: 'Press Start 2P', cursive;
   font-size: 0.8rem;
@@ -129,6 +130,9 @@ nav.neon-navbar:hover {
   background: rgba(20, 0, 40, 0.8);
   border: 2px solid #ff33cc;
   padding: 12px;
+  margin-top: 20px;
+  margin-right: 20px;
+  margin-bottom: 20px;
   font-size: 0.8rem;
   color: #fff;
   border-radius: 6px;

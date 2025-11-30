@@ -27,12 +27,26 @@ export function useTetrisGame({
   onGameOver,
   onComplete,
   targetLines = 40,
-}: Options) {
+  bagSequence,
+  onConsumeLines,
+  incomingGarbage = 0,
+  onGarbageConsumed,
+}: Options & {
+  bagSequence?: string[];
+  onConsumeLines?: (lines: number) => void;
+  incomingGarbage?: number;
+  onGarbageConsumed?: () => void;
+}) {
   const [board, setBoard] = useState<number[][]>(
     Array.from({ length: rows }, () => Array(cols).fill(0))
   );
-  const [piece, setPiece] = useState<Piece>(generateBagPiece());
-  const [nextPiece, setNextPiece] = useState<Piece>(generateBagPiece());
+  const bagRef = useRef<string[]>(bagSequence ? [...bagSequence] : []);
+  const [piece, setPiece] = useState<Piece>(() =>
+    bagRef.current.length ? generateBagPiece(bagRef.current) : generateBagPiece()
+  );
+  const [nextPiece, setNextPiece] = useState<Piece>(() =>
+    bagRef.current.length ? generateBagPiece(bagRef.current) : generateBagPiece()
+  );
   const [score, setScore] = useState(0);
   const [lines, setLines] = useState(0);
   const [level, setLevel] = useState(1);
@@ -50,6 +64,20 @@ export function useTetrisGame({
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moveRef = useRef<(dir: "left" | "right" | "down" | "rotate") => void>(() => {});
+  const garbageRef = useRef(0);
+
+  // Mettre à jour le bag quand une nouvelle séquence arrive
+  // Ajout de bag externe : on concatène pour éviter de tomber en panne de tirage
+  useEffect(() => {
+    if (bagSequence && bagSequence.length > 0) {
+      bagRef.current.push(...bagSequence);
+      // Si le board est vide et qu'on n'a pas démarré, on prépare la prochaine pièce
+      if (!running) {
+        setPiece(generateBagPiece(bagRef.current));
+        setNextPiece(generateBagPiece(bagRef.current));
+      }
+    }
+  }, [bagSequence, running]);
 
   const computeGhost = useCallback(
     (current: Piece, stateBoard: number[][]) => {
@@ -66,9 +94,23 @@ export function useTetrisGame({
     (currentBoard: number[][], currentPiece: Piece) => {
       const merged = mergePiece(currentBoard, currentPiece.shape, currentPiece.x, currentPiece.y);
       setCanHold(true);
-      const { newBoard, linesCleared } = clearFullLines(merged);
+      let boardAfterGarbage = merged;
+      if (garbageRef.current > 0) {
+        // injecter des lignes avec un trou pour éviter de donner du score gratuit
+        const garbageLines = Array.from({ length: garbageRef.current }, () => {
+          const line = Array(cols).fill(1);
+          const hole = Math.floor(Math.random() * cols);
+          line[hole] = 0;
+          return line;
+        });
+        boardAfterGarbage = [...boardAfterGarbage.slice(garbageRef.current), ...garbageLines];
+        if (onGarbageConsumed) onGarbageConsumed();
+        garbageRef.current = 0;
+      }
+      const { newBoard, linesCleared } = clearFullLines(boardAfterGarbage);
 
       if (linesCleared > 0) {
+        if (onConsumeLines) onConsumeLines(linesCleared);
         setScore((prev) => prev + linesCleared * 100);
         setLines((prev) => {
           const total = prev + linesCleared;
@@ -92,7 +134,7 @@ export function useTetrisGame({
 
       setBoard(newBoard);
 
-      const newPiece = nextPiece;
+      const newPiece = nextPiece ?? generateBagPiece(bagRef.current);
       if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
         setRunning(false);
         setGameOver(true);
@@ -101,9 +143,9 @@ export function useTetrisGame({
       }
 
       setPiece(newPiece);
-      setNextPiece(generateBagPiece());
+      setNextPiece(generateBagPiece(bagRef.current));
     },
-    [nextPiece, mode, targetLines, speed, startTime, onComplete, onGameOver, score, level, lines]
+    [nextPiece, mode, targetLines, speed, startTime, onComplete, onGameOver, score, level, lines, onConsumeLines]
   );
 
   // ----- Movement -----
@@ -144,7 +186,7 @@ export function useTetrisGame({
     if (!holdPiece) {
       setHoldPiece(piece);
       setPiece(nextPiece);
-      setNextPiece(generateBagPiece());
+      setNextPiece(generateBagPiece(bagRef.current));
     } else {
       const swapped = holdPiece;
       setHoldPiece(piece);
@@ -208,6 +250,13 @@ export function useTetrisGame({
     setRunning(true);
     if (!startTime) setStartTime(Date.now());
   }, [startTime]);
+
+  // Consommer le compteur de garbage externe
+  useEffect(() => {
+    if (incomingGarbage > 0) {
+      garbageRef.current = incomingGarbage;
+    }
+  }, [incomingGarbage]);
 
   const pause = useCallback(() => {
     setRunning(false);

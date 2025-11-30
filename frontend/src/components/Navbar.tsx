@@ -46,6 +46,14 @@ export default function Navbar() {
         ) : (
           <div></div>
         )}
+         {user ? (
+          <Link to="/versus" className="neon-link text-pink-400">
+  Versus
+</Link>
+
+        ) : (
+          <div></div>
+        )}
 
         <Link to="/leaderboard" className="neon-link text-pink-400">
           Classement

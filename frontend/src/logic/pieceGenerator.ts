@@ -13,15 +13,27 @@ function shuffle<T>(array: T[]): T[] {
   return arr;
 }
 
-function refillBag() {
-  currentBag = shuffle(Object.keys(SHAPES));
+function refillBag(targetBag?: string[]) {
+  if (targetBag && targetBag.length) {
+    currentBag = [...targetBag];
+  } else {
+    currentBag = shuffle(Object.keys(SHAPES));
+  }
 }
 
-export function generateBagPiece(): Piece {
+export function generateBagPiece(externalBag?: string[]): Piece {
+  if (externalBag && externalBag.length > 0) {
+    return createPieceFromKey(externalBag.shift() as string);
+  }
+
   if (currentBag.length === 0) {
     refillBag();
   }
   const key = currentBag.shift() as string;
+  return createPieceFromKey(key);
+}
+
+function createPieceFromKey(key: string): Piece {
   const shape = SHAPES[key];
   const color = COLORS[key];
 
