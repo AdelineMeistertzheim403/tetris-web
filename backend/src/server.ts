@@ -1,9 +1,14 @@
+import http from "http";
 import app from "./app";
 import { env } from "./config";
 import { logger } from "./logger";
+import { setupWebsocket } from "./ws/server";
 
 const PORT = env.port;
 
-app.listen(PORT, "0.0.0.0", () => {
+const server = http.createServer(app);
+setupWebsocket(server);
+
+server.listen(PORT, "0.0.0.0", () => {
   logger.info(`Server running on port ${PORT}`);
 });
