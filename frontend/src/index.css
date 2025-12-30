@@ -154,6 +154,31 @@ label {
   font-size: 0.7rem;
 }
 
+.nav-link.roguelike {
+  color: #d36bff;
+  text-shadow:
+    0 0 6px rgba(211, 107, 255, 0.6),
+    0 0 12px rgba(211, 107, 255, 0.4);
+  position: relative;
+}
+
+.nav-link.roguelike::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #d36bff, #ff4fd8);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.nav-link.roguelike:hover::after {
+  opacity: 1;
+}
+
+
 
 /* =========================================================
    4️⃣  ANIMATIONS ET EFFETS
