@@ -6,8 +6,11 @@ import StatCard from "./StatCard";
 import GameLayout from "./GameLayout";
 import { addScore } from "../services/scoreService";
 import { useTetrisGame } from "../hooks/useTetrisGame";
+import type { GameMode } from "../types/GameMode";
 
 type TetrisBoardProps = {
+  mode?: GameMode;
+  scoreMode?: GameMode | null;
   bagSequence?: string[];
   incomingGarbage?: number;
   onConsumeLines?: (lines: number) => void;
@@ -24,6 +27,8 @@ const CELL_SIZE = 30;
 const PREVIEW_SIZE = 4 * CELL_SIZE;
 
 export default function TetrisBoard({
+  mode = "CLASSIQUE",
+  scoreMode,
   bagSequence,
   incomingGarbage = 0,
   onConsumeLines,
@@ -33,18 +38,20 @@ export default function TetrisBoard({
   onLocalGameOver,
   hideGameOverOverlay = false,
 }: TetrisBoardProps) {
+  const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [countdown, setCountdown] = useState<number | null>(autoStart ? 3 : null);
   const { state, actions } = useTetrisGame({
-    mode: "CLASSIQUE",
+    mode,
     bagSequence,
     onConsumeLines,
     incomingGarbage,
     onGarbageConsumed,
     onGameOver: async (score, level, lines) => {
       if (onLocalGameOver) onLocalGameOver(score, lines);
+      if (!effectiveScoreMode) return;
       try {
-        await addScore(score, level, lines, "CLASSIQUE");
+        await addScore(score, level, lines, effectiveScoreMode);
       } catch (err) {
         console.error("Erreur enregistrement score :", err);
       }

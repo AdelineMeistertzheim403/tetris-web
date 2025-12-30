@@ -5,12 +5,12 @@ import { logger } from "../logger";
 type Match = {
   id: string;
   players: Set<WebSocket>;
-  slots: Map<WebSocket, number>;
+  slots: Map<WebSocket, { slot: number; userId?: number; pseudo?: string }>;
   finished: Map<number, { score: number; lines: number }>;
 };
 
 type IncomingMessage =
-  | { type: "join_match"; matchId?: string }
+  | { type: "join_match"; matchId?: string; userId?: number; pseudo?: string }
   | { type: "lines_cleared"; lines: number }
   | { type: "state"; board: number[][] }
   | { type: "game_over"; score: number; lines: number };
@@ -23,7 +23,8 @@ type OutgoingMessage =
   | { type: "opponent_left" }
   | { type: "opponent_state"; board: number[][] }
   | { type: "opponent_finished" }
-  | { type: "match_over"; results: Array<{ slot: number; score: number; lines: number }> };
+  | { type: "match_over"; results: Array<{ slot: number; score: number; lines: number }> }
+  | { type: "players_sync"; players: Array<{ slot: number; userId?: number; pseudo?: string }> };
 
 const matches = new Map<string, Match>();
 const BAG_REFILL_SIZE = 21; // 3 bags
@@ -59,6 +60,15 @@ function broadcast(match: Match, data: OutgoingMessage, exclude?: WebSocket) {
   });
 }
 
+function broadcastPlayersSync(match: Match) {
+  const players = Array.from(match.slots.values()).map((info) => ({
+    slot: info.slot,
+    userId: info.userId,
+    pseudo: info.pseudo,
+  }));
+  broadcast(match, { type: "players_sync", players });
+}
+
 export function setupWebsocket(server: HttpServer) {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -84,7 +94,11 @@ export function setupWebsocket(server: HttpServer) {
         }
         match.players.add(ws);
         slot = match.players.size; // simple slot index (1-based)
-        match.slots.set(ws, slot);
+        match.slots.set(ws, {
+          slot,
+          userId: parsed.userId,
+          pseudo: parsed.pseudo ?? "Anonyme",
+        });
         currentMatch = match;
         // payload pour soi (self:true) et pour les autres (sans self)
         const selfPayload = {
@@ -102,13 +116,14 @@ export function setupWebsocket(server: HttpServer) {
           slot,
         };
         broadcast(match, otherPayload, ws);
+        broadcastPlayersSync(match);
 
         // Démarrer quand 2 joueurs présents
         if (match.players.size >= 2) {
           const bag = generateBags(3); // 3 bags d'avance
           // envoyer le slot à chacun
           match.players.forEach((player) => {
-            const playerSlot = match?.slots.get(player) ?? 0;
+            const playerSlot = match?.slots.get(player)?.slot ?? 0;
             const payload = { type: "start", matchId, bag, slot: playerSlot } as OutgoingMessage & { slot?: number };
             if (player.readyState === WebSocket.OPEN) {
               player.send(JSON.stringify(payload));
@@ -156,7 +171,9 @@ export function setupWebsocket(server: HttpServer) {
     ws.on("close", () => {
       if (currentMatch) {
         currentMatch.players.delete(ws);
+        currentMatch.slots.delete(ws);
         broadcast(currentMatch, { type: "opponent_left" }, ws);
+        broadcastPlayersSync(currentMatch);
         if (currentMatch.players.size === 0) {
           matches.delete(currentMatch.id);
         }
