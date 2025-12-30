@@ -35,33 +35,6 @@ const versusMatchSchema = z.object({
     .length(2),
 });
 
-type VersusStatsRow = { userId: number; wins?: number; losses?: number };
-
-async function buildVersusStatsMap() {
-  const wins = (await prisma.$queryRaw<
-    VersusStatsRow[]
-  >`SELECT "winnerId" as "userId", COUNT(*)::int as wins FROM "VersusMatch" WHERE "winnerId" IS NOT NULL GROUP BY "winnerId"`) ?? [];
-
-  const losses = (await prisma.$queryRaw<
-    VersusStatsRow[]
-  >`SELECT "loserId" as "userId", COUNT(*)::int as losses FROM (
-        SELECT "player2Id" AS "loserId" FROM "VersusMatch" WHERE "winnerId" = "player1Id" AND "player2Id" IS NOT NULL
-        UNION ALL
-        SELECT "player1Id" AS "loserId" FROM "VersusMatch" WHERE "winnerId" = "player2Id" AND "player1Id" IS NOT NULL
-      ) t GROUP BY "loserId"`) ?? [];
-
-  const stats = new Map<number, { wins: number; losses: number }>();
-  wins.forEach((row) => {
-    if (row.userId) stats.set(row.userId, { wins: row.wins ?? 0, losses: 0 });
-  });
-  losses.forEach((row) => {
-    if (!row.userId) return;
-    const prev = stats.get(row.userId) ?? { wins: 0, losses: 0 };
-    stats.set(row.userId, { wins: prev.wins, losses: row.losses ?? 0 });
-  });
-  return stats;
-}
-
 /**
  * Enregistrer un nouveau score
  */
@@ -185,15 +158,29 @@ router.get("/leaderboard/:mode", leaderboardLimiter, async (req: AuthRequest, re
       return res.status(400).json({ error: "Mode de jeu invalide" });
 
     if (mode === GameMode.VERSUS) {
-      const statsMap = await buildVersusStatsMap();
       const matches = await prisma.versusMatch.findMany({
         orderBy: [{ createdAt: "desc" }],
-        take: 50,
+        take: 200,
+      });
+
+      const stats = new Map<number, { wins: number; losses: number }>();
+      const bump = (id: number | null | undefined, type: "wins" | "losses") => {
+        if (!id) return;
+        const current = stats.get(id) ?? { wins: 0, losses: 0 };
+        current[type] += 1;
+        stats.set(id, current);
+      };
+
+      matches.forEach((m) => {
+        if (!m.winnerId) return;
+        bump(m.winnerId, "wins");
+        const loserId = m.winnerId === m.player1Id ? m.player2Id : m.player1Id;
+        bump(loserId, "losses");
       });
 
       const decorated = matches.map((m) => {
-        const p1Stats = m.player1Id ? statsMap.get(m.player1Id) ?? { wins: 0, losses: 0 } : { wins: 0, losses: 0 };
-        const p2Stats = m.player2Id ? statsMap.get(m.player2Id) ?? { wins: 0, losses: 0 } : { wins: 0, losses: 0 };
+        const p1Stats = m.player1Id ? stats.get(m.player1Id) ?? { wins: 0, losses: 0 } : { wins: 0, losses: 0 };
+        const p2Stats = m.player2Id ? stats.get(m.player2Id) ?? { wins: 0, losses: 0 } : { wins: 0, losses: 0 };
         const winnerStats =
           m.winnerId && m.winnerId === m.player1Id
             ? p1Stats
