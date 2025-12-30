@@ -33,23 +33,32 @@ export default function Navbar() {
         )}
         {user ? (
           <Link to="/game" className="neon-link text-pink-400">
-          Jouer
-        </Link>
+            Jouer
+          </Link>
         ) : (
           <div></div>
         )}
         {user ? (
           <Link to="/sprint" className="neon-link text-pink-400">
-  Sprint
-</Link>
+            Sprint
+          </Link>
 
         ) : (
           <div></div>
         )}
-         {user ? (
+        {user ? (
           <Link to="/versus" className="neon-link text-pink-400">
-  Versus
-</Link>
+            Versus
+          </Link>
+
+        ) : (
+          <div></div>
+        )}
+
+        {user ? (
+          <Link to="/roguelike" className="nav-link roguelike">
+            ROGUELIKE
+          </Link>
 
         ) : (
           <div></div>
