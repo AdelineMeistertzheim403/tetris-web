@@ -2,4 +2,5 @@
 export enum GameMode {
   CLASSIQUE = "CLASSIQUE",
   SPRINT = "SPRINT",
+  VERSUS = "VERSUS",
 }

@@ -8,10 +8,13 @@ type IncomingMessage =
   | { type: "opponent_left" }
   | { type: "opponent_finished" }
   | { type: "match_over"; results: Array<{ slot: number; score: number; lines: number }> }
-  | { type: "opponent_state"; board: number[][] };
+  | { type: "opponent_state"; board: number[][] }
+  | { type: "players_sync"; players: Array<{ slot: number; pseudo?: string; userId?: number }> };
 
 type JoinParams = {
   matchId?: string;
+  userId?: number;
+  pseudo?: string;
 };
 
 function buildWsUrl(): string | null {
@@ -27,7 +30,7 @@ function buildWsUrl(): string | null {
   }
 }
 
-export function useVersusSocket({ matchId }: JoinParams) {
+export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
   const [connected, setConnected] = useState(false);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
   const [players, setPlayers] = useState(0);
@@ -41,6 +44,7 @@ export function useVersusSocket({ matchId }: JoinParams) {
   const [slot, setSlot] = useState<number | null>(null);
   const [results, setResults] = useState<Array<{ slot: number; score: number; lines: number }> | null>(null);
   const [opponentFinished, setOpponentFinished] = useState(false);
+  const [playersInfo, setPlayersInfo] = useState<Array<{ slot: number; pseudo?: string; userId?: number }>>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const wsUrl = useMemo(buildWsUrl, []);
@@ -60,6 +64,7 @@ export function useVersusSocket({ matchId }: JoinParams) {
     setSlot(null);
     setResults(null);
     setOpponentFinished(false);
+    setPlayersInfo([]);
     slotRef.current = null;
   };
 
@@ -81,7 +86,7 @@ export function useVersusSocket({ matchId }: JoinParams) {
     ws.onopen = () => {
       setConnected(true);
       setError(null);
-      ws.send(JSON.stringify({ type: "join_match", matchId }));
+      ws.send(JSON.stringify({ type: "join_match", matchId, userId, pseudo }));
     };
 
     ws.onerror = (evt) => {
@@ -135,6 +140,9 @@ export function useVersusSocket({ matchId }: JoinParams) {
         if (msg.type === "opponent_state") {
           setOpponentBoard(msg.board);
         }
+        if (msg.type === "players_sync") {
+          setPlayersInfo(msg.players);
+        }
       } catch (err) {
         console.error("WS parse error", err);
       }
@@ -184,6 +192,7 @@ export function useVersusSocket({ matchId }: JoinParams) {
     slot,
     results,
     error,
+    playersInfo,
     actions: {
       sendLinesCleared,
       sendGameOver,

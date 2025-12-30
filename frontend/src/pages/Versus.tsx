@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useVersusSocket } from "../hooks/useVersusSocket";
 import TetrisBoard from "../components/TetrisBoard";
 import OpponentBoard from "../components/OpponentBoard";
 import FullScreenOverlay from "../components/FullScreenOverlay";
+import { saveVersusMatch } from "../services/scoreService";
 
 function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
@@ -33,10 +34,41 @@ export default function Versus() {
     opponentFinished,
     slot,
     results,
-  } = useVersusSocket({ matchId: joinId });
+    playersInfo,
+  } = useVersusSocket({ matchId: joinId, userId: user?.id, pseudo: user?.pseudo });
 
   const startReady = players >= 2 && bagSequence.length > 0;
   const [localFinished, setLocalFinished] = useState(false);
+  const [hasSavedResult, setHasSavedResult] = useState(false);
+
+  useEffect(() => {
+    setHasSavedResult(false);
+  }, [currentMatchId]);
+
+  useEffect(() => {
+    if (!matchOver || !results || slot === null || !user || hasSavedResult) return;
+    // Pour Ã©viter deux Ã©critures (une par joueur), seul le slot 1 sauvegarde
+    if (slot !== 1) return;
+    if (results.length < 2) return;
+
+    const payload = {
+      matchId: currentMatchId ?? undefined,
+      players: results.map((r) => {
+        const meta = playersInfo.find((p) => p.slot === r.slot);
+        const isSelf = r.slot === slot;
+        return {
+          slot: r.slot,
+          userId: meta?.userId ?? (isSelf ? user.id : undefined),
+          pseudo: meta?.pseudo ?? (isSelf ? user.pseudo : "Adversaire"),
+          score: r.score,
+          lines: r.lines,
+        };
+      }),
+    };
+
+    saveVersusMatch(payload).catch((err) => console.error("Erreur enregistrement match versus :", err));
+    setHasSavedResult(true);
+  }, [currentMatchId, hasSavedResult, matchOver, playersInfo, results, slot, user]);
 
   if (startReady) {
     const myResult = results?.find((r) => r.slot === slot) ?? null;
@@ -52,6 +84,8 @@ export default function Versus() {
         </p>
         <div className="flex gap-6 items-start">
           <TetrisBoard
+            mode="VERSUS"
+            scoreMode={null}
             bagSequence={bagSequence}
             incomingGarbage={garbage}
             onGarbageConsumed={actions.consumeGarbage}
