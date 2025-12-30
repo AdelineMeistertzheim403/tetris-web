@@ -3,15 +3,19 @@ import { checkCollision, clearFullLines, mergePiece, rotateMatrix } from "../log
 import { generateBagPiece } from "../logic/pieceGenerator";
 import type { Piece } from "../types/Piece";
 import type { GameMode } from "../types/GameMode";
+import { applyBomb } from "../logic/bombUtils";
 
 type Options = {
   rows?: number;
   cols?: number;
   mode: GameMode;
   speed?: number;
+  gravityMultiplier?: number; 
+  extraHold?: number;
   onGameOver?: (score: number, level: number, lines: number) => void;
-  onComplete?: (elapsedMs: number) => void; // pour sprint
-  targetLines?: number; // pour sprint
+  onComplete?: (elapsedMs: number) => void;
+  targetLines?: number;
+  onBombExplode?: () => void;
 };
 
 const DEFAULT_ROWS = 20;
@@ -23,10 +27,13 @@ export function useTetrisGame({
   cols = DEFAULT_COLS,
   mode,
   speed = DEFAULT_SPEED,
+  gravityMultiplier = 1,
+  extraHold = 0,
   onGameOver,
   onComplete,
   targetLines = 40,
   bagSequence,
+  onBombExplode,
   onConsumeLines,
   incomingGarbage = 0,
   onGarbageConsumed,
@@ -52,11 +59,13 @@ export function useTetrisGame({
   const [gameOver, setGameOver] = useState(false);
   const [running, setRunning] = useState(false);
   const [tick, setTick] = useState(0);
-  const [speedMs, setSpeedMs] = useState(speed);
+  const [speedMs, setSpeedMs] = useState(speed * gravityMultiplier);
   const [ghostPiece, setGhostPiece] = useState<Piece | null>(null);
   const [holdPiece, setHoldPiece] = useState<Piece | null>(null);
   const [canHold, setCanHold] = useState(true);
   const [completed, setCompleted] = useState(false);
+  const [holdBonusLeft, setHoldBonusLeft] = useState(0);
+  const [bombs, setBombs] = useState(0);
 
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -64,6 +73,23 @@ export function useTetrisGame({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moveRef = useRef<(dir: "left" | "right" | "down" | "rotate") => void>(() => {});
   const garbageRef = useRef(0);
+
+  const addBomb = useCallback(() => {
+  setBombs(b => b + 1);
+}, []);
+
+const triggerBomb = useCallback(() => {
+  console.log("💣 triggerBomb called");
+  if (bombs <= 0 || !piece || gameOver || !running) return;
+console.log("bombs:", bombs, "running:", running, "gameOver:", gameOver);
+  // centre = position actuelle de la pièce
+  const centerX = piece.x + Math.floor(piece.shape[0].length / 2);
+  const centerY = piece.y + Math.floor(piece.shape.length / 2);
+
+  setBoard(prev => applyBomb(prev, centerX, centerY));
+  onBombExplode?.();
+  setBombs(b => b - 1);
+}, [bombs, piece, gameOver, running]);
 
   // Mettre à jour le bag quand une nouvelle séquence arrive
   // Ajout de bag externe : on concatène pour éviter de tomber en panne de tirage
@@ -77,6 +103,10 @@ export function useTetrisGame({
       }
     }
   }, [bagSequence, running]);
+
+  useEffect(() => {
+  setSpeedMs(speed * gravityMultiplier);
+}, [gravityMultiplier, speed]);
 
   const computeGhost = useCallback(
     (current: Piece, stateBoard: number[][]) => {
@@ -93,6 +123,7 @@ export function useTetrisGame({
     (currentBoard: number[][], currentPiece: Piece) => {
       const merged = mergePiece(currentBoard, currentPiece.shape, currentPiece.x, currentPiece.y);
       setCanHold(true);
+      setHoldBonusLeft(extraHold);
       let boardAfterGarbage = merged;
       if (garbageRef.current > 0) {
         // injecter des lignes avec un trou pour éviter de donner du score gratuit
@@ -116,7 +147,9 @@ export function useTetrisGame({
           if (mode !== "SPRINT") {
             const newLevel = Math.floor(total / 10) + 1;
             setLevel(newLevel);
-            setSpeedMs(Math.max(200, speed - (newLevel - 1) * 100));
+            setSpeedMs(
+  Math.max(200, (speed - (newLevel - 1) * 100) * gravityMultiplier)
+);
           } else if (total >= targetLines) {
             setRunning(false);
             const nowElapsed = Date.now() - (startTime ?? Date.now());
@@ -144,7 +177,7 @@ export function useTetrisGame({
       setPiece(newPiece);
       setNextPiece(generateBagPiece(bagRef.current));
     },
-    [nextPiece, mode, targetLines, speed, startTime, onComplete, onGameOver, score, level, lines, onConsumeLines]
+    [nextPiece, mode, targetLines, speed, startTime, onComplete, onGameOver, score, level, lines, onConsumeLines, extraHold,]
   );
 
   // ----- Movement -----
@@ -181,11 +214,14 @@ export function useTetrisGame({
   }, [board, gameOver, mergeAndNext, piece, running]);
 
   const handleHold = useCallback(() => {
-    if (!canHold || !piece) return;
+    if (!piece) return;
+
+  if (!canHold && holdBonusLeft <= 0) return;
     if (!holdPiece) {
       setHoldPiece(piece);
       setPiece(nextPiece);
       setNextPiece(generateBagPiece(bagRef.current));
+      
     } else {
       const swapped = holdPiece;
       setHoldPiece(piece);
@@ -195,8 +231,11 @@ export function useTetrisGame({
         y: 0,
       });
     }
+    if (!canHold && holdBonusLeft > 0) {
+  setHoldBonusLeft(v => v - 1);
+}
     setCanHold(false);
-  }, [canHold, cols, holdPiece, nextPiece, piece]);
+  }, [canHold,holdBonusLeft, cols, holdPiece, nextPiece, piece]);
 
   // ----- Tick -----
   // Boucle de jeu : tick basé sur setInterval, sépare le timer et le mouvement
@@ -275,7 +314,8 @@ export function useTetrisGame({
     setGameOver(false);
     setRunning(false);
     setTick(0);
-    setSpeedMs(speed);
+    setHoldBonusLeft(0);
+    setSpeedMs(speed * gravityMultiplier);
     setGhostPiece(null);
     setHoldPiece(null);
     setCanHold(true);
@@ -298,8 +338,9 @@ export function useTetrisGame({
       holdPiece,
       completed,
       elapsedMs,
+       bombs,
     }),
-    [board, piece, nextPiece, score, lines, level, gameOver, running, ghostPiece, holdPiece, completed, elapsedMs]
+    [board, piece, nextPiece, score, lines, level, gameOver, running, ghostPiece, holdPiece, completed, elapsedMs, bombs]
   );
 
   return {
@@ -311,6 +352,8 @@ export function useTetrisGame({
       start,
       pause,
       reset,
+      addBomb,
+      triggerBomb,
     },
   };
 }

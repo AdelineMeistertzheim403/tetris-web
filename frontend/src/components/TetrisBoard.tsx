@@ -19,6 +19,9 @@ type TetrisBoardProps = {
   onBoardUpdate?: (board: number[][]) => void;
   onLocalGameOver?: (score: number, lines: number) => void;
   hideGameOverOverlay?: boolean;
+  gravityMultiplier?: number;
+  extraHold?: number;
+  onAddBomb?: (addBomb: () => void) => void;
 };
 
 const ROWS = 20;
@@ -37,16 +40,26 @@ export default function TetrisBoard({
   onBoardUpdate,
   onLocalGameOver,
   hideGameOverOverlay = false,
+   gravityMultiplier = 1,
+  extraHold = 0,
+  onAddBomb,
 }: TetrisBoardProps) {
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [countdown, setCountdown] = useState<number | null>(autoStart ? 3 : null);
+  const [bombFlash, setBombFlash] = useState(false);
   const { state, actions } = useTetrisGame({
     mode,
     bagSequence,
+    gravityMultiplier,
+    extraHold, 
     onConsumeLines,
     incomingGarbage,
     onGarbageConsumed,
+     onBombExplode: () => {
+    setBombFlash(true);
+    setTimeout(() => setBombFlash(false), 120);
+  },
     onGameOver: async (score, level, lines) => {
       if (onLocalGameOver) onLocalGameOver(score, lines);
       if (!effectiveScoreMode) return;
@@ -57,6 +70,12 @@ export default function TetrisBoard({
       }
     },
   });
+
+  useEffect(() => {
+  if (onAddBomb) {
+    onAddBomb(actions.addBomb);
+  }
+}, [actions.addBomb]);
 
   const {
     board,
@@ -69,11 +88,13 @@ export default function TetrisBoard({
     ghostPiece,
     holdPiece,
   } = state;
-  const { movePiece, hardDrop, handleHold, reset, start } = actions;
+  const { movePiece, hardDrop, handleHold,triggerBomb, reset, start } = actions;
 
   useKeyboardControls((dir) => {
+    console.log("KEY:", dir); 
     if (dir === "harddrop") return hardDrop();
     if (dir === "hold") return handleHold();
+    if (dir === "bomb") return triggerBomb();
     movePiece(dir as "left" | "right" | "down" | "rotate");
   });
 
@@ -153,6 +174,17 @@ export default function TetrisBoard({
 
   return (
     <div className="relative flex items-start justify-center gap-8">
+      {bombFlash && (
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      background: "rgba(255, 80, 80, 0.35)",
+      pointerEvents: "none",
+      zIndex: 20,
+    }}
+  />
+)}
       <GameLayout
         canvas={
           <canvas
