@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { checkCollision, clearFullLines, mergePiece, rotateMatrix } from "../logic/boardUtils";
 import { generateBagPiece } from "../logic/pieceGenerator";
 import type { Piece } from "../types/Piece";
-
-type GameMode = "CLASSIQUE" | "SPRINT";
+import type { GameMode } from "../types/GameMode";
 
 type Options = {
   rows?: number;
@@ -114,11 +113,11 @@ export function useTetrisGame({
         setScore((prev) => prev + linesCleared * 100);
         setLines((prev) => {
           const total = prev + linesCleared;
-          if (mode === "CLASSIQUE") {
+          if (mode !== "SPRINT") {
             const newLevel = Math.floor(total / 10) + 1;
             setLevel(newLevel);
             setSpeedMs(Math.max(200, speed - (newLevel - 1) * 100));
-          } else if (mode === "SPRINT" && total >= targetLines) {
+          } else if (total >= targetLines) {
             setRunning(false);
             const nowElapsed = Date.now() - (startTime ?? Date.now());
             setElapsedMs(nowElapsed);
