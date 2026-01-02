@@ -12,6 +12,7 @@ export const ALL_PERKS: Perk[] = [
   name: "GRAVITÉ DOUCE",
   description: "La gravité est légèrement réduite",
   rarity: "common",
+  icon: "💣",
 },
 {
   id: "score-boost",
@@ -30,6 +31,7 @@ export const ALL_PERKS: Perk[] = [
   name: "GRAVITÉ LENTE",
   description: "La vitesse de chute est fortement réduite",
   rarity: "rare",
+  icon: "🐢",
 },
 {
   id: "double-bomb",
@@ -60,12 +62,15 @@ export const ALL_PERKS: Perk[] = [
   name: "ARRÊT DU TEMPS",
   description: "La gravité est stoppée pendant 5 secondes",
   rarity: "epic",
+  icon: "⏱️",
+  durationMs: 5000,
 },
 {
   id: "chaos-mode",
   name: "MODE CHAOS",
   description: "Les effets sont amplifiés et imprévisibles",
   rarity: "epic",
+  icon: "🌀",
 },
 {
   id: "last-stand",

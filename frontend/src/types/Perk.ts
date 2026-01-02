@@ -5,4 +5,6 @@ export type Perk = {
   name: string;
   description: string;
   rarity: PerkRarity;
+  icon?: string;          // emoji ou nom d’icône
+  durationMs?: number;
 };

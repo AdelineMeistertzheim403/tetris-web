@@ -22,9 +22,16 @@ type TetrisBoardProps = {
   hideGameOverOverlay?: boolean;
   gravityMultiplier?: number;
   extraHold?: number;
+  timeFrozen?: boolean;
+  onBombUsed?: () => void;
+  onBombsChange?: (count: number) => void;
+  onTriggerTimeFreeze?: () => void;
+  timeFreezeCharges?: number;
   onAddBomb?: (addBomb: () => void) => void;
   secondChance?: boolean;
-onConsumeSecondChance?: () => void;
+  onConsumeSecondChance?: () => void;
+  chaosMode?: boolean;
+  bombRadius?: number;
 };
 
 const ROWS = 20;
@@ -43,12 +50,19 @@ export default function TetrisBoard({
   autoStart = true,
   onBoardUpdate,
   onLocalGameOver,
-   secondChance = false,
+  secondChance = false,
   onConsumeSecondChance,
   hideGameOverOverlay = false,
-   gravityMultiplier = 1,
+  gravityMultiplier = 1,
   extraHold = 0,
+  timeFrozen = false,
+  onTriggerTimeFreeze,
+  timeFreezeCharges = 0,
   onAddBomb,
+  chaosMode = false,
+  bombRadius = 1,
+  onBombUsed,
+  onBombsChange,
 }: TetrisBoardProps) {
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,6 +78,9 @@ export default function TetrisBoard({
     onGarbageConsumed,
     scoreMultiplier,
      secondChance,
+     timeFrozen,
+     chaosMode,
+     bombRadius,
   onConsumeSecondChance,
      onBombExplode: () => {
     setBombFlash(true);
@@ -96,16 +113,31 @@ export default function TetrisBoard({
     gameOver,
     ghostPiece,
     holdPiece,
+    bombs,
   } = state;
   const { movePiece, hardDrop, handleHold,triggerBomb, reset, start } = actions;
 
-  useKeyboardControls((dir) => {
-    console.log("KEY:", dir); 
+    useKeyboardControls((dir) => {
     if (dir === "harddrop") return hardDrop();
     if (dir === "hold") return handleHold();
-    if (dir === "bomb") return triggerBomb();
+    if (dir === "bomb") {
+      if (bombs <= 0) return;
+      triggerBomb();
+      onBombUsed?.();
+      return;
+    }
+    if (dir === "freeze") {
+      if (countdown !== null) return;
+      if (timeFreezeCharges <= 0) return;
+      onTriggerTimeFreeze?.();
+      return;
+    }
     movePiece(dir as "left" | "right" | "down" | "rotate");
   });
+
+  useEffect(() => {
+  onBombsChange?.(bombs);
+}, [bombs]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
