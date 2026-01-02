@@ -16,12 +16,15 @@ type TetrisBoardProps = {
   onConsumeLines?: (lines: number) => void;
   onGarbageConsumed?: () => void;
   autoStart?: boolean;
+  scoreMultiplier?: number;
   onBoardUpdate?: (board: number[][]) => void;
   onLocalGameOver?: (score: number, lines: number) => void;
   hideGameOverOverlay?: boolean;
   gravityMultiplier?: number;
   extraHold?: number;
   onAddBomb?: (addBomb: () => void) => void;
+  secondChance?: boolean;
+onConsumeSecondChance?: () => void;
 };
 
 const ROWS = 20;
@@ -36,9 +39,12 @@ export default function TetrisBoard({
   incomingGarbage = 0,
   onConsumeLines,
   onGarbageConsumed,
+  scoreMultiplier = 1,
   autoStart = true,
   onBoardUpdate,
   onLocalGameOver,
+   secondChance = false,
+  onConsumeSecondChance,
   hideGameOverOverlay = false,
    gravityMultiplier = 1,
   extraHold = 0,
@@ -56,6 +62,9 @@ export default function TetrisBoard({
     onConsumeLines,
     incomingGarbage,
     onGarbageConsumed,
+    scoreMultiplier,
+     secondChance,
+  onConsumeSecondChance,
      onBombExplode: () => {
     setBombFlash(true);
     setTimeout(() => setBombFlash(false), 120);

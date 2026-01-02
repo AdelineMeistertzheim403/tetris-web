@@ -17,14 +17,26 @@ export default function RoguelikeRun() {
 const [extraHoldSlots, setExtraHoldSlots] = useState(0);
 const [addBombFn, setAddBombFn] = useState<(() => void) | null>(null);
 const [perkChoices, setPerkChoices] = useState<Perk[]>([]);
+const [scoreMultiplier, setScoreMultiplier] = useState(1);
+const [secondChance, setSecondChance] = useState(false);
 
  const handleSelectPerk = (perk: Perk) => {
   applyPerk(perk, {
     addHoldSlot: () => setExtraHoldSlots(v => v + 1),
-    slowGravity: () => setGravityMultiplier(v => v * 1.5),
-    addBomb: () => addBombFn?.(),
+    slowGravity: (factor = 1.5) =>
+  setGravityMultiplier(v => v * factor),
+    addBomb: (count = 1) => {
+  for (let i = 0; i < count; i++) {
+    addBombFn?.();
+  }
+},
+ addScoreBoost: (value = 0.5) =>
+    setScoreMultiplier(v => v + value),
+ grantSecondChance: () => setSecondChance(true),
+
   });
 
+  
   setActivePerks(prev => [...prev, perk]);
   setSelectingPerk(false);
 };
@@ -39,7 +51,7 @@ useEffect(() => {
       )
     );
   }
-}, [selectingPerk]);
+}, [selectingPerk, activePerks]);
   return (
     <div className="rogue-run">
          {selectingPerk && (
@@ -56,9 +68,13 @@ useEffect(() => {
       <main className="rogue-center">
         <TetrisBoard
   mode="ROGUELIKE"
+  autoStart={!selectingPerk}
   gravityMultiplier={gravityMultiplier}
    extraHold={extraHoldSlots}
     onAddBomb={setAddBombFn}
+    scoreMultiplier={scoreMultiplier}
+    secondChance={secondChance}
+    onConsumeSecondChance={() => setSecondChance(false)}
 />
       </main>
 
