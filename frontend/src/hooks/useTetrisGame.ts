@@ -11,6 +11,9 @@ type Options = {
   mode: GameMode;
   speed?: number;
   gravityMultiplier?: number; 
+   scoreMultiplier?: number;
+   secondChance?: boolean;
+onConsumeSecondChance?: () => void;
   extraHold?: number;
   onGameOver?: (score: number, level: number, lines: number) => void;
   onComplete?: (elapsedMs: number) => void;
@@ -29,8 +32,11 @@ export function useTetrisGame({
   speed = DEFAULT_SPEED,
   gravityMultiplier = 1,
   extraHold = 0,
+  scoreMultiplier = 1,
   onGameOver,
   onComplete,
+  secondChance = false,
+  onConsumeSecondChance,
   targetLines = 40,
   bagSequence,
   onBombExplode,
@@ -73,6 +79,7 @@ export function useTetrisGame({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moveRef = useRef<(dir: "left" | "right" | "down" | "rotate") => void>(() => {});
   const garbageRef = useRef(0);
+
 
   const addBomb = useCallback(() => {
   setBombs(b => b + 1);
@@ -141,7 +148,7 @@ console.log("bombs:", bombs, "running:", running, "gameOver:", gameOver);
 
       if (linesCleared > 0) {
         if (onConsumeLines) onConsumeLines(linesCleared);
-        setScore((prev) => prev + linesCleared * 100);
+        setScore(prev => prev + linesCleared * 100 * scoreMultiplier);
         setLines((prev) => {
           const total = prev + linesCleared;
           if (mode !== "SPRINT") {
@@ -167,12 +174,30 @@ console.log("bombs:", bombs, "running:", running, "gameOver:", gameOver);
       setBoard(newBoard);
 
       const newPiece = nextPiece ?? generateBagPiece(bagRef.current);
-      if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
-        setRunning(false);
-        setGameOver(true);
-        if (onGameOver) onGameOver(score, level, lines);
-        return;
-      }
+     if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
+  if (secondChance) {
+    onConsumeSecondChance?.();
+
+    // ✅ crée de l’espace : on vide 4 lignes du haut
+    const rescuedBoard = newBoard.map((row) => [...row]);
+    for (let y = 0; y < Math.min(8, rows); y++) {
+      rescuedBoard[y] = Array(cols).fill(0);
+    }
+    setBoard(rescuedBoard);
+
+    // ✅ respawn propre
+    setPiece(generateBagPiece(bagRef.current));
+    setNextPiece(generateBagPiece(bagRef.current));
+    setGhostPiece(null);
+
+    return;
+  }
+
+  setRunning(false);
+  setGameOver(true);
+  onGameOver?.(score, level, lines);
+  return;
+}
 
       setPiece(newPiece);
       setNextPiece(generateBagPiece(bagRef.current));
