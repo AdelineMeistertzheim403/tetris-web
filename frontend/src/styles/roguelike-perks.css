@@ -78,3 +78,73 @@
   font-size: 0.7rem;
   opacity: 0.7;
 }
+
+.perks-panel {
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.05);
+   width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow-y: auto;      /* scroll interne */
+  padding-right: 6px; 
+  border-radius: 12px;
+  padding: 12px;
+  color: #eee;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.8);
+}
+
+
+.perks-title {
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #facc15;
+}
+
+.perks-empty {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.perks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perk-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #1a1a1a;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.perk-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.perks-wrapper {
+  flex: 1;               /* prend l’espace restant */
+  overflow: hidden;      /* empêche le débordement global */
+}
+
+.perk-name {
+  font-weight: bold;
+  margin-bottom: 2px;
+   max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.perk-desc {
+  font-size: 0.7rem;
+  color: #aaa;
+}

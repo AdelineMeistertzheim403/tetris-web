@@ -19,6 +19,9 @@ onConsumeSecondChance?: () => void;
   onComplete?: (elapsedMs: number) => void;
   targetLines?: number;
   onBombExplode?: () => void;
+  timeFrozen?: boolean;
+  chaosMode?: boolean;
+  bombRadius?: number;
 };
 
 const DEFAULT_ROWS = 20;
@@ -43,6 +46,9 @@ export function useTetrisGame({
   onConsumeLines,
   incomingGarbage = 0,
   onGarbageConsumed,
+  timeFrozen = false,
+  chaosMode = false,
+   bombRadius = 1,
 }: Options & {
   bagSequence?: string[];
   onConsumeLines?: (lines: number) => void;
@@ -86,17 +92,22 @@ export function useTetrisGame({
 }, []);
 
 const triggerBomb = useCallback(() => {
-  console.log("💣 triggerBomb called");
   if (bombs <= 0 || !piece || gameOver || !running) return;
-console.log("bombs:", bombs, "running:", running, "gameOver:", gameOver);
-  // centre = position actuelle de la pièce
+
   const centerX = piece.x + Math.floor(piece.shape[0].length / 2);
   const centerY = piece.y + Math.floor(piece.shape.length / 2);
 
-  setBoard(prev => applyBomb(prev, centerX, centerY));
+  const finalRadius = chaosMode
+    ? Math.random() < 0.5 ? bombRadius : bombRadius + 1
+    : bombRadius;
+
+  setBoard(prev =>
+    applyBomb(prev, centerX, centerY, finalRadius)
+  );
+
   onBombExplode?.();
   setBombs(b => b - 1);
-}, [bombs, piece, gameOver, running]);
+}, [bombs, piece, gameOver, running, chaosMode, bombRadius]);
 
   // Mettre à jour le bag quand une nouvelle séquence arrive
   // Ajout de bag externe : on concatène pour éviter de tomber en panne de tirage
@@ -112,7 +123,11 @@ console.log("bombs:", bombs, "running:", running, "gameOver:", gameOver);
   }, [bagSequence, running]);
 
   useEffect(() => {
-  setSpeedMs(speed * gravityMultiplier);
+ const chaosFactor = chaosMode
+  ? 0.8 + Math.random() * 0.6 // entre 0.8 et 1.4
+  : 1;
+
+setSpeedMs(speed * gravityMultiplier * chaosFactor);
 }, [gravityMultiplier, speed]);
 
   const computeGhost = useCallback(
@@ -271,7 +286,7 @@ console.log("bombs:", bombs, "running:", running, "gameOver:", gameOver);
       intervalRef.current = null;
     }
 
-    if (!running || gameOver) return;
+    if (!running || gameOver || timeFrozen) return;
 
     intervalRef.current = setInterval(() => {
       setTick((t) => t + 1);
@@ -281,7 +296,7 @@ console.log("bombs:", bombs, "running:", running, "gameOver:", gameOver);
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
     };
-  }, [running, gameOver, speedMs]);
+  }, [running, gameOver, speedMs, timeFrozen]);
 
   // Déplacement vertical sur chaque tick
   useEffect(() => {

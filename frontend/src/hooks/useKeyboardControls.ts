@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export type Direction = "left" | "right" | "down" | "rotate" | "harddrop" | "hold" | "bomb";
+export type Direction = "left" | "right" | "down" | "rotate" | "harddrop" | "hold" | "bomb" | "freeze";
 
 /**
  * Listener unique (window) avec callback toujours à jour.
@@ -21,7 +21,8 @@ export function useKeyboardControls(onMove: (dir: Direction) => void) {
         e.key === "ArrowDown" ||
         e.key === "ArrowUp" ||
         e.key === " " ||
-        e.key === "b"
+        e.key === "b" ||
+        e.key === "f"
       ) {
         e.preventDefault();
       }
@@ -50,6 +51,11 @@ export function useKeyboardControls(onMove: (dir: Direction) => void) {
         case "b":
         case "B":
           cbRef.current?.("bomb");
+          break;
+        case "f":
+        case "F":
+          cbRef.current?.("freeze");
+          break;
       }
     };
 
