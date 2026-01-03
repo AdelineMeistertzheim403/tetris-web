@@ -31,11 +31,35 @@ export default function RoguelikeRun() {
   const [bombs, setBombs] = useState(0);
   const [activePerks, setActivePerks] = useState<ActivePerkRuntime[]>([]);
   const freezeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [nextPerkAt, setNextPerkAt] = useState(10);
+  const [totalLines, setTotalLines] = useState(0);
+  const linesUntilNextPerk = Math.max(
+  0,
+  nextPerkAt - totalLines
+);
+const perkProgress = 1 - (linesUntilNextPerk / 10);
 
   const consumeSecondChance = () => {
     setSecondChance(false);
     setActivePerks((prev) => prev.filter((p) => p.id !== "second-chance"));
   };
+
+  const handleConsumeLines = (linesCleared: number) => {
+  setTotalLines(prev => {
+    const newTotal = prev + linesCleared;
+
+    if (newTotal >= nextPerkAt) {
+  setSelectingPerk(true);
+  setNextPerkAt(prev => {
+    let next = prev;
+    while (newTotal >= next) next += 10;
+    return next;
+  });
+}
+
+    return newTotal;
+  });
+};
 
   const handleSelectPerk = (perk: Perk) => {
     const isTimeFreeze = perk.id === "time-freeze";
@@ -139,7 +163,7 @@ export default function RoguelikeRun() {
         <PerkSelectionOverlay perks={perkChoices} onSelect={handleSelectPerk} />
       )}
       <aside className="rogue-left">
-        <RunInfo />
+        <RunInfo linesUntilNextPerk={linesUntilNextPerk} perkProgress={perkProgress} />
         <div className="perks-wrapper">
           <PerksPanel perks={activePerks} />
         </div>
@@ -148,6 +172,7 @@ export default function RoguelikeRun() {
       <main className="rogue-center">
         <TetrisBoard
           mode="ROGUELIKE"
+          paused={selectingPerk}
           autoStart={!selectingPerk}
           gravityMultiplier={gravityMultiplier}
           extraHold={extraHoldSlots}
@@ -161,6 +186,7 @@ export default function RoguelikeRun() {
           chaosMode={chaosMode}
           bombRadius={bombRadius}
            onBombsChange={setBombs}
+            onConsumeLines={handleConsumeLines}
         />
       </main>
 
