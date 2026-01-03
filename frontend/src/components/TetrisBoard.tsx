@@ -32,6 +32,7 @@ type TetrisBoardProps = {
   onConsumeSecondChance?: () => void;
   chaosMode?: boolean;
   bombRadius?: number;
+  paused?: boolean;
 };
 
 const ROWS = 20;
@@ -63,6 +64,7 @@ export default function TetrisBoard({
   bombRadius = 1,
   onBombUsed,
   onBombsChange,
+  paused = false,
 }: TetrisBoardProps) {
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -209,9 +211,12 @@ export default function TetrisBoard({
   }, [countdown, start]);
 
   useEffect(() => {
-    reset();
-    if (autoStart) setCountdown(3);
-  }, [reset, autoStart]);
+  if (paused) {
+    actions.pause();
+  } else {
+    actions.start();
+  }
+}, [paused]);
 
   return (
     <div className="relative flex items-start justify-center gap-8">

@@ -148,3 +148,22 @@
   font-size: 0.7rem;
   color: #aaa;
 }
+
+.perk-progress {
+  width: 100%;
+  height: 6px;
+  background: #222;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.perk-progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    #a855f7,
+    #ec4899
+  );
+  transition: width 0.3s ease;
+}
