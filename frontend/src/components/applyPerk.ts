@@ -20,7 +20,7 @@ type ApplyPerkContext = {
   enableLastStand?: () => void;
 
   // time based
-  freezeTime?: (durationMs: number) => void;
+  addTimeFreeze?: (count?: number) => void;
 };
 
 export function applyPerk(perk: Perk, ctx: ApplyPerkContext) {
@@ -68,7 +68,7 @@ export function applyPerk(perk: Perk, ctx: ApplyPerkContext) {
       break;
 
     case "time-freeze":
-      ctx.freezeTime?.(5000); // 5 secondes
+      ctx.addTimeFreeze?.(1); // 5 secondes
       break;
 
     case "chaos-mode":

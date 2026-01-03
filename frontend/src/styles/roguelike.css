@@ -31,9 +31,20 @@
 
 .rogue-run {
   display: grid;
-  grid-template-columns: 220px auto 220px;
-  gap: 20px;
+  grid-template-columns: 280px auto 280px;
+  gap: 32px;
   padding: 40px;
+  align-items: center;
+}
+
+.rogue-left {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  /* 🔒 IMPORTANT */
+  max-height: calc(100vh - 120px); /* ajuste selon ton header */
 }
 
 .rogue-left,
@@ -41,6 +52,8 @@
   background: rgba(0,0,0,0.6);
   border: 1px solid #222;
   padding: 16px;
+  width: 280px;
+  flex-shrink: 0;
 }
 
 .roguelike-mode {
@@ -119,3 +132,47 @@
   background: #00ffd5;
   box-shadow: 0 0 6px rgba(0,255,213,0.8);
 }
+
+.controls-panel {
+  background: #111;
+  border-radius: 12px;
+  padding: 14px;
+  width: 260px;
+  color: #ddd;
+  font-size: 0.85rem;
+}
+
+.controls-title {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #aaa;
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.control-key {
+  background: #222;
+  border-radius: 6px;
+  padding: 2px 6px;
+  text-align: center;
+  font-weight: bold;
+  color: #fff;
+}
+
+.control-action {
+  color: #bbb;
+  text-align: end;
+}
+
+.control-count {
+  color: #00eaff;
+  font-weight: bold;
+}
+
