@@ -8,6 +8,9 @@ import { applyPerk } from "./applyPerk";
 import { generatePerkChoices } from "../utils/perkRng";
 import { ALL_PERKS } from "../data/perks";
 import ControlsPanel from "./ControlsPanel";
+import { useRoguelikeRun } from "../hooks/useRoguelikeRun";
+import RoguelikeRunSummary from "./RoguelikeRunSummary";
+import { useNavigate } from "react-router-dom";
 
 export type ActivePerkRuntime = Perk & {
   startedAt?: number;
@@ -19,7 +22,6 @@ export default function RoguelikeRun() {
   const [selectingPerk, setSelectingPerk] = useState(true);
   const [gravityMultiplier, setGravityMultiplier] = useState(1);
   const [extraHoldSlots, setExtraHoldSlots] = useState(0);
-  const [addBombFn, setAddBombFn] = useState<(() => void) | null>(null);
   const [perkChoices, setPerkChoices] = useState<Perk[]>([]);
   const [scoreMultiplier, setScoreMultiplier] = useState(1);
   const [secondChance, setSecondChance] = useState(false);
@@ -29,10 +31,20 @@ export default function RoguelikeRun() {
   const [chaosMode, setChaosMode] = useState(false);
   const [bombRadius, setBombRadius] = useState(1); // 1 = 3x3
   const [bombs, setBombs] = useState(0);
+  const [bombsGranted, setBombsGranted] = useState(0);
   const [activePerks, setActivePerks] = useState<ActivePerkRuntime[]>([]);
+  const [runEnded, setRunEnded] = useState(false);
   const freezeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nextPerkAt, setNextPerkAt] = useState(10);
   const [totalLines, setTotalLines] = useState(0);
+  const [currentScore, setCurrentScore] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
+const [currentLevel, setCurrentLevel] = useState(1);
+const navigate = useNavigate();
+const [summaryPerks, setSummaryPerks] = useState<ActivePerkRuntime[]>([]);
+const [summaryScore, setSummaryScore] = useState(0);
+const [summaryLines, setSummaryLines] = useState(0);
+const [summaryLevel, setSummaryLevel] = useState(1);
   const linesUntilNextPerk = Math.max(
   0,
   nextPerkAt - totalLines
@@ -44,18 +56,35 @@ const perkProgress = 1 - (linesUntilNextPerk / 10);
     setActivePerks((prev) => prev.filter((p) => p.id !== "second-chance"));
   };
 
-  const handleConsumeLines = (linesCleared: number) => {
-  setTotalLines(prev => {
+  const {
+  run,
+  startRun,
+  checkpoint,
+  finishRun,
+  hasActiveRun,
+} = useRoguelikeRun();
+
+ const handleConsumeLines = (linesCleared: number) => {
+  setTotalLines((prev) => {
     const newTotal = prev + linesCleared;
 
     if (newTotal >= nextPerkAt) {
-  setSelectingPerk(true);
-  setNextPerkAt(prev => {
-    let next = prev;
-    while (newTotal >= next) next += 10;
-    return next;
-  });
-}
+      setSelectingPerk(true);
+      setNextPerkAt(nextPerkAt + 10);
+
+      checkpoint({
+        score: currentScore,
+        lines: newTotal,
+        level: currentLevel,
+        perks: activePerks.map(p => p.id),
+        bombs,
+        timeFreezeCharges,
+        chaosMode,
+        gravityMultiplier,
+        scoreMultiplier,
+        seed: ""
+      });
+    }
 
     return newTotal;
   });
@@ -72,7 +101,7 @@ const perkProgress = 1 - (linesUntilNextPerk / 10);
 
       addBomb: (count = 1) => {
         setBombs((v) => v + count);
-        for (let i = 0; i < count; i++) addBombFn?.();
+        setBombsGranted((v) => v + count);
       },
 
       addScoreBoost: (value = 0.5) => setScoreMultiplier((v) => v + value),
@@ -86,6 +115,7 @@ const perkProgress = 1 - (linesUntilNextPerk / 10);
       setBombRadius: (radius: number) => setBombRadius(radius),
     });
 
+    setRunEnded(false);
     if (isTimeFreeze) {
       setTimeFreezeDuration(durationMs);
     }
@@ -128,16 +158,34 @@ const perkProgress = 1 - (linesUntilNextPerk / 10);
     }, timeFreezeDuration);
   };
 
-  useEffect(() => {
-    if (selectingPerk) return;
+// ▶️ Démarrage de la run
+useEffect(() => {
+  if (!hasActiveRun && !selectingPerk && !runEnded) {
+    startRun(
+      crypto.randomUUID(),
+      {
+        gravityMultiplier,
+        scoreMultiplier,
+        bombs,
+        timeFreezeCharges,
+      }
+    );
+  }
+}, [hasActiveRun, selectingPerk, runEnded]);
 
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setActivePerks((prev) => prev.filter((p) => !p.expiresAt || p.expiresAt > now));
-    }, 250);
+// ▶️ Expiration des perks temporaires
+useEffect(() => {
+  if (selectingPerk) return;
 
-    return () => clearInterval(interval);
-  }, [selectingPerk]);
+  const interval = setInterval(() => {
+    const now = Date.now();
+    setActivePerks(prev =>
+      prev.filter(p => !p.expiresAt || p.expiresAt > now)
+    );
+  }, 250);
+
+  return () => clearInterval(interval);
+}, [selectingPerk]);
 
   useEffect(() => {
     if (!selectingPerk) return;
@@ -172,27 +220,82 @@ const perkProgress = 1 - (linesUntilNextPerk / 10);
       <main className="rogue-center">
         <TetrisBoard
           mode="ROGUELIKE"
-          paused={selectingPerk}
+          hideGameOverOverlay={true}
+           paused={selectingPerk || showSummary}
           autoStart={!selectingPerk}
           gravityMultiplier={gravityMultiplier}
           extraHold={extraHoldSlots}
-          onAddBomb={setAddBombFn}
+          bombsGranted={bombsGranted}
           scoreMultiplier={scoreMultiplier}
           secondChance={secondChance}
           onConsumeSecondChance={consumeSecondChance}
           timeFrozen={timeFrozen}
-          onTriggerTimeFreeze={triggerTimeFreeze}
+           onTriggerTimeFreeze={triggerTimeFreeze}
           timeFreezeCharges={timeFreezeCharges}
+           onScoreChange={setCurrentScore}
+  onLevelChange={setCurrentLevel}
+  onConsumeLines={handleConsumeLines}
           chaosMode={chaosMode}
           bombRadius={bombRadius}
            onBombsChange={setBombs}
-            onConsumeLines={handleConsumeLines}
+          onLocalGameOver={async (score, lines) => {
+  if (!run) return;
+
+  // 🧊 SNAPSHOT AVANT RESET
+  setSummaryPerks([...activePerks]);
+  setSummaryScore(score);
+  setSummaryLines(lines);
+  setSummaryLevel(currentLevel);
+
+  setRunEnded(true);
+  setSelectingPerk(false);
+  setShowSummary(true);
+
+  try {
+    await checkpoint({
+      score,
+      lines,
+      level: currentLevel,
+      perks: activePerks.map(p => p.id), // backend OK
+      bombs,
+      timeFreezeCharges,
+      chaosMode,
+      gravityMultiplier,
+      scoreMultiplier,
+      seed: ""
+    });
+  } finally {
+    await finishRun("FINISHED");
+
+    // 🔄 reset pour prochaine run
+    setActivePerks([]);
+    setCurrentScore(0);
+    setCurrentLevel(1);
+    setTotalLines(0);
+    setNextPerkAt(10);
+    setBombs(0);
+    setBombsGranted(0);
+    setTimeFreezeCharges(0);
+    setChaosMode(false);
+  }
+}}
         />
       </main>
 
       <aside className="rogue-right">
         <ControlsPanel bombs={bombs} timeFreezeCharges={timeFreezeCharges} chaosMode={chaosMode} />
       </aside>
+      <RoguelikeRunSummary
+  visible={showSummary}
+  score={summaryScore}
+  lines={summaryLines}
+  level={summaryLevel}
+  perks={summaryPerks}
+  chaosMode={chaosMode}
+  seed={run?.seed ?? ""}
+  onReplay={() => window.location.reload()}
+  onExit={() => navigate("/dashboard")}
+/>
     </div>
   );
 }
