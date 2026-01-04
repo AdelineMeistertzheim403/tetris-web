@@ -17,6 +17,7 @@ model User {
   versusAsPlayer1 VersusMatch[] @relation("VersusPlayer1")
   versusAsPlayer2 VersusMatch[] @relation("VersusPlayer2")
   versusAsWinner  VersusMatch[] @relation("VersusWinner")
+   roguelikeRuns RoguelikeRun[]
   createdAt DateTime @default(now())
 }
 
@@ -49,6 +50,38 @@ model VersusMatch {
   player1 User? @relation("VersusPlayer1", fields: [player1Id], references: [id])
   player2 User? @relation("VersusPlayer2", fields: [player2Id], references: [id])
   winner  User? @relation("VersusWinner", fields: [winnerId], references: [id])
+}
+
+model RoguelikeRun {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+
+  seed              String
+  state             Json
+  
+  score             Int
+  lines             Int
+  level             Int
+
+  perks             Json     // tableau d’ids de perks
+  bombs             Int
+  timeFreezeCharges Int
+  chaosMode         Boolean
+
+  gravityMultiplier Float
+  scoreMultiplier   Float
+
+  status            RunStatus
+  createdAt         DateTime @default(now())
+  endedAt           DateTime?
+
+  user              User     @relation(fields: [userId], references: [id])
+}
+
+enum RunStatus {
+  IN_PROGRESS
+  FINISHED
+  ABANDONED
 }
 
 enum GameMode {

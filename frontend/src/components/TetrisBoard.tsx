@@ -27,12 +27,14 @@ type TetrisBoardProps = {
   onBombsChange?: (count: number) => void;
   onTriggerTimeFreeze?: () => void;
   timeFreezeCharges?: number;
-  onAddBomb?: (addBomb: () => void) => void;
   secondChance?: boolean;
   onConsumeSecondChance?: () => void;
   chaosMode?: boolean;
   bombRadius?: number;
   paused?: boolean;
+  onScoreChange?: (score: number) => void;
+  onLevelChange?: (level: number) => void;
+  bombsGranted?: number;
 };
 
 const ROWS = 20;
@@ -59,12 +61,14 @@ export default function TetrisBoard({
   timeFrozen = false,
   onTriggerTimeFreeze,
   timeFreezeCharges = 0,
-  onAddBomb,
   chaosMode = false,
   bombRadius = 1,
   onBombUsed,
   onBombsChange,
+  onScoreChange,
+  onLevelChange,
   paused = false,
+  bombsGranted = 0,
 }: TetrisBoardProps) {
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -88,22 +92,18 @@ export default function TetrisBoard({
     setBombFlash(true);
     setTimeout(() => setBombFlash(false), 120);
   },
-    onGameOver: async (score, level, lines) => {
-      if (onLocalGameOver) onLocalGameOver(score, lines);
-      if (!effectiveScoreMode) return;
-      try {
-        await addScore(score, level, lines, effectiveScoreMode);
-      } catch (err) {
-        console.error("Erreur enregistrement score :", err);
-      }
-    },
-  });
+   onGameOver: async (score, level, lines) => {
+  if (onLocalGameOver) onLocalGameOver(score, lines);
 
-  useEffect(() => {
-  if (onAddBomb) {
-    onAddBomb(actions.addBomb);
+  if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return; // ✅ garde-fou TS + skip rogue
+
+  try {
+    await addScore(score, level, lines, effectiveScoreMode);
+  } catch (err) {
+    console.error("Erreur enregistrement score :", err);
   }
-}, [actions.addBomb]);
+},
+  });
 
   const {
     board,
@@ -118,6 +118,7 @@ export default function TetrisBoard({
     bombs,
   } = state;
   const { movePiece, hardDrop, handleHold,triggerBomb, reset, start } = actions;
+  const bombsGrantRef = useRef(0);
 
     useKeyboardControls((dir) => {
     if (dir === "harddrop") return hardDrop();
@@ -138,8 +139,28 @@ export default function TetrisBoard({
   });
 
   useEffect(() => {
-  onBombsChange?.(bombs);
-}, [bombs]);
+    const diff = bombsGranted - bombsGrantRef.current;
+    if (diff > 0) {
+      for (let i = 0; i < diff; i++) {
+        actions.addBomb();
+      }
+      bombsGrantRef.current = bombsGranted;
+    } else if (diff < 0) {
+      bombsGrantRef.current = bombsGranted;
+    }
+  }, [bombsGranted, actions.addBomb]);
+
+  useEffect(() => {
+    onBombsChange?.(bombs);
+  }, [bombs]);
+
+useEffect(() => {
+  onScoreChange?.(score);
+}, [score]);
+
+useEffect(() => {
+  onLevelChange?.(level);
+}, [level]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
