@@ -1,0 +1,97 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+
+import { getCurrentRoguelikeRun, startRoguelikeRun, checkpointRoguelikeRun, endRoguelikeRun } from "../services/roguelike.service";
+
+export type RoguelikeRunState = {
+  id: number;
+  seed: string;
+  score: number;
+  lines: number;
+  level: number;
+  perks: string[];
+  bombs: number;
+  timeFreezeCharges: number;
+  chaosMode: boolean;
+  gravityMultiplier: number;
+  scoreMultiplier: number;
+};
+
+export function useRoguelikeRun() {
+  const [run, setRun] = useState<RoguelikeRunState | null>(null);
+  const checkpointLock = useRef(false);
+
+  /* ───────────────────────────── */
+  /* 🔄 Reprise d'une run existante */
+  /* ───────────────────────────── */
+  useEffect(() => {
+    async function loadRun() {
+      const existing = await getCurrentRoguelikeRun();
+      if (existing) {
+        setRun(existing);
+      }
+    }
+    loadRun();
+  }, []);
+
+  /* ───────────────────────────── */
+  /* 🚀 Démarrer une nouvelle run */
+  /* ───────────────────────────── */
+  const startRun = useCallback(async (seed: string, initialState: any) => {
+    const newRun = await startRoguelikeRun(seed, initialState);
+    setRun(newRun);
+    return newRun;
+  }, []);
+
+  /* ───────────────────────────── */
+  /* 💾 Checkpoint (safe) */
+  /* ───────────────────────────── */
+  const checkpoint = useCallback(
+    async (payload: Omit<RoguelikeRunState, "id">) => {
+      if (!run || checkpointLock.current) return;
+
+      checkpointLock.current = true;
+
+      try {
+        await checkpointRoguelikeRun(run.id, {
+          score: payload.score,
+          lines: payload.lines,
+          level: payload.level,
+          perks: payload.perks,
+          bombs: payload.bombs,
+          timeFreezeCharges: payload.timeFreezeCharges,
+          chaosMode: payload.chaosMode,
+          gravityMultiplier: payload.gravityMultiplier,
+          scoreMultiplier: payload.scoreMultiplier,
+        });
+
+        setRun((prev) =>
+          prev ? { ...prev, ...payload } : prev
+        );
+      } finally {
+        checkpointLock.current = false;
+      }
+    },
+    [run]
+  );
+
+  /* ───────────────────────────── */
+  /* 🏁 Fin de run */
+  /* ───────────────────────────── */
+  const finishRun = useCallback(
+    async (status: "FINISHED" | "ABANDONED") => {
+      if (!run) return;
+      await endRoguelikeRun(run.id, status);
+      setRun(null);
+    },
+    [run]
+  );
+
+  return {
+    run,
+    startRun,
+    checkpoint,
+    finishRun,
+    hasActiveRun: !!run,
+  };
+}

@@ -23,5 +23,12 @@ jobs:
           script: |
             cd ~/tetris-web
             git pull
+            # Build backend image for migrations
+            docker compose -f docker-compose.prod.yml build backend
+            # Ensure database is up for migrations
+            docker compose -f docker-compose.prod.yml up -d db
+            # Apply Prisma migrations
+            docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
+            # Recreate the full stack
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up --build -d
