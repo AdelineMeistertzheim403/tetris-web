@@ -8,8 +8,10 @@ RUN npm install
 
 COPY . .
 
+ENV DATABASE_URL=postgresql://tetris_user:tetris_pass@db:5432/tetris_db?schema=public
+
+RUN npx prisma generate
 
 ENV NODE_ENV=development
 EXPOSE 8080
-
 CMD ["npm", "run", "dev"]

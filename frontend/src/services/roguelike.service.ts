@@ -14,6 +14,31 @@ export type RoguelikeCheckpointPayload = {
   scoreMultiplier: number;
 };
 
+export type RoguelikeRunHistoryItem = {
+  id: number;
+  seed: string;
+  score: number;
+  lines: number;
+  level: number;
+  perks: string[];
+  chaosMode: boolean;
+  status: "FINISHED" | "ABANDONED" | "IN_PROGRESS";
+  createdAt: string;
+  endedAt?: string | null;
+};
+
+export type RoguelikeLeaderboardItem = {
+  score: number;
+  level: number;
+  lines: number;
+  chaosMode: boolean;
+  seed: string;
+  createdAt: string;
+  user: {
+    pseudo: string;
+  };
+};
+
 /* ───────────────────────────── */
 /* 🚀 Démarrer une run */
 /* ───────────────────────────── */
@@ -108,11 +133,30 @@ export async function endRoguelikeRun(
 /* ───────────────────────────── */
 /* 🏆 Leaderboard Roguelike */
 /* ───────────────────────────── */
-export async function getRoguelikeLeaderboard() {
+export async function getRoguelikeLeaderboard(): Promise<RoguelikeLeaderboardItem[]> {
   const res = await fetch(`${API_URL}/roguelike/leaderboard`);
 
   if (!res.ok) {
     throw new Error("Erreur lors de la récupération du classement roguelike");
+  }
+
+  return res.json();
+}
+
+/* ───────────────────────────── */
+/* 📜 Historique des runs perso */
+/* ───────────────────────────── */
+export async function getMyRoguelikeRuns(): Promise<RoguelikeRunHistoryItem[]> {
+  const token = getToken();
+
+  const res = await fetch(`${API_URL}/roguelike/runs/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Erreur lors de la récupération de l'historique roguelike");
   }
 
   return res.json();

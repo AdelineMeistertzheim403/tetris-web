@@ -35,6 +35,8 @@ type TetrisBoardProps = {
   onScoreChange?: (score: number) => void;
   onLevelChange?: (level: number) => void;
   bombsGranted?: number;
+  fastHoldReset?: boolean;
+  lastStand?: boolean;
 };
 
 const ROWS = 20;
@@ -69,6 +71,8 @@ export default function TetrisBoard({
   onLevelChange,
   paused = false,
   bombsGranted = 0,
+  fastHoldReset = false,
+  lastStand = false,
 }: TetrisBoardProps) {
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -92,7 +96,7 @@ export default function TetrisBoard({
     setBombFlash(true);
     setTimeout(() => setBombFlash(false), 120);
   },
-   onGameOver: async (score, level, lines) => {
+    onGameOver: async (score, level, lines) => {
   if (onLocalGameOver) onLocalGameOver(score, lines);
 
   if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return; // ✅ garde-fou TS + skip rogue
@@ -117,7 +121,18 @@ export default function TetrisBoard({
     holdPiece,
     bombs,
   } = state;
-  const { movePiece, hardDrop, handleHold,triggerBomb, reset, start } = actions;
+  const {
+    movePiece,
+    hardDrop,
+    handleHold,
+    triggerBomb,
+    reset,
+    start,
+    pause,
+    addBomb,
+    enableFastHoldReset,
+    enableLastStand,
+  } = actions;
   const bombsGrantRef = useRef(0);
 
     useKeyboardControls((dir) => {
@@ -142,13 +157,25 @@ export default function TetrisBoard({
     const diff = bombsGranted - bombsGrantRef.current;
     if (diff > 0) {
       for (let i = 0; i < diff; i++) {
-        actions.addBomb();
+        addBomb();
       }
       bombsGrantRef.current = bombsGranted;
     } else if (diff < 0) {
       bombsGrantRef.current = bombsGranted;
     }
-  }, [bombsGranted, actions.addBomb]);
+  }, [addBomb, bombsGranted]);
+
+  useEffect(() => {
+    if (fastHoldReset) {
+      enableFastHoldReset();
+    }
+  }, [enableFastHoldReset, fastHoldReset]);
+
+  useEffect(() => {
+    if (lastStand) {
+      enableLastStand();
+    }
+  }, [enableLastStand, lastStand]);
 
   useEffect(() => {
     onBombsChange?.(bombs);
@@ -233,11 +260,11 @@ useEffect(() => {
 
   useEffect(() => {
   if (paused) {
-    actions.pause();
+    pause();
   } else {
-    actions.start();
+    start();
   }
-}, [paused]);
+}, [pause, paused, start]);
 
   return (
     <div className="relative flex items-start justify-center gap-8">
