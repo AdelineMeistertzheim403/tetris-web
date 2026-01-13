@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getMyRoguelikeRuns } from "../services/roguelike.service";
 import type { RoguelikeRunHistoryItem } from "../services/roguelike.service";
+import { ALL_PERKS } from "../data/perks";
+import { SYNERGIES } from "../data/synergies";
 
 const perkImageMap: Record<string, string> = {
   "extra-hold": "/extra_hold.png",
@@ -17,6 +19,11 @@ const perkImageMap: Record<string, string> = {
   "fast-hold-reset": "/fast_hold_reset.png",
   "last-stand": "/last_stand.png",
 };
+
+const perkNameMap = ALL_PERKS.reduce<Record<string, string>>((acc, perk) => {
+  acc[perk.id] = perk.name;
+  return acc;
+}, {});
 
 
 function formatDuration(run: RoguelikeRunHistoryItem) {
@@ -79,6 +86,13 @@ export default function RoguelikeHistory() {
     }
   }, [runs, page]);
 
+  const synergiesByRun = useMemo(() => {
+    return runs.map((run) => {
+      const perkSet = new Set(run.perks);
+      return SYNERGIES.filter((s) => s.requiredPerks.every((p) => perkSet.has(p)));
+    });
+  }, [runs]);
+
   return (
     <section className="panel">
 
@@ -126,12 +140,29 @@ export default function RoguelikeHistory() {
                         <img
                           key={perk}
                           src={perkImageMap[perk] ?? "/vite.svg"}
-                          alt={perk}
+                          alt={perkNameMap[perk] ?? perk}
                           className="perk-chip"
+                          title={perkNameMap[perk] ?? perk}
                         />
                       ))
                     ) : (
                       <span className="muted">Pas de perk</span>
+                    )}
+                  </div>
+
+                  <div className="run-line perks-line">
+                    {synergiesByRun[page]?.length ? (
+                      synergiesByRun[page].map((syn) => (
+                        <img
+                          key={syn.id}
+                          src={`/${syn.icon}.png`}
+                          alt={syn.name}
+                          title={syn.name}
+                          className="synergy-chip"
+                        />
+                      ))
+                    ) : (
+                      <span className="muted">Aucune synergie</span>
                     )}
                   </div>
 
