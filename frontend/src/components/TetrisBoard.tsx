@@ -78,6 +78,8 @@ export default function TetrisBoard({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [countdown, setCountdown] = useState<number | null>(autoStart ? 3 : null);
   const [bombFlash, setBombFlash] = useState(false);
+  const explosionSprite = useRef<HTMLImageElement | null>(null);
+  const [spriteLoaded, setSpriteLoaded] = useState(false);
   const { state, actions } = useTetrisGame({
     mode,
     bagSequence,
@@ -90,7 +92,7 @@ export default function TetrisBoard({
      secondChance,
      timeFrozen,
      chaosMode,
-     bombRadius,
+    bombRadius,
   onConsumeSecondChance,
      onBombExplode: () => {
     setBombFlash(true);
@@ -120,6 +122,7 @@ export default function TetrisBoard({
     ghostPiece,
     holdPiece,
     bombs,
+    explosions,
   } = state;
   const {
     movePiece,
@@ -241,7 +244,29 @@ useEffect(() => {
     }
 
     if (onBoardUpdate) onBoardUpdate(board);
-  }, [board, piece, ghostPiece]);
+
+    if (spriteLoaded && explosionSprite.current) {
+      const img = explosionSprite.current;
+      const spriteRows = 3;
+      const rowHeight = img.height / spriteRows;
+      explosions.forEach((exp) => {
+        const rowIndex = exp.radius >= 3 ? 2 : exp.radius === 2 ? 1 : 0;
+        const sx = 0;
+        const sy = rowIndex * rowHeight;
+        const sw = img.width;
+        const sh = rowHeight;
+
+        const sizeCells = exp.radius * 2 + 1;
+        const dh = sizeCells * CELL_SIZE;
+        const aspect = sw / sh;
+        const dw = dh * aspect;
+        const dx = (exp.x - exp.radius) * CELL_SIZE + (sizeCells * CELL_SIZE - dw) / 2;
+        const dy = (exp.y - exp.radius) * CELL_SIZE + (sizeCells * CELL_SIZE - dh) / 2;
+
+        ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+      });
+    }
+  }, [board, piece, ghostPiece, explosions, onBoardUpdate, spriteLoaded]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -257,6 +282,16 @@ useEffect(() => {
 
     return () => clearTimeout(timer);
   }, [countdown, start]);
+
+  useEffect(() => {
+    if (explosionSprite.current) return;
+    const img = new Image();
+    img.src = "/explosion.png";
+    img.onload = () => {
+      explosionSprite.current = img;
+      setSpriteLoaded(true);
+    };
+  }, []);
 
   useEffect(() => {
   if (paused) {
