@@ -65,6 +65,7 @@ export function applyPerk(perk: Perk, ctx: ApplyPerkContext) {
 
     case "mega-bomb":
       ctx.setBombRadius?.(2); // 5x5
+      ctx.addBomb?.(1);       // fournit une bombe pour l'utiliser
       break;
 
     case "time-freeze":

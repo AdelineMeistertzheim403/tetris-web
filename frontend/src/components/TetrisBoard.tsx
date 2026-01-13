@@ -182,15 +182,15 @@ export default function TetrisBoard({
 
   useEffect(() => {
     onBombsChange?.(bombs);
-  }, [bombs]);
+  }, [bombs, onBombsChange]);
 
 useEffect(() => {
   onScoreChange?.(score);
-}, [score]);
+}, [onScoreChange, score]);
 
 useEffect(() => {
   onLevelChange?.(level);
-}, [level]);
+}, [level, onLevelChange]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
