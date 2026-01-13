@@ -62,7 +62,6 @@
     radial-gradient(circle at top, rgba(211,107,255,0.15), transparent 40%),
     #05050a;
   color: #fff;
-  
 }
 .rogue-hero h2 {
   margin: 6px 0 10px;
@@ -386,6 +385,16 @@
   gap: 8px;
 }
 
+.perk-chip {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #2a2a3d;
+  border-radius: 10px;
+  padding: 6px;
+}
+
 .perk-chips {
   display: flex;
   flex-wrap: wrap;
@@ -401,8 +410,8 @@
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 40px 1.1fr 0.9fr 60px 80px 70px;
-  column-gap: 6px;
+  grid-template-columns: 40px 1.1fr 0.9fr 100px 120px 100px;
+  column-gap: 10px;
   padding: 8px 10px;
   align-items: center;
   color: #e5e7eb;
@@ -422,8 +431,29 @@
   background: #0f0f1c;
 }
 
+.synergy-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(211,107,255,0.18), rgba(255,79,216,0.14));
+  border: 1px solid #ff7be2;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-align: center;
+  z-index: 2000;
+  min-width: 260px;
+}
+
+.synergy-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 4px 0;
+  color: #ffb7ff;
+}
+
 .history-pager {
-  margin-top: 12px;
   display: flex;
   align-items: center;
   gap: 12px;

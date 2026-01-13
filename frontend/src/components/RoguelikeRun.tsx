@@ -7,10 +7,12 @@ import type { Perk } from "../types/Perk";
 import { applyPerk } from "./applyPerk";
 import { generatePerkChoices } from "../utils/perkRng";
 import { ALL_PERKS } from "../data/perks";
+import type { Synergy } from "../types/Synergy";
 import ControlsPanel from "./ControlsPanel";
 import { useRoguelikeRun } from "../hooks/useRoguelikeRun";
 import RoguelikeRunSummary from "./RoguelikeRunSummary";
 import { useNavigate } from "react-router-dom";
+import { useSynergies } from "../hooks/useSynergies";
 
 export type ActivePerkRuntime = Perk & {
   startedAt?: number;
@@ -35,8 +37,10 @@ export default function RoguelikeRun() {
   const [activePerks, setActivePerks] = useState<ActivePerkRuntime[]>([]);
   const [fastHoldReset, setFastHoldReset] = useState(false);
   const [lastStand, setLastStand] = useState(false);
+  const [synergyToast, setSynergyToast] = useState<Synergy | null>(null);
   const [runEnded, setRunEnded] = useState(false);
   const freezeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const synergyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nextPerkAt, setNextPerkAt] = useState(10);
   const [totalLines, setTotalLines] = useState(0);
   const [currentScore, setCurrentScore] = useState(0);
@@ -176,7 +180,7 @@ useEffect(() => {
       }
     );
   }
-}, [hasActiveRun, selectingPerk, runEnded]);
+}, [hasActiveRun, selectingPerk, runEnded, startRun, gravityMultiplier, scoreMultiplier, bombs, timeFreezeCharges]);
 
 // ▶️ Expiration des perks temporaires
 useEffect(() => {
@@ -191,6 +195,27 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, [selectingPerk]);
+
+useSynergies(
+  activePerks.map(p => p.id),
+  {
+    setGravityMultiplier,
+    setScoreMultiplier,
+    setChaosMode,
+    setTimeFreezeDuration,
+    addBomb: (n) => setBombs(v => v + n),
+    activePerks: activePerks.map(p => p.id),
+    setBombRadius,
+  },
+  (synergy) => {
+    setSynergyToast(synergy);
+    if (synergyTimeoutRef.current) {
+      clearTimeout(synergyTimeoutRef.current);
+    }
+    synergyTimeoutRef.current = setTimeout(() => setSynergyToast(null), 2500);
+  }
+);
+
 
   useEffect(() => {
     if (!selectingPerk) return;
@@ -207,11 +232,21 @@ useEffect(() => {
       if (freezeTimeoutRef.current) {
         clearTimeout(freezeTimeoutRef.current);
       }
+      if (synergyTimeoutRef.current) {
+        clearTimeout(synergyTimeoutRef.current);
+      }
     };
   }, []);
 
   return (
     <div className="rogue-run">
+      {synergyToast && (
+        <div className="synergy-toast">
+          <p className="eyebrow">Synergie activée</p>
+          <p className="synergy-name">{synergyToast.name}</p>
+          <p className="muted small">{synergyToast.description}</p>
+        </div>
+      )}
       {selectingPerk && (
         <PerkSelectionOverlay perks={perkChoices} onSelect={handleSelectPerk} />
       )}
