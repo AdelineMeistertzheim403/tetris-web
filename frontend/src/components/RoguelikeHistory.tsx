@@ -2,12 +2,7 @@
 import { useEffect, useState } from "react";
 import { getMyRoguelikeRuns } from "../services/roguelike.service";
 import type { RoguelikeRunHistoryItem } from "../services/roguelike.service";
-import { ALL_PERKS } from "../data/perks";
 
-const perkIconMap: Record<string, string> = ALL_PERKS.reduce((acc, perk) => {
-  acc[perk.id] = perk.icon ?? "★";
-  return acc;
-}, {} as Record<string, string>);
 
 function formatDuration(run: RoguelikeRunHistoryItem) {
   if (!run.endedAt) return null;
