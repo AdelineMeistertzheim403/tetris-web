@@ -1,0 +1,60 @@
+@use "sass:math";
+// ─────────────────────────────
+// CONFIG
+// ─────────────────────────────
+$perk-columns: 4;
+$perk-rows: 3;
+
+$perk-width: 120px;
+$perk-height: 120px; // icônes carrées (recommandé)
+
+$perk-sprite: "/icones_perks.png";
+
+// ─────────────────────────────
+// PERKS MAP (ordre IMPORTANT)
+// ─────────────────────────────
+$perks: (
+  extra-hold,
+  soft-gravity,
+  slow-gravity,
+  score-boost,
+
+  bomb,
+  double-bomb,
+  mega-bomb,
+  second-chance,
+
+  time-freeze,
+  chaos-mode,
+  fast-hold-reset,
+  last-stand
+);
+
+// ─────────────────────────────
+// BASE ICON
+// ─────────────────────────────
+.perk-icon {
+  width: $perk-width;
+  height: $perk-height;
+  background-image: url($perk-sprite);
+  background-size: calc($perk-columns * 100%) calc($perk-rows * 100%);
+  background-repeat: no-repeat;
+  display: inline-block;
+}
+
+// ─────────────────────────────
+// AUTO-GENERATION
+// ─────────────────────────────
+@for $i from 0 through (length($perks) - 1) {
+  $perk-name: nth($perks, $i + 1);
+
+  $col: $i % $perk-columns;
+  $row: floor(math.div($i, $perk-columns));
+
+  $x: ($col * 100%) / ($perk-columns - 1);
+  $y: ($row * 100%) / ($perk-rows - 1);
+
+  .perk-#{$perk-name} {
+    background-position: $x $y;
+  }
+}

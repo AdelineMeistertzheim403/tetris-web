@@ -78,6 +78,8 @@ export function useTetrisGame({
   const [completed, setCompleted] = useState(false);
   const [holdBonusLeft, setHoldBonusLeft] = useState(0);
   const [bombs, setBombs] = useState(0);
+  const [fastHoldReset, setFastHoldReset] = useState(false);
+  const [lastStandAvailable, setLastStandAvailable] = useState(false);
 
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -86,9 +88,48 @@ export function useTetrisGame({
   const moveRef = useRef<(dir: "left" | "right" | "down" | "rotate") => void>(() => {});
   const garbageRef = useRef(0);
 
+  const clearActivePiece = useCallback(
+    (boardState: number[][], lockedPiece: Piece) => {
+      const clone = boardState.map((row) => [...row]);
+      lockedPiece.shape.forEach((row, dy) => {
+        row.forEach((val, dx) => {
+          if (!val) return;
+          const targetY = lockedPiece.y + dy;
+          const targetX = lockedPiece.x + dx;
+          if (
+            targetY >= 0 &&
+            targetY < clone.length &&
+            targetX >= 0 &&
+            targetX < clone[0].length
+          ) {
+            clone[targetY][targetX] = 0;
+          }
+        });
+      });
+      return clone;
+    },
+    []
+  );
+
+  const shiftBoardDown = useCallback((boardState: number[][], amount = 1) => {
+    let shifted = boardState.map((row) => [...row]);
+    for (let i = 0; i < amount; i++) {
+      shifted = [Array(shifted[0].length).fill(0), ...shifted.slice(0, -1)];
+    }
+    return shifted;
+  }, []);
+
+  const spawnNewPiece = useCallback(() => {
+    setPiece(generateBagPiece(bagRef.current));
+    setNextPiece(generateBagPiece(bagRef.current));
+    setGhostPiece(null);
+    setCanHold(true);
+    setHoldBonusLeft(extraHold);
+  }, [extraHold]);
+
 
   const addBomb = useCallback(() => {
-  setBombs(b => b + 1);
+  setBombs((b: number) => b + 1);
 }, []);
 
 const triggerBomb = useCallback(() => {
@@ -101,13 +142,13 @@ const triggerBomb = useCallback(() => {
     ? Math.random() < 0.5 ? bombRadius : bombRadius + 1
     : bombRadius;
 
-  setBoard(prev =>
+  setBoard((prev: number[][]) =>
     applyBomb(prev, centerX, centerY, finalRadius)
   );
 
   onBombExplode?.();
-  setBombs(b => b - 1);
-}, [bombs, piece, gameOver, running, chaosMode, bombRadius]);
+  setBombs((b: number) => b - 1);
+}, [bombs, piece, gameOver, running, chaosMode, bombRadius, onBombExplode]);
 
   // Mettre à jour le bag quand une nouvelle séquence arrive
   // Ajout de bag externe : on concatène pour éviter de tomber en panne de tirage
@@ -128,7 +169,7 @@ const triggerBomb = useCallback(() => {
   : 1;
 
 setSpeedMs(speed * gravityMultiplier * chaosFactor);
-}, [gravityMultiplier, speed]);
+}, [chaosMode, gravityMultiplier, speed]);
 
   const computeGhost = useCallback(
     (current: Piece, stateBoard: number[][]) => {
@@ -163,8 +204,8 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
 
       if (linesCleared > 0) {
         if (onConsumeLines) onConsumeLines(linesCleared);
-        setScore(prev => prev + linesCleared * 100 * scoreMultiplier);
-        setLines((prev) => {
+        setScore((prev: number) => prev + linesCleared * 100 * scoreMultiplier);
+        setLines((prev: number) => {
           const total = prev + linesCleared;
           if (mode !== "SPRINT") {
             const newLevel = Math.floor(total / 10) + 1;
@@ -208,6 +249,16 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     return;
   }
 
+  if (lastStandAvailable) {
+    setLastStandAvailable(false);
+
+    const boardWithoutPiece = clearActivePiece(newBoard, currentPiece);
+    const rescuedBoard = shiftBoardDown(boardWithoutPiece, 1);
+    setBoard(rescuedBoard);
+    spawnNewPiece();
+    return;
+  }
+
   setRunning(false);
   setGameOver(true);
   onGameOver?.(score, level, lines);
@@ -217,7 +268,31 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       setPiece(newPiece);
       setNextPiece(generateBagPiece(bagRef.current));
     },
-    [nextPiece, mode, targetLines, speed, startTime, onComplete, onGameOver, score, level, lines, onConsumeLines, extraHold,]
+    [
+      nextPiece,
+      mode,
+      targetLines,
+      speed,
+      startTime,
+      onComplete,
+      onGameOver,
+      score,
+      level,
+      lines,
+      onConsumeLines,
+      extraHold,
+      gravityMultiplier,
+      secondChance,
+      onConsumeSecondChance,
+      rows,
+      cols,
+      scoreMultiplier,
+      onGarbageConsumed,
+      lastStandAvailable,
+      clearActivePiece,
+      shiftBoardDown,
+      spawnNewPiece,
+    ]
   );
 
   // ----- Movement -----
@@ -254,9 +329,9 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
   }, [board, gameOver, mergeAndNext, piece, running]);
 
   const handleHold = useCallback(() => {
-    if (!piece) return;
+  if (!piece) return;
 
-  if (!canHold && holdBonusLeft <= 0) return;
+  if (!canHold && holdBonusLeft <= 0 && !fastHoldReset) return;
     if (!holdPiece) {
       setHoldPiece(piece);
       setPiece(nextPiece);
@@ -272,10 +347,10 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       });
     }
     if (!canHold && holdBonusLeft > 0) {
-  setHoldBonusLeft(v => v - 1);
+  setHoldBonusLeft((v: number) => v - 1);
 }
     setCanHold(false);
-  }, [canHold,holdBonusLeft, cols, holdPiece, nextPiece, piece]);
+  }, [canHold, fastHoldReset, holdBonusLeft, cols, holdPiece, nextPiece, piece]);
 
   // ----- Tick -----
   // Boucle de jeu : tick basé sur setInterval, sépare le timer et le mouvement
@@ -289,7 +364,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     if (!running || gameOver || timeFrozen) return;
 
     intervalRef.current = setInterval(() => {
-      setTick((t) => t + 1);
+      setTick((t: number) => t + 1);
     }, speedMs);
 
     return () => {
@@ -362,7 +437,9 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     setStartTime(null);
     setElapsedMs(0);
     setCompleted(false);
-  }, [cols, rows, speed]);
+    setFastHoldReset(false);
+    setLastStandAvailable(false);
+  }, [cols, gravityMultiplier, rows, speed]);
 
   const state = useMemo(
     () => ({
@@ -383,6 +460,9 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     [board, piece, nextPiece, score, lines, level, gameOver, running, ghostPiece, holdPiece, completed, elapsedMs, bombs]
   );
 
+  const enableFastHoldReset = useCallback(() => setFastHoldReset(true), []);
+  const enableLastStand = useCallback(() => setLastStandAvailable(true), []);
+
   return {
     state,
     actions: {
@@ -394,6 +474,8 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       reset,
       addBomb,
       triggerBomb,
+      enableFastHoldReset,
+      enableLastStand,
     },
   };
 }

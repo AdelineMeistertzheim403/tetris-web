@@ -3,6 +3,38 @@ import { RunStatus } from "@prisma/client";
 import prisma from "../prisma/client";
 import { AuthRequest } from "../middleware/auth.middleware";
 
+export async function getMyRoguelikeRuns(req: AuthRequest, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const runs = await prisma.roguelikeRun.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        seed: true,
+        score: true,
+        lines: true,
+        level: true,
+        perks: true,
+        chaosMode: true,
+        status: true,
+        createdAt: true,
+        endedAt: true,
+      },
+    });
+
+    res.json(runs);
+  } catch (err) {
+    console.error("getMyRoguelikeRuns error:", err);
+    res.status(500).json({ error: "Impossible de recuperer l'historique" });
+  }
+}
+
 export async function startRoguelikeRun(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
@@ -156,21 +188,29 @@ export async function getRoguelikeLeaderboard(
   try {
     const leaderboard = await prisma.roguelikeRun.findMany({
       where: {
-        status: RunStatus.FINISHED,
+      status: RunStatus.FINISHED,
+    },
+    orderBy: [
+      { score: "desc" },
+      { level: "desc" },
+      { lines: "desc" },
+      { createdAt: "asc" },
+    ],
+    take: 20,
+    select: {
+      score: true,
+      level: true,
+      lines: true,
+      chaosMode: true,
+      seed: true,
+      createdAt: true,
+      user: {
+        select: { pseudo: true },
       },
-      orderBy: [
-        { score: "desc" },
-        { lines: "desc" },
-      ],
-      take: 20,
-      include: {
-        user: {
-          select: { pseudo: true },
-        },
-      },
-    });
+    },
+  });
 
-    res.json(leaderboard);
+  res.json(leaderboard);
   } catch (err) {
     console.error("getRoguelikeLeaderboard error:", err);
     res.status(500).json({ error: "Impossible de recuperer le classement" });

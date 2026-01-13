@@ -33,6 +33,8 @@ export default function RoguelikeRun() {
   const [bombs, setBombs] = useState(0);
   const [bombsGranted, setBombsGranted] = useState(0);
   const [activePerks, setActivePerks] = useState<ActivePerkRuntime[]>([]);
+  const [fastHoldReset, setFastHoldReset] = useState(false);
+  const [lastStand, setLastStand] = useState(false);
   const [runEnded, setRunEnded] = useState(false);
   const freezeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nextPerkAt, setNextPerkAt] = useState(10);
@@ -113,6 +115,9 @@ const perkProgress = 1 - (linesUntilNextPerk / 10);
       enableChaosMode: () => setChaosMode(true),
 
       setBombRadius: (radius: number) => setBombRadius(radius),
+
+      enableFastHoldReset: () => setFastHoldReset(true),
+      enableLastStand: () => setLastStand(true),
     });
 
     setRunEnded(false);
@@ -232,6 +237,8 @@ useEffect(() => {
           timeFrozen={timeFrozen}
            onTriggerTimeFreeze={triggerTimeFreeze}
           timeFreezeCharges={timeFreezeCharges}
+          fastHoldReset={fastHoldReset}
+          lastStand={lastStand}
            onScoreChange={setCurrentScore}
   onLevelChange={setCurrentLevel}
   onConsumeLines={handleConsumeLines}
@@ -277,6 +284,8 @@ useEffect(() => {
     setBombsGranted(0);
     setTimeFreezeCharges(0);
     setChaosMode(false);
+    setFastHoldReset(false);
+    setLastStand(false);
   }
 }}
         />
