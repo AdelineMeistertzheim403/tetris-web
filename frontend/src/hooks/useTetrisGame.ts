@@ -27,6 +27,13 @@ onConsumeSecondChance?: () => void;
 const DEFAULT_ROWS = 20;
 const DEFAULT_COLS = 10;
 const DEFAULT_SPEED = 1000;
+type Explosion = {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  startedAt: number;
+};
 
 export function useTetrisGame({
   rows = DEFAULT_ROWS,
@@ -80,6 +87,7 @@ export function useTetrisGame({
   const [bombs, setBombs] = useState(0);
   const [fastHoldReset, setFastHoldReset] = useState(false);
   const [lastStandAvailable, setLastStandAvailable] = useState(false);
+  const [explosions, setExplosions] = useState<Explosion[]>([]);
 
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -87,6 +95,8 @@ export function useTetrisGame({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moveRef = useRef<(dir: "left" | "right" | "down" | "rotate") => void>(() => {});
   const garbageRef = useRef(0);
+  const explosionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingBombsRef = useRef<number[]>([]);
 
   const clearActivePiece = useCallback(
     (boardState: number[][], lockedPiece: Piece) => {
@@ -142,13 +152,9 @@ const triggerBomb = useCallback(() => {
     ? Math.random() < 0.5 ? bombRadius : bombRadius + 1
     : bombRadius;
 
-  setBoard((prev: number[][]) =>
-    applyBomb(prev, centerX, centerY, finalRadius)
-  );
-
-  onBombExplode?.();
   setBombs((b: number) => b - 1);
-}, [bombs, piece, gameOver, running, chaosMode, bombRadius, onBombExplode]);
+  pendingBombsRef.current.push(finalRadius);
+}, [bombs, piece, gameOver, running, chaosMode, bombRadius]);
 
   // Mettre à jour le bag quand une nouvelle séquence arrive
   // Ajout de bag externe : on concatène pour éviter de tomber en panne de tirage
@@ -187,7 +193,38 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       const merged = mergePiece(currentBoard, currentPiece.shape, currentPiece.x, currentPiece.y);
       setCanHold(true);
       setHoldBonusLeft(extraHold);
-      let boardAfterGarbage = merged;
+      let boardAfterBomb = merged;
+
+      if (pendingBombsRef.current.length > 0) {
+        const centerX = currentPiece.x + Math.floor(currentPiece.shape[0].length / 2);
+        const centerY = currentPiece.y + Math.floor(currentPiece.shape.length / 2);
+
+        pendingBombsRef.current.forEach((radius) => {
+          boardAfterBomb = applyBomb(boardAfterBomb, centerX, centerY, radius);
+          onBombExplode?.();
+
+          const explosionId = `${Date.now()}-${Math.random()}`;
+          setExplosions((prev) => [
+            ...prev,
+            {
+              id: explosionId,
+              x: centerX,
+              y: centerY,
+              radius,
+              startedAt: Date.now(),
+            },
+          ]);
+
+          const expTimeout = setTimeout(() => {
+            setExplosions((prev) => prev.filter((e) => e.id !== explosionId));
+          }, 600);
+          explosionTimeoutsRef.current.push(expTimeout);
+        });
+
+        pendingBombsRef.current = [];
+      }
+
+      let boardAfterGarbage = boardAfterBomb;
       if (garbageRef.current > 0) {
         // injecter des lignes avec un trou pour éviter de donner du score gratuit
         const garbageLines = Array.from({ length: garbageRef.current }, () => {
@@ -439,6 +476,10 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     setCompleted(false);
     setFastHoldReset(false);
     setLastStandAvailable(false);
+    setExplosions([]);
+    pendingBombsRef.current = [];
+    explosionTimeoutsRef.current.forEach((id) => clearTimeout(id));
+    explosionTimeoutsRef.current = [];
   }, [cols, gravityMultiplier, rows, speed]);
 
   const state = useMemo(
@@ -456,8 +497,9 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       completed,
       elapsedMs,
        bombs,
+      explosions,
     }),
-    [board, piece, nextPiece, score, lines, level, gameOver, running, ghostPiece, holdPiece, completed, elapsedMs, bombs]
+    [board, piece, nextPiece, score, lines, level, gameOver, running, ghostPiece, holdPiece, completed, elapsedMs, bombs, explosions]
   );
 
   const enableFastHoldReset = useCallback(() => setFastHoldReset(true), []);

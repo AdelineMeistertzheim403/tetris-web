@@ -5,7 +5,7 @@ export const SYNERGIES: Synergy[] = [
     id: "bombardier",
     name: "Bombardier",
     description: "Bombes + Mega Bomb → +1 bombe à chaque perk",
-
+    icon: "bombardier",
     requiredPerks: ["bomb", "mega-bomb"],
     unique: true,
 
@@ -18,7 +18,7 @@ export const SYNERGIES: Synergy[] = [
     id: "time-lord",
     name: "Seigneur du Temps",
     description: "Time Freeze + Slow Gravity → durée +50%",
-
+    icon: "time_lord",
     requiredPerks: ["time-freeze", "slow-gravity"],
     unique: true,
 
@@ -31,7 +31,7 @@ export const SYNERGIES: Synergy[] = [
     id: "chaos-engine",
     name: "Moteur du Chaos",
     description: "Chaos Mode + Score Boost → score x2",
-
+    icon: "chaos_engine",
     requiredPerks: ["chaos-mode", "score-boost"],
     unique: true,
 
@@ -44,7 +44,7 @@ export const SYNERGIES: Synergy[] = [
   id: "last-resort",
   name: "Last Resort",
   description: "Second Chance + Last Stand → survie critique",
-
+    icon:"last_resort",
   requiredPerks: ["second-chance", "last-stand"],
   unique: true,
 
@@ -57,7 +57,7 @@ export const SYNERGIES: Synergy[] = [
   id: "nuclear-core",
   name: "Nuclear Core",
   description: "Double Bomb + Mega Bomb → bombes 7x7",
-
+    icon: "nuclear_core",
   requiredPerks: ["double-bomb", "mega-bomb"],
   unique: true,
 
@@ -70,7 +70,7 @@ export const SYNERGIES: Synergy[] = [
   id: "gravity-well",
   name: "Gravity Well",
   description: "Soft + Slow Gravity → chute ultra lente",
-
+    icon: "gravity_well",
   requiredPerks: ["soft-gravity", "slow-gravity"],
   unique: true,
 

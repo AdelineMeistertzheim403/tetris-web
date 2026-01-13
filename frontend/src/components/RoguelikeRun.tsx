@@ -13,6 +13,9 @@ import { useRoguelikeRun } from "../hooks/useRoguelikeRun";
 import RoguelikeRunSummary from "./RoguelikeRunSummary";
 import { useNavigate } from "react-router-dom";
 import { useSynergies } from "../hooks/useSynergies";
+import { SYNERGIES } from "../data/synergies";
+import { useActiveSynergies } from "../hooks/useActiveSynergies";
+import SynergiesPanel from "./SynergiesPanel";
 
 export type ActivePerkRuntime = Perk & {
   startedAt?: number;
@@ -56,6 +59,7 @@ const [summaryLevel, setSummaryLevel] = useState(1);
   nextPerkAt - totalLines
 );
 const perkProgress = 1 - (linesUntilNextPerk / 10);
+const activeSynergies = useActiveSynergies(activePerks, SYNERGIES);
 
   const consumeSecondChance = () => {
     setSecondChance(false);
@@ -254,6 +258,7 @@ useSynergies(
         <RunInfo linesUntilNextPerk={linesUntilNextPerk} perkProgress={perkProgress} />
         <div className="perks-wrapper">
           <PerksPanel perks={activePerks} />
+          <SynergiesPanel synergies={activeSynergies} />
         </div>
       </aside>
 

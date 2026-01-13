@@ -8,6 +8,8 @@ export type Synergy = {
   requiredPerks: string[];
   minCount?: number; // ex: 2 perks sur 3 possibles
 
+  icon: string;
+
   unique?: boolean; // ne s’active qu’une fois par run
   active?: boolean; // runtime
 
