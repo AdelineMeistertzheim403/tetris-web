@@ -145,8 +145,6 @@ export function useTetrisGame({
 const triggerBomb = useCallback(() => {
   if (bombs <= 0 || !piece || gameOver || !running) return;
 
-  const centerX = piece.x + Math.floor(piece.shape[0].length / 2);
-  const centerY = piece.y + Math.floor(piece.shape.length / 2);
 
   const finalRadius = chaosMode
     ? Math.random() < 0.5 ? bombRadius : bombRadius + 1
@@ -305,31 +303,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       setPiece(newPiece);
       setNextPiece(generateBagPiece(bagRef.current));
     },
-    [
-      nextPiece,
-      mode,
-      targetLines,
-      speed,
-      startTime,
-      onComplete,
-      onGameOver,
-      score,
-      level,
-      lines,
-      onConsumeLines,
-      extraHold,
-      gravityMultiplier,
-      secondChance,
-      onConsumeSecondChance,
-      rows,
-      cols,
-      scoreMultiplier,
-      onGarbageConsumed,
-      lastStandAvailable,
-      clearActivePiece,
-      shiftBoardDown,
-      spawnNewPiece,
-    ]
+    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, gravityMultiplier, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece]
   );
 
   // ----- Movement -----
