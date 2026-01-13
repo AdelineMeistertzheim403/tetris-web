@@ -483,3 +483,49 @@
   justify-content: center;
   z-index: 9999;
 }
+
+.synergies-panel {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+
+  h3 {
+    font-size: 0.9rem;
+    color: #ffb3ff;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.synergy-item {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+
+  strong {
+    color: #fff;
+  }
+
+  p {
+    margin: 0;
+    opacity: 0.8;
+  }
+}
+
+.synergy-icon {
+  width: 120px;
+  height: 120px;
+  background-size: cover;
+}
+
+.synergy-icon { width: 120px; height: 120px; background-size: cover; background-repeat: no-repeat; }
+
+.synergy-icon.bombardier    { background-image: url("/bombardier.png"); }
+.synergy-icon.time_lord     { background-image: url("/time_lord.png"); }
+.synergy-icon.chaos_engine  { background-image: url("/chaos_engine.png"); }
+.synergy-icon.last_resort   { background-image: url("/last_resort.png"); }
+.synergy-icon.nuclear_core  { background-image: url("/nuclear_core.png"); }
+.synergy-icon.gravity_well  { background-image: url("/gravity_well.png"); }
+
