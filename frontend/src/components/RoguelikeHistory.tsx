@@ -3,6 +3,21 @@ import { useEffect, useState } from "react";
 import { getMyRoguelikeRuns } from "../services/roguelike.service";
 import type { RoguelikeRunHistoryItem } from "../services/roguelike.service";
 
+const perkImageMap: Record<string, string> = {
+  "extra-hold": "/extra_hold.png",
+  "soft-gravity": "/soft_gravity.png",
+  "slow-gravity": "/slow_gravity.png",
+  "score-boost": "/score_boost.png",
+  bomb: "/bomb.png",
+  "double-bomb": "/double_bomb.png",
+  "mega-bomb": "/mega_bomb.png",
+  "second-chance": "/second_chance.png",
+  "time-freeze": "/time_freeze.png",
+  "chaos-mode": "/chaos_mode.png",
+  "fast-hold-reset": "/fast_hold_reset.png",
+  "last-stand": "/last_stand.png",
+};
+
 
 function formatDuration(run: RoguelikeRunHistoryItem) {
   if (!run.endedAt) return null;
@@ -40,20 +55,6 @@ export default function RoguelikeHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const perkClassMap: Record<string, string> = {
-  "extra-hold": "perk-extra-hold",
-  "soft-gravity": "perk-soft-gravity",
-  "slow-gravity": "perk-slow-gravity",
-  "score-boost": "perk-score-boost",
-  bomb: "perk-bomb",
-  "double-bomb": "perk-double-bomb",
-  "mega-bomb": "perk-mega-bomb",
-  "second-chance": "perk-second-chance",
-  "time-freeze": "perk-time-freeze",
-  "chaos-mode": "perk-chaos-mode",
-  "fast-hold-reset": "perk-fast-hold-reset",
-  "last-stand": "perk-last-stand",
-};
 
   useEffect(() => {
     let mounted = true;
@@ -122,7 +123,12 @@ export default function RoguelikeHistory() {
                   <div className="run-line perks-line">
                     {Array.isArray(run.perks) && run.perks.length > 0 ? (
                       run.perks.map((perk) => (
-                        <span key={perk} className={`perk-icon ${perkClassMap[perk] ?? ""}`} />
+                        <img
+                          key={perk}
+                          src={perkImageMap[perk] ?? "/vite.svg"}
+                          alt={perk}
+                          className="perk-chip"
+                        />
                       ))
                     ) : (
                       <span className="muted">Pas de perk</span>

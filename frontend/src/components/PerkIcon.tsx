@@ -5,6 +5,21 @@ type Props = {
   perk: ActivePerkRuntime;
 };
 
+const perkImageMap: Record<string, string> = {
+  "extra-hold": "/extra_hold.png",
+  "soft-gravity": "/soft_gravity.png",
+  "slow-gravity": "/slow_gravity.png",
+  "score-boost": "/score_boost.png",
+  bomb: "/bomb.png",
+  "double-bomb": "/double_bomb.png",
+  "mega-bomb": "/mega_bomb.png",
+  "second-chance": "/second_chance.png",
+  "time-freeze": "/time_freeze.png",
+  "chaos-mode": "/chaos_mode.png",
+  "fast-hold-reset": "/fast_hold_reset.png",
+  "last-stand": "/last_stand.png",
+};
+
 const RADIUS = 18;
 const CIRC = 2 * Math.PI * RADIUS;
 
@@ -26,9 +41,13 @@ export default function PerkIcon({ perk }: Props) {
     progress = Math.max(0, remaining / total);
   }
 
+  const src = perkImageMap[perk.id];
+
   return (
     <div className="perk-icon">
-      <svg width="40" height="40">
+      <img src={src ?? "/vite.svg"} alt={perk.name} className="perk-icon-img" />
+
+      <svg width="40" height="40" className="perk-icon-progress">
         <circle
           cx="20"
           cy="20"
@@ -53,10 +72,6 @@ export default function PerkIcon({ perk }: Props) {
           />
         )}
       </svg>
-
-      <div className="perk-icon-inner">
-        {perk.icon ?? "⭐"}
-      </div>
     </div>
   );
 }

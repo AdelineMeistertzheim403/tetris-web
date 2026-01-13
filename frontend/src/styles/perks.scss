@@ -6,29 +6,7 @@ $perk-columns: 4;
 $perk-rows: 3;
 
 $perk-width: 120px;
-$perk-height: 120px; // icônes carrées (recommandé)
-
-$perk-sprite: "/icones_perks.png";
-
-// ─────────────────────────────
-// PERKS MAP (ordre IMPORTANT)
-// ─────────────────────────────
-$perks: (
-  extra-hold,
-  soft-gravity,
-  slow-gravity,
-  score-boost,
-
-  bomb,
-  double-bomb,
-  mega-bomb,
-  second-chance,
-
-  time-freeze,
-  chaos-mode,
-  fast-hold-reset,
-  last-stand
-);
+$perk-height: 120px; // icônes carrées
 
 // ─────────────────────────────
 // BASE ICON
@@ -36,25 +14,21 @@ $perks: (
 .perk-icon {
   width: $perk-width;
   height: $perk-height;
-  background-image: url($perk-sprite);
-  background-size: calc($perk-columns * 100%) calc($perk-rows * 100%);
-  background-repeat: no-repeat;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
-// ─────────────────────────────
-// AUTO-GENERATION
-// ─────────────────────────────
-@for $i from 0 through (length($perks) - 1) {
-  $perk-name: nth($perks, $i + 1);
+.perk-icon-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
 
-  $col: $i % $perk-columns;
-  $row: floor(math.div($i, $perk-columns));
-
-  $x: ($col * 100%) / ($perk-columns - 1);
-  $y: ($row * 100%) / ($perk-rows - 1);
-
-  .perk-#{$perk-name} {
-    background-position: $x $y;
-  }
+.perk-icon-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
