@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState } from "react";
 import { getMyRoguelikeRuns } from "../services/roguelike.service";
 import type { RoguelikeRunHistoryItem } from "../services/roguelike.service";
@@ -44,6 +45,20 @@ export default function RoguelikeHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const perkClassMap: Record<string, string> = {
+  "extra-hold": "perk-extra-hold",
+  "soft-gravity": "perk-soft-gravity",
+  "slow-gravity": "perk-slow-gravity",
+  "score-boost": "perk-score-boost",
+  bomb: "perk-bomb",
+  "double-bomb": "perk-double-bomb",
+  "mega-bomb": "perk-mega-bomb",
+  "second-chance": "perk-second-chance",
+  "time-freeze": "perk-time-freeze",
+  "chaos-mode": "perk-chaos-mode",
+  "fast-hold-reset": "perk-fast-hold-reset",
+  "last-stand": "perk-last-stand",
+};
 
   useEffect(() => {
     let mounted = true;
@@ -70,12 +85,6 @@ export default function RoguelikeHistory() {
 
   return (
     <section className="panel">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Historique</p>
-          <h3>Vos dernières runs</h3>
-        </div>
-      </div>
 
       {loading && <p className="muted">Chargement...</p>}
       {error && <p className="error-text">{error}</p>}
@@ -90,6 +99,13 @@ export default function RoguelikeHistory() {
               const run = runs[page];
               const duration = formatDuration(run);
               const started = new Date(run.createdAt).toLocaleString();
+              const stats = [
+                { label: "Score", value: run.score.toLocaleString("fr-FR") },
+                { label: "Niveau", value: run.level },
+                { label: "Lignes", value: run.lines },
+                { label: "Durée", value: duration ?? "—" },
+                { label: "Seed", value: `#${run.seed.slice(0, 6)}` },
+              ];
               return (
                 <article key={run.id} className="run-card run-card--center">
                   <header className="run-card__top run-card__top--center">
@@ -97,21 +113,21 @@ export default function RoguelikeHistory() {
                       <StatusBadge status={run.status} />
                       {run.chaosMode && <span className="pill pill-ghost">🔥 Chaos</span>}
                     </div>
-                    <div className="run-line">
-                      <span className="muted">#{run.seed.slice(0, 6)}</span>
-                      <span className="muted">Score {run.score.toLocaleString("fr-FR")}</span>
-                      <span className="muted">Niv {run.level}</span>
-                      <span className="muted">Lignes {run.lines}</span>
-                      <span className="muted">Durée {duration ?? "—"}</span>
-                    </div>
                   </header>
+
+                  <div className="run-line stats-line">
+                    {stats.map((stat) => (
+                      <div key={stat.label} className="stat-block">
+                        <span className="stat-label">{stat.label}</span>
+                        <span className="stat-value">{stat.value}</span>
+                      </div>
+                    ))}
+                  </div>
 
                   <div className="run-line perks-line">
                     {Array.isArray(run.perks) && run.perks.length > 0 ? (
                       run.perks.map((perk) => (
-                        <span key={perk} className="pill pill-ghost">
-                          {perkIconMap[perk] ?? "★"}
-                        </span>
+                        <span key={perk} className={`perk-icon ${perkClassMap[perk] ?? ""}`} />
                       ))
                     ) : (
                       <span className="muted">Pas de perk</span>
