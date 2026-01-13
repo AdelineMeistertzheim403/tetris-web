@@ -386,8 +386,8 @@
 }
 
 .perk-chip {
-  width: 120px;
-  height: 120px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid #2a2a3d;
@@ -399,6 +399,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.synergy-chip {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 6px;
 }
 
 .leaderboard {
@@ -528,4 +538,3 @@
 .synergy-icon.last_resort   { background-image: url("/last_resort.png"); }
 .synergy-icon.nuclear_core  { background-image: url("/nuclear_core.png"); }
 .synergy-icon.gravity_well  { background-image: url("/gravity_well.png"); }
-
