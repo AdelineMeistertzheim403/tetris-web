@@ -75,7 +75,7 @@ export const SYNERGIES: Synergy[] = [
   unique: true,
 
   apply: ({ setGravityMultiplier, setScoreMultiplier }) => {
-    setGravityMultiplier(0.15);
+    setGravityMultiplier((v) => v * 3.5);
     setScoreMultiplier(v => v * 0.75);
   },
 }
