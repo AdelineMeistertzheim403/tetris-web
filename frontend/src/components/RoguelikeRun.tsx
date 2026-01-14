@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PerksPanel from "./PerksPanel";
 import RunInfo from "./RunInfo";
 import TetrisBoard from "./TetrisBoard";
@@ -13,6 +13,7 @@ import { useRoguelikeRun } from "../hooks/useRoguelikeRun";
 import RoguelikeRunSummary from "./RoguelikeRunSummary";
 import { useNavigate } from "react-router-dom";
 import { useSynergies } from "../hooks/useSynergies";
+import { createRng } from "../utils/rng";
 import { SYNERGIES } from "../data/synergies";
 import { useActiveSynergies } from "../hooks/useActiveSynergies";
 import SynergiesPanel from "./SynergiesPanel";
@@ -51,9 +52,30 @@ export default function RoguelikeRun() {
 const [currentLevel, setCurrentLevel] = useState(1);
 const navigate = useNavigate();
 const [summaryPerks, setSummaryPerks] = useState<ActivePerkRuntime[]>([]);
-const [summaryScore, setSummaryScore] = useState(0);
-const [summaryLines, setSummaryLines] = useState(0);
-const [summaryLevel, setSummaryLevel] = useState(1);
+  const [summaryScore, setSummaryScore] = useState(0);
+  const [summaryLines, setSummaryLines] = useState(0);
+  const [summaryLevel, setSummaryLevel] = useState(1);
+  const rngRef = useRef<(() => number) | null>(null);
+  const [boardKey, setBoardKey] = useState(0);
+  const runStartedRef = useRef(false);
+  const resetLocalState = useCallback(() => {
+    setActivePerks([]);
+    setCurrentScore(0);
+    setCurrentLevel(1);
+    setTotalLines(0);
+    setNextPerkAt(10);
+    setBombs(0);
+    setBombsGranted(0);
+    setTimeFreezeCharges(0);
+    setChaosMode(false);
+    setFastHoldReset(false);
+    setLastStand(false);
+    setRunEnded(false);
+    setSelectingPerk(true);
+    setShowSummary(false);
+    setBoardKey((k) => k + 1);
+    runStartedRef.current = false;
+  }, []);
   const linesUntilNextPerk = Math.max(
   0,
   nextPerkAt - totalLines
@@ -173,7 +195,8 @@ const activeSynergies = useActiveSynergies(activePerks, SYNERGIES);
 
 // ▶️ Démarrage de la run
 useEffect(() => {
-  if (!hasActiveRun && !selectingPerk && !runEnded) {
+  if (!hasActiveRun && !runEnded && !runStartedRef.current) {
+    runStartedRef.current = true;
     startRun(
       crypto.randomUUID(),
       {
@@ -183,8 +206,18 @@ useEffect(() => {
         timeFreezeCharges,
       }
     );
+    setBoardKey((k) => k + 1);
   }
-}, [hasActiveRun, selectingPerk, runEnded, startRun, gravityMultiplier, scoreMultiplier, bombs, timeFreezeCharges]);
+}, [hasActiveRun, runEnded, startRun, gravityMultiplier, scoreMultiplier, bombs, timeFreezeCharges]);
+
+// ▶️ Init RNG déterministe quand le seed est dispo
+useEffect(() => {
+  if (run?.seed) {
+    rngRef.current = createRng(run.seed);
+  } else {
+    rngRef.current = null;
+  }
+}, [run?.seed]);
 
 // ▶️ Expiration des perks temporaires
 useEffect(() => {
@@ -224,7 +257,15 @@ useSynergies(
   useEffect(() => {
     if (!selectingPerk) return;
 
-    setPerkChoices(generatePerkChoices(ALL_PERKS, 3, activePerks.map((p) => p.id)));
+    const rng = rngRef.current ?? Math.random;
+    setPerkChoices(
+      generatePerkChoices(
+        ALL_PERKS,
+        3,
+        activePerks.map((p) => p.id),
+        rng
+      )
+    );
   }, [selectingPerk, activePerks]);
 
   useEffect(() => {
@@ -264,6 +305,7 @@ useSynergies(
 
       <main className="rogue-center">
         <TetrisBoard
+          key={boardKey}
           mode="ROGUELIKE"
           hideGameOverOverlay={true}
            paused={selectingPerk || showSummary}
@@ -284,6 +326,7 @@ useSynergies(
   onConsumeLines={handleConsumeLines}
           chaosMode={chaosMode}
           bombRadius={bombRadius}
+          rng={rngRef.current ?? undefined}
            onBombsChange={setBombs}
           onLocalGameOver={async (score, lines) => {
   if (!run) return;
@@ -342,7 +385,20 @@ useSynergies(
   perks={summaryPerks}
   chaosMode={chaosMode}
   seed={run?.seed ?? ""}
-  onReplay={() => window.location.reload()}
+  onReplay={async (seed) => {
+    resetLocalState();
+    rngRef.current = createRng(seed);
+    setBoardKey((k) => k + 1);
+    runStartedRef.current = true;
+    await startRun(seed, {
+      gravityMultiplier: 1,
+      scoreMultiplier: 1,
+      bombs: 0,
+      timeFreezeCharges: 0,
+      chaosMode: false,
+      seed,
+    });
+  }}
   onExit={() => navigate("/dashboard")}
 />
     </div>

@@ -1,39 +1,7 @@
 import { COLORS, SHAPES } from "./shapes";
 import type { Piece } from "../types/Piece";
 
-// 7-bag generator
-let currentBag: string[] = [];
-
-function shuffle<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-function refillBag(targetBag?: string[]) {
-  if (targetBag && targetBag.length) {
-    currentBag = [...targetBag];
-  } else {
-    currentBag = shuffle(Object.keys(SHAPES));
-  }
-}
-
-export function generateBagPiece(externalBag?: string[]): Piece {
-  if (externalBag && externalBag.length > 0) {
-    return createPieceFromKey(externalBag.shift() as string);
-  }
-
-  if (currentBag.length === 0) {
-    refillBag();
-  }
-  const key = currentBag.shift() as string;
-  return createPieceFromKey(key);
-}
-
-function createPieceFromKey(key: string): Piece {
+export function createPieceFromKey(key: string): Piece {
   const shape = SHAPES[key];
   const color = COLORS[key];
 
@@ -44,4 +12,37 @@ function createPieceFromKey(key: string): Piece {
     y: 0,
     type: key,
   };
+}
+
+function shuffle<T>(array: T[], rng: () => number): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+export function createBagGenerator(rng: () => number, initial?: string[]) {
+  let bag: string[] = initial?.length ? [...initial] : [];
+
+  const refill = () => {
+    bag = shuffle(Object.keys(SHAPES), rng);
+  };
+
+  const next = (): Piece => {
+    if (bag.length === 0) refill();
+    const key = bag.shift() as string;
+    return createPieceFromKey(key);
+  };
+
+  const pushSequence = (seq: string[]) => {
+    bag.push(...seq);
+  };
+
+  const reset = () => {
+    bag = [];
+  };
+
+  return { next, pushSequence, reset };
 }

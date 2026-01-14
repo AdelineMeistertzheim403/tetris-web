@@ -7,13 +7,13 @@ const RARITY_WEIGHTS: Record<Perk["rarity"], number> = {
   epic: 10,
 };
 
-function pickWeightedPerk(perks: Perk[]): Perk {
+function pickWeightedPerk(perks: Perk[], rng: () => number): Perk {
   const totalWeight = perks.reduce(
     (sum, p) => sum + RARITY_WEIGHTS[p.rarity],
     0
   );
 
-  let roll = Math.random() * totalWeight;
+  let roll = rng() * totalWeight;
 
   for (const perk of perks) {
     roll -= RARITY_WEIGHTS[perk.rarity];
@@ -27,7 +27,8 @@ function pickWeightedPerk(perks: Perk[]): Perk {
 export function generatePerkChoices(
   allPerks: Perk[],
   count: number,
-  excludedIds: string[] = []
+  excludedIds: string[] = [],
+  rng: () => number
 ): Perk[] {
   const pool = allPerks.filter(p => !excludedIds.includes(p.id));
   const result: Perk[] = [];
@@ -35,7 +36,7 @@ export function generatePerkChoices(
   const available = [...pool];
 
   while (result.length < count && available.length > 0) {
-    const perk = pickWeightedPerk(available);
+    const perk = pickWeightedPerk(available, rng);
     result.push(perk);
 
     // éviter les doublons dans la sélection

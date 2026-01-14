@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { checkCollision, clearFullLines, mergePiece, rotateMatrix } from "../logic/boardUtils";
-import { generateBagPiece } from "../logic/pieceGenerator";
+import { createBagGenerator } from "../logic/pieceGenerator";
 import type { Piece } from "../types/Piece";
 import type { GameMode } from "../types/GameMode";
 import { applyBomb } from "../logic/bombUtils";
+import type { RNG } from "../utils/rng";
 
 type Options = {
   rows?: number;
@@ -22,6 +23,7 @@ onConsumeSecondChance?: () => void;
   timeFrozen?: boolean;
   chaosMode?: boolean;
   bombRadius?: number;
+  rng?: RNG;
 };
 
 const DEFAULT_ROWS = 20;
@@ -33,6 +35,13 @@ type Explosion = {
   y: number;
   radius: number;
   startedAt: number;
+};
+
+const EXPLOSION_FRAME_DURATION_MS = 80;
+const getExplosionFrameCount = (radius: number) => {
+  if (radius >= 3) return 9; // 7x7
+  if (radius === 2) return 7; // 5x5
+  return 4; // 3x3
 };
 
 export function useTetrisGame({
@@ -56,22 +65,23 @@ export function useTetrisGame({
   timeFrozen = false,
   chaosMode = false,
    bombRadius = 1,
+  rng,
 }: Options & {
   bagSequence?: string[];
   onConsumeLines?: (lines: number) => void;
   incomingGarbage?: number;
   onGarbageConsumed?: () => void;
 }) {
+  const rngRef = useRef<RNG>(() => Math.random());
+  if (rng && rngRef.current !== rng) {
+    rngRef.current = rng;
+  }
+  const bagGenRef = useRef(createBagGenerator(rngRef.current));
   const [board, setBoard] = useState<number[][]>(
     Array.from({ length: rows }, () => Array(cols).fill(0))
   );
-  const bagRef = useRef<string[]>(bagSequence ? [...bagSequence] : []);
-  const [piece, setPiece] = useState<Piece>(() =>
-    bagRef.current.length ? generateBagPiece(bagRef.current) : generateBagPiece()
-  );
-  const [nextPiece, setNextPiece] = useState<Piece>(() =>
-    bagRef.current.length ? generateBagPiece(bagRef.current) : generateBagPiece()
-  );
+  const [piece, setPiece] = useState<Piece>(() => bagGenRef.current.next());
+  const [nextPiece, setNextPiece] = useState<Piece>(() => bagGenRef.current.next());
   const [score, setScore] = useState(0);
   const [lines, setLines] = useState(0);
   const [level, setLevel] = useState(1);
@@ -130,8 +140,8 @@ export function useTetrisGame({
   }, []);
 
   const spawnNewPiece = useCallback(() => {
-    setPiece(generateBagPiece(bagRef.current));
-    setNextPiece(generateBagPiece(bagRef.current));
+    setPiece(bagGenRef.current.next());
+    setNextPiece(bagGenRef.current.next());
     setGhostPiece(null);
     setCanHold(true);
     setHoldBonusLeft(extraHold);
@@ -147,7 +157,7 @@ const triggerBomb = useCallback(() => {
 
 
   const finalRadius = chaosMode
-    ? Math.random() < 0.5 ? bombRadius : bombRadius + 1
+    ? rngRef.current() < 0.5 ? bombRadius : bombRadius + 1
     : bombRadius;
 
   setBombs((b: number) => b - 1);
@@ -158,18 +168,25 @@ const triggerBomb = useCallback(() => {
   // Ajout de bag externe : on concatène pour éviter de tomber en panne de tirage
   useEffect(() => {
     if (bagSequence && bagSequence.length > 0) {
-      bagRef.current.push(...bagSequence);
-      // Si le board est vide et qu'on n'a pas démarré, on prépare la prochaine pièce
+      bagGenRef.current.pushSequence([...bagSequence]);
       if (!running) {
-        setPiece(generateBagPiece(bagRef.current));
-        setNextPiece(generateBagPiece(bagRef.current));
+        setPiece(bagGenRef.current.next());
+        setNextPiece(bagGenRef.current.next());
       }
     }
   }, [bagSequence, running]);
 
   useEffect(() => {
+    if (!rng) return;
+    rngRef.current = rng;
+    bagGenRef.current = createBagGenerator(rngRef.current);
+    setPiece(bagGenRef.current.next());
+    setNextPiece(bagGenRef.current.next());
+  }, [rng]);
+
+  useEffect(() => {
  const chaosFactor = chaosMode
-  ? 0.8 + Math.random() * 0.6 // entre 0.8 et 1.4
+  ? 0.8 + rngRef.current() * 0.6 // entre 0.8 et 1.4
   : 1;
 
 setSpeedMs(speed * gravityMultiplier * chaosFactor);
@@ -201,7 +218,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
           boardAfterBomb = applyBomb(boardAfterBomb, centerX, centerY, radius);
           onBombExplode?.();
 
-          const explosionId = `${Date.now()}-${Math.random()}`;
+          const explosionId = `${Date.now()}-${rngRef.current()}`;
           setExplosions((prev) => [
             ...prev,
             {
@@ -213,9 +230,11 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
             },
           ]);
 
+          const frames = getExplosionFrameCount(radius);
+          const animationDuration = frames * EXPLOSION_FRAME_DURATION_MS;
           const expTimeout = setTimeout(() => {
             setExplosions((prev) => prev.filter((e) => e.id !== explosionId));
-          }, 600);
+          }, animationDuration + 50);
           explosionTimeoutsRef.current.push(expTimeout);
         });
 
@@ -227,7 +246,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
         // injecter des lignes avec un trou pour éviter de donner du score gratuit
         const garbageLines = Array.from({ length: garbageRef.current }, () => {
           const line = Array(cols).fill(1);
-          const hole = Math.floor(Math.random() * cols);
+          const hole = Math.floor(rngRef.current() * cols);
           line[hole] = 0;
           return line;
         });
@@ -264,7 +283,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
 
       setBoard(newBoard);
 
-      const newPiece = nextPiece ?? generateBagPiece(bagRef.current);
+      const newPiece = nextPiece ?? bagGenRef.current.next();
      if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
   if (secondChance) {
     onConsumeSecondChance?.();
@@ -277,8 +296,8 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     setBoard(rescuedBoard);
 
     // ✅ respawn propre
-    setPiece(generateBagPiece(bagRef.current));
-    setNextPiece(generateBagPiece(bagRef.current));
+    setPiece(bagGenRef.current.next());
+    setNextPiece(bagGenRef.current.next());
     setGhostPiece(null);
 
     return;
@@ -297,11 +316,11 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
   setRunning(false);
   setGameOver(true);
   onGameOver?.(score, level, lines);
-  return;
-}
+      return;
+    }
 
       setPiece(newPiece);
-      setNextPiece(generateBagPiece(bagRef.current));
+      setNextPiece(bagGenRef.current.next());
     },
     [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, gravityMultiplier, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece]
   );
@@ -346,7 +365,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     if (!holdPiece) {
       setHoldPiece(piece);
       setPiece(nextPiece);
-      setNextPiece(generateBagPiece(bagRef.current));
+      setNextPiece(bagGenRef.current.next());
       
     } else {
       const swapped = holdPiece;
@@ -432,8 +451,9 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       intervalRef.current = null;
     }
     setBoard(Array.from({ length: rows }, () => Array(cols).fill(0)));
-    setPiece(generateBagPiece());
-    setNextPiece(generateBagPiece());
+    bagGenRef.current.reset();
+    setPiece(bagGenRef.current.next());
+    setNextPiece(bagGenRef.current.next());
     setScore(0);
     setLines(0);
     setLevel(1);
@@ -451,6 +471,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     setFastHoldReset(false);
     setLastStandAvailable(false);
     setExplosions([]);
+    bagGenRef.current.reset();
     pendingBombsRef.current = [];
     explosionTimeoutsRef.current.forEach((id) => clearTimeout(id));
     explosionTimeoutsRef.current = [];
