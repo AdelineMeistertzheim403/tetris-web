@@ -8,7 +8,7 @@ type RoguelikeRunSummaryProps = {
   perks: ActivePerkRuntime[];
   chaosMode: boolean;
   seed: string;
-  onReplay: () => void;
+  onReplay: (seed: string) => void;
   onExit: () => void;
 };
 
@@ -55,7 +55,7 @@ export default function RoguelikeRunSummary({
         </div>
 
         <div className="actions">
-          <button onClick={onReplay}>🔁 Rejouer</button>
+          <button onClick={() => onReplay(seed)}>🔁 Rejouer</button>
           <button onClick={onExit}>🏠 Quitter</button>
         </div>
       </div>

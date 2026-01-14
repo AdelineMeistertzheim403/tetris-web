@@ -37,12 +37,19 @@ type TetrisBoardProps = {
   bombsGranted?: number;
   fastHoldReset?: boolean;
   lastStand?: boolean;
+  rng?: () => number;
 };
 
 const ROWS = 20;
 const COLS = 10;
 const CELL_SIZE = 30;
 const PREVIEW_SIZE = 4 * CELL_SIZE;
+const EXPLOSION_FRAME_DURATION_MS = 80;
+const getExplosionFrameCount = (radius: number) => {
+  if (radius >= 3) return 9; // 7x7
+  if (radius === 2) return 7; // 5x5
+  return 4; // 3x3
+};
 
 export default function TetrisBoard({
   mode = "CLASSIQUE",
@@ -73,13 +80,15 @@ export default function TetrisBoard({
   bombsGranted = 0,
   fastHoldReset = false,
   lastStand = false,
+  rng,
 }: TetrisBoardProps) {
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [countdown, setCountdown] = useState<number | null>(autoStart ? 3 : null);
   const [bombFlash, setBombFlash] = useState(false);
-  const explosionSprite = useRef<HTMLImageElement | null>(null);
-  const [spriteLoaded, setSpriteLoaded] = useState(false);
+  const explosionFramesRef = useRef<HTMLImageElement[]>([]);
+  const [framesReady, setFramesReady] = useState(false);
+  const [explosionFrameTick, setExplosionFrameTick] = useState(0);
   const { state, actions } = useTetrisGame({
     mode,
     bagSequence,
@@ -98,7 +107,8 @@ export default function TetrisBoard({
     setBombFlash(true);
     setTimeout(() => setBombFlash(false), 120);
   },
-    onGameOver: async (score, level, lines) => {
+  rng,
+   onGameOver: async (score, level, lines) => {
   if (onLocalGameOver) onLocalGameOver(score, lines);
 
   if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return; // ✅ garde-fou TS + skip rogue
@@ -245,28 +255,30 @@ useEffect(() => {
 
     if (onBoardUpdate) onBoardUpdate(board);
 
-    if (spriteLoaded && explosionSprite.current) {
-      const img = explosionSprite.current;
-      const spriteRows = 3;
-      const rowHeight = img.height / spriteRows;
+    if (framesReady && explosionFramesRef.current.length) {
       explosions.forEach((exp) => {
-        const rowIndex = exp.radius >= 3 ? 2 : exp.radius === 2 ? 1 : 0;
-        const sx = 0;
-        const sy = rowIndex * rowHeight;
-        const sw = img.width;
-        const sh = rowHeight;
+        const frameCount = getExplosionFrameCount(exp.radius);
+        const elapsed = Date.now() - exp.startedAt;
+        const frameIndex = Math.min(
+          frameCount - 1,
+          Math.floor(elapsed / EXPLOSION_FRAME_DURATION_MS)
+        );
+        const img = explosionFramesRef.current[frameIndex];
+        if (!img) return;
 
-        const sizeCells = exp.radius * 2 + 1;
-        const dh = sizeCells * CELL_SIZE;
-        const aspect = sw / sh;
-        const dw = dh * aspect;
-        const dx = (exp.x - exp.radius) * CELL_SIZE + (sizeCells * CELL_SIZE - dw) / 2;
-        const dy = (exp.y - exp.radius) * CELL_SIZE + (sizeCells * CELL_SIZE - dh) / 2;
+        const targetSize = (exp.radius * 2 + 1) * CELL_SIZE;
+        const scale = targetSize / Math.max(img.width, img.height);
+        const dw = img.width * scale;
+        const dh = img.height * scale;
+        const centerX = (exp.x + 0.5) * CELL_SIZE;
+        const centerY = (exp.y + 0.5) * CELL_SIZE;
+        const dx = centerX - dw / 2;
+        const dy = centerY - dh / 2;
 
-        ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+        ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dw, dh);
       });
     }
-  }, [board, piece, ghostPiece, explosions, onBoardUpdate, spriteLoaded]);
+  }, [board, piece, ghostPiece, explosions, onBoardUpdate, framesReady, explosionFrameTick]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -284,14 +296,41 @@ useEffect(() => {
   }, [countdown, start]);
 
   useEffect(() => {
-    if (explosionSprite.current) return;
-    const img = new Image();
-    img.src = "/explosion.png";
-    img.onload = () => {
-      explosionSprite.current = img;
-      setSpriteLoaded(true);
+    let cancelled = false;
+    const frames: HTMLImageElement[] = [];
+    const totalFrames = 9;
+    let loaded = 0;
+
+    const markLoaded = () => {
+      loaded += 1;
+      if (cancelled || loaded < totalFrames) return;
+      explosionFramesRef.current = frames;
+      setFramesReady(true);
+    };
+
+    for (let i = 1; i <= totalFrames; i++) {
+      const img = new Image();
+      img.src = `/${i}.png`;
+      img.onload = markLoaded;
+      img.onerror = markLoaded;
+      frames.push(img);
+    }
+
+    return () => {
+      cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!explosions.length) return;
+    let rafId: number;
+    const step = () => {
+      setExplosionFrameTick((v) => v + 1);
+      rafId = requestAnimationFrame(step);
+    };
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [explosions.length]);
 
   useEffect(() => {
   if (paused) {
