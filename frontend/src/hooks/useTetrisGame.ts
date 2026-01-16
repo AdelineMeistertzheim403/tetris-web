@@ -23,6 +23,9 @@ onConsumeSecondChance?: () => void;
   timeFrozen?: boolean;
   chaosMode?: boolean;
   bombRadius?: number;
+  hardDropHoldReset?: boolean;
+  chaosDrift?: boolean;
+  pieceMutation?: boolean;
   rng?: RNG;
 };
 
@@ -65,6 +68,9 @@ export function useTetrisGame({
   timeFrozen = false,
   chaosMode = false,
    bombRadius = 1,
+  hardDropHoldReset = false,
+  chaosDrift = false,
+  pieceMutation = false,
   rng,
 }: Options & {
   bagSequence?: string[];
@@ -356,7 +362,11 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     }
     setPiece({ ...piece, y: dropY });
     mergeAndNext(board, { ...piece, y: dropY });
-  }, [board, gameOver, mergeAndNext, piece, running]);
+    if (hardDropHoldReset) {
+      setCanHold(true);
+      setHoldBonusLeft(extraHold);
+    }
+  }, [board, gameOver, mergeAndNext, piece, running, hardDropHoldReset, extraHold]);
 
   const handleHold = useCallback(() => {
   if (!piece) return;
@@ -412,6 +422,31 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     if (!running || gameOver) return;
     moveRef.current("down");
   }, [tick, running, gameOver]);
+
+  useEffect(() => {
+    if (!running || gameOver) return;
+    if (!chaosDrift && !pieceMutation) return;
+
+    setPiece((current) => {
+      let updated = current;
+
+      if (chaosDrift && rngRef.current() < 0.2) {
+        const dir = rngRef.current() < 0.5 ? -1 : 1;
+        if (!checkCollision(board, current.shape, current.x + dir, current.y)) {
+          updated = { ...updated, x: updated.x + dir };
+        }
+      }
+
+      if (pieceMutation && rngRef.current() < 0.1) {
+        const mutated = rotateMatrix(updated.shape);
+        if (!checkCollision(board, mutated, updated.x, updated.y)) {
+          updated = { ...updated, shape: mutated };
+        }
+      }
+
+      return updated;
+    });
+  }, [tick, running, gameOver, chaosDrift, pieceMutation, board]);
 
   // Ghost recompute
   useEffect(() => {
