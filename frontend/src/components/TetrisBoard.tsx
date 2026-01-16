@@ -38,6 +38,10 @@ type TetrisBoardProps = {
   fastHoldReset?: boolean;
   lastStand?: boolean;
   rng?: () => number;
+  hardDropHoldReset?: boolean;
+  rotationDelayMs?: number;
+  chaosDrift?: boolean;
+  pieceMutation?: boolean;
 };
 
 const ROWS = 20;
@@ -79,7 +83,11 @@ export default function TetrisBoard({
   paused = false,
   bombsGranted = 0,
   fastHoldReset = false,
+  hardDropHoldReset = false,
   lastStand = false,
+  rotationDelayMs = 0,
+  chaosDrift = false,
+  pieceMutation = false,
   rng,
 }: TetrisBoardProps) {
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
@@ -89,6 +97,7 @@ export default function TetrisBoard({
   const explosionFramesRef = useRef<HTMLImageElement[]>([]);
   const [framesReady, setFramesReady] = useState(false);
   const [explosionFrameTick, setExplosionFrameTick] = useState(0);
+  const lastRotationRef = useRef(0);
   const { state, actions } = useTetrisGame({
     mode,
     bagSequence,
@@ -101,6 +110,9 @@ export default function TetrisBoard({
      secondChance,
      timeFrozen,
      chaosMode,
+    hardDropHoldReset,
+    chaosDrift,
+    pieceMutation,
     bombRadius,
   onConsumeSecondChance,
      onBombExplode: () => {
@@ -162,6 +174,13 @@ export default function TetrisBoard({
       if (timeFreezeCharges <= 0) return;
       onTriggerTimeFreeze?.();
       return;
+    }
+    if (dir === "rotate") {
+      const now = Date.now();
+      if (rotationDelayMs > 0 && now - lastRotationRef.current < rotationDelayMs) {
+        return;
+      }
+      lastRotationRef.current = now;
     }
     movePiece(dir as "left" | "right" | "down" | "rotate");
   });
