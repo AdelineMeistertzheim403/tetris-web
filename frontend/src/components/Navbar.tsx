@@ -13,12 +13,11 @@ export default function Navbar() {
                  font-retro uppercase tracking-wider"
     >
       {/* 🔹 Logo */}
-      <span
-        className="text-3xl text-pink-400 hover:text-yellow-400 transition duration-300
-                   drop-shadow-[0_0_6px_rgba(255,0,150,0.5)] relative neon-link"
-      >
-        Tetris
-      </span>
+      <img
+        src="/tetris-roguelike-logo.svg"
+        alt="Tetris Roguelike logo"
+        className="nav-logo"
+      />
 
       {/* 🔹 Liens principaux */}
       <div className="flex gap-16 text-lg items-center">

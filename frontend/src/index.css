@@ -110,6 +110,23 @@ nav.neon-navbar:hover {
     0 0 40px rgba(255, 0, 255, 0.4);
 }
 
+.nav-logo {
+  height: 150px;
+  width: auto;
+  filter: drop-shadow(0 0 6px rgba(255, 0, 150, 0.5));
+  transition: filter 0.3s ease-in-out;
+}
+
+@media (min-width: 768px) {
+  .nav-logo {
+    height: 80px;
+  }
+}
+
+.nav-logo:hover {
+  filter: drop-shadow(0 0 12px rgba(255, 255, 0, 0.8));
+}
+
 /* === Formulaire rétro === */
 .retro-form {
   background: rgba(0, 0, 0, 0.6);
@@ -290,5 +307,3 @@ label {
   background: #0b001a;
   color: #fff;
 }
-
-

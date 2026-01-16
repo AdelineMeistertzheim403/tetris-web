@@ -1,4 +1,4 @@
-import type { ActivePerkRuntime } from "./RoguelikeRun";
+import type { ActiveMutationRuntime, ActivePerkRuntime } from "./RoguelikeRun";
 
 type RoguelikeRunSummaryProps = {
   visible: boolean;
@@ -6,6 +6,7 @@ type RoguelikeRunSummaryProps = {
   lines: number;
   level: number;
   perks: ActivePerkRuntime[];
+  mutations: ActiveMutationRuntime[];
   chaosMode: boolean;
   seed: string;
   onReplay: (seed: string) => void;
@@ -18,6 +19,7 @@ export default function RoguelikeRunSummary({
   lines,
   level,
   perks,
+  mutations,
   chaosMode,
   seed,
   onReplay,
@@ -43,6 +45,18 @@ export default function RoguelikeRunSummary({
             {perks.map(p => (
               <li key={p.id}>{p.name}</li>
             ))}
+          </ul>
+        </div>
+        <div className="perks">
+          <h3>Mutations</h3>
+          <ul>
+            {mutations.map((m) => (
+              <li key={m.id}>
+                {m.name}
+                {m.stacks && m.stacks > 1 ? ` x${m.stacks}` : ""}
+              </li>
+            ))}
+            {mutations.length === 0 && <li>Aucune mutation</li>}
           </ul>
         </div>
 
