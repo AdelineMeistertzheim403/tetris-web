@@ -4,6 +4,7 @@ import { getMyRoguelikeRuns } from "../services/roguelike.service";
 import type { RoguelikeRunHistoryItem } from "../services/roguelike.service";
 import { ALL_PERKS } from "../data/perks";
 import { SYNERGIES } from "../data/synergies";
+import { MUTATIONS } from "../data/mutations";
 
 const perkImageMap: Record<string, string> = {
   "extra-hold": "/extra_hold.png",
@@ -24,6 +25,14 @@ const perkNameMap = ALL_PERKS.reduce<Record<string, string>>((acc, perk) => {
   acc[perk.id] = perk.name;
   return acc;
 }, {});
+
+const mutationMetaMap = MUTATIONS.reduce<Record<string, { name: string; icon: string }>>(
+  (acc, mutation) => {
+    acc[mutation.id] = { name: mutation.name, icon: mutation.icon };
+    return acc;
+  },
+  {}
+);
 
 
 function formatDuration(run: RoguelikeRunHistoryItem) {
@@ -109,6 +118,7 @@ export default function RoguelikeHistory() {
               const run = runs[page];
               const duration = formatDuration(run);
               const started = new Date(run.createdAt).toLocaleString();
+              const mutationList = Array.isArray(run.mutations) ? run.mutations : [];
               const stats = [
                 { label: "Score", value: run.score.toLocaleString("fr-FR") },
                 { label: "Niveau", value: run.level },
@@ -147,6 +157,36 @@ export default function RoguelikeHistory() {
                       ))
                     ) : (
                       <span className="muted">Pas de perk</span>
+                    )}
+                  </div>
+
+                  <div className="run-line perks-line">
+                    {mutationList.length > 0 ? (
+                      mutationList.map((mutation) => {
+                        const meta = mutationMetaMap[mutation.id];
+                        const label = meta?.name ?? mutation.id;
+                        const icon = meta?.icon ? `/${meta.icon}.png` : "/vite.svg";
+                        const stackCount = mutation.stacks ?? 1;
+                        const stackSuffix = stackCount > 1 ? ` x${stackCount}` : "";
+                        return (
+                          <div
+                            key={mutation.id}
+                            className="mutation-chip"
+                            title={`${label}${stackSuffix}`}
+                          >
+                            <img
+                              src={icon}
+                              alt={label}
+                              className="mutation-chip__img"
+                            />
+                            {stackCount > 1 && (
+                              <span className="mutation-chip__stack">x{stackCount}</span>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <span className="muted">Aucune mutation</span>
                     )}
                   </div>
 

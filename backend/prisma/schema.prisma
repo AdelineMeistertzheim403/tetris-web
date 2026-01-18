@@ -64,6 +64,7 @@ model RoguelikeRun {
   level             Int
 
   perks             Json     // tableau d’ids de perks
+  mutations         Json     // array of mutation ids and stacks
   bombs             Int
   timeFreezeCharges Int
   chaosMode         Boolean

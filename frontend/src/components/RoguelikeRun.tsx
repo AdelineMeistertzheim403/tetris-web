@@ -181,6 +181,10 @@ export default function RoguelikeRun() {
           lines: newTotal,
           level: currentLevel,
           perks: activePerks.map((p) => p.id),
+          mutations: activeMutations.map((mutation) => ({
+            id: mutation.id,
+            stacks: mutation.stacks,
+          })),
           bombs,
           timeFreezeCharges,
           chaosMode,
@@ -502,6 +506,10 @@ useSynergies(
                 lines,
                 level: currentLevel,
                 perks: activePerks.map((p) => p.id), // backend OK
+                mutations: activeMutations.map((mutation) => ({
+                  id: mutation.id,
+                  stacks: mutation.stacks,
+                })),
                 bombs,
                 timeFreezeCharges,
                 chaosMode,

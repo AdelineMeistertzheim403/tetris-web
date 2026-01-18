@@ -270,9 +270,8 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
           if (mode !== "SPRINT") {
             const newLevel = Math.floor(total / 10) + 1;
             setLevel(newLevel);
-            setSpeedMs(
-  Math.max(200, (speed - (newLevel - 1) * 100) * gravityMultiplier)
-);
+            const baseSpeedMs = Math.max(200, speed - (newLevel - 1) * 100);
+            setSpeedMs(baseSpeedMs * gravityMultiplier);
           } else if (total >= targetLines) {
             setRunning(false);
             const nowElapsed = Date.now() - (startTime ?? Date.now());
