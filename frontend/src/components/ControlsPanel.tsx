@@ -2,16 +2,26 @@ type Props = {
   bombs: number;
   timeFreezeCharges: number;
   chaosMode: boolean;
+  paused: boolean;
+  onTogglePause: () => void;
 };
 
 export default function ControlsPanel({
   bombs,
   timeFreezeCharges,
   chaosMode,
+  paused,
+  onTogglePause,
 }: Props) {
   return (
     <div className="controls-panel">
       <h3 className="controls-title">CONTRÔLES</h3>
+
+      <div className="control-row control-row--full">
+        <button className="control-pause-btn" onClick={onTogglePause} aria-pressed={paused}>
+          {paused ? "▶️ Reprendre" : "⏸️ Pause"}
+        </button>
+      </div>
 
       <Control label="← →" action="Déplacer" />
       <Control label="↓" action="Accélérer" />

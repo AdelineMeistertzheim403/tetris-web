@@ -85,6 +85,12 @@ export default function RoguelikeRun() {
   const rngRef = useRef<(() => number) | null>(null);
   const [boardKey, setBoardKey] = useState(0);
   const runStartedRef = useRef(false);
+  const [manualPause, setManualPause] = useState(false);
+  const grantBombs = useCallback((count: number = 1) => {
+    if (count === 0) return;
+    setBombs((v) => v + count);
+    setBombsGranted((v) => v + count);
+  }, []);
   const resetLocalState = useCallback(() => {
     setActivePerks([]);
     setActiveMutations([]);
@@ -125,6 +131,7 @@ export default function RoguelikeRun() {
       clearTimeout(lineSlowTimeoutRef.current);
       lineSlowTimeoutRef.current = null;
     }
+    setManualPause(false);
     setRunEnded(false);
     setSelectingPerk(true);
     setShowSummary(false);
@@ -134,7 +141,7 @@ export default function RoguelikeRun() {
   const linesUntilNextChoice = Math.max(0, nextChoiceAt - totalLines);
   const perkProgress = selectingPerk ? 1 : 1 - linesUntilNextChoice / 10;
   const activeSynergies = useActiveSynergies(activePerks, SYNERGIES);
-  const effectiveGravityMultiplier = gravityMultiplier * (lineSlowActive ? 0.8 : 1);
+  const effectiveGravityMultiplier = gravityMultiplier * (lineSlowActive ? 1.5 : 1);
   const effectiveScoreMultiplier = scoreMultiplier * (zeroBombBoost && bombs === 0 ? 2 : 1);
   useEffect(() => {
     if (!lineSlowEnabled) setLineSlowActive(false);
@@ -207,10 +214,7 @@ export default function RoguelikeRun() {
 
       slowGravity: (factor = 1.5) => setGravityMultiplier((v) => v * factor),
 
-      addBomb: (count = 1) => {
-        setBombs((v) => v + count);
-        setBombsGranted((v) => v + count);
-      },
+      addBomb: (count = 1) => grantBombs(count),
 
       addScoreBoost: (value = 0.5) => setScoreMultiplier((v) => v + value),
 
@@ -254,10 +258,7 @@ export default function RoguelikeRun() {
     }
 
     const ctx: MutationContext = {
-      addBomb: (count = 1) => {
-        setBombs((v) => v + count);
-        setBombsGranted((v) => v + count);
-      },
+      addBomb: (count = 1) => grantBombs(count),
       setBombRadius: (fn) => setBombRadius((v) => fn(v)),
       enableChainExplosions: () => setChainExplosions(true),
       setGravityMultiplier: (fn) => setGravityMultiplier((v) => fn(v)),
@@ -372,7 +373,7 @@ useSynergies(
     setScoreMultiplier,
     setChaosMode,
     setTimeFreezeDuration,
-    addBomb: (n) => setBombs(v => v + n),
+    addBomb: (n) => grantBombs(n),
     activePerks: activePerks.map(p => p.id),
     setBombRadius,
   },
@@ -460,7 +461,7 @@ useSynergies(
           key={boardKey}
           mode="ROGUELIKE"
           hideGameOverOverlay={true}
-          paused={selectingPerk || showSummary}
+          paused={selectingPerk || showSummary || manualPause}
           autoStart={!selectingPerk}
           gravityMultiplier={effectiveGravityMultiplier}
           extraHold={extraHoldSlots}
@@ -564,8 +565,22 @@ useSynergies(
       </main>
 
       <aside className="rogue-right">
-        <ControlsPanel bombs={bombs} timeFreezeCharges={timeFreezeCharges} chaosMode={chaosMode} />
+        <ControlsPanel
+          bombs={bombs}
+          timeFreezeCharges={timeFreezeCharges}
+          chaosMode={chaosMode}
+          paused={manualPause}
+          onTogglePause={() => setManualPause((v) => !v)}
+        />
       </aside>
+      {manualPause && !showSummary && (
+        <div className="rogue-pause-overlay" role="status" aria-live="polite">
+          <div className="rogue-pause-card">
+            <p>Jeu en pause</p>
+            <button onClick={() => setManualPause(false)}>Reprendre</button>
+          </div>
+        </div>
+      )}
       <RoguelikeRunSummary
   visible={showSummary}
   score={summaryScore}
