@@ -14,7 +14,7 @@ export default function RoguelikeLeaderboard() {
         const data = await getRoguelikeLeaderboard();
         if (mounted) setEntries(data);
       } catch (err) {
-        setError("Impossible de charger le classement");
+        setError("Impossible de charger le classement" + err);
       } finally {
         if (mounted) setLoading(false);
       }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PerksPanel from "./PerksPanel";
 import RunInfo from "./RunInfo";
 import TetrisBoard from "./TetrisBoard";
@@ -143,6 +143,81 @@ export default function RoguelikeRun() {
   const activeSynergies = useActiveSynergies(activePerks, SYNERGIES);
   const effectiveGravityMultiplier = gravityMultiplier * (lineSlowActive ? 1.5 : 1);
   const effectiveScoreMultiplier = scoreMultiplier * (zeroBombBoost && bombs === 0 ? 2 : 1);
+  const statusBadges = useMemo(() => {
+    const badges: {
+      label: string;
+      value: string;
+      tone?: "good" | "info" | "warning" | "muted" | "chaos" | "gold";
+    }[] = [];
+
+    badges.push({ label: "Score", value: `x${effectiveScoreMultiplier.toFixed(2)}`, tone: "gold" });
+    badges.push({ label: "Gravité", value: `x${effectiveGravityMultiplier.toFixed(2)}`, tone: "info" });
+    badges.push({ label: "Bombes", value: `${bombs}`, tone: bombs > 0 ? "good" : "muted" });
+    badges.push({
+      label: "Time Freeze",
+      value: `${timeFreezeCharges}`,
+      tone: timeFreezeCharges > 0 ? "info" : "muted",
+    });
+    badges.push({ label: "Chaos", value: chaosMode ? "ON" : "OFF", tone: chaosMode ? "chaos" : "muted" });
+
+    if (zeroBombBoost) {
+      badges.push({
+        label: "Zero Bomb Boost",
+        value: bombs === 0 ? "x2 actif" : "x2 à 0",
+        tone: bombs === 0 ? "good" : "info",
+      });
+    }
+
+    if (noBombBonus) {
+      badges.push({
+        label: "No Bomb Bonus",
+        value: bombsUsed === 0 ? "prêt" : "si 0 bombe",
+        tone: bombsUsed === 0 ? "good" : "info",
+      });
+    }
+
+    if (chainExplosions) {
+      badges.push({ label: "Chain", value: "35%", tone: "info" });
+    }
+
+    if (lineSlowEnabled) {
+      badges.push({ label: "Gravité lente", value: lineSlowActive ? "actif" : "prêt", tone: lineSlowActive ? "good" : "muted" });
+    }
+
+    if (secondChance || secondChanceRechargeEvery) {
+      badges.push({
+        label: "Second Chance",
+        value: secondChance ? "dispo" : `tous ${secondChanceRechargeEvery} niv.`,
+        tone: secondChance ? "good" : "info",
+      });
+    }
+
+    if (rotationDelayMs > 0) {
+      badges.push({ label: "Rotation", value: `+${rotationDelayMs}ms`, tone: "muted" });
+    }
+
+    if (timeFreezeEcho) {
+      badges.push({ label: "Écho TF", value: "+1 charge", tone: "info" });
+    }
+
+    return badges;
+  }, [
+    bombs,
+    bombsUsed,
+    chaosMode,
+    chainExplosions,
+    effectiveGravityMultiplier,
+    effectiveScoreMultiplier,
+    lineSlowActive,
+    lineSlowEnabled,
+    noBombBonus,
+    rotationDelayMs,
+    secondChance,
+    secondChanceRechargeEvery,
+    timeFreezeCharges,
+    timeFreezeEcho,
+    zeroBombBoost,
+  ]);
   useEffect(() => {
     if (!lineSlowEnabled) setLineSlowActive(false);
   }, [lineSlowEnabled]);
@@ -449,6 +524,18 @@ useSynergies(
           perkProgress={perkProgress}
           mode={selectionType}
         />
+        <div className="status-strip">
+          {statusBadges.map((badge) => (
+            <div
+              key={`${badge.label}-${badge.value}`}
+              className={`status-badge status-badge--${badge.tone ?? "neutral"}`}
+              title={badge.label}
+            >
+              <span className="status-label">{badge.label}</span>
+              <span className="status-value">{badge.value}</span>
+            </div>
+          ))}
+        </div>
         <div className="perks-wrapper">
           <PerksPanel perks={activePerks} />
           <MutationsPanel mutations={activeMutations} />

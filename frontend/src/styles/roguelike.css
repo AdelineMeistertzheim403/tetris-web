@@ -56,6 +56,50 @@
   flex-shrink: 0;
 }
 
+.perks-wrapper {
+  max-height: calc(100vh - 260px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.status-badge {
+  background: #0f0f1c;
+  border: 1px solid #1f1f35;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 52px;
+}
+
+.status-label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.status-value {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.status-badge--good { border-color: #22c55e; color: #bbf7d0; }
+.status-badge--info { border-color: #38bdf8; color: #bae6fd; }
+.status-badge--warning { border-color: #f97316; color: #ffedd5; }
+.status-badge--muted { border-color: #1f2937; color: #94a3b8; opacity: 0.8; }
+.status-badge--chaos { border-color: #f472b6; color: #ffe4f0; box-shadow: 0 0 12px rgba(244, 114, 182, 0.2); }
+.status-badge--gold { border-color: #fbbf24; color: #fef3c7; }
+.status-badge--neutral { border-color: #1f1f35; color: #e5e7eb; }
+
 .roguelike-mode {
   min-height: 100vh;
   background:
