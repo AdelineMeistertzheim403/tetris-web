@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 
-import { getCurrentRoguelikeRun, startRoguelikeRun, checkpointRoguelikeRun, endRoguelikeRun } from "../services/roguelike.service";
+import {
+  getCurrentRoguelikeRun,
+  startRoguelikeRun,
+  checkpointRoguelikeRun,
+  endRoguelikeRun,
+  type RoguelikeStoredMutation,
+} from "../services/roguelike.service";
 
 export type RoguelikeRunState = {
   id: number;
@@ -10,6 +16,7 @@ export type RoguelikeRunState = {
   lines: number;
   level: number;
   perks: string[];
+  mutations: RoguelikeStoredMutation[];
   bombs: number;
   timeFreezeCharges: number;
   chaosMode: boolean;
@@ -58,6 +65,7 @@ export function useRoguelikeRun() {
           lines: payload.lines,
           level: payload.level,
           perks: payload.perks,
+          mutations: payload.mutations,
           bombs: payload.bombs,
           timeFreezeCharges: payload.timeFreezeCharges,
           chaosMode: payload.chaosMode,

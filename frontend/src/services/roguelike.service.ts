@@ -1,5 +1,10 @@
 import { getToken } from "./authService";
 
+export type RoguelikeStoredMutation = {
+  id: string;
+  stacks: number;
+};
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 export type RoguelikeCheckpointPayload = {
@@ -7,6 +12,7 @@ export type RoguelikeCheckpointPayload = {
   lines: number;
   level: number;
   perks: string[];
+  mutations: RoguelikeStoredMutation[];
   bombs: number;
   timeFreezeCharges: number;
   chaosMode: boolean;
@@ -21,6 +27,7 @@ export type RoguelikeRunHistoryItem = {
   lines: number;
   level: number;
   perks: string[];
+  mutations: RoguelikeStoredMutation[];
   chaosMode: boolean;
   status: "FINISHED" | "ABANDONED" | "IN_PROGRESS";
   createdAt: string;
