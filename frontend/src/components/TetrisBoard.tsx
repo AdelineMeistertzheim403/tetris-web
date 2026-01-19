@@ -146,6 +146,7 @@ export default function TetrisBoard({
     bombs,
     explosions,
   } = state;
+  const roundedScore = Math.round(score);
   const {
     movePiece,
     hardDrop,
@@ -396,7 +397,7 @@ useEffect(() => {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
-              <StatCard label="SCORE" value={score} valueColor="#00eaff" accentColor="#f5f5f5" />
+              <StatCard label="SCORE" value={roundedScore} valueColor="#00eaff" accentColor="#f5f5f5" />
               <StatCard label="LIGNES" value={lines} valueColor="#9eff8c" accentColor="#cccccc" />
               <StatCard label="NIVEAU" value={level} valueColor="#facc15" accentColor="#cccccc" />
 

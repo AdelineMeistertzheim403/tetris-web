@@ -11,6 +11,12 @@ export function useSynergies(
   const activated = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    if (activePerkIds.length === 0) {
+      activated.current.clear();
+    }
+  }, [activePerkIds.length]);
+
+  useEffect(() => {
     SYNERGIES.forEach((synergy) => {
       const count = synergy.requiredPerks.filter(p =>
         activePerkIds.includes(p)
