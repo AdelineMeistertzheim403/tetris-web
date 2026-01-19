@@ -234,6 +234,7 @@
   border-radius: 12px;
   padding: 14px;
   width: 260px;
+  min-height: 260px;
   color: #ddd;
   font-size: 0.85rem;
 }
@@ -251,6 +252,11 @@
   align-items: center;
   gap: 8px;
   padding: 4px 0;
+}
+
+.control-row--full {
+  display: block;
+  padding: 6px 0;
 }
 
 .control-key {
@@ -567,3 +573,53 @@
 .synergy-icon.last_resort   { background-image: url("/last_resort.png"); }
 .synergy-icon.nuclear_core  { background-image: url("/nuclear_core.png"); }
 .synergy-icon.gravity_well  { background-image: url("/gravity_well.png"); }
+
+.rogue-pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 6, 12, 0.7);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2050;
+}
+
+.rogue-pause-card {
+  background: #0f0f1c;
+  border: 1px solid #2f2f47;
+  border-radius: 12px;
+  padding: 22px 28px;
+  text-align: center;
+  color: #f3f4f6;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
+}
+
+.rogue-pause-card button {
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid #fbbf24;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #0b0b15;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.control-pause-btn {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #2f2f47;
+  background: linear-gradient(135deg, #1e1e32, #29294a);
+  color: #f9fafb;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.control-pause-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
