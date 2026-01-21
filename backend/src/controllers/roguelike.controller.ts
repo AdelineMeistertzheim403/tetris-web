@@ -1,4 +1,5 @@
 import { Response } from "express";
+import { createHmac } from "crypto";
 import { Prisma, RunStatus } from "@prisma/client";
 import prisma from "../prisma/client";
 import { AuthRequest } from "../middleware/auth.middleware";
@@ -7,8 +8,24 @@ import {
   roguelikeEndSchema,
   roguelikeStartSchema,
 } from "../utils/validation";
+import { env } from "../config";
 
 const MAX_STATE_BYTES = 50_000; // limite raisonnable pour eviter l'injection de blobs
+
+function computeRunToken(run: { id: number; userId: number; seed: string; createdAt: Date }) {
+  const payload = `${run.id}:${run.userId}:${run.seed}:${run.createdAt.getTime()}`;
+  return createHmac("sha256", env.runTokenSecret).update(payload).digest("hex");
+}
+
+function getProvidedRunToken(req: AuthRequest): string | null {
+  const header = req.headers["x-run-token"];
+  if (typeof header === "string" && header.trim()) return header.trim();
+  if (Array.isArray(header) && header[0]?.trim()) return header[0].trim();
+  if (req.body && typeof req.body.runToken === "string" && req.body.runToken.trim()) {
+    return req.body.runToken.trim();
+  }
+  return null;
+}
 
 export async function getMyRoguelikeRuns(req: AuthRequest, res: Response) {
   try {
@@ -80,7 +97,9 @@ export async function startRoguelikeRun(req: AuthRequest, res: Response) {
       },
     });
 
-    res.status(201).json(run);
+    const runToken = computeRunToken(run);
+
+    res.status(201).json({ ...run, runToken });
   } catch (err) {
     console.error("startRoguelikeRun error:", err);
     res.status(500).json({ error: "Impossible de demarrer la run" });
@@ -104,7 +123,12 @@ export async function getCurrentRoguelikeRun(req: AuthRequest, res: Response) {
       },
     });
 
-    res.json(run ?? null);
+    if (!run) {
+      return res.json(null);
+    }
+
+    const runToken = computeRunToken(run);
+    res.json({ ...run, runToken });
   } catch (err) {
     console.error("getCurrentRoguelikeRun error:", err);
     res.status(500).json({ error: "Impossible de recuperer la run" });
@@ -128,10 +152,26 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
     }
 
+    const run = await prisma.roguelikeRun.findFirst({
+      where: {
+        id: runId,
+        userId,
+        status: RunStatus.IN_PROGRESS,
+      },
+    });
+
+    if (!run) {
+      return res.status(404).json({ error: "Run introuvable ou terminee" });
+    }
+
+    const providedToken = getProvidedRunToken(req);
+    const expectedToken = computeRunToken(run);
+    if (!providedToken || providedToken !== expectedToken) {
+      return res.status(403).json({ error: "Token de run invalide" });
+    }
+
     const {
-      score,
       lines,
-      level,
       perks,
       mutations,
       bombs,
@@ -141,16 +181,21 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       scoreMultiplier,
     } = parsed.data;
 
-    const run = await prisma.roguelikeRun.updateMany({
-      where: {
-        id: runId,
-        userId,
-        status: RunStatus.IN_PROGRESS,
-      },
+    // Recalcul server-side pour éviter la triche : score et niveau dérivés des lignes
+    const safeLines = Math.max(run.lines, lines);
+    const deltaLines = Math.max(0, safeLines - run.lines);
+    const computedScore = Math.max(
+      0,
+      Math.round(run.score + deltaLines * 100 * scoreMultiplier)
+    );
+    const computedLevel = Math.max(1, Math.floor(safeLines / 10) + 1);
+
+    await prisma.roguelikeRun.update({
+      where: { id: run.id },
       data: {
-        score,
-        lines,
-        level,
+        score: computedScore,
+        lines: safeLines,
+        level: computedLevel,
         perks,
         mutations,
         bombs,
@@ -161,11 +206,12 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       },
     });
 
-    if (run.count === 0) {
-      return res.status(404).json({ error: "Run introuvable ou terminee" });
-    }
-
-    res.json({ success: true });
+    res.json({
+      success: true,
+      score: computedScore,
+      lines: safeLines,
+      level: computedLevel,
+    });
   } catch (err) {
     console.error("checkpointRoguelikeRun error:", err);
     res.status(500).json({ error: "Impossible de sauvegarder la run" });
@@ -189,23 +235,33 @@ export async function endRoguelikeRun(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: "Statut invalide", details: parsed.error.flatten() });
     }
 
-    const { status } = parsed.data;
-
-    const run = await prisma.roguelikeRun.updateMany({
+    const run = await prisma.roguelikeRun.findFirst({
       where: {
         id: runId,
         userId,
         status: RunStatus.IN_PROGRESS,
       },
+    });
+
+    if (!run) {
+      return res.status(404).json({ error: "Run introuvable ou deja terminee" });
+    }
+
+    const providedToken = getProvidedRunToken(req);
+    const expectedToken = computeRunToken(run);
+    if (!providedToken || providedToken !== expectedToken) {
+      return res.status(403).json({ error: "Token de run invalide" });
+    }
+
+    const { status } = parsed.data;
+
+    await prisma.roguelikeRun.update({
+      where: { id: run.id },
       data: {
         status,
         endedAt: new Date(),
       },
     });
-
-    if (run.count === 0) {
-      return res.status(404).json({ error: "Run introuvable ou deja terminee" });
-    }
 
     res.json({ success: true });
   } catch (err) {

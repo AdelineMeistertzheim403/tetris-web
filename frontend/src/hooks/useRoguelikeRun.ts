@@ -7,11 +7,13 @@ import {
   checkpointRoguelikeRun,
   endRoguelikeRun,
   type RoguelikeStoredMutation,
+  type RoguelikeInitialState,
 } from "../services/roguelike.service";
 
 export type RoguelikeRunState = {
   id: number;
   seed: string;
+  runToken: string;
   score: number;
   lines: number;
   level: number;
@@ -35,7 +37,8 @@ export function useRoguelikeRun() {
     async function loadRun() {
       const existing = await getCurrentRoguelikeRun();
       if (existing) {
-        setRun(existing);
+        // Casting pour aligner avec l'état local enrichi
+        setRun(existing as RoguelikeRunState);
       }
     }
     loadRun();
@@ -44,9 +47,9 @@ export function useRoguelikeRun() {
   /* ───────────────────────────── */
   /* 🚀 Démarrer une nouvelle run */
   /* ───────────────────────────── */
-  const startRun = useCallback(async (seed: string, initialState: any) => {
+  const startRun = useCallback(async (seed: string, initialState: RoguelikeInitialState) => {
     const newRun = await startRoguelikeRun(seed, initialState);
-    setRun(newRun);
+    setRun(newRun as RoguelikeRunState);
     return newRun;
   }, []);
 
@@ -54,7 +57,7 @@ export function useRoguelikeRun() {
   /* 💾 Checkpoint (safe) */
   /* ───────────────────────────── */
   const checkpoint = useCallback(
-    async (payload: Omit<RoguelikeRunState, "id">) => {
+    async (payload: Omit<RoguelikeRunState, "id" | "runToken">) => {
       if (!run || checkpointLock.current) return;
 
       checkpointLock.current = true;
@@ -69,26 +72,31 @@ export function useRoguelikeRun() {
           Math.round(payload.timeFreezeCharges)
         );
 
-        await checkpointRoguelikeRun(run.id, {
-          score: normalizedScore,
-          lines: normalizedLines,
-          level: normalizedLevel,
-          perks: payload.perks,
-          mutations: payload.mutations,
-          bombs: normalizedBombs,
-          timeFreezeCharges: normalizedTimeFreezeCharges,
-          chaosMode: payload.chaosMode,
-          gravityMultiplier: payload.gravityMultiplier,
-          scoreMultiplier: payload.scoreMultiplier,
-        });
+        const serverState = await checkpointRoguelikeRun(
+          run.id,
+          {
+            score: normalizedScore,
+            lines: normalizedLines,
+            level: normalizedLevel,
+            perks: payload.perks,
+            mutations: payload.mutations,
+            bombs: normalizedBombs,
+            timeFreezeCharges: normalizedTimeFreezeCharges,
+            chaosMode: payload.chaosMode,
+            gravityMultiplier: payload.gravityMultiplier,
+            scoreMultiplier: payload.scoreMultiplier,
+          },
+          run.runToken
+        );
 
         setRun((prev) =>
           prev
             ? {
                 ...prev,
-                score: normalizedScore,
-                lines: normalizedLines,
-                level: normalizedLevel,
+                runToken: prev.runToken,
+                score: serverState?.score ?? normalizedScore,
+                lines: serverState?.lines ?? normalizedLines,
+                level: serverState?.level ?? normalizedLevel,
                 perks: payload.perks,
                 mutations: payload.mutations,
                 bombs: normalizedBombs,
@@ -112,7 +120,7 @@ export function useRoguelikeRun() {
   const finishRun = useCallback(
     async (status: "FINISHED" | "ABANDONED") => {
       if (!run) return;
-      await endRoguelikeRun(run.id, status);
+      await endRoguelikeRun(run.id, status, run.runToken);
       setRun(null);
     },
     [run]
