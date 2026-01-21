@@ -8,6 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8080),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16, "JWT_SECRET doit faire au moins 16 caracteres"),
+  RUN_TOKEN_SECRET: z.string().min(16).optional(),
   ALLOWED_ORIGINS: z.string().optional(),
 });
 
@@ -25,5 +26,6 @@ export const env = {
   port: values.PORT,
   databaseUrl: values.DATABASE_URL,
   jwtSecret: values.JWT_SECRET,
+  runTokenSecret: values.RUN_TOKEN_SECRET ?? values.JWT_SECRET,
   allowedOrigins: values.ALLOWED_ORIGINS ?? "http://localhost:5173",
 };
