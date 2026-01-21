@@ -4,7 +4,7 @@ import NextPiece from "./NextPiece";
 import FullScreenOverlay from "./FullScreenOverlay";
 import StatCard from "./StatCard";
 import GameLayout from "./GameLayout";
-import { saveScore } from "../services/scoreService";
+import { getScoreRunToken, saveScore } from "../services/scoreService";
 import { useAuth } from "../context/AuthContext";
 import { useTetrisGame } from "../hooks/useTetrisGame";
 
@@ -25,13 +25,14 @@ export default function TetrisBoardSprint() {
     onComplete: async (elapsedMs) => {
       if (!user) return;
       try {
+        const runToken = await getScoreRunToken("SPRINT");
         await saveScore({
           userId: user.id,
           value: Math.round(elapsedMs / 1000),
           level: 1,
           lines: TARGET_LINES,
           mode: "SPRINT",
-        });
+        }, runToken);
       } catch (err) {
         console.error("Erreur enregistrement score sprint :", err);
       }

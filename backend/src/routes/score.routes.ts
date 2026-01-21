@@ -1,10 +1,12 @@
 import { Router, Response } from "express";
+import { createHmac } from "crypto";
 import rateLimit from "express-rate-limit";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
 import { scoreSchema, versusMatchSchema } from "../utils/validation";
 import { GameMode } from "../types/GameMode";
 import prisma from "../prisma/client";
 import { logger } from "../logger";
+import { env } from "../config";
 
 const router = Router();
 
@@ -17,6 +19,38 @@ const scoreLimiter = rateLimit({
 const leaderboardLimiter = rateLimit({
   windowMs: 5 * 1000,
   max: 20,
+});
+
+function computeScoreToken(userId: number, mode: GameMode, matchId?: string | null) {
+  const payload = `${userId}:${mode}:${matchId ?? ""}`;
+  return createHmac("sha256", env.runTokenSecret).update(payload).digest("hex");
+}
+
+function extractRunToken(req: AuthRequest): string | null {
+  const header = req.headers["x-run-token"];
+  if (typeof header === "string" && header.trim()) return header.trim();
+  if (Array.isArray(header) && header[0]?.trim()) return header[0].trim();
+  if (req.body && typeof req.body.runToken === "string" && req.body.runToken.trim()) {
+    return req.body.runToken.trim();
+  }
+  return null;
+}
+
+router.post("/token", verifyToken, async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: "Utilisateur non authentifie" });
+  }
+
+  const mode = req.body?.mode as GameMode | undefined;
+  const matchId = req.body?.matchId as string | undefined;
+
+  if (!mode || !Object.values(GameMode).includes(mode)) {
+    return res.status(400).json({ error: "Mode de jeu invalide" });
+  }
+
+  const token = computeScoreToken(userId, mode, matchId);
+  res.json({ runToken: token });
 });
 
 /**
@@ -36,6 +70,12 @@ router.post("/", verifyToken, scoreLimiter, async (req: AuthRequest, res: Respon
       });
     }
     const { value, level, lines, mode } = parsed.data;
+
+    const providedToken = extractRunToken(req);
+    const expectedToken = computeScoreToken(req.user.id, mode);
+    if (!providedToken || providedToken !== expectedToken) {
+      return res.status(403).json({ error: "Token de run invalide" });
+    }
 
     const score = await prisma.score.create({
       data: {
@@ -67,6 +107,13 @@ router.post("/versus-match", verifyToken, async (req: AuthRequest, res: Response
     const parsed = versusMatchSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
+    }
+
+    const matchId = parsed.data.matchId ?? null;
+    const providedToken = extractRunToken(req);
+    const expectedToken = computeScoreToken(userId, GameMode.VERSUS, matchId ?? undefined);
+    if (!providedToken || providedToken !== expectedToken) {
+      return res.status(403).json({ error: "Token de run invalide" });
     }
 
     const players = parsed.data.players.map((p) => ({
