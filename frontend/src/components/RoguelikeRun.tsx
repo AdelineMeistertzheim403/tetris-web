@@ -576,13 +576,16 @@ useSynergies(
           onLocalGameOver={async (score, lines) => {
             if (!run) return;
             const finalScore = noBombBonus && bombsUsed === 0 ? Math.floor(score * 2) : score;
+            const safeScore = Math.round(finalScore);
+            const safeLines = Math.round(lines);
+            const safeLevel = Math.max(1, Math.round(currentLevel));
 
             // 🧊 SNAPSHOT AVANT RESET
             setSummaryPerks([...activePerks]);
             setSummaryMutations([...activeMutations]);
-            setSummaryScore(finalScore);
-            setSummaryLines(lines);
-            setSummaryLevel(currentLevel);
+            setSummaryScore(safeScore);
+            setSummaryLines(safeLines);
+            setSummaryLevel(safeLevel);
 
             setRunEnded(true);
             setSelectingPerk(false);
@@ -590,9 +593,9 @@ useSynergies(
 
             try {
               await checkpoint({
-                score: finalScore,
-                lines,
-                level: currentLevel,
+                score: safeScore,
+                lines: safeLines,
+                level: safeLevel,
                 perks: activePerks.map((p) => p.id), // backend OK
                 mutations: activeMutations.map((mutation) => ({
                   id: mutation.id,
