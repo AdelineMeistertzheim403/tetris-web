@@ -37,7 +37,7 @@ export const versusMatchSchema = z.object({
 
 export const roguelikeStartSchema = z.object({
   seed: z.string().trim().min(1).max(64),
-  state: z.record(z.any()).optional(), // valider la structure exacte cote front, borne ici au type et a la taille
+  state: z.record(z.string(), z.any()).optional(), // valider la structure exacte cote front, borne ici au type et a la taille
 });
 
 export const roguelikeCheckpointSchema = z.object({
