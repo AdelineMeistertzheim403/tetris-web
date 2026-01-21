@@ -125,7 +125,7 @@ export async function checkpointRoguelikeRun(
       Authorization: `Bearer ${token}`,
       "X-Run-Token": runToken,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, runToken }),
   });
 
   if (!res.ok) {
@@ -152,7 +152,7 @@ export async function endRoguelikeRun(
       Authorization: `Bearer ${token}`,
       "X-Run-Token": runToken,
     },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, runToken }),
   });
 
   if (!res.ok) {

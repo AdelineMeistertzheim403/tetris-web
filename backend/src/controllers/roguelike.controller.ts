@@ -12,8 +12,9 @@ import { env } from "../config";
 
 const MAX_STATE_BYTES = 50_000; // limite raisonnable pour eviter l'injection de blobs
 
-function computeRunToken(run: { id: number; userId: number; seed: string; createdAt: Date }) {
-  const payload = `${run.id}:${run.userId}:${run.seed}:${run.createdAt.getTime()}`;
+function computeRunToken(run: { id: number; userId: number; seed: string }) {
+  // On se limite à des champs stables pour éviter tout décalage de sérialisation
+  const payload = `${run.id}:${run.userId}:${run.seed}`;
   return createHmac("sha256", env.runTokenSecret).update(payload).digest("hex");
 }
 

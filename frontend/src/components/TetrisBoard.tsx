@@ -4,7 +4,7 @@ import NextPiece from "./NextPiece";
 import FullScreenOverlay from "./FullScreenOverlay";
 import StatCard from "./StatCard";
 import GameLayout from "./GameLayout";
-import { addScore } from "../services/scoreService";
+import { addScore, getScoreRunToken } from "../services/scoreService";
 import { useTetrisGame } from "../hooks/useTetrisGame";
 import type { GameMode } from "../types/GameMode";
 
@@ -98,6 +98,7 @@ export default function TetrisBoard({
   const [framesReady, setFramesReady] = useState(false);
   const [explosionFrameTick, setExplosionFrameTick] = useState(0);
   const lastRotationRef = useRef(0);
+  const scoreRunTokenRef = useRef<string | null>(null);
   const { state, actions } = useTetrisGame({
     mode,
     bagSequence,
@@ -126,7 +127,12 @@ export default function TetrisBoard({
   if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return; // ✅ garde-fou TS + skip rogue
 
   try {
-    await addScore(score, level, lines, effectiveScoreMode);
+    let runToken = scoreRunTokenRef.current;
+    if (!runToken) {
+      runToken = await getScoreRunToken(effectiveScoreMode);
+      scoreRunTokenRef.current = runToken;
+    }
+    await addScore(score, level, lines, effectiveScoreMode, runToken);
   } catch (err) {
     console.error("Erreur enregistrement score :", err);
   }
@@ -209,6 +215,15 @@ export default function TetrisBoard({
       enableLastStand();
     }
   }, [enableLastStand, lastStand]);
+
+  useEffect(() => {
+    if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return;
+    getScoreRunToken(effectiveScoreMode)
+      .then((token) => {
+        scoreRunTokenRef.current = token;
+      })
+      .catch((err) => console.error("Erreur récupération token score :", err));
+  }, [effectiveScoreMode]);
 
   useEffect(() => {
     onBombsChange?.(bombs);
