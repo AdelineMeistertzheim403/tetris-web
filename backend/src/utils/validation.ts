@@ -2,6 +2,14 @@
 import { z } from "zod";
 import { GameMode } from "../types/GameMode";
 
+// Helper pour accepter les nombres décimaux tout en les ramenant à des entiers bornés
+const intWithin = (min: number, max: number) =>
+  z
+    .number()
+    .finite()
+    .transform((v) => Math.round(v))
+    .pipe(z.number().int().min(min).max(max));
+
 export const registerSchema = z.object({
   pseudo: z.string().min(2).max(50),
   email: z.string().email(),
@@ -41,20 +49,20 @@ export const roguelikeStartSchema = z.object({
 });
 
 export const roguelikeCheckpointSchema = z.object({
-  score: z.number().int().min(0).max(2_000_000),
-  lines: z.number().int().min(0).max(5_000),
-  level: z.number().int().min(1).max(200),
+  score: intWithin(0, 2_000_000),
+  lines: intWithin(0, 5_000),
+  level: intWithin(1, 200),
   perks: z.array(z.string().trim().min(1).max(50)).max(40),
   mutations: z
     .array(
       z.object({
         id: z.string().trim().min(1).max(50),
-        stacks: z.number().int().min(0).max(50),
+        stacks: intWithin(0, 50),
       })
     )
     .max(40),
-  bombs: z.number().int().min(0).max(50),
-  timeFreezeCharges: z.number().int().min(0).max(50),
+  bombs: intWithin(0, 50),
+  timeFreezeCharges: intWithin(0, 50),
   chaosMode: z.boolean(),
   gravityMultiplier: z.number().min(0.05).max(20),
   scoreMultiplier: z.number().min(0.1).max(50),
