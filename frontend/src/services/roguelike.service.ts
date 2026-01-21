@@ -1,5 +1,3 @@
-import { getToken } from "./authService";
-
 export type RoguelikeStoredMutation = {
   id: string;
   stacks: number;
@@ -71,15 +69,14 @@ export type RoguelikeLeaderboardItem = {
 /* 🚀 Démarrer une run */
 /* ───────────────────────────── */
 export async function startRoguelikeRun(seed: string, state: RoguelikeInitialState): Promise<RoguelikeRunStateServer> {
-  const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/start`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ seed, state }),
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -93,12 +90,9 @@ export async function startRoguelikeRun(seed: string, state: RoguelikeInitialSta
 /* 🔄 Récupérer la run en cours */
 /* ───────────────────────────── */
 export async function getCurrentRoguelikeRun(): Promise<RoguelikeRunStateServer | null> {
-  const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/current`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -116,16 +110,15 @@ export async function checkpointRoguelikeRun(
   payload: RoguelikeCheckpointPayload,
   runToken: string
 ): Promise<{ success: boolean; score?: number; lines?: number; level?: number }> {
-  const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/${runId}/checkpoint`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       "X-Run-Token": runToken,
     },
     body: JSON.stringify({ ...payload, runToken }),
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -143,16 +136,15 @@ export async function endRoguelikeRun(
   status: "FINISHED" | "ABANDONED",
   runToken: string
 ): Promise<{ success: boolean }> {
-  const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/${runId}/end`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       "X-Run-Token": runToken,
     },
     body: JSON.stringify({ status, runToken }),
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -179,12 +171,9 @@ export async function getRoguelikeLeaderboard(): Promise<RoguelikeLeaderboardIte
 /* 📜 Historique des runs perso */
 /* ───────────────────────────── */
 export async function getMyRoguelikeRuns(): Promise<RoguelikeRunHistoryItem[]> {
-  const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/runs/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
   });
 
   if (!res.ok) {

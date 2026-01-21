@@ -1,4 +1,3 @@
-import { getToken } from "./authService";
 import type { GameMode } from "../types/GameMode";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -15,14 +14,13 @@ export type VersusMatchPayload = {
 };
 
 export async function getScoreRunToken(mode: GameMode, matchId?: string) {
-  const token = getToken();
   const res = await fetch(`${API_URL}/scores/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ mode, matchId }),
+    credentials: "include",
   });
 
   if (!res.ok) throw new Error("Erreur lors de la récupération du token de run");
@@ -38,15 +36,14 @@ export async function addScore(
   mode: GameMode,
   runToken: string
 ) {
-  const token = getToken();
   const res = await fetch(`${API_URL}/scores`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       "X-Run-Token": runToken,
     },
     body: JSON.stringify({ value, level, lines, mode, runToken }),
+    credentials: "include",
   });
 
   if (!res.ok) throw new Error("Erreur lors de l'enregistrement du score");
@@ -55,9 +52,8 @@ export async function addScore(
 
 // ✅ Récupérer mes scores
 export async function getMyScores(mode: GameMode = "CLASSIQUE") {
-  const token = getToken();
   const res = await fetch(`${API_URL}/scores/me/${mode}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Erreur de récupération des scores");
   return res.json();
@@ -73,15 +69,14 @@ export async function saveScore(
   },
   runToken: string
 ) {
-  const token = getToken();
   const res = await fetch(`${API_URL}/scores`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       "X-Run-Token": runToken,
     },
     body: JSON.stringify({ ...scoreData, runToken }), // ✅ ici, plus de { scoreData }
+    credentials: "include",
   });
 
   if (!res.ok) throw new Error("Erreur lors de l'enregistrement du score");
@@ -96,15 +91,14 @@ export async function getLeaderboard(mode: GameMode = "CLASSIQUE") {
 }
 
 export async function saveVersusMatch(payload: VersusMatchPayload) {
-  const token = getToken();
   const res = await fetch(`${API_URL}/scores/versus-match`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       "X-Run-Token": await getScoreRunToken("VERSUS", payload.matchId),
     },
     body: JSON.stringify(payload),
+    credentials: "include",
   });
 
   if (!res.ok) throw new Error("Erreur lors de l'enregistrement du match versus");

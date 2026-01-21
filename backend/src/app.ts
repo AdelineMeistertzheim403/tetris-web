@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
@@ -17,7 +18,7 @@ const app = express();
 app.use(
   pinoHttp({
     logger,
-    redact: ["req.headers.authorization"],
+    redact: ["req.headers.authorization", "req.headers.cookie"],
   })
 );
 
@@ -43,6 +44,7 @@ app.use(
 );
 app.use(compression());
 app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 
 // Limiteur global léger pour freiner les abus
 const globalLimiter = rateLimit({
