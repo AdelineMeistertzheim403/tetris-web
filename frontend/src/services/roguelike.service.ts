@@ -7,6 +7,8 @@ export type RoguelikeStoredMutation = {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+export type RoguelikeInitialState = Record<string, unknown>;
+
 export type RoguelikeCheckpointPayload = {
   score: number;
   lines: number;
@@ -18,6 +20,25 @@ export type RoguelikeCheckpointPayload = {
   chaosMode: boolean;
   gravityMultiplier: number;
   scoreMultiplier: number;
+};
+
+export type RoguelikeRunStateServer = {
+  id: number;
+  seed: string;
+  score: number;
+  lines: number;
+  level: number;
+  perks: string[];
+  mutations: RoguelikeStoredMutation[];
+  bombs: number;
+  timeFreezeCharges: number;
+  chaosMode: boolean;
+  gravityMultiplier: number;
+  scoreMultiplier: number;
+  status: "FINISHED" | "ABANDONED" | "IN_PROGRESS";
+  createdAt: string;
+  endedAt?: string | null;
+  runToken: string;
 };
 
 export type RoguelikeRunHistoryItem = {
@@ -49,7 +70,7 @@ export type RoguelikeLeaderboardItem = {
 /* ───────────────────────────── */
 /* 🚀 Démarrer une run */
 /* ───────────────────────────── */
-export async function startRoguelikeRun(seed: string, state: any) {
+export async function startRoguelikeRun(seed: string, state: RoguelikeInitialState): Promise<RoguelikeRunStateServer> {
   const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/start`, {
@@ -71,7 +92,7 @@ export async function startRoguelikeRun(seed: string, state: any) {
 /* ───────────────────────────── */
 /* 🔄 Récupérer la run en cours */
 /* ───────────────────────────── */
-export async function getCurrentRoguelikeRun() {
+export async function getCurrentRoguelikeRun(): Promise<RoguelikeRunStateServer | null> {
   const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/current`, {
@@ -92,8 +113,9 @@ export async function getCurrentRoguelikeRun() {
 /* ───────────────────────────── */
 export async function checkpointRoguelikeRun(
   runId: number,
-  payload: RoguelikeCheckpointPayload
-) {
+  payload: RoguelikeCheckpointPayload,
+  runToken: string
+): Promise<{ success: boolean; score?: number; lines?: number; level?: number }> {
   const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/${runId}/checkpoint`, {
@@ -101,6 +123,7 @@ export async function checkpointRoguelikeRun(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      "X-Run-Token": runToken,
     },
     body: JSON.stringify(payload),
   });
@@ -117,8 +140,9 @@ export async function checkpointRoguelikeRun(
 /* ───────────────────────────── */
 export async function endRoguelikeRun(
   runId: number,
-  status: "FINISHED" | "ABANDONED"
-) {
+  status: "FINISHED" | "ABANDONED",
+  runToken: string
+): Promise<{ success: boolean }> {
   const token = getToken();
 
   const res = await fetch(`${API_URL}/roguelike/run/${runId}/end`, {
@@ -126,6 +150,7 @@ export async function endRoguelikeRun(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      "X-Run-Token": runToken,
     },
     body: JSON.stringify({ status }),
   });
