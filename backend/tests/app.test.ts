@@ -2,6 +2,7 @@ import request from "supertest";
 import { describe, expect, it, beforeAll, vi } from "vitest";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { createHmac } from "crypto";
 
 const hashedPassword = bcrypt.hashSync("password123", 10);
 const mockUser = {
@@ -39,11 +40,29 @@ const mockVersusMatches = [
   },
 ];
 
+const runTokenSecret =
+  process.env.RUN_TOKEN_SECRET ||
+  process.env.JWT_SECRET ||
+  "super_secret_tetris_key_dev";
+
+function computeRunToken(userId: number, mode: string, matchId?: string | null) {
+  const payload = `${userId}:${mode}:${matchId ?? ""}`;
+  return createHmac("sha256", runTokenSecret).update(payload).digest("hex");
+}
+
 // Mock Prisma client
 vi.mock("../src/prisma/client", () => {
   const userFindUnique = vi.fn(({ where }) =>
     where.email === mockUser.email ? mockUser : null
   );
+  const userFindMany = vi.fn(({ where }) => {
+    const ids = where?.id?.in ?? [];
+    const users = [
+      { id: mockUser.id, pseudo: mockUser.pseudo },
+      { id: 2, pseudo: "trinity" },
+    ];
+    return users.filter((u) => ids.includes(u.id));
+  });
 
   const scoreCreate = vi.fn(({ data }) => ({
     id: 99,
@@ -63,6 +82,7 @@ vi.mock("../src/prisma/client", () => {
     ...data,
   }));
 
+  const versusMatchFindFirst = vi.fn(() => null);
   const versusMatchFindMany = vi.fn(() => mockVersusMatches);
 
   const queryRaw = vi.fn(async (strings: TemplateStringsArray) => {
@@ -80,6 +100,7 @@ vi.mock("../src/prisma/client", () => {
     default: {
       user: {
         findUnique: userFindUnique,
+        findMany: userFindMany,
       },
       score: {
         create: scoreCreate,
@@ -87,6 +108,7 @@ vi.mock("../src/prisma/client", () => {
       },
       versusMatch: {
         create: versusMatchCreate,
+        findFirst: versusMatchFindFirst,
         findMany: versusMatchFindMany,
       },
       $queryRaw: queryRaw,
@@ -105,14 +127,17 @@ beforeAll(async () => {
 });
 
 describe("Auth routes", () => {
-  it("login retourne un token et le user", async () => {
+  it("login retourne un cookie HttpOnly et le user", async () => {
     const res = await request(app)
       .post("/api/auth/login")
       .send({ email: mockUser.email, password: "password123" });
 
     expect(res.status).toBe(200);
-    expect(res.body.token).toBeTruthy();
+    expect(res.body.token).toBeUndefined();
     expect(res.body.user.email).toBe(mockUser.email);
+    const cookies = res.headers["set-cookie"] ?? [];
+    expect(cookies[0]).toMatch(/auth_token=/);
+    expect(cookies[0]).toMatch(/HttpOnly/i);
   });
 
   it("login refuse un mauvais mot de passe", async () => {
@@ -146,9 +171,11 @@ describe("Scores routes", () => {
   });
 
   it("enregistre un score authentifie", async () => {
+    const runToken = computeRunToken(mockUser.id, "CLASSIQUE");
     const res = await request(app)
       .post("/api/scores")
       .set("Authorization", `Bearer ${token}`)
+      .set("X-Run-Token", runToken)
       .send({ value: 1500, level: 5, lines: 20, mode: "CLASSIQUE" });
 
     expect(res.status).toBe(201);
@@ -156,9 +183,11 @@ describe("Scores routes", () => {
   });
 
   it("enregistre un score VERSUS authentifie", async () => {
+    const runToken = computeRunToken(mockUser.id, "VERSUS");
     const res = await request(app)
       .post("/api/scores")
       .set("Authorization", `Bearer ${token}`)
+      .set("X-Run-Token", runToken)
       .send({ value: 900, level: 1, lines: 12, mode: "VERSUS" });
 
     expect(res.status).toBe(201);
@@ -166,9 +195,11 @@ describe("Scores routes", () => {
   });
 
   it("enregistre un match VERSUS en une ligne", async () => {
+    const runToken = computeRunToken(mockUser.id, "VERSUS", "abc123");
     const res = await request(app)
       .post("/api/scores/versus-match")
       .set("Authorization", `Bearer ${token}`)
+      .set("X-Run-Token", runToken)
       .send({
         matchId: "abc123",
         players: [

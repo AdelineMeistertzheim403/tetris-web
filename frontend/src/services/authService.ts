@@ -6,13 +6,11 @@ export async function login(email: string, password: string) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
+    credentials: "include",
   });
 
   if (!res.ok) throw new Error("Échec de la connexion");
   const data = await res.json();
-
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("user", JSON.stringify(data.user));
 
   return data.user;
 }
@@ -22,6 +20,7 @@ export async function register(pseudo: string, email: string, password: string) 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pseudo, email, password }),
+    credentials: "include",
   });
 
   if (!res.ok) throw new Error("Échec de l'inscription");
@@ -30,17 +29,19 @@ export async function register(pseudo: string, email: string, password: string) 
 
 
 // ✅ Déconnexion
-export function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+export async function logout() {
+  await fetch(`${API_URL}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
 }
 
 // ✅ Vérifier si connecté
-export function getCurrentUser() {
-  const user = localStorage.getItem("user");
-  return user ? JSON.parse(user) : null;
-}
-
-export function getToken() {
-  return localStorage.getItem("token");
+export async function getCurrentUser() {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    credentials: "include",
+  });
+  if (res.status === 401 || res.status === 403) return null;
+  if (!res.ok) throw new Error("Erreur lors de la recuperation du profil");
+  return res.json();
 }

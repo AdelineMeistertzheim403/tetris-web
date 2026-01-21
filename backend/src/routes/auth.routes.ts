@@ -2,6 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { register, login, getMe } from "../controllers/auth.controller";
 import { verifyToken } from "../middleware/auth.middleware";
+import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../utils/authCookie";
 
 const router = Router();
 
@@ -19,7 +20,8 @@ router.post("/login", authLimiter, login);
 router.get("/me", verifyToken, getMe);
 
 // Deconnexion (facultative)
-router.post("/logout", (req, res) => {
+router.post("/logout", (_req, res) => {
+  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions());
   res.json({ message: "Deconnexion reussie" });
 });
 
