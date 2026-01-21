@@ -5,32 +5,50 @@ import { getCurrentUser, logout } from "../services/authService";
 interface AuthContextType {
   user: any;
   setUser: (user: any) => void;
-  logoutUser: () => void;
+  logoutUser: () => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   setUser: () => {},
-  logoutUser: () => {},
+  logoutUser: async () => {},
+  loading: true,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Charger depuis localStorage au démarrage
+  // Load user from the API on startup
   useEffect(() => {
-    const storedUser = getCurrentUser();
-    if (storedUser) setUser(storedUser);
+    let active = true;
+
+    const loadUser = async () => {
+      try {
+        const storedUser = await getCurrentUser();
+        if (active) setUser(storedUser);
+      } catch {
+        if (active) setUser(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadUser();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // ✅ Fonction de déconnexion complète
-  const logoutUser = () => {
-    logout();       // vide le localStorage
-    setUser(null);  // vide aussi le state React
+  const logoutUser = async () => {
+    await logout();
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logoutUser }}>
+    <AuthContext.Provider value={{ user, setUser, logoutUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

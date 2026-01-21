@@ -29,8 +29,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
 
-  const handleLogout = () => {
-    logoutUser();
+  const handleLogout = async () => {
+    await logoutUser();
     navigate("/");
   };
 
@@ -64,7 +64,7 @@ export default function Dashboard() {
     }
 
     fetchScores();
-  }, [mode]);
+  }, [mode, user]);
 
   return (
     <div className="min-h-screen flex flex-col items-center  text-pink-300 font-['Press_Start_2P'] py-10">

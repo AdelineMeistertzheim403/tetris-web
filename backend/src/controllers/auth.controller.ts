@@ -6,6 +6,11 @@ import { registerSchema, loginSchema } from "../utils/validation";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { env } from "../config";
 import { logger } from "../logger";
+import {
+  AUTH_COOKIE_MAX_AGE_MS,
+  AUTH_COOKIE_NAME,
+  getAuthCookieOptions,
+} from "../utils/authCookie";
 
 const JWT_SECRET = env.jwtSecret;
 const JWT_EXPIRES_IN = "24h";
@@ -33,17 +38,10 @@ export const register = async (req: Request, res: Response) => {
       data: { pseudo, email, password: hashedPassword },
     });
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, pseudo: user.pseudo },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
-
     const { password: _ignored, ...safeUser } = user;
 
     res.status(201).json({
       message: "Utilisateur cree",
-      token,
       user: safeUser,
     });
   } catch (err: any) {
@@ -85,7 +83,11 @@ export const login = async (req: Request, res: Response) => {
 
     const { password: _ignored, ...safeUser } = user;
 
-    res.json({ token, user: safeUser });
+    res.cookie(AUTH_COOKIE_NAME, token, {
+      ...getAuthCookieOptions(),
+      maxAge: AUTH_COOKIE_MAX_AGE_MS,
+    });
+    res.json({ user: safeUser });
   } catch (err: any) {
     logger.error({ err }, "Erreur login");
     res.status(500).json({ error: "Erreur lors de la connexion" });
