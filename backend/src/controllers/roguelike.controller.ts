@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { RunStatus } from "@prisma/client";
+import { Prisma, RunStatus } from "@prisma/client";
 import prisma from "../prisma/client";
 import { AuthRequest } from "../middleware/auth.middleware";
 import {
@@ -55,7 +55,7 @@ export async function startRoguelikeRun(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
     }
 
-    const statePayload = parsed.data.state ?? {};
+    const statePayload: Prisma.InputJsonValue = parsed.data.state ?? {};
     const payloadSize = Buffer.byteLength(JSON.stringify(statePayload), "utf8");
     if (payloadSize > MAX_STATE_BYTES) {
       return res.status(413).json({ error: "Etat trop volumineux" });
