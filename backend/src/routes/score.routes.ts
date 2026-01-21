@@ -1,8 +1,7 @@
 import { Router, Response } from "express";
 import rateLimit from "express-rate-limit";
-import { z } from "zod";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
-import { scoreSchema } from "../utils/validation";
+import { scoreSchema, versusMatchSchema } from "../utils/validation";
 import { GameMode } from "../types/GameMode";
 import prisma from "../prisma/client";
 import { logger } from "../logger";
@@ -18,21 +17,6 @@ const scoreLimiter = rateLimit({
 const leaderboardLimiter = rateLimit({
   windowMs: 5 * 1000,
   max: 20,
-});
-
-const versusMatchSchema = z.object({
-  matchId: z.string().optional(),
-  players: z
-    .array(
-      z.object({
-        slot: z.number().int().min(1).max(2),
-        userId: z.number().int().optional(),
-        pseudo: z.string().min(1),
-        score: z.number().int().min(0),
-        lines: z.number().int().min(0),
-      })
-    )
-    .length(2),
 });
 
 /**
@@ -75,14 +59,56 @@ router.post("/", verifyToken, scoreLimiter, async (req: AuthRequest, res: Respon
  */
 router.post("/versus-match", verifyToken, async (req: AuthRequest, res: Response) => {
   try {
-    const parsed = versusMatchSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: "DonnÇ¸es invalides", details: parsed.error.flatten() });
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
     }
 
-    const [p1, p2] = [...parsed.data.players].sort((a, b) => a.slot - b.slot);
-    const winner =
-      p1.score === p2.score ? null : p1.score > p2.score ? p1 : p2;
+    const parsed = versusMatchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
+    }
+
+    const players = parsed.data.players.map((p) => ({
+      ...p,
+      pseudo: p.pseudo.trim(),
+    }));
+
+    if (new Set(players.map((p) => p.slot)).size !== players.length) {
+      return res.status(400).json({ error: "Les slots doivent etre uniques" });
+    }
+
+    if (!players.some((p) => p.userId === userId)) {
+      return res.status(403).json({ error: "Le match doit inclure le joueur connecte" });
+    }
+
+    const playerIds = Array.from(new Set(players.map((p) => p.userId).filter(Boolean))) as number[];
+    const userRecords = playerIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: playerIds } },
+          select: { id: true, pseudo: true },
+        })
+      : [];
+
+    if (userRecords.length !== playerIds.length) {
+      return res.status(400).json({ error: "Un des joueurs references est introuvable" });
+    }
+
+    const usersById = new Map(userRecords.map((u) => [u.id, u]));
+
+    const normalizedPlayers = players.map((p) => {
+      if (!p.userId) return p;
+      const found = usersById.get(p.userId);
+      return { ...p, pseudo: found?.pseudo ?? p.pseudo };
+    });
+
+    const [p1, p2] = [...normalizedPlayers].sort((a, b) => a.slot - b.slot);
+    const winner = p1.score === p2.score ? null : p1.score > p2.score ? p1 : p2;
+    const winnerId = winner?.userId ?? null;
+    const winnerPseudo =
+      winnerId !== null && usersById.get(winnerId)
+        ? usersById.get(winnerId)?.pseudo ?? null
+        : winner?.pseudo ?? null;
 
     // DÇ¸doublonnage basique pour Ç¸viter deux Ã©critures pour le mÃªme match
     const existing = await prisma.versusMatch.findFirst({
@@ -110,8 +136,8 @@ router.post("/versus-match", verifyToken, async (req: AuthRequest, res: Response
         player2Pseudo: p2.pseudo,
         player2Score: p2.score,
         player2Lines: p2.lines,
-        winnerId: winner?.userId,
-        winnerPseudo: winner ? winner.pseudo : null,
+        winnerId,
+        winnerPseudo,
       },
     });
 
