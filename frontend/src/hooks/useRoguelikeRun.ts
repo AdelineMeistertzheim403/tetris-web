@@ -60,21 +60,44 @@ export function useRoguelikeRun() {
       checkpointLock.current = true;
 
       try {
+        const normalizedScore = Math.round(payload.score);
+        const normalizedLines = Math.round(payload.lines);
+        const normalizedLevel = Math.max(1, Math.round(payload.level));
+        const normalizedBombs = Math.max(0, Math.round(payload.bombs));
+        const normalizedTimeFreezeCharges = Math.max(
+          0,
+          Math.round(payload.timeFreezeCharges)
+        );
+
         await checkpointRoguelikeRun(run.id, {
-          score: payload.score,
-          lines: payload.lines,
-          level: payload.level,
+          score: normalizedScore,
+          lines: normalizedLines,
+          level: normalizedLevel,
           perks: payload.perks,
           mutations: payload.mutations,
-          bombs: payload.bombs,
-          timeFreezeCharges: payload.timeFreezeCharges,
+          bombs: normalizedBombs,
+          timeFreezeCharges: normalizedTimeFreezeCharges,
           chaosMode: payload.chaosMode,
           gravityMultiplier: payload.gravityMultiplier,
           scoreMultiplier: payload.scoreMultiplier,
         });
 
         setRun((prev) =>
-          prev ? { ...prev, ...payload } : prev
+          prev
+            ? {
+                ...prev,
+                score: normalizedScore,
+                lines: normalizedLines,
+                level: normalizedLevel,
+                perks: payload.perks,
+                mutations: payload.mutations,
+                bombs: normalizedBombs,
+                timeFreezeCharges: normalizedTimeFreezeCharges,
+                chaosMode: payload.chaosMode,
+                gravityMultiplier: payload.gravityMultiplier,
+                scoreMultiplier: payload.scoreMultiplier,
+              }
+            : prev
         );
       } finally {
         checkpointLock.current = false;
