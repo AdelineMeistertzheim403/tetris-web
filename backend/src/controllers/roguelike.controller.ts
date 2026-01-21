@@ -2,6 +2,13 @@ import { Response } from "express";
 import { RunStatus } from "@prisma/client";
 import prisma from "../prisma/client";
 import { AuthRequest } from "../middleware/auth.middleware";
+import {
+  roguelikeCheckpointSchema,
+  roguelikeEndSchema,
+  roguelikeStartSchema,
+} from "../utils/validation";
+
+const MAX_STATE_BYTES = 50_000; // limite raisonnable pour eviter l'injection de blobs
 
 export async function getMyRoguelikeRuns(req: AuthRequest, res: Response) {
   try {
@@ -43,13 +50,22 @@ export async function startRoguelikeRun(req: AuthRequest, res: Response) {
       return res.status(401).json({ error: "Utilisateur non authentifie" });
     }
 
-     const { seed, state } = req.body;
+    const parsed = roguelikeStartSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
+    }
+
+    const statePayload = parsed.data.state ?? {};
+    const payloadSize = Buffer.byteLength(JSON.stringify(statePayload), "utf8");
+    if (payloadSize > MAX_STATE_BYTES) {
+      return res.status(413).json({ error: "Etat trop volumineux" });
+    }
 
     const run = await prisma.roguelikeRun.create({
       data: {
         userId,
-        seed,
-        state,
+        seed: parsed.data.seed,
+        state: statePayload,
         score: 0,
         lines: 0,
         level: 1,
@@ -103,6 +119,14 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
     if (!userId) {
       return res.status(401).json({ error: "Utilisateur non authentifie" });
     }
+    if (!Number.isInteger(runId) || runId <= 0) {
+      return res.status(400).json({ error: "Identifiant de run invalide" });
+    }
+
+    const parsed = roguelikeCheckpointSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
+    }
 
     const {
       score,
@@ -115,7 +139,7 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       chaosMode,
       gravityMultiplier,
       scoreMultiplier,
-    } = req.body;
+    } = parsed.data;
 
     const run = await prisma.roguelikeRun.updateMany({
       where: {
@@ -152,15 +176,20 @@ export async function endRoguelikeRun(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
     const runId = Number(req.params.id);
-    const { status } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: "Utilisateur non authentifie" });
     }
-
-    if (![RunStatus.FINISHED, RunStatus.ABANDONED].includes(status)) {
-      return res.status(400).json({ error: "Statut invalide" });
+    if (!Number.isInteger(runId) || runId <= 0) {
+      return res.status(400).json({ error: "Identifiant de run invalide" });
     }
+
+    const parsed = roguelikeEndSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Statut invalide", details: parsed.error.flatten() });
+    }
+
+    const { status } = parsed.data;
 
     const run = await prisma.roguelikeRun.updateMany({
       where: {
