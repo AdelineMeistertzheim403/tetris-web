@@ -62,6 +62,7 @@ export const roguelikeCheckpointSchema = z.object({
     )
     .max(40),
   bombs: intWithin(0, 50),
+  bombsUsed: intWithin(0, 5_000),
   timeFreezeCharges: intWithin(0, 50),
   chaosMode: z.boolean(),
   gravityMultiplier: z.number().min(0.05).max(20),

@@ -6,6 +6,7 @@ import {
   startRoguelikeRun,
   checkpointRoguelikeRun,
   endRoguelikeRun,
+  type RoguelikeCheckpointPayload,
   type RoguelikeStoredMutation,
   type RoguelikeInitialState,
 } from "../services/roguelike.service";
@@ -57,7 +58,7 @@ export function useRoguelikeRun() {
   /* 💾 Checkpoint (safe) */
   /* ───────────────────────────── */
   const checkpoint = useCallback(
-    async (payload: Omit<RoguelikeRunState, "id" | "runToken">) => {
+    async (payload: RoguelikeCheckpointPayload) => {
       if (!run || checkpointLock.current) return;
 
       checkpointLock.current = true;
@@ -67,6 +68,7 @@ export function useRoguelikeRun() {
         const normalizedLines = Math.round(payload.lines);
         const normalizedLevel = Math.max(1, Math.round(payload.level));
         const normalizedBombs = Math.max(0, Math.round(payload.bombs));
+        const normalizedBombsUsed = Math.max(0, Math.round(payload.bombsUsed));
         const normalizedTimeFreezeCharges = Math.max(
           0,
           Math.round(payload.timeFreezeCharges)
@@ -81,6 +83,7 @@ export function useRoguelikeRun() {
             perks: payload.perks,
             mutations: payload.mutations,
             bombs: normalizedBombs,
+            bombsUsed: normalizedBombsUsed,
             timeFreezeCharges: normalizedTimeFreezeCharges,
             chaosMode: payload.chaosMode,
             gravityMultiplier: payload.gravityMultiplier,
