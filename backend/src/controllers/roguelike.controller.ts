@@ -28,6 +28,27 @@ function getProvidedRunToken(req: AuthRequest): string | null {
   return null;
 }
 
+function getJsonObject(value: Prisma.JsonValue): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getJsonNumber(value: Prisma.JsonValue, key: string): number | null {
+  const obj = getJsonObject(value);
+  if (!obj) return null;
+  const raw = obj[key];
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
+  return raw;
+}
+
+function hasMutation(value: Prisma.JsonValue, id: string): boolean {
+  if (!Array.isArray(value)) return false;
+  return value.some((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false;
+    return (entry as Record<string, unknown>).id === id;
+  });
+}
+
 export async function getMyRoguelikeRuns(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
@@ -73,7 +94,8 @@ export async function startRoguelikeRun(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
     }
 
-    const statePayload: Prisma.InputJsonValue = parsed.data.state ?? {};
+    const baseState = parsed.data.state ?? {};
+    const statePayload: Prisma.InputJsonValue = { ...baseState, bombsUsed: 0 };
     const payloadSize = Buffer.byteLength(JSON.stringify(statePayload), "utf8");
     if (payloadSize > MAX_STATE_BYTES) {
       return res.status(413).json({ error: "Etat trop volumineux" });
@@ -176,12 +198,16 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       perks,
       mutations,
       bombs,
+      bombsUsed,
       timeFreezeCharges,
       chaosMode,
       gravityMultiplier,
       scoreMultiplier,
     } = parsed.data;
 
+    const storedBombsUsed = getJsonNumber(run.state, "bombsUsed") ?? 0;
+    const safeBombsUsed = Math.max(storedBombsUsed, bombsUsed);
+    const nextState = { ...(getJsonObject(run.state) ?? {}), bombsUsed: safeBombsUsed };
     const hasZeroBombBoost = mutations.some((mutation) => mutation.id === "protocole_final");
     const effectiveScoreMultiplier =
       scoreMultiplier * (hasZeroBombBoost && bombs === 0 ? 2 : 1);
@@ -204,6 +230,7 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
         perks,
         mutations,
         bombs,
+        state: nextState,
         timeFreezeCharges,
         chaosMode,
         gravityMultiplier,
@@ -260,11 +287,18 @@ export async function endRoguelikeRun(req: AuthRequest, res: Response) {
 
     const { status } = parsed.data;
 
+    const bombsUsed = getJsonNumber(run.state, "bombsUsed");
+    const hasNoBombBonus = hasMutation(run.mutations, "perfect-risk");
+    const shouldApplyNoBombBonus =
+      status === RunStatus.FINISHED && hasNoBombBonus && bombsUsed === 0;
+    const finalScore = shouldApplyNoBombBonus ? Math.round(run.score * 2) : run.score;
+
     await prisma.roguelikeRun.update({
       where: { id: run.id },
       data: {
         status,
         endedAt: new Date(),
+        score: finalScore,
       },
     });
 

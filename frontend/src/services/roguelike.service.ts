@@ -14,6 +14,7 @@ export type RoguelikeCheckpointPayload = {
   perks: string[];
   mutations: RoguelikeStoredMutation[];
   bombs: number;
+  bombsUsed: number;
   timeFreezeCharges: number;
   chaosMode: boolean;
   gravityMultiplier: number;
