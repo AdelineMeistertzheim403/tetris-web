@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import "../styles/roguelike.css";
 import RoguelikeRun from "../components/RoguelikeRun";
 import RoguelikeHistory from "../components/RoguelikeHistory";
@@ -22,9 +23,14 @@ export default function RoguelikePage() {
             Choisis un perk toutes les 10 lignes, expérimente Chaos, bombes, time-freeze...
             Termine ta run pour entrer au classement.
           </p>
-          <button className="start-cta-btn" onClick={() => setStarted(true)}>
-            ▶ Lancer une run
-          </button>
+          <div className="hero-actions">
+            <button className="start-cta-btn" onClick={() => setStarted(true)}>
+              ▶ Lancer une run
+            </button>
+            <Link className="lexicon-btn" to="/roguelike/lexique">
+              Lexique
+            </Link>
+          </div>
         </div>
       </section>
 

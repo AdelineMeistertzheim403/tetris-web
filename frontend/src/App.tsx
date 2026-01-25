@@ -10,6 +10,7 @@ import Home from "./pages/Home";
 import Sprint from "./pages/Sprint";
 import Versus from "./pages/Versus";
 import RoguelikePage from "./pages/RoguelikePage";
+import RoguelikeLexicon from "./pages/RoguelikeLexicon";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
       <Route path="/sprint" element={<Sprint />} />
       <Route path="/versus" element={<Versus />} />
       <Route path="/roguelike" element={<RoguelikePage />} />
+      <Route path="/roguelike/lexique" element={<RoguelikeLexicon />} />
       </Routes>
     </>
   );
