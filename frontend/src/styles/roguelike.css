@@ -130,6 +130,32 @@
   box-shadow: 0 0 25px rgba(211, 107, 255, 0.35);
 }
 
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.hero-actions .start-cta-btn {
+  margin-top: 0;
+}
+
+.lexicon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #2f2f47;
+  background: #0c0c18;
+  color: #e5e7eb;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 .rogue-tabs {
   display: flex;
   flex-direction: column;
@@ -661,6 +687,104 @@
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.rogue-lexicon {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lexicon-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lexicon-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.lexicon-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lexicon-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lexicon-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.lexicon-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  background: rgba(14, 14, 24, 0.8);
+  border: 1px solid #1f1f35;
+  border-radius: 12px;
+  padding: 14px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.lexicon-icon-wrap {
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.lexicon-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.lexicon-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+}
+
+.lexicon-card h4 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.lexicon-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .synergies-panel {
