@@ -268,11 +268,11 @@ export default function RoguelikeRun() {
             stacks: mutation.stacks,
           })),
           bombs,
+          bombsUsed,
           timeFreezeCharges,
           chaosMode,
           gravityMultiplier,
           scoreMultiplier,
-          seed: "",
         });
       }
 
@@ -602,11 +602,11 @@ useSynergies(
                   stacks: mutation.stacks,
                 })),
                 bombs,
+                bombsUsed,
                 timeFreezeCharges,
                 chaosMode,
                 gravityMultiplier,
                 scoreMultiplier,
-                seed: "",
               });
             } finally {
               await finishRun("FINISHED");
