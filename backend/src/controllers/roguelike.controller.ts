@@ -182,12 +182,16 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       scoreMultiplier,
     } = parsed.data;
 
+    const hasZeroBombBoost = mutations.some((mutation) => mutation.id === "protocole_final");
+    const effectiveScoreMultiplier =
+      scoreMultiplier * (hasZeroBombBoost && bombs === 0 ? 2 : 1);
+
     // Recalcul server-side pour éviter la triche : score et niveau dérivés des lignes
     const safeLines = Math.max(run.lines, lines);
     const deltaLines = Math.max(0, safeLines - run.lines);
     const computedScore = Math.max(
       0,
-      Math.round(run.score + deltaLines * 100 * scoreMultiplier)
+      Math.round(run.score + deltaLines * 100 * effectiveScoreMultiplier)
     );
     const computedLevel = Math.max(1, Math.floor(safeLines / 10) + 1);
 
