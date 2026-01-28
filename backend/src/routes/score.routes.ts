@@ -305,14 +305,28 @@ router.get("/leaderboard/:mode", leaderboardLimiter, async (req: AuthRequest, re
       return res.json(ordered);
     }
 
-    const leaderboard = await prisma.score.findMany({
-      where: { mode: mode as GameMode },
-      include: { user: { select: { pseudo: true } } },
-      orderBy: mode === GameMode.SPRINT ? { value: "asc" } : { value: "desc" },
+    const targetMode = mode as GameMode;
+    const isSprint = targetMode === GameMode.SPRINT;
+    const bestByUser = await prisma.score.groupBy({
+      by: ["userId"],
+      where: { mode: targetMode },
+      ...(isSprint ? { _min: { value: true } } : { _max: { value: true } }),
+      orderBy: isSprint ? { _min: { value: "asc" } } : { _max: { value: "desc" } },
       take: 10,
     });
 
-    res.json(leaderboard);
+    const leaderboard = await Promise.all(
+      bestByUser.map((entry) => {
+        const bestValue = isSprint ? entry._min?.value : entry._max?.value;
+        return prisma.score.findFirst({
+          where: { userId: entry.userId, mode: targetMode, value: bestValue ?? undefined },
+          include: { user: { select: { pseudo: true } } },
+          orderBy: { createdAt: "asc" },
+        });
+      })
+    );
+
+    res.json(leaderboard.filter((row): row is NonNullable<typeof row> => Boolean(row)));
   } catch (err) {
     logger.error({ err }, "Erreur leaderboard");
     res.status(500).json({ error: "Erreur serveur" });
