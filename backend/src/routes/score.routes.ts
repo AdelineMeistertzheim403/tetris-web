@@ -306,27 +306,47 @@ router.get("/leaderboard/:mode", leaderboardLimiter, async (req: AuthRequest, re
     }
 
     const targetMode = mode as GameMode;
-    const isSprint = targetMode === GameMode.SPRINT;
+    if (targetMode === GameMode.SPRINT) {
+      const bestByUser = await prisma.score.groupBy({
+        by: ["userId"],
+        where: { mode: targetMode },
+        _min: { value: true },
+        orderBy: { _min: { value: "asc" } },
+        take: 10,
+      });
+
+      const leaderboard = await Promise.all(
+        bestByUser.map((entry) =>
+          prisma.score.findFirst({
+            where: { userId: entry.userId, mode: targetMode, value: entry._min.value ?? undefined },
+            include: { user: { select: { pseudo: true } } },
+            orderBy: { createdAt: "asc" },
+          })
+        )
+      );
+
+      return res.json(leaderboard.filter((row): row is NonNullable<typeof row> => Boolean(row)));
+    }
+
     const bestByUser = await prisma.score.groupBy({
       by: ["userId"],
       where: { mode: targetMode },
-      ...(isSprint ? { _min: { value: true } } : { _max: { value: true } }),
-      orderBy: isSprint ? { _min: { value: "asc" } } : { _max: { value: "desc" } },
+      _max: { value: true },
+      orderBy: { _max: { value: "desc" } },
       take: 10,
     });
 
     const leaderboard = await Promise.all(
-      bestByUser.map((entry) => {
-        const bestValue = isSprint ? entry._min?.value : entry._max?.value;
-        return prisma.score.findFirst({
-          where: { userId: entry.userId, mode: targetMode, value: bestValue ?? undefined },
+      bestByUser.map((entry) =>
+        prisma.score.findFirst({
+          where: { userId: entry.userId, mode: targetMode, value: entry._max.value ?? undefined },
           include: { user: { select: { pseudo: true } } },
           orderBy: { createdAt: "asc" },
-        });
-      })
+        })
+      )
     );
 
-    res.json(leaderboard.filter((row): row is NonNullable<typeof row> => Boolean(row)));
+    return res.json(leaderboard.filter((row): row is NonNullable<typeof row> => Boolean(row)));
   } catch (err) {
     logger.error({ err }, "Erreur leaderboard");
     res.status(500).json({ error: "Erreur serveur" });
