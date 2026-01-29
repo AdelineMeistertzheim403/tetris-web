@@ -8,6 +8,7 @@ import pinoHttp from "pino-http";
 import authRoutes from "./routes/auth.routes";
 import scoreRoutes from "./routes/score.routes";
 import roguelikeRoutes from "./routes/roguelike.routes";
+import achievementRoutes from "./routes/achievements.routes";
 import { env } from "./config";
 import { errorHandler } from "./middleware/error.middleware";
 import { logger } from "./logger";
@@ -59,6 +60,7 @@ app.use(globalLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/scores", scoreRoutes);
 app.use("/api/roguelike", roguelikeRoutes);
+app.use("/api/achievements", achievementRoutes);
 
 app.get("/", (_, res) => res.send("Tetris backend en ligne"));
 

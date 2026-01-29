@@ -19,6 +19,8 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "8080:8080"
+    command: >
+      sh -c "until npx prisma migrate deploy; do echo 'waiting for db'; sleep 2; done; npm run dev"
     volumes:
       - ./backend:/app
       - /app/node_modules

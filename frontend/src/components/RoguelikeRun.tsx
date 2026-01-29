@@ -23,6 +23,8 @@ import { SYNERGIES } from "../data/synergies";
 import { useActiveSynergies } from "../hooks/useActiveSynergies";
 import SynergiesPanel from "./SynergiesPanel";
 import MutationsPanel from "./MutationsPanel";
+import { useAchievements } from "../hooks/useAchievements";
+import AchievementToast from "./AchievementToast";
 
 export type ActivePerkRuntime = Perk & {
   startedAt?: number;
@@ -34,7 +36,13 @@ export type ActiveMutationRuntime = Mutation & {
   stacks: number;
 };
 
-export default function RoguelikeRun() {
+export default function RoguelikeRun({
+  initialSeed,
+  seededMode = false,
+}: {
+  initialSeed?: string;
+  seededMode?: boolean;
+}) {
   const [selectingPerk, setSelectingPerk] = useState(true);
   const [selectionType, setSelectionType] = useState<"perk" | "mutation">("perk");
   const [gravityMultiplier, setGravityMultiplier] = useState(1);
@@ -43,6 +51,7 @@ export default function RoguelikeRun() {
   const [mutationChoices, setMutationChoices] = useState<Mutation[]>([]);
   const [scoreMultiplier, setScoreMultiplier] = useState(1);
   const [secondChance, setSecondChance] = useState(false);
+  const [usedSecondChance, setUsedSecondChance] = useState(false);
   const [timeFreezeCharges, setTimeFreezeCharges] = useState(0);
   const [timeFrozen, setTimeFrozen] = useState(false);
   const [timeFreezeDuration, setTimeFreezeDuration] = useState(5000);
@@ -86,6 +95,19 @@ export default function RoguelikeRun() {
   const [boardKey, setBoardKey] = useState(0);
   const runStartedRef = useRef(false);
   const [manualPause, setManualPause] = useState(false);
+  const [tetrisCleared, setTetrisCleared] = useState(false);
+  const [autoSeededMode, setAutoSeededMode] = useState(seededMode);
+  const { checkAchievements, registerRun, recentUnlocks, clearRecent } =
+    useAchievements();
+  useEffect(() => {
+    if (recentUnlocks.length === 0) return;
+    const timeout = setTimeout(() => clearRecent(), 3500);
+    return () => clearTimeout(timeout);
+  }, [recentUnlocks, clearRecent]);
+
+  useEffect(() => {
+    setAutoSeededMode(seededMode);
+  }, [seededMode]);
   const grantBombs = useCallback((count: number = 1) => {
     if (count === 0) return;
     setBombs((v) => v + count);
@@ -106,6 +128,7 @@ export default function RoguelikeRun() {
     setExtraHoldSlots(0);
     setBombRadius(1);
     setSecondChance(false);
+    setUsedSecondChance(false);
     setBombs(0);
     setBombsUsed(0);
     setBombsGranted(0);
@@ -135,6 +158,7 @@ export default function RoguelikeRun() {
     setRunEnded(false);
     setSelectingPerk(true);
     setShowSummary(false);
+    setTetrisCleared(false);
     setBoardKey((k) => k + 1);
     runStartedRef.current = false;
   }, []);
@@ -235,6 +259,7 @@ export default function RoguelikeRun() {
 
   const consumeSecondChance = () => {
     setSecondChance(false);
+    setUsedSecondChance(true);
     setActivePerks((prev) => prev.filter((p) => p.id !== "second-chance"));
   };
 
@@ -244,6 +269,10 @@ export default function RoguelikeRun() {
     setTotalLines((prev) => {
       const newTotal = prev + linesCleared;
       const nextLevel = Math.floor(newTotal / 10) + 1;
+
+      if (linesCleared === 4) {
+        setTetrisCleared(true);
+      }
 
       if (lineSlowEnabled && linesCleared > 0) {
         setLineSlowActive(true);
@@ -401,65 +430,83 @@ export default function RoguelikeRun() {
     }
   };
 
-// ▶️ Démarrage de la run
-useEffect(() => {
-  if (!hasActiveRun && !runEnded && !runStartedRef.current) {
-    runStartedRef.current = true;
-    startRun(
-      crypto.randomUUID(),
-      {
-        gravityMultiplier,
-        scoreMultiplier,
-        bombs,
-        timeFreezeCharges,
-      }
-    );
-    setBoardKey((k) => k + 1);
-  }
-}, [hasActiveRun, runEnded, startRun, gravityMultiplier, scoreMultiplier, bombs, timeFreezeCharges]);
-
-// ▶️ Init RNG déterministe quand le seed est dispo
-useEffect(() => {
-  if (run?.seed) {
-    rngRef.current = createRng(run.seed);
-  } else {
-    rngRef.current = null;
-  }
-}, [run?.seed]);
-
-// ▶️ Expiration des perks temporaires
-useEffect(() => {
-  if (selectingPerk) return;
-
-  const interval = setInterval(() => {
-    const now = Date.now();
-    setActivePerks(prev =>
-      prev.filter(p => !p.expiresAt || p.expiresAt > now)
-    );
-  }, 250);
-
-  return () => clearInterval(interval);
-}, [selectingPerk]);
-
-useSynergies(
-  activePerks.map(p => p.id),
-  {
-    setGravityMultiplier,
-    setScoreMultiplier,
-    setChaosMode,
-    setTimeFreezeDuration,
-    addBomb: (n) => grantBombs(n),
-    activePerks: activePerks.map(p => p.id),
-    setBombRadius,
-  },
-  (synergy) => {
-    setSynergyToast(synergy);
-    if (synergyTimeoutRef.current) {
-      clearTimeout(synergyTimeoutRef.current);
+  // ▶️ Démarrage de la run
+  useEffect(() => {
+    if (!hasActiveRun && !runEnded && !runStartedRef.current) {
+      runStartedRef.current = true;
+      const trimmedSeed = initialSeed?.trim();
+      const isDevilSeed =
+        Boolean(trimmedSeed) && trimmedSeed?.toUpperCase() === "DEVIL-666";
+      const seed = trimmedSeed
+        ? isDevilSeed
+          ? "DEVIL-666"
+          : trimmedSeed
+        : crypto.randomUUID();
+      setAutoSeededMode(Boolean(trimmedSeed));
+      startRun(
+        seed,
+        {
+          gravityMultiplier,
+          scoreMultiplier,
+          bombs,
+          timeFreezeCharges,
+        }
+      );
+      setBoardKey((k) => k + 1);
     }
-    synergyTimeoutRef.current = setTimeout(() => setSynergyToast(null), 2500);
-  }
-);
+  }, [
+    hasActiveRun,
+    runEnded,
+    startRun,
+    gravityMultiplier,
+    scoreMultiplier,
+    bombs,
+    timeFreezeCharges,
+    initialSeed,
+  ]);
+
+  // ▶️ Init RNG déterministe quand le seed est dispo
+  useEffect(() => {
+    if (run?.seed) {
+      rngRef.current = createRng(run.seed);
+    } else {
+      rngRef.current = null;
+    }
+  }, [run?.seed]);
+
+  // ▶️ Expiration des perks temporaires
+  useEffect(() => {
+    if (selectingPerk) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setActivePerks(prev =>
+        prev.filter(p => !p.expiresAt || p.expiresAt > now)
+      );
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [selectingPerk]);
+
+  useSynergies(
+    activePerks.map(p => p.id),
+    {
+      setGravityMultiplier,
+      setScoreMultiplier,
+      setChaosMode,
+      setTimeFreezeDuration,
+      addBomb: (n) => grantBombs(n),
+      activePerks: activePerks.map(p => p.id),
+      setBombRadius,
+    },
+    (synergy) => {
+      setSynergyToast(synergy);
+      if (synergyTimeoutRef.current) {
+        clearTimeout(synergyTimeoutRef.current);
+      }
+      synergyTimeoutRef.current = setTimeout(() => setSynergyToast(null), 2500);
+    }
+  );
 
 
   useEffect(() => {
@@ -469,21 +516,33 @@ useSynergies(
 
     if (selectionType === "mutation") {
       const choices = generateMutationChoices(MUTATIONS, 3, activeMutations, rng);
-      setMutationChoices(choices);
       if (choices.length === 0) {
         setSelectingPerk(false);
+        return;
       }
+      if (autoSeededMode) {
+        handleSelectMutation(choices[0]);
+        return;
+      }
+      setMutationChoices(choices);
     } else {
-      setPerkChoices(
-        generatePerkChoices(
-          ALL_PERKS,
-          3,
-          activePerks.map((p) => p.id),
-          rng
-        )
+      const choices = generatePerkChoices(
+        ALL_PERKS,
+        3,
+        activePerks.map((p) => p.id),
+        rng
       );
+      if (choices.length === 0) {
+        setSelectingPerk(false);
+        return;
+      }
+      if (autoSeededMode) {
+        handleSelectPerk(choices[0]);
+        return;
+      }
+      setPerkChoices(choices);
     }
-  }, [selectingPerk, selectionType, activePerks, activeMutations]);
+  }, [selectingPerk, selectionType, activePerks, activeMutations, autoSeededMode]);
 
   useEffect(() => {
     setChaosMode(activePerks.some((p) => p.id === "chaos-mode"));
@@ -503,6 +562,8 @@ useSynergies(
     };
   }, []);
 
+  const isDevilSeed = run?.seed?.toUpperCase() === "DEVIL-666";
+
   return (
     <div className="rogue-run">
       {synergyToast && (
@@ -512,10 +573,10 @@ useSynergies(
           <p className="muted small">{synergyToast.description}</p>
         </div>
       )}
-      {selectingPerk && selectionType === "perk" && (
+      {selectingPerk && selectionType === "perk" && !autoSeededMode && (
         <PerkSelectionOverlay perks={perkChoices} onSelect={handleSelectPerk} />
       )}
-      {selectingPerk && selectionType === "mutation" && (
+      {selectingPerk && selectionType === "mutation" && !autoSeededMode && (
         <MutationSelectionOverlay mutations={mutationChoices} onSelect={handleSelectMutation} />
       )}
       <aside className="rogue-left">
@@ -551,6 +612,7 @@ useSynergies(
           paused={selectingPerk || showSummary || manualPause}
           autoStart={!selectingPerk}
           gravityMultiplier={effectiveGravityMultiplier}
+          cursedMode={isDevilSeed}
           extraHold={extraHoldSlots}
           bombsGranted={bombsGranted}
           scoreMultiplier={effectiveScoreMultiplier}
@@ -579,6 +641,23 @@ useSynergies(
             const safeScore = Math.round(finalScore);
             const safeLines = Math.round(lines);
             const safeLevel = Math.max(1, Math.round(currentLevel));
+
+            const { runsPlayed, sameSeedRuns } = registerRun(run.seed);
+            checkAchievements({
+              score: safeScore,
+              lines: safeLines,
+              level: safeLevel,
+              bombsUsed,
+              usedSecondChance,
+              perks: activePerks.map(p => p.id),
+              synergies: activeSynergies.map(s => s.id),
+              mutations: activeMutations.map(m => m.id),
+              chaosMode,
+              seed: run.seed,
+              runsPlayed,
+              sameSeedRuns,
+              tetrisCleared,
+            });
 
             // 🧊 SNAPSHOT AVANT RESET
             setSummaryPerks([...activePerks]);
@@ -626,6 +705,7 @@ useSynergies(
               setExtraHoldSlots(0);
               setBombRadius(1);
               setSecondChance(false);
+              setUsedSecondChance(false);
               setBombs(0);
               setBombsUsed(0);
               setBombsGranted(0);
@@ -645,6 +725,7 @@ useSynergies(
                 clearTimeout(lineSlowTimeoutRef.current);
                 lineSlowTimeoutRef.current = null;
               }
+              setTetrisCleared(false);
               setZeroBombBoost(false);
               setNoBombBonus(false);
               setSecondChanceRechargeEvery(null);
@@ -672,30 +753,35 @@ useSynergies(
         </div>
       )}
       <RoguelikeRunSummary
-  visible={showSummary}
-  score={summaryScore}
-  lines={summaryLines}
-  level={summaryLevel}
-  perks={summaryPerks}
-  mutations={summaryMutations}
-  chaosMode={chaosMode}
-  seed={run?.seed ?? ""}
-  onReplay={async (seed) => {
-    resetLocalState();
-    rngRef.current = createRng(seed);
-    setBoardKey((k) => k + 1);
-    runStartedRef.current = true;
-    await startRun(seed, {
-      gravityMultiplier: 1,
-      scoreMultiplier: 1,
-      bombs: 0,
-      timeFreezeCharges: 0,
-      chaosMode: false,
-      seed,
-    });
-  }}
-  onExit={() => navigate("/dashboard")}
-/>
+        visible={showSummary}
+        score={summaryScore}
+        lines={summaryLines}
+        level={summaryLevel}
+        perks={summaryPerks}
+        mutations={summaryMutations}
+        chaosMode={chaosMode}
+        seed={run?.seed ?? ""}
+        onReplay={async (seed) => {
+          resetLocalState();
+          rngRef.current = createRng(seed);
+          setBoardKey((k) => k + 1);
+          runStartedRef.current = true;
+          setAutoSeededMode(true);
+          await startRun(seed, {
+            gravityMultiplier: 1,
+            scoreMultiplier: 1,
+            bombs: 0,
+            timeFreezeCharges: 0,
+            chaosMode: false,
+            seed,
+          });
+        }}
+        onExit={() => navigate("/dashboard")}
+      />
+      <AchievementToast
+        achievement={recentUnlocks[0] ?? null}
+        onClose={clearRecent}
+      />
     </div>
   );
 }
