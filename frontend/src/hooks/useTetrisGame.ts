@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { checkCollision, clearFullLines, mergePiece, rotateMatrix } from "../logic/boardUtils";
-import { createBagGenerator } from "../logic/pieceGenerator";
+import { createBagGenerator, createPieceFromKey } from "../logic/pieceGenerator";
+import { SHAPES } from "../logic/shapes";
 import type { Piece } from "../types/Piece";
 import type { GameMode } from "../types/GameMode";
 import { applyBomb } from "../logic/bombUtils";
@@ -22,6 +23,7 @@ onConsumeSecondChance?: () => void;
   onBombExplode?: () => void;
   timeFrozen?: boolean;
   chaosMode?: boolean;
+  cursedMode?: boolean;
   bombRadius?: number;
   hardDropHoldReset?: boolean;
   chaosDrift?: boolean;
@@ -67,6 +69,7 @@ export function useTetrisGame({
   onGarbageConsumed,
   timeFrozen = false,
   chaosMode = false,
+  cursedMode = false,
    bombRadius = 1,
   hardDropHoldReset = false,
   chaosDrift = false,
@@ -94,7 +97,9 @@ export function useTetrisGame({
   const [gameOver, setGameOver] = useState(false);
   const [running, setRunning] = useState(false);
   const [tick, setTick] = useState(0);
+  const [baseSpeedMs, setBaseSpeedMs] = useState(speed);
   const [speedMs, setSpeedMs] = useState(speed * gravityMultiplier);
+  const [chaosGravityFactor, setChaosGravityFactor] = useState(1);
   const [ghostPiece, setGhostPiece] = useState<Piece | null>(null);
   const [holdPiece, setHoldPiece] = useState<Piece | null>(null);
   const [canHold, setCanHold] = useState(true);
@@ -113,6 +118,7 @@ export function useTetrisGame({
   const garbageRef = useRef(0);
   const explosionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pendingBombsRef = useRef<number[]>([]);
+  const chaosBombRef = useRef<number | null>(null);
 
   const clearActivePiece = useCallback(
     (boardState: number[][], lockedPiece: Piece) => {
@@ -151,7 +157,25 @@ export function useTetrisGame({
     setGhostPiece(null);
     setCanHold(true);
     setHoldBonusLeft(extraHold);
-  }, [extraHold]);
+    if (chaosMode || cursedMode) {
+      const chance = cursedMode ? 0.25 : 0.12;
+      const roll = rngRef.current();
+      if (roll < chance) {
+        const radiusRoll = rngRef.current();
+        chaosBombRef.current = cursedMode
+          ? radiusRoll < 0.5
+            ? 2
+            : 3
+          : radiusRoll < 0.7
+            ? 1
+            : 2;
+      } else {
+        chaosBombRef.current = null;
+      }
+    } else {
+      chaosBombRef.current = null;
+    }
+  }, [extraHold, chaosMode, cursedMode]);
 
 
   const addBomb = useCallback(() => {
@@ -191,12 +215,32 @@ const triggerBomb = useCallback(() => {
   }, [rng]);
 
   useEffect(() => {
- const chaosFactor = chaosMode
-  ? 0.8 + rngRef.current() * 0.6 // entre 0.8 et 1.4
-  : 1;
+    setBaseSpeedMs(speed);
+  }, [speed]);
 
-setSpeedMs(speed * gravityMultiplier * chaosFactor);
-}, [chaosMode, gravityMultiplier, speed]);
+  useEffect(() => {
+    if (!chaosMode && !cursedMode) {
+      setChaosGravityFactor(1);
+      return;
+    }
+
+    const update = () => {
+      const min = cursedMode ? 0.4 : 0.6;
+      const range = cursedMode ? 1.8 : 1.2;
+      setChaosGravityFactor(min + rngRef.current() * range);
+    };
+
+    update();
+    const interval = setInterval(
+      update,
+      cursedMode ? 800 + rngRef.current() * 800 : 1500 + rngRef.current() * 1500
+    );
+    return () => clearInterval(interval);
+  }, [chaosMode, cursedMode]);
+
+  useEffect(() => {
+    setSpeedMs(baseSpeedMs * gravityMultiplier * chaosGravityFactor);
+  }, [baseSpeedMs, gravityMultiplier, chaosGravityFactor]);
 
   const computeGhost = useCallback(
     (current: Piece, stateBoard: number[][]) => {
@@ -215,6 +259,11 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       setCanHold(true);
       setHoldBonusLeft(extraHold);
       let boardAfterBomb = merged;
+
+      if (chaosBombRef.current !== null) {
+        pendingBombsRef.current.push(chaosBombRef.current);
+        chaosBombRef.current = null;
+      }
 
       if (pendingBombsRef.current.length > 0) {
         const centerX = currentPiece.x + Math.floor(currentPiece.shape[0].length / 2);
@@ -248,6 +297,19 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
       }
 
       let boardAfterGarbage = boardAfterBomb;
+      if (cursedMode && rngRef.current() < 0.12) {
+        const cursedLinesCount = rngRef.current() < 0.7 ? 1 : 2;
+        const cursedLines = Array.from({ length: cursedLinesCount }, () => {
+          const line = Array(cols).fill(1);
+          const hole = Math.floor(rngRef.current() * cols);
+          line[hole] = 0;
+          return line;
+        });
+        boardAfterGarbage = [
+          ...boardAfterGarbage.slice(cursedLinesCount),
+          ...cursedLines,
+        ];
+      }
       if (garbageRef.current > 0) {
         // injecter des lignes avec un trou pour éviter de donner du score gratuit
         const garbageLines = Array.from({ length: garbageRef.current }, () => {
@@ -270,8 +332,8 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
           if (mode !== "SPRINT") {
             const newLevel = Math.floor(total / 10) + 1;
             setLevel(newLevel);
-            const baseSpeedMs = Math.max(200, speed - (newLevel - 1) * 100);
-            setSpeedMs(baseSpeedMs * gravityMultiplier);
+            const nextBaseSpeedMs = Math.max(200, speed - (newLevel - 1) * 100);
+            setBaseSpeedMs(nextBaseSpeedMs);
           } else if (total >= targetLines) {
             setRunning(false);
             const nowElapsed = Date.now() - (startTime ?? Date.now());
@@ -326,8 +388,26 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
 
       setPiece(newPiece);
       setNextPiece(bagGenRef.current.next());
+      if (chaosMode || cursedMode) {
+        const chance = cursedMode ? 0.25 : 0.12;
+        const roll = rngRef.current();
+        if (roll < chance) {
+          const radiusRoll = rngRef.current();
+          chaosBombRef.current = cursedMode
+            ? radiusRoll < 0.5
+              ? 2
+              : 3
+            : radiusRoll < 0.7
+              ? 1
+              : 2;
+        } else {
+          chaosBombRef.current = null;
+        }
+      } else {
+        chaosBombRef.current = null;
+      }
     },
-    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, gravityMultiplier, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece]
+    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece, chaosMode, cursedMode]
   );
 
   // ----- Movement -----
@@ -424,28 +504,37 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
 
   useEffect(() => {
     if (!running || gameOver) return;
-    if (!chaosDrift && !pieceMutation) return;
+    if (!chaosDrift && !pieceMutation && !chaosMode && !cursedMode) return;
 
     setPiece((current) => {
       let updated = current;
 
-      if (chaosDrift && rngRef.current() < 0.2) {
+      if ((chaosDrift || chaosMode || cursedMode) && rngRef.current() < 0.2) {
         const dir = rngRef.current() < 0.5 ? -1 : 1;
         if (!checkCollision(board, current.shape, current.x + dir, current.y)) {
           updated = { ...updated, x: updated.x + dir };
         }
       }
 
-      if (pieceMutation && rngRef.current() < 0.1) {
+      if ((pieceMutation || chaosMode || cursedMode) && rngRef.current() < (cursedMode ? 0.18 : 0.1)) {
         const mutated = rotateMatrix(updated.shape);
         if (!checkCollision(board, mutated, updated.x, updated.y)) {
           updated = { ...updated, shape: mutated };
         }
       }
 
+      if ((chaosMode || cursedMode) && rngRef.current() < (cursedMode ? 0.12 : 0.05)) {
+        const keys = Object.keys(SHAPES);
+        const key = keys[Math.floor(rngRef.current() * keys.length)];
+        const candidate = createPieceFromKey(key);
+        if (!checkCollision(board, candidate.shape, updated.x, updated.y)) {
+          updated = { ...updated, shape: candidate.shape, color: candidate.color, type: key };
+        }
+      }
+
       return updated;
     });
-  }, [tick, running, gameOver, chaosDrift, pieceMutation, board]);
+  }, [tick, running, gameOver, chaosDrift, pieceMutation, chaosMode, cursedMode, board]);
 
   // Ghost recompute
   useEffect(() => {
@@ -495,6 +584,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     setRunning(false);
     setTick(0);
     setHoldBonusLeft(0);
+    setBaseSpeedMs(speed);
     setSpeedMs(speed * gravityMultiplier);
     setGhostPiece(null);
     setHoldPiece(null);
@@ -507,6 +597,7 @@ setSpeedMs(speed * gravityMultiplier * chaosFactor);
     setExplosions([]);
     bagGenRef.current.reset();
     pendingBombsRef.current = [];
+    chaosBombRef.current = null;
     explosionTimeoutsRef.current.forEach((id) => clearTimeout(id));
     explosionTimeoutsRef.current = [];
   }, [cols, gravityMultiplier, rows, speed]);

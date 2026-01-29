@@ -63,6 +63,14 @@ export default function Navbar() {
           <div></div>
         )}
 
+        {user ? (
+          <Link to="/achievements" className="neon-link text-pink-400">
+            Succès
+          </Link>
+        ) : (
+          <div></div>
+        )}
+
         <Link to="/leaderboard" className="neon-link text-pink-400">
           Classement
         </Link>

@@ -8,10 +8,28 @@ import RoguelikeLeaderboard from "../components/RoguelikeLeaderboard";
 export default function RoguelikePage() {
   const [started, setStarted] = useState(false);
   const [activeTab, setActiveTab] = useState<"history" | "leaderboard">("history");
+  const [showSeedInput, setShowSeedInput] = useState(false);
+  const [seedInput, setSeedInput] = useState("");
+  const [seedToPlay, setSeedToPlay] = useState<string | null>(null);
+  const [seededMode, setSeededMode] = useState(false);
 
   if (started) {
-    return <RoguelikeRun />;
+    return <RoguelikeRun initialSeed={seedToPlay ?? undefined} seededMode={seededMode} />;
   }
+
+  const handleStartRandom = () => {
+    setSeededMode(false);
+    setSeedToPlay(null);
+    setStarted(true);
+  };
+
+  const handleStartSeed = (seed: string) => {
+    const normalized = seed.trim().toUpperCase();
+    if (!normalized) return;
+    setSeededMode(true);
+    setSeedToPlay(normalized);
+    setStarted(true);
+  };
 
   return (
     <div className="roguelike-mode">
@@ -24,13 +42,44 @@ export default function RoguelikePage() {
             Termine ta run pour entrer au classement.
           </p>
           <div className="hero-actions">
-            <button className="start-cta-btn" onClick={() => setStarted(true)}>
+            <button className="start-cta-btn" onClick={handleStartRandom}>
               ▶ Lancer une run
+            </button>
+            <button
+              className="seed-cta-btn"
+              onClick={() => setShowSeedInput((v) => !v)}
+            >
+              🔮 Jouer une seed
             </button>
             <Link className="lexicon-btn" to="/roguelike/lexique">
               Lexique
             </Link>
           </div>
+          {showSeedInput && (
+            <form
+              className="seed-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleStartSeed(seedInput);
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Ex: DEVIL-666"
+                value={seedInput}
+                onChange={(event) => setSeedInput(event.target.value)}
+              />
+              <button type="submit">Lancer la seed</button>
+              <button
+                type="button"
+                className="seed-devil"
+                onClick={() => handleStartSeed("DEVIL-666")}
+              >
+                DEVIL-666
+              </button>
+              <p className="seed-hint">Seed spéciale: DEVIL-666</p>
+            </form>
+          )}
         </div>
       </section>
 
