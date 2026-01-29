@@ -1,0 +1,89 @@
+.achievements-page {
+  padding: 40px;
+  color: #f9c7ff;
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+
+    h1 {
+      font-size: 2.4rem;
+      text-shadow: 0 0 10px #ff3ad7;
+    }
+  }
+}
+
+.filters {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 30px;
+
+  button {
+    background: #1a001f;
+    border: 1px solid #ff3ad7;
+    color: #ffbdf5;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 6px;
+
+    &:hover {
+      background: #ff3ad7;
+      color: black;
+    }
+  }
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.achievement-card {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #120018;
+  border: 1px solid #44204f;
+  opacity: 0.6;
+
+  &.unlocked {
+    opacity: 1;
+    border-color: #ff3ad7;
+    box-shadow: 0 0 10px #ff3ad7;
+  }
+
+  .icon-wrapper {
+    width: 80px;
+    height: 80px;
+    background: #1c0024;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+
+  img {
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
+  }
+
+  .locked-icon {
+    font-size: 1.4rem;
+    color: #555;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #dca3ff;
+  }
+}

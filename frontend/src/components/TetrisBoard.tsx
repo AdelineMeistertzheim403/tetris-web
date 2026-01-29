@@ -30,6 +30,7 @@ type TetrisBoardProps = {
   secondChance?: boolean;
   onConsumeSecondChance?: () => void;
   chaosMode?: boolean;
+  cursedMode?: boolean;
   bombRadius?: number;
   paused?: boolean;
   onScoreChange?: (score: number) => void;
@@ -75,6 +76,7 @@ export default function TetrisBoard({
   onTriggerTimeFreeze,
   timeFreezeCharges = 0,
   chaosMode = false,
+  cursedMode = false,
   bombRadius = 1,
   onBombUsed,
   onBombsChange,
@@ -111,6 +113,7 @@ export default function TetrisBoard({
      secondChance,
      timeFrozen,
      chaosMode,
+     cursedMode,
     hardDropHoldReset,
     chaosDrift,
     pieceMutation,

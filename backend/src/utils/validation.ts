@@ -72,3 +72,16 @@ export const roguelikeCheckpointSchema = z.object({
 export const roguelikeEndSchema = z.object({
   status: z.enum(["FINISHED", "ABANDONED"]),
 });
+
+export const achievementPayloadSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  name: z.string().trim().min(1).max(100),
+  description: z.string().trim().min(1).max(500),
+  icon: z.string().trim().min(1).max(100),
+  category: z.string().trim().min(1).max(50),
+  hidden: z.boolean().optional(),
+});
+
+export const achievementUnlockSchema = z.object({
+  achievements: z.array(achievementPayloadSchema).min(1).max(100),
+});
