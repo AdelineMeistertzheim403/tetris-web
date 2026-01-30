@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { register } from "../services/authService";
+import { useAchievements } from "../hooks/useAchievements";
 
 export default function Register() {
   const [pseudo, setPseudo] = useState("");
@@ -9,6 +10,7 @@ export default function Register() {
   const [confirm, setConfirm] = useState("");
   const [, setError] = useState("");
   const navigate = useNavigate();
+  const { checkAchievements } = useAchievements();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,6 +20,7 @@ export default function Register() {
     } else {
       try {
       await register(pseudo, email, password);
+      checkAchievements({ custom: { created_account: true } });
       navigate("/login");
     } catch (err) {
       setError("Erreur lors de l'inscription");

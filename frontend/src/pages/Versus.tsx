@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useVersusSocket } from "../hooks/useVersusSocket";
 import TetrisBoard from "../components/TetrisBoard";
 import OpponentBoard from "../components/OpponentBoard";
 import FullScreenOverlay from "../components/FullScreenOverlay";
 import { saveVersusMatch } from "../services/scoreService";
+import { useAchievements } from "../hooks/useAchievements";
 
 function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
@@ -12,8 +13,35 @@ function randomMatchId() {
 
 export default function Versus() {
   const { user } = useAuth();
+  const { checkAchievements, updateStats } = useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
   const [chosenMatchId, setChosenMatchId] = useState<string | undefined>(undefined);
+  const startTimeRef = useRef<number | null>(null);
+  const runDurationRef = useRef(0);
+  const holdCountRef = useRef(0);
+  const hardDropCountRef = useRef(0);
+  const comboStreakRef = useRef(0);
+  const maxComboRef = useRef(0);
+  const tetrisCountRef = useRef(0);
+  const linesSentRef = useRef(0);
+  const levelRef = useRef(1);
+  const finalizedRef = useRef(false);
+
+  const resetRunTracking = () => {
+    startTimeRef.current = null;
+    runDurationRef.current = 0;
+    holdCountRef.current = 0;
+    hardDropCountRef.current = 0;
+    comboStreakRef.current = 0;
+    maxComboRef.current = 0;
+    tetrisCountRef.current = 0;
+    linesSentRef.current = 0;
+    levelRef.current = 1;
+    finalizedRef.current = false;
+  };
+
+  const countTrue = (values: Record<string, boolean>) =>
+    Object.values(values).filter(Boolean).length;
 
   const joinId = useMemo(
     () => (chosenMatchId ?? manualMatchId) || undefined,
@@ -46,6 +74,19 @@ export default function Versus() {
   }, [currentMatchId]);
 
   useEffect(() => {
+    updateStats((prev) => ({
+      ...prev,
+      modesVisited: { ...prev.modesVisited, VERSUS: true },
+    }));
+  }, [updateStats]);
+
+  useEffect(() => {
+    if (currentMatchId) {
+      resetRunTracking();
+    }
+  }, [currentMatchId]);
+
+  useEffect(() => {
     if (!matchOver || !results || slot === null || !user || hasSavedResult) return;
     // Pour Ã©viter deux Ã©critures (une par joueur), seul le slot 1 sauvegarde
     if (slot !== 1) return;
@@ -70,6 +111,74 @@ export default function Versus() {
     setHasSavedResult(true);
   }, [currentMatchId, hasSavedResult, matchOver, playersInfo, results, slot, user]);
 
+  useEffect(() => {
+    if (!matchOver || !results || slot === null) return;
+    if (finalizedRef.current) return;
+    const myResult = results.find((r) => r.slot === slot) ?? null;
+    const oppResult = results.find((r) => r.slot !== slot) ?? null;
+    if (!myResult || !oppResult) return;
+
+    const win = myResult.score > oppResult.score;
+    const perfectWin = win && oppResult.lines === 0;
+    const durationMs = runDurationRef.current;
+    const noHold = holdCountRef.current === 0;
+    const noHardDrop = hardDropCountRef.current === 0;
+    const level = levelRef.current;
+    let sameScoreTwice = false;
+
+    const next = updateStats((prev) => {
+      sameScoreTwice = prev.lastScore !== null && prev.lastScore === myResult.score;
+      return {
+        ...prev,
+        versusMatches: prev.versusMatches + 1,
+        versusWins: prev.versusWins + (win ? 1 : 0),
+        versusWinStreak: win ? prev.versusWinStreak + 1 : 0,
+        versusLinesSent: prev.versusLinesSent + linesSentRef.current,
+        scoredModes: {
+          ...prev.scoredModes,
+          VERSUS: myResult.score > 0 ? true : prev.scoredModes.VERSUS,
+        },
+        level10Modes: {
+          ...prev.level10Modes,
+          VERSUS: level >= 10 ? true : prev.level10Modes.VERSUS,
+        },
+        playtimeMs: prev.playtimeMs + durationMs,
+        noHoldRuns: prev.noHoldRuns + (noHold ? 1 : 0),
+        hardDropCount: prev.hardDropCount + hardDropCountRef.current,
+        lastScore: myResult.score,
+      };
+    });
+
+    checkAchievements({
+      mode: "VERSUS",
+      score: myResult.score,
+      lines: myResult.lines,
+      level,
+      tetrisCleared: tetrisCountRef.current > 0,
+      custom: {
+        versus_match_1: next.versusMatches >= 1,
+        versus_match_10: next.versusMatches >= 10,
+        versus_match_50: next.versusMatches >= 50,
+        versus_win_1: next.versusWins >= 1,
+        versus_win_streak_5: next.versusWinStreak >= 5,
+        versus_perfect_win: perfectWin,
+        versus_lines_sent_20: next.versusLinesSent >= 20,
+        combo_5: maxComboRef.current >= 5,
+        no_hold_runs_10: next.noHoldRuns >= 10,
+        harddrop_50: next.hardDropCount >= 50,
+        no_harddrop_10_min: durationMs >= 10 * 60 * 1000 && noHardDrop,
+        playtime_60m: next.playtimeMs >= 60 * 60 * 1000,
+        playtime_300m: next.playtimeMs >= 300 * 60 * 1000,
+        level_10_three_modes: countTrue(next.level10Modes) >= 3,
+        scored_all_modes: countTrue(next.scoredModes) >= 4,
+        modes_visited_all: countTrue(next.modesVisited) >= 4,
+        same_score_twice: sameScoreTwice,
+      },
+    });
+
+    finalizedRef.current = true;
+  }, [matchOver, results, slot, updateStats, checkAchievements]);
+
   if (startReady) {
     const myResult = results?.find((r) => r.slot === slot) ?? null;
     const oppResult = results?.find((r) => r.slot !== slot) ?? null;
@@ -89,13 +198,45 @@ export default function Versus() {
             bagSequence={bagSequence}
             incomingGarbage={garbage}
             onGarbageConsumed={actions.consumeGarbage}
-            onConsumeLines={(lines) => actions.sendLinesCleared(lines)}
+            onConsumeLines={(lines) => {
+              linesSentRef.current += lines;
+              actions.sendLinesCleared(lines);
+            }}
+            onLinesCleared={(linesCleared) => {
+              if (linesCleared > 0) {
+                comboStreakRef.current += 1;
+                if (comboStreakRef.current > maxComboRef.current) {
+                  maxComboRef.current = comboStreakRef.current;
+                }
+              } else {
+                comboStreakRef.current = 0;
+              }
+              if (linesCleared === 4) {
+                tetrisCountRef.current += 1;
+              }
+            }}
             onBoardUpdate={(board) => actions.sendBoardState(board)}
             onLocalGameOver={(score, lines) => {
               setLocalFinished(true);
+              if (startTimeRef.current) {
+                runDurationRef.current = Date.now() - startTimeRef.current;
+              }
               actions.sendGameOver(score, lines);
             }}
             hideGameOverOverlay
+            onGameStart={() => {
+              resetRunTracking();
+              startTimeRef.current = Date.now();
+            }}
+            onHold={() => {
+              holdCountRef.current += 1;
+            }}
+            onHardDrop={() => {
+              hardDropCountRef.current += 1;
+            }}
+            onLevelChange={(level) => {
+              levelRef.current = level;
+            }}
           />
           <div className="flex flex-col gap-2 items-center">
             <p className="text-xs text-gray-300 mb-2">Grille adverse</p>

@@ -7,6 +7,7 @@ import GameLayout from "./GameLayout";
 import { getScoreRunToken, saveScore } from "../services/scoreService";
 import { useAuth } from "../context/AuthContext";
 import { useTetrisGame } from "../hooks/useTetrisGame";
+import { useAchievements } from "../hooks/useAchievements";
 
 const ROWS = 20;
 const COLS = 10;
@@ -17,7 +18,26 @@ const TARGET_LINES = 40;
 export default function TetrisBoardSprint() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { user } = useAuth();
+  const { checkAchievements, updateStats } = useAchievements();
   const [countdown, setCountdown] = useState<number | null>(3);
+  const holdCountRef = useRef(0);
+  const hardDropCountRef = useRef(0);
+  const comboStreakRef = useRef(0);
+  const maxComboRef = useRef(0);
+  const tetrisCountRef = useRef(0);
+  const finalizedRef = useRef(false);
+
+  const resetRunTracking = () => {
+    holdCountRef.current = 0;
+    hardDropCountRef.current = 0;
+    comboStreakRef.current = 0;
+    maxComboRef.current = 0;
+    tetrisCountRef.current = 0;
+    finalizedRef.current = false;
+  };
+
+  const countTrue = (values: Record<string, boolean>) =>
+    Object.values(values).filter(Boolean).length;
 
   const { state, actions } = useTetrisGame({
     mode: "SPRINT",
@@ -37,6 +57,19 @@ export default function TetrisBoardSprint() {
         console.error("Erreur enregistrement score sprint :", err);
       }
     },
+    onLinesCleared: (linesCleared) => {
+      if (linesCleared > 0) {
+        comboStreakRef.current += 1;
+        if (comboStreakRef.current > maxComboRef.current) {
+          maxComboRef.current = comboStreakRef.current;
+        }
+      } else {
+        comboStreakRef.current = 0;
+      }
+      if (linesCleared === 4) {
+        tetrisCountRef.current += 1;
+      }
+    },
   });
 
   const {
@@ -54,10 +87,23 @@ export default function TetrisBoardSprint() {
   const { movePiece, hardDrop, handleHold, reset, start } = actions;
 
   useKeyboardControls((dir) => {
-    if (dir === "harddrop") return hardDrop();
-    if (dir === "hold") return handleHold();
+    if (dir === "harddrop") {
+      hardDropCountRef.current += 1;
+      return hardDrop();
+    }
+    if (dir === "hold") {
+      holdCountRef.current += 1;
+      return handleHold();
+    }
     movePiece(dir as "left" | "right" | "down" | "rotate");
   });
+
+  useEffect(() => {
+    updateStats((prev) => ({
+      ...prev,
+      modesVisited: { ...prev.modesVisited, SPRINT: true },
+    }));
+  }, [updateStats]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
@@ -130,6 +176,7 @@ export default function TetrisBoardSprint() {
   useEffect(() => {
     reset();
     setCountdown(3);
+    resetRunTracking();
   }, [reset]);
 
   // Filet de sécurité : si le compte à rebours est fini mais que la boucle n'a pas démarré, on démarre.
@@ -138,6 +185,55 @@ export default function TetrisBoardSprint() {
       start();
     }
   }, [countdown, running, gameOver, completed, start]);
+
+  const finalizeRun = (completedRun: boolean, durationMs: number) => {
+    if (finalizedRef.current) return;
+    finalizedRef.current = true;
+
+    const noHold = holdCountRef.current === 0;
+    const noHardDrop = hardDropCountRef.current === 0;
+    const next = updateStats((prev) => ({
+      ...prev,
+      scoredModes: {
+        ...prev.scoredModes,
+        SPRINT: completedRun ? true : prev.scoredModes.SPRINT,
+      },
+      playtimeMs: prev.playtimeMs + durationMs,
+      noHoldRuns: prev.noHoldRuns + (completedRun && noHold ? 1 : 0),
+      hardDropCount: prev.hardDropCount + hardDropCountRef.current,
+    }));
+
+    checkAchievements({
+      mode: "SPRINT",
+      tetrisCleared: tetrisCountRef.current > 0,
+      custom: {
+        sprint_finish: completedRun,
+        sprint_under_5: completedRun && durationMs <= 5 * 60 * 1000,
+        sprint_under_3: completedRun && durationMs <= 3 * 60 * 1000,
+        sprint_under_2: completedRun && durationMs <= 2 * 60 * 1000,
+        sprint_no_hold: completedRun && noHold,
+        combo_5: maxComboRef.current >= 5,
+        no_hold_runs_10: next.noHoldRuns >= 10,
+        harddrop_50: next.hardDropCount >= 50,
+        no_harddrop_10_min: durationMs >= 10 * 60 * 1000 && noHardDrop,
+        playtime_60m: next.playtimeMs >= 60 * 60 * 1000,
+        playtime_300m: next.playtimeMs >= 300 * 60 * 1000,
+        level_10_three_modes: countTrue(next.level10Modes) >= 3,
+        scored_all_modes: countTrue(next.scoredModes) >= 4,
+        modes_visited_all: countTrue(next.modesVisited) >= 4,
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (!completed) return;
+    finalizeRun(true, elapsedMs);
+  }, [completed, elapsedMs]);
+
+  useEffect(() => {
+    if (!gameOver || completed) return;
+    finalizeRun(false, elapsedMs);
+  }, [gameOver, completed, elapsedMs]);
 
   const timeSec = (elapsedMs / 1000).toFixed(2);
 
@@ -253,6 +349,7 @@ export default function TetrisBoardSprint() {
             onClick={() => {
               reset();
               setCountdown(3);
+              resetRunTracking();
             }}
             style={{
               padding: "10px 20px",
@@ -287,6 +384,7 @@ export default function TetrisBoardSprint() {
             onClick={() => {
               reset();
               setCountdown(3);
+              resetRunTracking();
             }}
             style={{
               padding: "10px 20px",
