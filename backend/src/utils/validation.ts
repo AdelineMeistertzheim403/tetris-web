@@ -85,3 +85,7 @@ export const achievementPayloadSchema = z.object({
 export const achievementUnlockSchema = z.object({
   achievements: z.array(achievementPayloadSchema).min(1).max(100),
 });
+
+export const achievementStatsSchema = z.object({
+  loginDays: z.array(z.string().trim().min(1).max(10)).max(400),
+});

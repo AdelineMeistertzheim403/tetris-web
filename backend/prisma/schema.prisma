@@ -19,6 +19,7 @@ model User {
   versusAsWinner  VersusMatch[] @relation("VersusWinner")
    roguelikeRuns RoguelikeRun[]
   achievements UserAchievement[]
+  achievementStats UserAchievementStats?
   createdAt DateTime @default(now())
 }
 
@@ -99,6 +100,15 @@ model UserAchievement {
   achievement   Achievement @relation(fields: [achievementId], references: [id])
 
   @@id([userId, achievementId])
+}
+
+model UserAchievementStats {
+  userId     Int      @id
+  loginDays  Json     @default("[]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 enum RunStatus {

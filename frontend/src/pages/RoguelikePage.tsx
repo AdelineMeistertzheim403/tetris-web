@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/roguelike.css";
 import RoguelikeRun from "../components/RoguelikeRun";
@@ -7,20 +7,27 @@ import RoguelikeLeaderboard from "../components/RoguelikeLeaderboard";
 import { useAchievements } from "../hooks/useAchievements";
 
 export default function RoguelikePage() {
-  const { updateStats } = useAchievements();
+  const { updateStats, checkAchievements } = useAchievements();
   const [started, setStarted] = useState(false);
   const [activeTab, setActiveTab] = useState<"history" | "leaderboard">("history");
   const [showSeedInput, setShowSeedInput] = useState(false);
   const [seedInput, setSeedInput] = useState("");
   const [seedToPlay, setSeedToPlay] = useState<string | null>(null);
   const [seededMode, setSeededMode] = useState(false);
+  const visitedRef = useRef(false);
 
   useEffect(() => {
-    updateStats((prev) => ({
+    if (visitedRef.current) return;
+    visitedRef.current = true;
+    const next = updateStats((prev) => ({
       ...prev,
       modesVisited: { ...prev.modesVisited, ROGUELIKE: true },
     }));
-  }, [updateStats]);
+    const visitedCount = Object.values(next.modesVisited).filter(Boolean).length;
+    if (visitedCount >= 4) {
+      checkAchievements({ custom: { modes_visited_all: true } });
+    }
+  }, [checkAchievements, updateStats]);
 
   if (started) {
     return <RoguelikeRun initialSeed={seedToPlay ?? undefined} seededMode={seededMode} />;

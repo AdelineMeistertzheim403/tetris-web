@@ -12,6 +12,7 @@ export default function Game() {
   const tetrisCountRef = useRef(0);
   const maxStackHeightRef = useRef(0);
   const levelRef = useRef(1);
+  const visitedRef = useRef(false);
 
   const resetRunTracking = () => {
     holdCountRef.current = 0;
@@ -27,11 +28,16 @@ export default function Game() {
     Object.values(values).filter(Boolean).length;
 
   useEffect(() => {
-    updateStats((prev) => ({
+    if (visitedRef.current) return;
+    visitedRef.current = true;
+    const next = updateStats((prev) => ({
       ...prev,
       modesVisited: { ...prev.modesVisited, CLASSIQUE: true },
     }));
-  }, [updateStats]);
+    checkAchievements({
+      custom: { modes_visited_all: countTrue(next.modesVisited) >= 4 },
+    });
+  }, [checkAchievements, updateStats]);
 
   return (
     <div className="flex justify-center items-center h-screen bg-slate-900">
