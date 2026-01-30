@@ -1,13 +1,35 @@
 import { useMemo, useState } from "react";
-import AchievementCard from "../components/AchievementCard";
+
 import { useAchievements } from "../hooks/useAchievements";
 import "../styles/achievements.scss";
+import AchievementCard from "../components/AchievementCard";
+import type { AchievementGroup } from "../data/achievements";
 
 type Filter = "all" | "unlocked" | "locked";
 
 export default function AchievementsPage() {
   const { achievements } = useAchievements();
   const [filter, setFilter] = useState<Filter>("all");
+
+  const groupOrder: AchievementGroup[] = [
+    "GLOBAL",
+    "CROSS",
+    "CLASSIQUE",
+    "SPRINT",
+    "VERSUS",
+    "ROGUELIKE",
+    "SECRETS",
+  ];
+
+  const groupLabels: Record<AchievementGroup, string> = {
+    GLOBAL: "Succès globaux",
+    CROSS: "Succès transversaux",
+    CLASSIQUE: "Mode Classique",
+    SPRINT: "Mode Sprint",
+    VERSUS: "Mode Versus",
+    ROGUELIKE: "Mode Roguelike",
+    SECRETS: "Succès secrets",
+  };
 
   const filtered = useMemo(() => {
     switch (filter) {
@@ -19,6 +41,16 @@ export default function AchievementsPage() {
         return achievements;
     }
   }, [achievements, filter]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<AchievementGroup, typeof filtered>();
+    for (const achievement of filtered) {
+      const group = achievement.group ?? "ROGUELIKE";
+      if (!map.has(group)) map.set(group, []);
+      map.get(group)?.push(achievement);
+    }
+    return map;
+  }, [filtered]);
 
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
@@ -37,15 +69,29 @@ export default function AchievementsPage() {
         <button onClick={() => setFilter("locked")}>Verrouillés</button>
       </div>
 
-      <div className="achievement-grid">
-        {filtered.map((achievement) => (
-          <AchievementCard
-            key={achievement.id}
-            achievement={achievement}
-            unlocked={achievement.unlocked}
-          />
-        ))}
-      </div>
+      {groupOrder.map((group) => {
+        const items = grouped.get(group) ?? [];
+        if (!items.length) return null;
+        return (
+          <section key={group} className="achievement-section">
+            <div className="section-header">
+              <h2>{groupLabels[group]}</h2>
+              <span>
+                {items.filter((a) => a.unlocked).length}/{items.length}
+              </span>
+            </div>
+            <div className="achievement-grid">
+              {items.map((achievement) => (
+                <AchievementCard
+                  key={achievement.id}
+                  achievement={achievement}
+                  unlocked={achievement.unlocked}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

@@ -97,13 +97,34 @@ export default function RoguelikeRun({
   const [manualPause, setManualPause] = useState(false);
   const [tetrisCleared, setTetrisCleared] = useState(false);
   const [autoSeededMode, setAutoSeededMode] = useState(seededMode);
-  const { checkAchievements, registerRun, recentUnlocks, clearRecent } =
+  const { checkAchievements, registerRun, updateStats, recentUnlocks, clearRecent } =
     useAchievements();
+  const startTimeRef = useRef<number | null>(null);
+  const holdCountRef = useRef(0);
+  const hardDropCountRef = useRef(0);
+  const comboStreakRef = useRef(0);
+  const maxComboRef = useRef(0);
+  const tetrisCountRef = useRef(0);
   useEffect(() => {
     if (recentUnlocks.length === 0) return;
     const timeout = setTimeout(() => clearRecent(), 3500);
     return () => clearTimeout(timeout);
   }, [recentUnlocks, clearRecent]);
+
+  const resetRunTracking = useCallback(() => {
+    startTimeRef.current = null;
+    holdCountRef.current = 0;
+    hardDropCountRef.current = 0;
+    comboStreakRef.current = 0;
+    maxComboRef.current = 0;
+    tetrisCountRef.current = 0;
+    setTetrisCleared(false);
+  }, []);
+
+  const countTrue = useCallback(
+    (values: Record<string, boolean>) => Object.values(values).filter(Boolean).length,
+    []
+  );
 
   useEffect(() => {
     setAutoSeededMode(seededMode);
@@ -272,6 +293,7 @@ export default function RoguelikeRun({
 
       if (linesCleared === 4) {
         setTetrisCleared(true);
+        tetrisCountRef.current += 1;
       }
 
       if (lineSlowEnabled && linesCleared > 0) {
@@ -307,6 +329,17 @@ export default function RoguelikeRun({
 
       return newTotal;
     });
+  };
+
+  const handleLinesCleared = (linesCleared: number) => {
+    if (linesCleared > 0) {
+      comboStreakRef.current += 1;
+      if (comboStreakRef.current > maxComboRef.current) {
+        maxComboRef.current = comboStreakRef.current;
+      }
+    } else {
+      comboStreakRef.current = 0;
+    }
   };
 
   const handleSelectPerk = (perk: Perk) => {
@@ -628,6 +661,7 @@ export default function RoguelikeRun({
           onScoreChange={setCurrentScore}
           onLevelChange={setCurrentLevel}
           onConsumeLines={handleConsumeLines}
+          onLinesCleared={handleLinesCleared}
           chaosMode={chaosMode}
           chaosDrift={chaosDrift}
           pieceMutation={pieceMutation}
@@ -635,6 +669,16 @@ export default function RoguelikeRun({
           rng={rngRef.current ?? undefined}
           onBombsChange={setBombs}
           onBombUsed={handleBombUsed}
+          onGameStart={() => {
+            resetRunTracking();
+            startTimeRef.current = Date.now();
+          }}
+          onHold={() => {
+            holdCountRef.current += 1;
+          }}
+          onHardDrop={() => {
+            hardDropCountRef.current += 1;
+          }}
           onLocalGameOver={async (score, lines) => {
             if (!run) return;
             const finalScore = noBombBonus && bombsUsed === 0 ? Math.floor(score * 2) : score;
@@ -643,10 +687,33 @@ export default function RoguelikeRun({
             const safeLevel = Math.max(1, Math.round(currentLevel));
 
             const { runsPlayed, sameSeedRuns } = registerRun(run.seed);
+            const durationMs = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
+            const noHold = holdCountRef.current === 0;
+            const noHardDrop = hardDropCountRef.current === 0;
+            let sameScoreTwice = false;
+            const next = updateStats((prev) => {
+              sameScoreTwice = prev.lastScore !== null && prev.lastScore === safeScore;
+              return {
+                ...prev,
+                scoredModes: {
+                  ...prev.scoredModes,
+                  ROGUELIKE: safeScore > 0 ? true : prev.scoredModes.ROGUELIKE,
+                },
+                level10Modes: {
+                  ...prev.level10Modes,
+                  ROGUELIKE: safeLevel >= 10 ? true : prev.level10Modes.ROGUELIKE,
+                },
+                playtimeMs: prev.playtimeMs + durationMs,
+                noHoldRuns: prev.noHoldRuns + (noHold ? 1 : 0),
+                hardDropCount: prev.hardDropCount + hardDropCountRef.current,
+                lastScore: safeScore,
+              };
+            });
             checkAchievements({
               score: safeScore,
               lines: safeLines,
               level: safeLevel,
+              mode: "ROGUELIKE",
               bombsUsed,
               usedSecondChance,
               perks: activePerks.map(p => p.id),
@@ -657,6 +724,18 @@ export default function RoguelikeRun({
               runsPlayed,
               sameSeedRuns,
               tetrisCleared,
+              custom: {
+                combo_5: maxComboRef.current >= 5,
+                no_hold_runs_10: next.noHoldRuns >= 10,
+                harddrop_50: next.hardDropCount >= 50,
+                no_harddrop_10_min: durationMs >= 10 * 60 * 1000 && noHardDrop,
+                playtime_60m: next.playtimeMs >= 60 * 60 * 1000,
+                playtime_300m: next.playtimeMs >= 300 * 60 * 1000,
+                level_10_three_modes: countTrue(next.level10Modes) >= 3,
+                scored_all_modes: countTrue(next.scoredModes) >= 4,
+                modes_visited_all: countTrue(next.modesVisited) >= 4,
+                same_score_twice: sameScoreTwice,
+              },
             });
 
             // 🧊 SNAPSHOT AVANT RESET

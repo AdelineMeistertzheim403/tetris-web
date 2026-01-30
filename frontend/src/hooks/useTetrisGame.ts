@@ -29,6 +29,7 @@ onConsumeSecondChance?: () => void;
   chaosDrift?: boolean;
   pieceMutation?: boolean;
   rng?: RNG;
+  onLinesCleared?: (linesCleared: number) => void;
 };
 
 const DEFAULT_ROWS = 20;
@@ -75,6 +76,7 @@ export function useTetrisGame({
   chaosDrift = false,
   pieceMutation = false,
   rng,
+  onLinesCleared,
 }: Options & {
   bagSequence?: string[];
   onConsumeLines?: (lines: number) => void;
@@ -324,6 +326,8 @@ const triggerBomb = useCallback(() => {
       }
       const { newBoard, linesCleared } = clearFullLines(boardAfterGarbage);
 
+      onLinesCleared?.(linesCleared);
+
       if (linesCleared > 0) {
         if (onConsumeLines) onConsumeLines(linesCleared);
         setScore((prev: number) => prev + linesCleared * 100 * scoreMultiplier);
@@ -407,7 +411,7 @@ const triggerBomb = useCallback(() => {
         chaosBombRef.current = null;
       }
     },
-    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece, chaosMode, cursedMode]
+    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece, chaosMode, cursedMode, onLinesCleared]
   );
 
   // ----- Movement -----

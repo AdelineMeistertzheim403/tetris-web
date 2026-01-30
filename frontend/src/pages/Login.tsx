@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
+import { useAchievements } from "../hooks/useAchievements";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -9,12 +10,28 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { setUser } = useAuth(); // ✅ accès au contexte
+  const { checkAchievements, updateStats } = useAchievements();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const loggedUser = await login(email, password); // 🔹 récupère le user
       setUser(loggedUser); // ✅ met à jour le contexte global
+      const today = new Date().toISOString().slice(0, 10);
+      const next = updateStats((prev) => {
+        const uniqueDays = new Set(prev.loginDays);
+        uniqueDays.add(today);
+        return {
+          ...prev,
+          loginDays: Array.from(uniqueDays),
+        };
+      });
+      checkAchievements({
+        custom: {
+          login_days_7: next.loginDays.length >= 7,
+          login_days_30: next.loginDays.length >= 30,
+        },
+      });
       navigate("/dashboard");
     } catch (err) {
       setError("Email ou mot de passe invalide");

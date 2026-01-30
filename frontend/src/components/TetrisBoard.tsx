@@ -14,11 +14,13 @@ type TetrisBoardProps = {
   bagSequence?: string[];
   incomingGarbage?: number;
   onConsumeLines?: (lines: number) => void;
+  onLinesCleared?: (lines: number) => void;
   onGarbageConsumed?: () => void;
   autoStart?: boolean;
   scoreMultiplier?: number;
   onBoardUpdate?: (board: number[][]) => void;
   onLocalGameOver?: (score: number, lines: number) => void;
+  onGameStart?: () => void;
   hideGameOverOverlay?: boolean;
   gravityMultiplier?: number;
   extraHold?: number;
@@ -35,6 +37,8 @@ type TetrisBoardProps = {
   paused?: boolean;
   onScoreChange?: (score: number) => void;
   onLevelChange?: (level: number) => void;
+  onHold?: () => void;
+  onHardDrop?: () => void;
   bombsGranted?: number;
   fastHoldReset?: boolean;
   lastStand?: boolean;
@@ -62,11 +66,13 @@ export default function TetrisBoard({
   bagSequence,
   incomingGarbage = 0,
   onConsumeLines,
+  onLinesCleared,
   onGarbageConsumed,
   scoreMultiplier = 1,
   autoStart = true,
   onBoardUpdate,
   onLocalGameOver,
+  onGameStart,
   secondChance = false,
   onConsumeSecondChance,
   hideGameOverOverlay = false,
@@ -82,6 +88,8 @@ export default function TetrisBoard({
   onBombsChange,
   onScoreChange,
   onLevelChange,
+  onHold,
+  onHardDrop,
   paused = false,
   bombsGranted = 0,
   fastHoldReset = false,
@@ -100,6 +108,7 @@ export default function TetrisBoard({
   const [framesReady, setFramesReady] = useState(false);
   const [explosionFrameTick, setExplosionFrameTick] = useState(0);
   const lastRotationRef = useRef(0);
+  const hasStartedRef = useRef(false);
   const scoreRunTokenRef = useRef<string | null>(null);
   const { state, actions } = useTetrisGame({
     mode,
@@ -107,6 +116,7 @@ export default function TetrisBoard({
     gravityMultiplier,
     extraHold, 
     onConsumeLines,
+    onLinesCleared,
     incomingGarbage,
     onGarbageConsumed,
     scoreMultiplier,
@@ -171,8 +181,14 @@ export default function TetrisBoard({
   const bombsGrantRef = useRef(0);
 
     useKeyboardControls((dir) => {
-    if (dir === "harddrop") return hardDrop();
-    if (dir === "hold") return handleHold();
+    if (dir === "harddrop") {
+      onHardDrop?.();
+      return hardDrop();
+    }
+    if (dir === "hold") {
+      onHold?.();
+      return handleHold();
+    }
     if (dir === "bomb") {
       if (bombs <= 0) return;
       triggerBomb();
@@ -332,6 +348,17 @@ useEffect(() => {
 
     return () => clearTimeout(timer);
   }, [countdown, start]);
+
+  useEffect(() => {
+    if (countdown !== null) {
+      hasStartedRef.current = false;
+      return;
+    }
+    if (paused) return;
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+    onGameStart?.();
+  }, [countdown, onGameStart, paused]);
 
   useEffect(() => {
     let cancelled = false;
