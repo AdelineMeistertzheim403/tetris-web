@@ -11,11 +11,14 @@ function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
+const RED_ZONE_HEIGHT = 16;
+
 export default function Versus() {
   const { user } = useAuth();
   const { checkAchievements, updateStats } = useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
   const [chosenMatchId, setChosenMatchId] = useState<string | undefined>(undefined);
+  const visitedRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
   const runDurationRef = useRef(0);
   const holdCountRef = useRef(0);
@@ -24,6 +27,7 @@ export default function Versus() {
   const maxComboRef = useRef(0);
   const tetrisCountRef = useRef(0);
   const linesSentRef = useRef(0);
+  const maxStackHeightRef = useRef(0);
   const levelRef = useRef(1);
   const finalizedRef = useRef(false);
 
@@ -36,6 +40,7 @@ export default function Versus() {
     maxComboRef.current = 0;
     tetrisCountRef.current = 0;
     linesSentRef.current = 0;
+    maxStackHeightRef.current = 0;
     levelRef.current = 1;
     finalizedRef.current = false;
   };
@@ -74,11 +79,16 @@ export default function Versus() {
   }, [currentMatchId]);
 
   useEffect(() => {
-    updateStats((prev) => ({
+    if (visitedRef.current) return;
+    visitedRef.current = true;
+    const next = updateStats((prev) => ({
       ...prev,
       modesVisited: { ...prev.modesVisited, VERSUS: true },
     }));
-  }, [updateStats]);
+    checkAchievements({
+      custom: { modes_visited_all: countTrue(next.modesVisited) >= 4 },
+    });
+  }, [checkAchievements, updateStats]);
 
   useEffect(() => {
     if (currentMatchId) {
@@ -119,7 +129,7 @@ export default function Versus() {
     if (!myResult || !oppResult) return;
 
     const win = myResult.score > oppResult.score;
-    const perfectWin = win && oppResult.lines === 0;
+    const perfectWin = win && maxStackHeightRef.current < RED_ZONE_HEIGHT;
     const durationMs = runDurationRef.current;
     const noHold = holdCountRef.current === 0;
     const noHardDrop = hardDropCountRef.current === 0;
@@ -215,7 +225,21 @@ export default function Versus() {
                 tetrisCountRef.current += 1;
               }
             }}
-            onBoardUpdate={(board) => actions.sendBoardState(board)}
+            onBoardUpdate={(board) => {
+              const rows = board.length;
+              let topFilled = rows;
+              for (let y = 0; y < rows; y += 1) {
+                if (board[y].some((cell) => cell !== 0)) {
+                  topFilled = y;
+                  break;
+                }
+              }
+              const height = rows - topFilled;
+              if (height > maxStackHeightRef.current) {
+                maxStackHeightRef.current = height;
+              }
+              actions.sendBoardState(board);
+            }}
             onLocalGameOver={(score, lines) => {
               setLocalFinished(true);
               if (startTimeRef.current) {

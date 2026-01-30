@@ -2,7 +2,7 @@ import { Router, Response } from "express";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
 import prisma from "../prisma/client";
 import { logger } from "../logger";
-import { achievementUnlockSchema } from "../utils/validation";
+import { achievementStatsSchema, achievementUnlockSchema } from "../utils/validation";
 
 const router = Router();
 
@@ -82,6 +82,55 @@ router.post("/unlock", verifyToken, async (req: AuthRequest, res: Response) => {
     res.json({ success: true });
   } catch (err) {
     logger.error({ err }, "Erreur unlock achievements");
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.get("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const stats = await prisma.userAchievementStats.findUnique({
+      where: { userId },
+      select: { loginDays: true },
+    });
+
+    res.json({ loginDays: stats?.loginDays ?? [] });
+  } catch (err) {
+    logger.error({ err }, "Erreur chargement stats achievements");
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const parsed = achievementStatsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Donnees invalides",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { loginDays } = parsed.data;
+
+    await prisma.userAchievementStats.upsert({
+      where: { userId },
+      update: { loginDays },
+      create: { userId, loginDays },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    logger.error({ err }, "Erreur sauvegarde stats achievements");
     res.status(500).json({ error: "Erreur serveur" });
   }
 });

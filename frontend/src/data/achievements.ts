@@ -353,7 +353,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "versus-perfect",
     name: "Intouchable",
-    description: "Gagner sans perdre une manche",
+    description: "Gagner sans jamais atteindre la zone rouge",
     icon: "pacifiste",
     mode: "VERSUS",
     group: "VERSUS",
