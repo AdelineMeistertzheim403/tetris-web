@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
@@ -12,8 +13,18 @@ import Versus from "./pages/Versus";
 import RoguelikePage from "./pages/RoguelikePage";
 import RoguelikeLexicon from "./pages/RoguelikeLexicon";
 import AchievementsPage from "./pages/AchievementsPage";
+import { useAuth } from "./context/AuthContext";
+import { useAchievements } from "./hooks/useAchievements";
 
 function App() {
+  const { user } = useAuth();
+  const { checkAchievements } = useAchievements();
+
+  useEffect(() => {
+    if (!user) return;
+    checkAchievements({ custom: { created_account: true } });
+  }, [checkAchievements, user]);
+
   return (
     <>
       <Navbar />

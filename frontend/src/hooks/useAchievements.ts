@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ACHIEVEMENTS, type Achievement } from "../data/achievements";
+import type { GameMode } from "../types/GameMode";
 import { useAuth } from "../context/AuthContext";
 import {
   fetchUnlockedAchievements,
@@ -17,6 +18,7 @@ type AchievementContext = {
   lines?: number;
   level?: number;
   tetrisCleared?: boolean;
+  mode?: GameMode | "ALL";
 
   // run meta
   bombsUsed?: number;
@@ -39,18 +41,76 @@ type AchievementContext = {
 type AchievementStats = {
   runsPlayed: number;
   seedRuns: Record<string, number>;
+  loginDays: string[];
+  historyViewedCount: number;
+  modesVisited: Record<GameMode, boolean>;
+  level10Modes: Record<GameMode, boolean>;
+  scoredModes: Record<GameMode, boolean>;
+  playtimeMs: number;
+  noHoldRuns: number;
+  hardDropCount: number;
+  versusMatches: number;
+  versusWins: number;
+  versusWinStreak: number;
+  versusLinesSent: number;
+  lastScore: number | null;
 };
 
 const STORAGE_KEY = "tetris-roguelike-achievements";
 const STATS_KEY = "tetris-roguelike-achievement-stats";
 
+const DEFAULT_STATS: AchievementStats = {
+  runsPlayed: 0,
+  seedRuns: {},
+  loginDays: [],
+  historyViewedCount: 0,
+  modesVisited: {
+    CLASSIQUE: false,
+    SPRINT: false,
+    VERSUS: false,
+    ROGUELIKE: false,
+  },
+  level10Modes: {
+    CLASSIQUE: false,
+    SPRINT: false,
+    VERSUS: false,
+    ROGUELIKE: false,
+  },
+  scoredModes: {
+    CLASSIQUE: false,
+    SPRINT: false,
+    VERSUS: false,
+    ROGUELIKE: false,
+  },
+  playtimeMs: 0,
+  noHoldRuns: 0,
+  hardDropCount: 0,
+  versusMatches: 0,
+  versusWins: 0,
+  versusWinStreak: 0,
+  versusLinesSent: 0,
+  lastScore: null,
+};
+
+const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => {
+  if (!raw) return DEFAULT_STATS;
+  return {
+    ...DEFAULT_STATS,
+    ...raw,
+    seedRuns: { ...DEFAULT_STATS.seedRuns, ...(raw.seedRuns ?? {}) },
+    modesVisited: { ...DEFAULT_STATS.modesVisited, ...(raw.modesVisited ?? {}) },
+    level10Modes: { ...DEFAULT_STATS.level10Modes, ...(raw.level10Modes ?? {}) },
+    scoredModes: { ...DEFAULT_STATS.scoredModes, ...(raw.scoredModes ?? {}) },
+  };
+};
+
 export function useAchievements() {
   const { user } = useAuth();
   const [unlocked, setUnlocked] = useState<AchievementState[]>([]);
   const [recent, setRecent] = useState<Achievement[]>([]);
-  const [stats, setStats] = useState<AchievementStats>({
-    runsPlayed: 0,
-    seedRuns: {},
+  const [stats, setStats] = useState<AchievementStats>(() => {
+    const rawStats = localStorage.getItem(STATS_KEY);
+    return rawStats ? mergeStats(JSON.parse(rawStats)) : DEFAULT_STATS;
   });
   const statsRef = useRef(stats);
 
@@ -60,9 +120,6 @@ export function useAchievements() {
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) setUnlocked(JSON.parse(raw));
-
-    const rawStats = localStorage.getItem(STATS_KEY);
-    if (rawStats) setStats(JSON.parse(rawStats));
   }, []);
 
   // ─────────────────────────────
@@ -119,20 +176,36 @@ export function useAchievements() {
     [unlocked]
   );
 
-  const registerRun = useCallback((seed?: string) => {
-    const base = statsRef.current;
-    const seedRuns = { ...base.seedRuns };
-    const runsPlayed = base.runsPlayed + 1;
-    let sameSeedRuns = 0;
-    if (seed) {
-      seedRuns[seed] = (seedRuns[seed] ?? 0) + 1;
-      sameSeedRuns = seedRuns[seed];
-    }
-    const next = { runsPlayed, seedRuns };
-    statsRef.current = next;
-    setStats(next);
-    return { runsPlayed, sameSeedRuns };
-  }, []);
+  const updateStats = useCallback(
+    (updater: (prev: AchievementStats) => AchievementStats) => {
+      const next = updater(statsRef.current);
+      statsRef.current = next;
+      setStats(next);
+      return next;
+    },
+    []
+  );
+
+  const registerRun = useCallback(
+    (seed?: string) => {
+      let sameSeedRuns = 0;
+      const next = updateStats((prev) => {
+        const seedRuns = { ...prev.seedRuns };
+        const runsPlayed = prev.runsPlayed + 1;
+        if (seed) {
+          seedRuns[seed] = (seedRuns[seed] ?? 0) + 1;
+          sameSeedRuns = seedRuns[seed];
+        }
+        return {
+          ...prev,
+          runsPlayed,
+          seedRuns,
+        };
+      });
+      return { runsPlayed: next.runsPlayed, sameSeedRuns };
+    },
+    [updateStats]
+  );
 
   // ─────────────────────────────
   // CHECKER
@@ -143,6 +216,9 @@ export function useAchievements() {
 
       for (const achievement of ACHIEVEMENTS) {
         if (isUnlocked(achievement.id)) continue;
+        if (achievement.mode && achievement.mode !== "ALL") {
+          if (ctx.mode !== achievement.mode) continue;
+        }
 
         const c = achievement.condition;
         let ok = false;
@@ -215,11 +291,17 @@ export function useAchievements() {
             break;
 
           case "history_viewed":
-            ok = (ctx.historyViewedCount ?? 0) >= c.count;
+            ok = (ctx.historyViewedCount ?? stats.historyViewedCount) >= c.count;
             break;
 
           case "custom":
-            ok = Boolean(ctx.custom?.[c.key]);
+            if (c.key === "achievements_50_percent") {
+              ok = ACHIEVEMENTS.length > 0 && unlocked.length / ACHIEVEMENTS.length >= 0.5;
+            } else if (c.key === "achievements_100_percent") {
+              ok = ACHIEVEMENTS.length > 0 && unlocked.length / ACHIEVEMENTS.length >= 1;
+            } else {
+              ok = Boolean(ctx.custom?.[c.key]);
+            }
             break;
 
           default:
@@ -272,10 +354,12 @@ export function useAchievements() {
     })),
 
     unlockedIds: unlocked.map((a) => a.id),
+    stats,
 
     recentUnlocks: recent,
     clearRecent: () => setRecent([]),
 
+    updateStats,
     registerRun,
     checkAchievements,
   };

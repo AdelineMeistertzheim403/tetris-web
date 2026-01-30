@@ -5,6 +5,7 @@ import type { RoguelikeRunHistoryItem } from "../services/roguelike.service";
 import { ALL_PERKS } from "../data/perks";
 import { SYNERGIES } from "../data/synergies";
 import { MUTATIONS } from "../data/mutations";
+import { useAchievements } from "../hooks/useAchievements";
 
 const perkImageMap: Record<string, string> = {
   "extra-hold": "/extra_hold.png",
@@ -67,6 +68,7 @@ function StatusBadge({ status }: { status: RoguelikeRunHistoryItem["status"] }) 
 }
 
 export default function RoguelikeHistory() {
+  const { checkAchievements, updateStats } = useAchievements();
   const [runs, setRuns] = useState<RoguelikeRunHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +90,14 @@ export default function RoguelikeHistory() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const next = updateStats((prev) => ({
+      ...prev,
+      historyViewedCount: prev.historyViewedCount + 1,
+    }));
+    checkAchievements({ historyViewedCount: next.historyViewedCount });
+  }, [checkAchievements, updateStats]);
 
   useEffect(() => {
     if (page >= runs.length) {
