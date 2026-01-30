@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
+import { saveAchievementStats } from "../services/achievementService";
 import { useAuth } from "../context/AuthContext";
 import { useAchievements } from "../hooks/useAchievements";
 
@@ -31,6 +32,9 @@ export default function Login() {
           login_days_7: next.loginDays.length >= 7,
           login_days_30: next.loginDays.length >= 30,
         },
+      });
+      saveAchievementStats(next.loginDays).catch(() => {
+        // silent fallback to localStorage
       });
       navigate("/dashboard");
     } catch (err) {

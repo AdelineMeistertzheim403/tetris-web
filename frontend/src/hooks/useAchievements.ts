@@ -4,6 +4,7 @@ import type { GameMode } from "../types/GameMode";
 import { useAuth } from "../context/AuthContext";
 import {
   fetchUnlockedAchievements,
+  fetchAchievementStats,
   unlockAchievements,
 } from "../services/achievementService";
 
@@ -114,6 +115,64 @@ export function useAchievements() {
   });
   const statsRef = useRef(stats);
 
+  const areArraysEqual = (a: string[], b: string[]) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  };
+
+  const areRecordNumbersEqual = (
+    a: Record<string, number>,
+    b: Record<string, number>
+  ) => {
+    if (a === b) return true;
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) return false;
+    for (const key of aKeys) {
+      if (a[key] !== b[key]) return false;
+    }
+    return true;
+  };
+
+  const areRecordBooleansEqual = <T extends Record<string, boolean>>(
+    a: T,
+    b: T
+  ) => {
+    if (a === b) return true;
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) return false;
+    for (const key of aKeys) {
+      if (a[key] !== b[key]) return false;
+    }
+    return true;
+  };
+
+  const areStatsEqual = (a: AchievementStats, b: AchievementStats) => {
+    if (a === b) return true;
+    return (
+      a.runsPlayed === b.runsPlayed &&
+      areRecordNumbersEqual(a.seedRuns, b.seedRuns) &&
+      areArraysEqual(a.loginDays, b.loginDays) &&
+      a.historyViewedCount === b.historyViewedCount &&
+      areRecordBooleansEqual(a.modesVisited, b.modesVisited) &&
+      areRecordBooleansEqual(a.level10Modes, b.level10Modes) &&
+      areRecordBooleansEqual(a.scoredModes, b.scoredModes) &&
+      a.playtimeMs === b.playtimeMs &&
+      a.noHoldRuns === b.noHoldRuns &&
+      a.hardDropCount === b.hardDropCount &&
+      a.versusMatches === b.versusMatches &&
+      a.versusWins === b.versusWins &&
+      a.versusWinStreak === b.versusWinStreak &&
+      a.versusLinesSent === b.versusLinesSent &&
+      a.lastScore === b.lastScore
+    );
+  };
+
   // ─────────────────────────────
   // LOAD
   // ─────────────────────────────
@@ -179,8 +238,10 @@ export function useAchievements() {
   const updateStats = useCallback(
     (updater: (prev: AchievementStats) => AchievementStats) => {
       const next = updater(statsRef.current);
-      statsRef.current = next;
-      setStats(next);
+      if (!areStatsEqual(next, statsRef.current)) {
+        statsRef.current = next;
+        setStats(next);
+      }
       return next;
     },
     []
@@ -296,9 +357,11 @@ export function useAchievements() {
 
           case "custom":
             if (c.key === "achievements_50_percent") {
-              ok = ACHIEVEMENTS.length > 0 && unlocked.length / ACHIEVEMENTS.length >= 0.5;
+              const total = Math.max(1, ACHIEVEMENTS.length - 1);
+              ok = unlocked.length / total >= 0.5;
             } else if (c.key === "achievements_100_percent") {
-              ok = ACHIEVEMENTS.length > 0 && unlocked.length / ACHIEVEMENTS.length >= 1;
+              const total = Math.max(1, ACHIEVEMENTS.length - 1);
+              ok = unlocked.length >= total;
             } else {
               ok = Boolean(ctx.custom?.[c.key]);
             }
@@ -342,6 +405,38 @@ export function useAchievements() {
     },
     [isUnlocked, stats.runsPlayed, stats.seedRuns, user]
   );
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+
+    const loadStats = async () => {
+      try {
+        const remote = await fetchAchievementStats();
+        if (!active) return;
+        const next = updateStats((prev) => {
+          const uniqueDays = new Set(remote.loginDays ?? prev.loginDays);
+          return {
+            ...prev,
+            loginDays: Array.from(uniqueDays),
+          };
+        });
+        checkAchievements({
+          custom: {
+            login_days_7: next.loginDays.length >= 7,
+            login_days_30: next.loginDays.length >= 30,
+          },
+        });
+      } catch {
+        // silent fallback to localStorage
+      }
+    };
+
+    loadStats();
+    return () => {
+      active = false;
+    };
+  }, [checkAchievements, updateStats, user]);
 
   // ─────────────────────────────
   // API

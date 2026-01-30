@@ -20,6 +20,7 @@ export default function TetrisBoardSprint() {
   const { user } = useAuth();
   const { checkAchievements, updateStats } = useAchievements();
   const [countdown, setCountdown] = useState<number | null>(3);
+  const visitedRef = useRef(false);
   const holdCountRef = useRef(0);
   const hardDropCountRef = useRef(0);
   const comboStreakRef = useRef(0);
@@ -99,11 +100,16 @@ export default function TetrisBoardSprint() {
   });
 
   useEffect(() => {
-    updateStats((prev) => ({
+    if (visitedRef.current) return;
+    visitedRef.current = true;
+    const next = updateStats((prev) => ({
       ...prev,
       modesVisited: { ...prev.modesVisited, SPRINT: true },
     }));
-  }, [updateStats]);
+    checkAchievements({
+      custom: { modes_visited_all: countTrue(next.modesVisited) >= 4 },
+    });
+  }, [checkAchievements, updateStats]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");

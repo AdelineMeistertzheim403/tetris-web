@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -19,6 +19,7 @@ import { useAchievements } from "./hooks/useAchievements";
 function App() {
   const { user } = useAuth();
   const { checkAchievements } = useAchievements();
+  const location = useLocation();
 
   useEffect(() => {
     if (!user) return;
@@ -28,7 +29,7 @@ function App() {
   return (
     <>
       <Navbar />
-      <Routes>
+      <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Home />} />
         <Route path="/game" element={<Game />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
