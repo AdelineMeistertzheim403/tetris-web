@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getRoguelikeLeaderboard } from "../services/roguelike.service";
 import type { RoguelikeLeaderboardItem } from "../services/roguelike.service";
+import { formatScore } from "../utils/formatScore";
 
 export default function RoguelikeLeaderboard() {
   const [entries, setEntries] = useState<RoguelikeLeaderboardItem[]>([]);
@@ -53,7 +54,7 @@ export default function RoguelikeLeaderboard() {
             <div key={`${entry.user.pseudo}-${entry.seed}-${idx}`} className="leaderboard-row">
               <span>{idx + 1}</span>
               <span>{entry.user.pseudo}</span>
-              <span>{entry.score.toLocaleString("fr-FR")}</span>
+              <span>{formatScore(entry.score)}</span>
               <span>{entry.level}</span>
               <span>{entry.lines}</span>
               <span>{entry.chaosMode ? "🔥" : "—"}</span>

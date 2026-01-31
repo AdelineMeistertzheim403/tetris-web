@@ -24,7 +24,7 @@ export type RoguelikeCheckpointPayload = {
 export type RoguelikeRunStateServer = {
   id: number;
   seed: string;
-  score: number;
+  score: string;
   lines: number;
   level: number;
   perks: string[];
@@ -43,7 +43,7 @@ export type RoguelikeRunStateServer = {
 export type RoguelikeRunHistoryItem = {
   id: number;
   seed: string;
-  score: number;
+  score: string;
   lines: number;
   level: number;
   perks: string[];
@@ -55,7 +55,7 @@ export type RoguelikeRunHistoryItem = {
 };
 
 export type RoguelikeLeaderboardItem = {
-  score: number;
+  score: string;
   level: number;
   lines: number;
   chaosMode: boolean;
@@ -110,7 +110,7 @@ export async function checkpointRoguelikeRun(
   runId: number,
   payload: RoguelikeCheckpointPayload,
   runToken: string
-): Promise<{ success: boolean; score?: number; lines?: number; level?: number }> {
+): Promise<{ success: boolean; score?: string; lines?: number; level?: number }> {
 
   const res = await fetch(`${API_URL}/roguelike/run/${runId}/checkpoint`, {
     method: "POST",

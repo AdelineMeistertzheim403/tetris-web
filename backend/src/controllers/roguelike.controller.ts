@@ -11,6 +11,22 @@ import {
 import { env } from "../config";
 
 const MAX_STATE_BYTES = 50_000; // limite raisonnable pour eviter l'injection de blobs
+const MAX_DB_BIGINT = BigInt("9223372036854775807");
+const MIN_DB_BIGINT = 0n;
+
+function clampBigInt(value: bigint): bigint {
+  if (value < MIN_DB_BIGINT) return MIN_DB_BIGINT;
+  if (value > MAX_DB_BIGINT) return MAX_DB_BIGINT;
+  return value;
+}
+
+function serializeRoguelikeScore(score: bigint): string {
+  return score.toString();
+}
+
+function serializeRoguelikeRun<T extends { score: bigint }>(run: T) {
+  return { ...run, score: serializeRoguelikeScore(run.score) };
+}
 
 function computeRunToken(run: { id: number; userId: number; seed: string }) {
   // On se limite à des champs stables pour éviter tout décalage de sérialisation
@@ -75,7 +91,7 @@ export async function getMyRoguelikeRuns(req: AuthRequest, res: Response) {
       },
     });
 
-    res.json(runs);
+    res.json(runs.map(serializeRoguelikeRun));
   } catch (err) {
     console.error("getMyRoguelikeRuns error:", err);
     res.status(500).json({ error: "Impossible de recuperer l'historique" });
@@ -106,7 +122,7 @@ export async function startRoguelikeRun(req: AuthRequest, res: Response) {
         userId,
         seed: parsed.data.seed,
         state: statePayload,
-        score: 0,
+        score: 0n,
         lines: 0,
         level: 1,
         perks: [],
@@ -122,7 +138,8 @@ export async function startRoguelikeRun(req: AuthRequest, res: Response) {
 
     const runToken = computeRunToken(run);
 
-    res.status(201).json({ ...run, runToken });
+    const runJson = serializeRoguelikeRun(run);
+    res.status(201).json({ ...runJson, runToken });
   } catch (err) {
     console.error("startRoguelikeRun error:", err);
     res.status(500).json({ error: "Impossible de demarrer la run" });
@@ -151,7 +168,8 @@ export async function getCurrentRoguelikeRun(req: AuthRequest, res: Response) {
     }
 
     const runToken = computeRunToken(run);
-    res.json({ ...run, runToken });
+    const runJson = serializeRoguelikeRun(run);
+    res.json({ ...runJson, runToken });
   } catch (err) {
     console.error("getCurrentRoguelikeRun error:", err);
     res.status(500).json({ error: "Impossible de recuperer la run" });
@@ -215,10 +233,10 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
     // Recalcul server-side pour éviter la triche : score et niveau dérivés des lignes
     const safeLines = Math.max(run.lines, lines);
     const deltaLines = Math.max(0, safeLines - run.lines);
-    const computedScore = Math.max(
-      0,
-      Math.round(run.score + deltaLines * 100 * effectiveScoreMultiplier)
+    const increment = BigInt(
+      Math.round(deltaLines * 100 * effectiveScoreMultiplier)
     );
+    const computedScore = clampBigInt(run.score + increment);
     const computedLevel = Math.max(1, Math.floor(safeLines / 10) + 1);
 
     await prisma.roguelikeRun.update({
@@ -240,7 +258,7 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
 
     res.json({
       success: true,
-      score: computedScore,
+      score: serializeRoguelikeScore(computedScore),
       lines: safeLines,
       level: computedLevel,
     });
@@ -291,7 +309,8 @@ export async function endRoguelikeRun(req: AuthRequest, res: Response) {
     const hasNoBombBonus = hasMutation(run.mutations, "perfect-risk");
     const shouldApplyNoBombBonus =
       status === RunStatus.FINISHED && hasNoBombBonus && bombsUsed === 0;
-    const finalScore = shouldApplyNoBombBonus ? Math.round(run.score * 2) : run.score;
+    const rawFinalScore = shouldApplyNoBombBonus ? run.score * 2n : run.score;
+    const finalScore = clampBigInt(rawFinalScore);
 
     await prisma.roguelikeRun.update({
       where: { id: run.id },
@@ -338,7 +357,7 @@ export async function getRoguelikeLeaderboard(
     },
   });
 
-  res.json(leaderboard);
+  res.json(leaderboard.map(serializeRoguelikeRun));
   } catch (err) {
     console.error("getRoguelikeLeaderboard error:", err);
     res.status(500).json({ error: "Impossible de recuperer le classement" });
