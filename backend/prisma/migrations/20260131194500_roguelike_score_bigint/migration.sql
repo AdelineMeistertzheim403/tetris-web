@@ -1,0 +1,1 @@
+ALTER TABLE "RoguelikeRun" ALTER COLUMN "score" TYPE BIGINT;

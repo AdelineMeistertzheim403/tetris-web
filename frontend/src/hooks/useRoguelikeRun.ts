@@ -15,7 +15,7 @@ export type RoguelikeRunState = {
   id: number;
   seed: string;
   runToken: string;
-  score: number;
+  score: string | number;
   lines: number;
   level: number;
   perks: string[];

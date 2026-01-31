@@ -61,7 +61,7 @@ model RoguelikeRun {
   seed              String
   state             Json
   
-  score             Int
+  score             BigInt
   lines             Int
   level             Int
 
