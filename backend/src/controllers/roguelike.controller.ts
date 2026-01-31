@@ -226,7 +226,9 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
     const storedBombsUsed = getJsonNumber(run.state, "bombsUsed") ?? 0;
     const safeBombsUsed = Math.max(storedBombsUsed, bombsUsed);
     const nextState = { ...(getJsonObject(run.state) ?? {}), bombsUsed: safeBombsUsed };
-    const hasZeroBombBoost = mutations.some((mutation) => mutation.id === "protocole_final");
+    const hasZeroBombBoost = mutations.some((mutation) =>
+      mutation.id === "final-protocol" || mutation.id === "protocole_final"
+    );
     const effectiveScoreMultiplier =
       scoreMultiplier * (hasZeroBombBoost && bombs === 0 ? 2 : 1);
 
