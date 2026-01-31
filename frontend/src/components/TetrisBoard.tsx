@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useKeyboardControls } from "../hooks/useKeyboardControls";
 import NextPiece from "./NextPiece";
 import FullScreenOverlay from "./FullScreenOverlay";
@@ -7,6 +7,7 @@ import GameLayout from "./GameLayout";
 import { addScore, getScoreRunToken } from "../services/scoreService";
 import { useTetrisGame } from "../hooks/useTetrisGame";
 import type { GameMode } from "../types/GameMode";
+import { useLineClearFx } from "../hooks/useLineClearFx";
 
 type TetrisBoardProps = {
   mode?: GameMode;
@@ -14,7 +15,7 @@ type TetrisBoardProps = {
   bagSequence?: string[];
   incomingGarbage?: number;
   onConsumeLines?: (lines: number) => void;
-  onLinesCleared?: (lines: number) => void;
+  onLinesCleared?: (lines: number, clearedRows?: number[]) => void;
   onGarbageConsumed?: () => void;
   autoStart?: boolean;
   scoreMultiplier?: number;
@@ -110,13 +111,25 @@ export default function TetrisBoard({
   const lastRotationRef = useRef(0);
   const hasStartedRef = useRef(false);
   const scoreRunTokenRef = useRef<string | null>(null);
+  const { effects: lineClearFx, tetrisFlash, trigger: triggerLineClearFx } = useLineClearFx();
+
+  const handleLinesCleared = useCallback(
+    (linesCleared: number, clearedRows?: number[]) => {
+      if (linesCleared > 0) {
+        triggerLineClearFx(linesCleared, clearedRows ?? []);
+      }
+      onLinesCleared?.(linesCleared, clearedRows);
+    },
+    [onLinesCleared, triggerLineClearFx]
+  );
+
   const { state, actions } = useTetrisGame({
     mode,
     bagSequence,
     gravityMultiplier,
     extraHold, 
     onConsumeLines,
-    onLinesCleared,
+    onLinesCleared: handleLinesCleared,
     incomingGarbage,
     onGarbageConsumed,
     scoreMultiplier,
@@ -420,16 +433,30 @@ useEffect(() => {
 )}
       <GameLayout
         canvas={
-          <canvas
-            ref={canvasRef}
-            width={COLS * CELL_SIZE}
-            height={ROWS * CELL_SIZE}
-            style={{
-              border: "2px solid #555",
-              background: "#111",
-              boxShadow: "0 0 20px rgba(0,0,0,0.8)",
-            }}
-          />
+          <div className="tetris-canvas-wrap">
+            <canvas
+              ref={canvasRef}
+              width={COLS * CELL_SIZE}
+              height={ROWS * CELL_SIZE}
+              style={{
+                border: "2px solid #555",
+                background: "#111",
+                boxShadow: "0 0 20px rgba(0,0,0,0.8)",
+              }}
+            />
+            {tetrisFlash && <div className="tetris-flash" />}
+            {lineClearFx.flatMap((effect) =>
+              effect.rows.map((row, idx) => (
+                <div
+                  key={`${effect.id}-${row}`}
+                  className={`line-clear line-clear--${effect.count} ${
+                    effect.count === 2 && idx % 2 === 1 ? "line-clear--reverse" : ""
+                  }`}
+                  style={{ top: row * CELL_SIZE, height: CELL_SIZE }}
+                />
+              ))
+            )}
+          </div>
         }
         sidebar={
           <div

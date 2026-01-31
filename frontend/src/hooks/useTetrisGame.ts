@@ -29,7 +29,7 @@ onConsumeSecondChance?: () => void;
   chaosDrift?: boolean;
   pieceMutation?: boolean;
   rng?: RNG;
-  onLinesCleared?: (linesCleared: number) => void;
+  onLinesCleared?: (linesCleared: number, clearedRows?: number[]) => void;
 };
 
 const DEFAULT_ROWS = 20;
@@ -324,9 +324,9 @@ const triggerBomb = useCallback(() => {
         if (onGarbageConsumed) onGarbageConsumed();
         garbageRef.current = 0;
       }
-      const { newBoard, linesCleared } = clearFullLines(boardAfterGarbage);
+      const { newBoard, linesCleared, clearedRows } = clearFullLines(boardAfterGarbage);
 
-      onLinesCleared?.(linesCleared);
+      onLinesCleared?.(linesCleared, clearedRows);
 
       if (linesCleared > 0) {
         if (onConsumeLines) onConsumeLines(linesCleared);
