@@ -48,12 +48,17 @@ export function mergePiece(
 }
 
 export function clearFullLines(board: number[][]) {
-  const newBoard = board.filter((row) => row.some((cell) => cell === 0));
-  const linesCleared = board.length - newBoard.length;
+  const clearedRows: number[] = [];
+  const newBoard = board.filter((row, index) => {
+    const isFull = row.every((cell) => cell !== 0);
+    if (isFull) clearedRows.push(index);
+    return !isFull;
+  });
+  const linesCleared = clearedRows.length;
 
   while (newBoard.length < board.length) {
     newBoard.unshift(Array(board[0].length).fill(0));
   }
 
-  return { newBoard, linesCleared };
+  return { newBoard, linesCleared, clearedRows };
 }

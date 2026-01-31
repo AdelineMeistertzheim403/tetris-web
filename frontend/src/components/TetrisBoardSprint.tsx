@@ -8,6 +8,7 @@ import { getScoreRunToken, saveScore } from "../services/scoreService";
 import { useAuth } from "../context/AuthContext";
 import { useTetrisGame } from "../hooks/useTetrisGame";
 import { useAchievements } from "../hooks/useAchievements";
+import { useLineClearFx } from "../hooks/useLineClearFx";
 
 const ROWS = 20;
 const COLS = 10;
@@ -27,6 +28,7 @@ export default function TetrisBoardSprint() {
   const maxComboRef = useRef(0);
   const tetrisCountRef = useRef(0);
   const finalizedRef = useRef(false);
+  const { effects: lineClearFx, tetrisFlash, trigger: triggerLineClearFx } = useLineClearFx();
 
   const resetRunTracking = () => {
     holdCountRef.current = 0;
@@ -58,7 +60,10 @@ export default function TetrisBoardSprint() {
         console.error("Erreur enregistrement score sprint :", err);
       }
     },
-    onLinesCleared: (linesCleared) => {
+    onLinesCleared: (linesCleared, clearedRows) => {
+      if (linesCleared > 0) {
+        triggerLineClearFx(linesCleared, clearedRows ?? []);
+      }
       if (linesCleared > 0) {
         comboStreakRef.current += 1;
         if (comboStreakRef.current > maxComboRef.current) {
@@ -247,16 +252,30 @@ export default function TetrisBoardSprint() {
     <div className="relative flex items-start justify-center gap-8">
       <GameLayout
         canvas={
-          <canvas
-            ref={canvasRef}
-            width={COLS * CELL_SIZE}
-            height={ROWS * CELL_SIZE}
-            style={{
-              border: "2px solid #555",
-              background: "#111",
-              boxShadow: "0 0 20px rgba(0,0,0,0.8)",
-            }}
-          />
+          <div className="tetris-canvas-wrap">
+            <canvas
+              ref={canvasRef}
+              width={COLS * CELL_SIZE}
+              height={ROWS * CELL_SIZE}
+              style={{
+                border: "2px solid #555",
+                background: "#111",
+                boxShadow: "0 0 20px rgba(0,0,0,0.8)",
+              }}
+            />
+            {tetrisFlash && <div className="tetris-flash" />}
+            {lineClearFx.flatMap((effect) =>
+              effect.rows.map((row, idx) => (
+                <div
+                  key={`${effect.id}-${row}`}
+                  className={`line-clear line-clear--${effect.count} ${
+                    effect.count === 2 && idx % 2 === 1 ? "line-clear--reverse" : ""
+                  }`}
+                  style={{ top: row * CELL_SIZE, height: CELL_SIZE }}
+                />
+              ))
+            )}
+          </div>
         }
         sidebar={
           <div
