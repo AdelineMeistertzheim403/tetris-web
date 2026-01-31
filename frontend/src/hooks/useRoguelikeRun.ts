@@ -110,6 +110,8 @@ export function useRoguelikeRun() {
               }
             : prev
         );
+      } catch (err) {
+        console.error("Roguelike checkpoint failed:", err);
       } finally {
         checkpointLock.current = false;
       }

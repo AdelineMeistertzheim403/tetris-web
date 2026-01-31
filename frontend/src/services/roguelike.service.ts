@@ -123,7 +123,18 @@ export async function checkpointRoguelikeRun(
   });
 
   if (!res.ok) {
-    throw new Error("Erreur lors de la sauvegarde de la run");
+    const bodyText = await res.text().catch(() => "");
+    const suffix =
+      res.status === 401
+        ? " (session expirée)"
+        : res.status === 403
+          ? " (token invalide)"
+          : "";
+    throw new Error(
+      `Erreur lors de la sauvegarde de la run (${res.status}${suffix})${
+        bodyText ? `: ${bodyText}` : ""
+      }`
+    );
   }
 
   return res.json();
@@ -149,7 +160,18 @@ export async function endRoguelikeRun(
   });
 
   if (!res.ok) {
-    throw new Error("Erreur lors de la fin de la run");
+    const bodyText = await res.text().catch(() => "");
+    const suffix =
+      res.status === 401
+        ? " (session expirée)"
+        : res.status === 403
+          ? " (token invalide)"
+          : "";
+    throw new Error(
+      `Erreur lors de la fin de la run (${res.status}${suffix})${
+        bodyText ? `: ${bodyText}` : ""
+      }`
+    );
   }
 
   return res.json();
