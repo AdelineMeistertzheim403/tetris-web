@@ -6,6 +6,7 @@ import { ALL_PERKS } from "../data/perks";
 import { SYNERGIES } from "../data/synergies";
 import { MUTATIONS } from "../data/mutations";
 import { useAchievements } from "../hooks/useAchievements";
+import { formatScore } from "../utils/formatScore";
 
 const perkImageMap: Record<string, string> = {
   "extra-hold": "/extra_hold.png",
@@ -130,7 +131,7 @@ export default function RoguelikeHistory() {
               const started = new Date(run.createdAt).toLocaleString();
               const mutationList = Array.isArray(run.mutations) ? run.mutations : [];
               const stats = [
-                { label: "Score", value: run.score.toLocaleString("fr-FR") },
+                { label: "Score", value: formatScore(run.score) },
                 { label: "Niveau", value: run.level },
                 { label: "Lignes", value: run.lines },
                 { label: "Durée", value: duration ?? "—" },

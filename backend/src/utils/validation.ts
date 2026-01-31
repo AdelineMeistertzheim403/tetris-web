@@ -10,6 +10,10 @@ const intWithin = (min: number, max: number) =>
     .transform((v) => Math.round(v))
     .pipe(z.number().int().min(min).max(max));
 
+const MAX_SAFE_INT = Number.MAX_SAFE_INTEGER;
+const MAX_ROGUELIKE_SCORE = MAX_SAFE_INT;
+const MAX_ROGUELIKE_SCORE_MULTIPLIER = MAX_SAFE_INT;
+
 export const registerSchema = z.object({
   pseudo: z.string().min(2).max(50),
   email: z.string().email(),
@@ -49,7 +53,7 @@ export const roguelikeStartSchema = z.object({
 });
 
 export const roguelikeCheckpointSchema = z.object({
-  score: intWithin(0, 2_000_000),
+  score: intWithin(0, MAX_ROGUELIKE_SCORE),
   lines: intWithin(0, 5_000),
   level: intWithin(1, 200),
   perks: z.array(z.string().trim().min(1).max(50)).max(40),
@@ -66,7 +70,7 @@ export const roguelikeCheckpointSchema = z.object({
   timeFreezeCharges: intWithin(0, 50),
   chaosMode: z.boolean(),
   gravityMultiplier: z.number().min(0.05).max(20),
-  scoreMultiplier: z.number().min(0.1).max(50),
+  scoreMultiplier: z.number().min(0.1).max(MAX_ROGUELIKE_SCORE_MULTIPLIER),
 });
 
 export const roguelikeEndSchema = z.object({
