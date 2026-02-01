@@ -26,6 +26,12 @@ import MutationsPanel from "./MutationsPanel";
 import { useAchievements } from "../hooks/useAchievements";
 import AchievementToast from "./AchievementToast";
 
+const MIN_GRAVITY_MULTIPLIER = 0.05;
+const MAX_GRAVITY_MULTIPLIER = 100;
+const MAX_EFFECTIVE_GRAVITY_MULTIPLIER = 4;
+const MIN_EFFECTIVE_GRAVITY_MULTIPLIER = 2;
+const EFFECTIVE_GRAVITY_DECAY_PER_LEVEL = 0.1;
+
 export type ActivePerkRuntime = Perk & {
   startedAt?: number;
   expiresAt?: number;
@@ -105,6 +111,12 @@ export default function RoguelikeRun({
   const comboStreakRef = useRef(0);
   const maxComboRef = useRef(0);
   const tetrisCountRef = useRef(0);
+  const lineClearTotalsRef = useRef({
+    single: 0,
+    double: 0,
+    triple: 0,
+    tetris: 0,
+  });
   useEffect(() => {
     if (recentUnlocks.length === 0) return;
     const timeout = setTimeout(() => clearRecent(), 3500);
@@ -118,11 +130,38 @@ export default function RoguelikeRun({
     comboStreakRef.current = 0;
     maxComboRef.current = 0;
     tetrisCountRef.current = 0;
+    resetLineClears();
     setTetrisCleared(false);
-  }, []);
+  }, [resetLineClears]);
 
   const countTrue = useCallback(
     (values: Record<string, boolean>) => Object.values(values).filter(Boolean).length,
+    []
+  );
+  const resetLineClears = useCallback(() => {
+    lineClearTotalsRef.current = {
+      single: 0,
+      double: 0,
+      triple: 0,
+      tetris: 0,
+    };
+  }, [resetLineClears]);
+  const recordLineClear = useCallback((linesCleared: number) => {
+    if (linesCleared === 1) lineClearTotalsRef.current.single += 1;
+    if (linesCleared === 2) lineClearTotalsRef.current.double += 1;
+    if (linesCleared === 3) lineClearTotalsRef.current.triple += 1;
+    if (linesCleared === 4) lineClearTotalsRef.current.tetris += 1;
+  }, []);
+  const setSafeGravityMultiplier = useCallback(
+    (next: number | ((prev: number) => number)) => {
+      setGravityMultiplier((prev) => {
+        const computed = typeof next === "function" ? next(prev) : next;
+        return Math.min(
+          MAX_GRAVITY_MULTIPLIER,
+          Math.max(MIN_GRAVITY_MULTIPLIER, computed)
+        );
+      });
+    },
     []
   );
 
@@ -135,6 +174,7 @@ export default function RoguelikeRun({
     setBombsGranted((v) => v + count);
   }, []);
   const resetLocalState = useCallback(() => {
+    resetLineClears();
     setActivePerks([]);
     setActiveMutations([]);
     setSelectionType("perk");
@@ -186,7 +226,13 @@ export default function RoguelikeRun({
   const linesUntilNextChoice = Math.max(0, nextChoiceAt - totalLines);
   const perkProgress = selectingPerk ? 1 : 1 - linesUntilNextChoice / 10;
   const activeSynergies = useActiveSynergies(activePerks, SYNERGIES);
-  const effectiveGravityMultiplier = gravityMultiplier * (lineSlowActive ? 1.5 : 1);
+  const rawGravityMultiplier = gravityMultiplier * (lineSlowActive ? 1.5 : 1);
+  const gravityMultiplierCap = Math.max(
+    MIN_EFFECTIVE_GRAVITY_MULTIPLIER,
+    MAX_EFFECTIVE_GRAVITY_MULTIPLIER -
+      (currentLevel - 1) * EFFECTIVE_GRAVITY_DECAY_PER_LEVEL
+  );
+  const effectiveGravityMultiplier = Math.min(rawGravityMultiplier, gravityMultiplierCap);
   const effectiveScoreMultiplier = scoreMultiplier * (zeroBombBoost && bombs === 0 ? 2 : 1);
   const statusBadges = useMemo(() => {
     const badges: {
@@ -318,6 +364,7 @@ export default function RoguelikeRun({
             id: mutation.id,
             stacks: mutation.stacks,
           })),
+          lineClears: { ...lineClearTotalsRef.current },
           bombs,
           bombsUsed,
           timeFreezeCharges,
@@ -333,6 +380,7 @@ export default function RoguelikeRun({
 
   const handleLinesCleared = (linesCleared: number) => {
     if (linesCleared > 0) {
+      recordLineClear(linesCleared);
       comboStreakRef.current += 1;
       if (comboStreakRef.current > maxComboRef.current) {
         maxComboRef.current = comboStreakRef.current;
@@ -349,7 +397,7 @@ export default function RoguelikeRun({
     applyPerk(perk, {
       addHoldSlot: () => setExtraHoldSlots((v) => v + 1),
 
-      slowGravity: (factor = 1.5) => setGravityMultiplier((v) => v * factor),
+      slowGravity: (factor = 1.5) => setSafeGravityMultiplier((v) => v * factor),
 
       addBomb: (count = 1) => grantBombs(count),
 
@@ -398,7 +446,7 @@ export default function RoguelikeRun({
       addBomb: (count = 1) => grantBombs(count),
       setBombRadius: (fn) => setBombRadius((v) => fn(v)),
       enableChainExplosions: () => setChainExplosions(true),
-      setGravityMultiplier: (fn) => setGravityMultiplier((v) => fn(v)),
+      setGravityMultiplier: (fn) => setSafeGravityMultiplier((v) => fn(v)),
       addTimeFreezeOnUse: () => setTimeFreezeEcho(true),
       enableLineSlow: () => setLineSlowEnabled(true),
       setScoreMultiplier: (fn) => setScoreMultiplier((v) => fn(v)),
@@ -524,7 +572,7 @@ export default function RoguelikeRun({
   useSynergies(
     activePerks.map(p => p.id),
     {
-      setGravityMultiplier,
+      setGravityMultiplier: setSafeGravityMultiplier,
       setScoreMultiplier,
       setChaosMode,
       setTimeFreezeDuration,
@@ -750,26 +798,28 @@ export default function RoguelikeRun({
             setShowSummary(true);
 
             try {
-              await checkpoint({
-                score: safeScore,
-                lines: safeLines,
-                level: safeLevel,
-                perks: activePerks.map((p) => p.id), // backend OK
-                mutations: activeMutations.map((mutation) => ({
-                  id: mutation.id,
-                  stacks: mutation.stacks,
-                })),
-                bombs,
-                bombsUsed,
-                timeFreezeCharges,
-                chaosMode,
-                gravityMultiplier,
+            await checkpoint({
+              score: safeScore,
+              lines: safeLines,
+              level: safeLevel,
+              perks: activePerks.map((p) => p.id), // backend OK
+              mutations: activeMutations.map((mutation) => ({
+                id: mutation.id,
+                stacks: mutation.stacks,
+              })),
+              lineClears: { ...lineClearTotalsRef.current },
+              bombs,
+              bombsUsed,
+              timeFreezeCharges,
+              chaosMode,
+              gravityMultiplier,
                 scoreMultiplier,
               });
             } finally {
               await finishRun("FINISHED");
 
               // 🔄 reset pour prochaine run
+              resetLineClears();
               setActivePerks([]);
               setActiveMutations([]);
               setCurrentScore(0);

@@ -13,6 +13,8 @@ const intWithin = (min: number, max: number) =>
 const MAX_SAFE_INT = Number.MAX_SAFE_INTEGER;
 const MAX_ROGUELIKE_SCORE = MAX_SAFE_INT;
 const MAX_ROGUELIKE_SCORE_MULTIPLIER = MAX_SAFE_INT;
+const MAX_ROGUELIKE_GRAVITY_MULTIPLIER = 100;
+const MAX_ROGUELIKE_LINE_CLEARS = 5_000;
 
 export const registerSchema = z.object({
   pseudo: z.string().min(2).max(50),
@@ -65,11 +67,19 @@ export const roguelikeCheckpointSchema = z.object({
       })
     )
     .max(40),
+  lineClears: z
+    .object({
+      single: intWithin(0, MAX_ROGUELIKE_LINE_CLEARS),
+      double: intWithin(0, MAX_ROGUELIKE_LINE_CLEARS),
+      triple: intWithin(0, MAX_ROGUELIKE_LINE_CLEARS),
+      tetris: intWithin(0, MAX_ROGUELIKE_LINE_CLEARS),
+    })
+    .optional(),
   bombs: intWithin(0, 50),
   bombsUsed: intWithin(0, 5_000),
   timeFreezeCharges: intWithin(0, 50),
   chaosMode: z.boolean(),
-  gravityMultiplier: z.number().min(0.05).max(20),
+  gravityMultiplier: z.number().min(0.05).max(MAX_ROGUELIKE_GRAVITY_MULTIPLIER),
   scoreMultiplier: z.number().min(0.1).max(MAX_ROGUELIKE_SCORE_MULTIPLIER),
 });
 
