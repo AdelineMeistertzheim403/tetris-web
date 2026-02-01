@@ -214,7 +214,7 @@ export default function Versus() {
             }}
             onLinesCleared={(linesCleared) => {
               if (linesCleared > 0) {
-                comboStreakRef.current += 1;
+                comboStreakRef.current += linesCleared;
                 if (comboStreakRef.current > maxComboRef.current) {
                   maxComboRef.current = comboStreakRef.current;
                 }
