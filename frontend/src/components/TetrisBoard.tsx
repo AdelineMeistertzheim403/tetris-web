@@ -8,6 +8,7 @@ import { addScore, getScoreRunToken } from "../services/scoreService";
 import { useTetrisGame } from "../hooks/useTetrisGame";
 import type { GameMode } from "../types/GameMode";
 import { useLineClearFx } from "../hooks/useLineClearFx";
+import { useSettings } from "../context/SettingsContext";
 
 type TetrisBoardProps = {
   mode?: GameMode;
@@ -117,6 +118,7 @@ export default function TetrisBoard({
   pieceMutation = false,
   rng,
 }: TetrisBoardProps) {
+  const { settings } = useSettings();
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [countdown, setCountdown] = useState<number | null>(autoStart ? 3 : null);
@@ -163,6 +165,7 @@ export default function TetrisBoard({
     hardDropHoldReset,
     chaosDrift,
     pieceMutation,
+    pieceColors: settings.pieceColors,
     bombRadius,
   onConsumeSecondChance,
      onBombExplode: () => {
@@ -464,8 +467,8 @@ useEffect(() => {
               width={COLS * CELL_SIZE}
               height={ROWS * CELL_SIZE}
               style={{
-                border: "2px solid #555",
-                background: "#111",
+                border: "2px solid var(--ui-board-border, #555)",
+                background: "var(--ui-board-bg, #111)",
                 boxShadow: "0 0 20px rgba(0,0,0,0.8)",
               }}
             />
@@ -486,7 +489,7 @@ useEffect(() => {
         sidebar={
           <div
             style={{
-              background: "#141414",
+              background: "var(--ui-panel-bg, #141414)",
               borderRadius: "12px",
               padding: "25px 30px",
               boxShadow: "0 0 20px rgba(0,0,0,0.6)",
@@ -523,11 +526,13 @@ useEffect(() => {
                   width: "100%",
                   marginTop: "10px",
                   padding: "10px 0",
-                  borderTop: "1px solid #333",
+                  borderTop: "1px solid var(--ui-board-border, #333)",
                 }}
               >
                 <div style={{ textAlign: "center" }}>
-                  <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+                  <h3
+                    style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+                  >
                     HOLD
                   </h3>
 
@@ -535,8 +540,8 @@ useEffect(() => {
                     style={{
                       width: PREVIEW_SIZE,
                       height: PREVIEW_SIZE,
-                      border: "2px solid #333",
-                      background: "#111",
+                      border: "2px solid var(--ui-board-border, #333)",
+                      background: "var(--ui-board-bg, #111)",
                       borderRadius: "6px",
                       display: "flex",
                       alignItems: "center",
@@ -548,7 +553,9 @@ useEffect(() => {
                 </div>
 
                 <div style={{ textAlign: "center" }}>
-                  <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+                  <h3
+                    style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+                  >
                     NEXT
                   </h3>
 
@@ -556,8 +563,8 @@ useEffect(() => {
                     style={{
                       width: PREVIEW_SIZE,
                       height: PREVIEW_SIZE,
-                      border: "2px solid #333",
-                      background: "#111",
+                      border: "2px solid var(--ui-board-border, #333)",
+                      background: "var(--ui-board-bg, #111)",
                       borderRadius: "6px",
                       display: "flex",
                       alignItems: "center",

@@ -48,8 +48,8 @@ export default function NextPiece({ piece }: Props) {
         width={4 * CELL_SIZE}
         height={4 * CELL_SIZE}
         style={{
-          border: "2px solid #333",
-          background: "#111",
+          border: "2px solid var(--ui-board-border, #333)",
+          background: "var(--ui-board-bg, #111)",
           margin: "auto",
         }}
       />
