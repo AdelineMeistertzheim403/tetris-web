@@ -380,7 +380,7 @@ export default function RoguelikeRun({
   const handleLinesCleared = (linesCleared: number) => {
     if (linesCleared > 0) {
       recordLineClear(linesCleared);
-      comboStreakRef.current += 1;
+      comboStreakRef.current += linesCleared;
       if (comboStreakRef.current > maxComboRef.current) {
         maxComboRef.current = comboStreakRef.current;
       }
