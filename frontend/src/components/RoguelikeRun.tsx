@@ -123,17 +123,6 @@ export default function RoguelikeRun({
     return () => clearTimeout(timeout);
   }, [recentUnlocks, clearRecent]);
 
-  const resetRunTracking = useCallback(() => {
-    startTimeRef.current = null;
-    holdCountRef.current = 0;
-    hardDropCountRef.current = 0;
-    comboStreakRef.current = 0;
-    maxComboRef.current = 0;
-    tetrisCountRef.current = 0;
-    resetLineClears();
-    setTetrisCleared(false);
-  }, [resetLineClears]);
-
   const countTrue = useCallback(
     (values: Record<string, boolean>) => Object.values(values).filter(Boolean).length,
     []
@@ -145,6 +134,16 @@ export default function RoguelikeRun({
       triple: 0,
       tetris: 0,
     };
+  }, []);
+  const resetRunTracking = useCallback(() => {
+    startTimeRef.current = null;
+    holdCountRef.current = 0;
+    hardDropCountRef.current = 0;
+    comboStreakRef.current = 0;
+    maxComboRef.current = 0;
+    tetrisCountRef.current = 0;
+    resetLineClears();
+    setTetrisCleared(false);
   }, [resetLineClears]);
   const recordLineClear = useCallback((linesCleared: number) => {
     if (linesCleared === 1) lineClearTotalsRef.current.single += 1;
@@ -222,7 +221,7 @@ export default function RoguelikeRun({
     setTetrisCleared(false);
     setBoardKey((k) => k + 1);
     runStartedRef.current = false;
-  }, []);
+  }, [resetLineClears]);
   const linesUntilNextChoice = Math.max(0, nextChoiceAt - totalLines);
   const perkProgress = selectingPerk ? 1 : 1 - linesUntilNextChoice / 10;
   const activeSynergies = useActiveSynergies(activePerks, SYNERGIES);

@@ -494,7 +494,7 @@ useEffect(() => {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 <StatCard
                   label="SCORE"
                   value={roundedScore}
