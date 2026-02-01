@@ -55,6 +55,22 @@ const COLS = 10;
 const CELL_SIZE = 30;
 const PREVIEW_SIZE = 4 * CELL_SIZE;
 const EXPLOSION_FRAME_DURATION_MS = 80;
+const LINE_CLEAR_SCORES = [0, 100, 400, 900, 1600];
+const LINE_CLEAR_COLORS: Record<number, string> = {
+  1: "#3b82f6",
+  2: "#22c55e",
+  3: "#ef4444",
+  4: "#facc15",
+};
+const getLineClearScore = (linesCleared: number) => {
+  if (linesCleared <= 0) return 0;
+  if (linesCleared < LINE_CLEAR_SCORES.length) {
+    return LINE_CLEAR_SCORES[linesCleared];
+  }
+  return 100 * linesCleared * linesCleared;
+};
+const getLineClearColor = (linesCleared: number) =>
+  LINE_CLEAR_COLORS[linesCleared] ?? "#666";
 const getExplosionFrameCount = (radius: number) => {
   if (radius >= 3) return 9; // 7x7
   if (radius === 2) return 7; // 5x5
@@ -111,16 +127,23 @@ export default function TetrisBoard({
   const lastRotationRef = useRef(0);
   const hasStartedRef = useRef(false);
   const scoreRunTokenRef = useRef<string | null>(null);
+  const [lastClearPoints, setLastClearPoints] = useState(0);
+  const [lastClearLines, setLastClearLines] = useState(0);
+  const [gainFxKey, setGainFxKey] = useState(0);
   const { effects: lineClearFx, tetrisFlash, trigger: triggerLineClearFx } = useLineClearFx();
 
   const handleLinesCleared = useCallback(
     (linesCleared: number, clearedRows?: number[]) => {
       if (linesCleared > 0) {
         triggerLineClearFx(linesCleared, clearedRows ?? []);
+        const baseScore = getLineClearScore(linesCleared);
+        setLastClearLines(linesCleared);
+        setLastClearPoints(Math.round(baseScore * scoreMultiplier));
+        setGainFxKey((prev) => prev + 1);
       }
       onLinesCleared?.(linesCleared, clearedRows);
     },
-    [onLinesCleared, triggerLineClearFx]
+    [onLinesCleared, scoreMultiplier, triggerLineClearFx]
   );
 
   const { state, actions } = useTetrisGame({
@@ -179,6 +202,8 @@ export default function TetrisBoard({
     explosions,
   } = state;
   const roundedScore = Math.round(score);
+  const lastClearLabel = `+${lastClearPoints}`;
+  const lastClearColor = getLineClearColor(lastClearLines);
   const {
     movePiece,
     hardDrop,
@@ -469,7 +494,22 @@ useEffect(() => {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
-              <StatCard label="SCORE" value={roundedScore} valueColor="#00eaff" accentColor="#f5f5f5" />
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <StatCard
+                  label="SCORE"
+                  value={roundedScore}
+                  valueColor="#00eaff"
+                  accentColor="#f5f5f5"
+                />
+                <div className="score-gain-flash" key={gainFxKey}>
+                  <StatCard
+                    label=""
+                    value={lastClearLabel}
+                    valueColor={lastClearColor}
+                    accentColor="#cccccc"
+                  />
+                </div>
+              </div>
               <StatCard label="LIGNES" value={lines} valueColor="#9eff8c" accentColor="#cccccc" />
               <StatCard label="NIVEAU" value={level} valueColor="#facc15" accentColor="#cccccc" />
 

@@ -3,6 +3,13 @@ export type RoguelikeStoredMutation = {
   stacks: number;
 };
 
+export type RoguelikeLineClears = {
+  single: number;
+  double: number;
+  triple: number;
+  tetris: number;
+};
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 export type RoguelikeInitialState = Record<string, unknown>;
@@ -13,6 +20,7 @@ export type RoguelikeCheckpointPayload = {
   level: number;
   perks: string[];
   mutations: RoguelikeStoredMutation[];
+  lineClears: RoguelikeLineClears;
   bombs: number;
   bombsUsed: number;
   timeFreezeCharges: number;

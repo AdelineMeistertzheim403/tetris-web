@@ -411,6 +411,28 @@ label {
   100% { opacity: 0; }
 }
 
+.score-gain-flash {
+  animation: scoreGainFlash 320ms ease-out;
+}
+
+@keyframes scoreGainFlash {
+  0% {
+    opacity: 0.4;
+    transform: translateY(-4px) scale(0.98);
+    filter: drop-shadow(0 0 0 rgba(0, 234, 255, 0));
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(0) scale(1.02);
+    filter: drop-shadow(0 0 6px rgba(0, 234, 255, 0.5));
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 0 rgba(0, 234, 255, 0));
+  }
+}
+
 .retro-select {
   font-family: 'Press Start 2P', monospace;
   appearance: none;
