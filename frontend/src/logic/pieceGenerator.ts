@@ -1,9 +1,12 @@
-import { COLORS, SHAPES } from "./shapes";
+﻿import { COLORS, SHAPES } from "./shapes";
 import type { Piece } from "../types/Piece";
 
-export function createPieceFromKey(key: string): Piece {
+export function createPieceFromKey(
+  key: string,
+  colors: Record<string, string> = COLORS
+): Piece {
   const shape = SHAPES[key];
-  const color = COLORS[key];
+  const color = colors[key] ?? COLORS[key];
 
   return {
     shape,
@@ -23,8 +26,13 @@ function shuffle<T>(array: T[], rng: () => number): T[] {
   return arr;
 }
 
-export function createBagGenerator(rng: () => number, initial?: string[]) {
+export function createBagGenerator(
+  rng: () => number,
+  colors?: Record<string, string>,
+  initial?: string[]
+) {
   let bag: string[] = initial?.length ? [...initial] : [];
+  let palette = colors;
 
   const refill = () => {
     bag = shuffle(Object.keys(SHAPES), rng);
@@ -33,7 +41,7 @@ export function createBagGenerator(rng: () => number, initial?: string[]) {
   const next = (): Piece => {
     if (bag.length === 0) refill();
     const key = bag.shift() as string;
-    return createPieceFromKey(key);
+    return createPieceFromKey(key, palette ?? COLORS);
   };
 
   const pushSequence = (seq: string[]) => {
@@ -44,5 +52,9 @@ export function createBagGenerator(rng: () => number, initial?: string[]) {
     bag = [];
   };
 
-  return { next, pushSequence, reset };
+  const setColors = (nextColors?: Record<string, string>) => {
+    palette = nextColors;
+  };
+
+  return { next, pushSequence, reset, setColors };
 }

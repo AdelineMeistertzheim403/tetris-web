@@ -28,6 +28,7 @@ onConsumeSecondChance?: () => void;
   hardDropHoldReset?: boolean;
   chaosDrift?: boolean;
   pieceMutation?: boolean;
+  pieceColors?: Record<string, string>;
   rng?: RNG;
   onLinesCleared?: (linesCleared: number, clearedRows?: number[]) => void;
 };
@@ -83,6 +84,7 @@ export function useTetrisGame({
   hardDropHoldReset = false,
   chaosDrift = false,
   pieceMutation = false,
+  pieceColors,
   rng,
   onLinesCleared,
 }: Options & {
@@ -95,7 +97,8 @@ export function useTetrisGame({
   if (rng && rngRef.current !== rng) {
     rngRef.current = rng;
   }
-  const bagGenRef = useRef(createBagGenerator(rngRef.current));
+  const pieceColorsRef = useRef(pieceColors);
+  const bagGenRef = useRef(createBagGenerator(rngRef.current, pieceColors));
   const [board, setBoard] = useState<number[][]>(
     Array.from({ length: rows }, () => Array(cols).fill(0))
   );
@@ -119,6 +122,12 @@ export function useTetrisGame({
   const [fastHoldReset, setFastHoldReset] = useState(false);
   const [lastStandAvailable, setLastStandAvailable] = useState(false);
   const [explosions, setExplosions] = useState<Explosion[]>([]);
+
+  const resolvePieceColor = (type: string, fallback: string) => {
+    const palette = pieceColorsRef.current;
+    if (!palette) return fallback;
+    return palette[type] ?? fallback;
+  };
 
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -219,10 +228,25 @@ const triggerBomb = useCallback(() => {
   useEffect(() => {
     if (!rng) return;
     rngRef.current = rng;
-    bagGenRef.current = createBagGenerator(rngRef.current);
+    bagGenRef.current = createBagGenerator(rngRef.current, pieceColorsRef.current);
     setPiece(bagGenRef.current.next());
     setNextPiece(bagGenRef.current.next());
   }, [rng]);
+
+  useEffect(() => {
+    pieceColorsRef.current = pieceColors;
+    bagGenRef.current.setColors(pieceColors);
+
+    setPiece((prev) =>
+      prev ? { ...prev, color: resolvePieceColor(prev.type, prev.color) } : prev
+    );
+    setNextPiece((prev) =>
+      prev ? { ...prev, color: resolvePieceColor(prev.type, prev.color) } : prev
+    );
+    setHoldPiece((prev) =>
+      prev ? { ...prev, color: resolvePieceColor(prev.type, prev.color) } : prev
+    );
+  }, [pieceColors]);
 
   useEffect(() => {
     setBaseSpeedMs(speed);
@@ -539,7 +563,7 @@ const triggerBomb = useCallback(() => {
       if ((chaosMode || cursedMode) && rngRef.current() < (cursedMode ? 0.12 : 0.05)) {
         const keys = Object.keys(SHAPES);
         const key = keys[Math.floor(rngRef.current() * keys.length)];
-        const candidate = createPieceFromKey(key);
+        const candidate = createPieceFromKey(key, pieceColorsRef.current);
         if (!checkCollision(board, candidate.shape, updated.x, updated.y)) {
           updated = { ...updated, shape: candidate.shape, color: candidate.color, type: key };
         }

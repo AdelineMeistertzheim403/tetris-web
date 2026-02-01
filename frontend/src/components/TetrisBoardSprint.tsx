@@ -6,6 +6,7 @@ import StatCard from "./StatCard";
 import GameLayout from "./GameLayout";
 import { getScoreRunToken, saveScore } from "../services/scoreService";
 import { useAuth } from "../context/AuthContext";
+import { useSettings } from "../context/SettingsContext";
 import { useTetrisGame } from "../hooks/useTetrisGame";
 import { useAchievements } from "../hooks/useAchievements";
 import { useLineClearFx } from "../hooks/useLineClearFx";
@@ -19,6 +20,7 @@ const TARGET_LINES = 40;
 export default function TetrisBoardSprint() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { user } = useAuth();
+  const { settings } = useSettings();
   const { checkAchievements, updateStats } = useAchievements();
   const [countdown, setCountdown] = useState<number | null>(3);
   const visitedRef = useRef(false);
@@ -45,6 +47,7 @@ export default function TetrisBoardSprint() {
   const { state, actions } = useTetrisGame({
     mode: "SPRINT",
     targetLines: TARGET_LINES,
+    pieceColors: settings.pieceColors,
     onComplete: async (elapsedMs) => {
       if (!user) return;
       try {
@@ -258,8 +261,8 @@ export default function TetrisBoardSprint() {
               width={COLS * CELL_SIZE}
               height={ROWS * CELL_SIZE}
               style={{
-                border: "2px solid #555",
-                background: "#111",
+                border: "2px solid var(--ui-board-border, #555)",
+                background: "var(--ui-board-bg, #111)",
                 boxShadow: "0 0 20px rgba(0,0,0,0.8)",
               }}
             />
@@ -284,7 +287,7 @@ export default function TetrisBoardSprint() {
               flexDirection: "column",
               alignItems: "center",
               gap: "20px",
-              background: "#1c1c1c",
+              background: "var(--ui-panel-bg, #1c1c1c)",
               borderRadius: "10px",
               padding: "20px 30px",
               boxShadow: "0 0 15px rgba(0,0,0,0.6)",
@@ -309,19 +312,21 @@ export default function TetrisBoardSprint() {
                 gap: "16px",
                 width: "100%",
                 paddingTop: "10px",
-                borderTop: "1px solid #333",
+                borderTop: "1px solid var(--ui-board-border, #333)",
               }}
             >
               <div style={{ textAlign: "center" }}>
-                <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+                <h3
+                  style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+                >
                   HOLD
                 </h3>
                 <div
                   style={{
                     width: PREVIEW_SIZE,
                     height: PREVIEW_SIZE,
-                    border: "2px solid #333",
-                    background: "#111",
+                    border: "2px solid var(--ui-board-border, #333)",
+                    background: "var(--ui-board-bg, #111)",
                     borderRadius: "6px",
                     display: "flex",
                     alignItems: "center",
@@ -333,15 +338,17 @@ export default function TetrisBoardSprint() {
               </div>
 
               <div style={{ textAlign: "center" }}>
-                <h3 style={{ marginBottom: "8px", fontSize: "0.9rem", color: "#bbbbbb" }}>
+                <h3
+                  style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+                >
                   NEXT
                 </h3>
                 <div
                   style={{
                     width: PREVIEW_SIZE,
                     height: PREVIEW_SIZE,
-                    border: "2px solid #333",
-                    background: "#111",
+                    border: "2px solid var(--ui-board-border, #333)",
+                    background: "var(--ui-board-bg, #111)",
                     borderRadius: "6px",
                     display: "flex",
                     alignItems: "center",
