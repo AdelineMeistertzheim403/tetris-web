@@ -1,4 +1,4 @@
-import type { GameMode } from "../types/GameMode";
+﻿import type { GameMode } from "../types/GameMode";
 
 export type AchievementGroup =
   | "GLOBAL"
@@ -27,7 +27,7 @@ export type AchievementCondition =
   | { type: "seed_used"; seed: string }
   | { type: "same_seed_runs"; count: number }
   | { type: "history_viewed"; count: number }
-  | { type: "custom"; key: string }; // pour les cas ultra spécifiques
+  | { type: "custom"; key: string }; // pour les cas ultra spÃ©cifiques
 
 export type Achievement = {
   id: string;
@@ -43,13 +43,13 @@ export type Achievement = {
 };
 
 export const ACHIEVEMENTS: Achievement[] = [
-  // ─────────────────────────────
-  // SUCCÈS GLOBAUX
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // SUCCÃˆS GLOBAUX
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "global-welcome",
     name: "Bienvenue",
-    description: "Créer un compte",
+    description: "CrÃ©er un compte",
     icon: "bienvenue",
     mode: "ALL",
     group: "GLOBAL",
@@ -57,8 +57,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "global-regular",
-    name: "Habitué",
-    description: "Se connecter 7 jours différents",
+    name: "HabituÃ©",
+    description: "Se connecter 7 jours diffÃ©rents",
     icon: "habitue",
     mode: "ALL",
     group: "GLOBAL",
@@ -67,7 +67,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "global-nolife",
     name: "No-Life",
-    description: "Se connecter 30 jours différents",
+    description: "Se connecter 30 jours diffÃ©rents",
     icon: "no_life",
     mode: "ALL",
     group: "GLOBAL",
@@ -76,7 +76,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "global-archivist",
     name: "Archiviste",
-    description: "Consulter l’historique 10 fois",
+    description: "Consulter lâ€™historique 10 fois",
     icon: "archiviste",
     mode: "ALL",
     group: "GLOBAL",
@@ -94,7 +94,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "global-perfectionist",
     name: "Perfectionniste",
-    description: "Débloquer 50% des succès",
+    description: "DÃ©bloquer 50% des succÃ¨s",
     icon: "perfectioniste",
     mode: "ALL",
     group: "GLOBAL",
@@ -102,21 +102,21 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "global-completionist",
-    name: "Complétionniste",
-    description: "Débloquer 100% des succès",
+    name: "ComplÃ©tionniste",
+    description: "DÃ©bloquer 100% des succÃ¨s",
     icon: "completioniste",
     mode: "ALL",
     group: "GLOBAL",
     condition: { type: "custom", key: "achievements_100_percent" },
   },
 
-  // ─────────────────────────────
-  // SUCCÈS TRANSVERSAUX
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // SUCCÃˆS TRANSVERSAUX
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "cross-first-tetris",
     name: "Premier Tetris",
-    description: "Réussir un Tetris (4 lignes)",
+    description: "RÃ©ussir un Tetris (4 lignes)",
     icon: "parfait",
     mode: "ALL",
     group: "CROSS",
@@ -125,7 +125,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "cross-combo-master",
     name: "Combo Master",
-    description: "5 clears consécutifs",
+    description: "5 lignes consécutives",
     icon: "combo_master",
     mode: "ALL",
     group: "CROSS",
@@ -151,8 +151,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "cross-reflexes",
-    name: "Réflexes",
-    description: "Hard Drop 50 pièces",
+    name: "RÃ©flexes",
+    description: "Hard Drop 50 piÃ¨ces",
     icon: "reflexes",
     mode: "ALL",
     group: "CROSS",
@@ -160,8 +160,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "cross-regular",
-    name: "Régulier",
-    description: "Atteindre le niveau 10 dans 3 modes différents",
+    name: "RÃ©gulier",
+    description: "Atteindre le niveau 10 dans 3 modes diffÃ©rents",
     icon: "cerveau_accelerer",
     mode: "ALL",
     group: "CROSS",
@@ -179,7 +179,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "cross-endurance",
     name: "Endurant",
-    description: "Jouer 1h cumulée",
+    description: "Jouer 1h cumulÃ©e",
     icon: "time_lord",
     mode: "ALL",
     group: "CROSS",
@@ -188,19 +188,19 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "cross-marathon",
     name: "Marathonien",
-    description: "Jouer 5h cumulées",
+    description: "Jouer 5h cumulÃ©es",
     icon: "immortel",
     mode: "ALL",
     group: "CROSS",
     condition: { type: "custom", key: "playtime_300m" },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // MODE CLASSIQUE
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "classic-level-5",
-    name: "Débutant Classique",
+    name: "DÃ©butant Classique",
     description: "Atteindre le niveau 5",
     icon: "debutant_classique",
     mode: "CLASSIQUE",
@@ -209,7 +209,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "classic-level-15",
-    name: "Confirmé Classique",
+    name: "ConfirmÃ© Classique",
     description: "Atteindre le niveau 15",
     icon: "confirme_classique",
     mode: "CLASSIQUE",
@@ -218,7 +218,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "classic-level-30",
-    name: "Maître Classique",
+    name: "MaÃ®tre Classique",
     description: "Atteindre le niveau 30",
     icon: "maitre_classique",
     mode: "CLASSIQUE",
@@ -228,7 +228,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "classic-half-board",
     name: "Gestionnaire",
-    description: "Atteindre le niveau 10 sans dépasser la moitié du plateau",
+    description: "Atteindre le niveau 10 sans dÃ©passer la moitiÃ© du plateau",
     icon: "mode_precision",
     mode: "CLASSIQUE",
     group: "CLASSIQUE",
@@ -253,12 +253,12 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "custom", key: "classic_tetris_10" },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // MODE SPRINT
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "sprint-finish",
-    name: "Pressé",
+    name: "PressÃ©",
     description: "Terminer un sprint",
     icon: "time_freeze",
     mode: "SPRINT",
@@ -285,7 +285,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "sprint-under-2",
-    name: "Éclair",
+    name: "Ã‰clair",
     description: "< 2 minutes",
     icon: "eclair",
     mode: "SPRINT",
@@ -294,7 +294,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "sprint-no-hold",
-    name: "Mémoire musculaire",
+    name: "MÃ©moire musculaire",
     description: "Sprint sans Hold",
     icon: "extra_hold",
     mode: "SPRINT",
@@ -302,9 +302,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "custom", key: "sprint_no_hold" },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // MODE VERSUS
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "versus-first",
     name: "Premier Duel",
@@ -316,7 +316,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "versus-10",
-    name: "Rivalité",
+    name: "RivalitÃ©",
     description: "Jouer 10 matchs",
     icon: "accro",
     mode: "VERSUS",
@@ -325,7 +325,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "versus-50",
-    name: "Vétéran",
+    name: "VÃ©tÃ©ran",
     description: "Jouer 50 matchs",
     icon: "sommet",
     mode: "VERSUS",
@@ -344,7 +344,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "versus-streak-5",
     name: "Dominateur",
-    description: "Gagner 5 matchs d’affilée",
+    description: "Gagner 5 matchs dâ€™affilÃ©e",
     icon: "sommet",
     mode: "VERSUS",
     group: "VERSUS",
@@ -369,9 +369,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "custom", key: "versus_lines_sent_20" },
   },
 
-  // ─────────────────────────────
-  // DÉCOUVERTE
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // DÃ‰COUVERTE
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "first-run",
     name: "Premier Pas",
@@ -391,9 +391,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "runs_played", count: 25 },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // SCORE
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "score-100k",
     name: "Scoreur",
@@ -413,9 +413,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "score_reached", score: 1_000_000 },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // PROGRESSION
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "level-10",
     name: "Toujours Plus Haut",
@@ -435,13 +435,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "level_reached", level: 30 },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // LIGNES
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "tetris",
     name: "Parfait",
-    description: "Clear 4 lignes d’un coup",
+    description: "Clear 4 lignes dâ€™un coup",
     icon: "parfait",
     mode: "ROGUELIKE",
     group: "ROGUELIKE",
@@ -457,12 +457,12 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "lines_cleared", lines: 300 },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // BOMBES
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "bomb-user",
-    name: "Démineur",
+    name: "DÃ©mineur",
     description: "Utiliser une bombe",
     icon: "demineur",
     mode: "ROGUELIKE",
@@ -479,12 +479,12 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "no_bomb_run" },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // PERKS & SYNERGIES
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "perk-collector",
-    name: "Chargé",
+    name: "ChargÃ©",
     description: "Avoir 5 perks actifs",
     icon: "charger",
     mode: "ROGUELIKE",
@@ -493,7 +493,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "synergy-engineer",
-    name: "Ingénieur",
+    name: "IngÃ©nieur",
     description: "Activer 3 synergies",
     icon: "ingenieur",
     mode: "ROGUELIKE",
@@ -502,7 +502,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "nuclear-core",
-    name: "Cœur Nucléaire",
+    name: "CÅ“ur NuclÃ©aire",
     description: "Activer la synergie Nuclear Core",
     icon: "coeur_nucleaire",
     mode: "ROGUELIKE",
@@ -510,9 +510,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "synergy_activated", id: "nuclear-core" },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // MUTATIONS
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "mutant",
     name: "Mutant",
@@ -523,9 +523,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "mutation_count", count: 5 },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // CHAOS
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "dance-with-chaos",
     name: "Danse avec le Chaos",
@@ -536,22 +536,22 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "chaos_mode_run" },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // SURVIE
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "second-chance",
     name: "Dernier Souffle",
-    description: "Survivre grâce à Second Chance",
+    description: "Survivre grÃ¢ce Ã  Second Chance",
     icon: "dernier_souffle",
     mode: "ROGUELIKE",
     group: "ROGUELIKE",
     condition: { type: "second_chance_used" },
   },
 
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // SECRETS
-  // ─────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "devil-seed",
     name: "Seed Maudite",
@@ -575,7 +575,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "loop",
     name: "Boucle Temporelle",
-    description: "Rejouer 3 fois la même seed",
+    description: "Rejouer 3 fois la mÃªme seed",
     icon: "loop",
     secret: true,
     mode: "ROGUELIKE",
@@ -584,8 +584,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "architect",
-    name: "L’Architecte",
-    description: "Même score exact dans 2 runs",
+    name: "Lâ€™Architecte",
+    description: "MÃªme score exact dans 2 runs",
     icon: "loop",
     secret: true,
     mode: "ALL",
@@ -593,3 +593,4 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "custom", key: "same_score_twice" },
   },
 ];
+
