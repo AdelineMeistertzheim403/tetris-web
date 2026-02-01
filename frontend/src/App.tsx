@@ -13,6 +13,7 @@ import Versus from "./pages/Versus";
 import RoguelikePage from "./pages/RoguelikePage";
 import RoguelikeLexicon from "./pages/RoguelikeLexicon";
 import AchievementsPage from "./pages/AchievementsPage";
+import Settings from "./pages/Settings";
 import { useAuth } from "./context/AuthContext";
 import { useAchievements } from "./hooks/useAchievements";
 
@@ -48,6 +49,7 @@ function App() {
       <Route path="/roguelike" element={<RoguelikePage />} />
       <Route path="/roguelike/lexique" element={<RoguelikeLexicon />} />
       <Route path="/achievements" element={<AchievementsPage />} />
+      <Route path="/settings" element={<Settings />} />
       </Routes>
     </>
   );

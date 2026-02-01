@@ -27,8 +27,8 @@ export default function StatCard({
       ) : null}
       <div
         style={{
-          background: "#000",
-          border: "2px solid #444",
+          background: "var(--ui-board-bg, #000)",
+          border: "2px solid var(--ui-board-border, #444)",
           borderRadius: "6px",
           padding: "12px",
           fontSize: "1.2rem",
