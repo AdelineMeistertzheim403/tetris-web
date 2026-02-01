@@ -35,6 +35,14 @@ onConsumeSecondChance?: () => void;
 const DEFAULT_ROWS = 20;
 const DEFAULT_COLS = 10;
 const DEFAULT_SPEED = 1000;
+const LINE_CLEAR_SCORES = [0, 100, 400, 900, 1600];
+const getLineClearScore = (linesCleared: number) => {
+  if (linesCleared <= 0) return 0;
+  if (linesCleared < LINE_CLEAR_SCORES.length) {
+    return LINE_CLEAR_SCORES[linesCleared];
+  }
+  return 100 * linesCleared * linesCleared;
+};
 type Explosion = {
   id: string;
   x: number;
@@ -330,7 +338,8 @@ const triggerBomb = useCallback(() => {
 
       if (linesCleared > 0) {
         if (onConsumeLines) onConsumeLines(linesCleared);
-        setScore((prev: number) => prev + linesCleared * 100 * scoreMultiplier);
+        const baseScore = getLineClearScore(linesCleared);
+        setScore((prev: number) => prev + baseScore * scoreMultiplier);
         setLines((prev: number) => {
           const total = prev + linesCleared;
           if (mode !== "SPRINT") {

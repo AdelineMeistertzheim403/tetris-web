@@ -13,16 +13,18 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <div style={{ width: "100%", textAlign: "center" }}>
-      <h3
-        style={{
-          marginBottom: "8px",
-          fontSize: "1rem",
-          letterSpacing: "1px",
-          color: accentColor,
-        }}
-      >
-        {label}
-      </h3>
+      {label ? (
+        <h3
+          style={{
+            marginBottom: "8px",
+            fontSize: "1rem",
+            letterSpacing: "1px",
+            color: accentColor,
+          }}
+        >
+          {label}
+        </h3>
+      ) : null}
       <div
         style={{
           background: "#000",

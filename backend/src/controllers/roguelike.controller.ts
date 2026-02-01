@@ -65,6 +65,57 @@ function hasMutation(value: Prisma.JsonValue, id: string): boolean {
   });
 }
 
+type LineClears = {
+  single: number;
+  double: number;
+  triple: number;
+  tetris: number;
+};
+
+const EMPTY_LINE_CLEARS: LineClears = {
+  single: 0,
+  double: 0,
+  triple: 0,
+  tetris: 0,
+};
+
+function getLineClears(value: Prisma.JsonValue): LineClears {
+  const obj = getJsonObject(value);
+  if (!obj) return { ...EMPTY_LINE_CLEARS };
+  const raw = obj["lineClears"];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ...EMPTY_LINE_CLEARS };
+  const record = raw as Record<string, unknown>;
+  const read = (key: keyof LineClears) => {
+    const num = record[key];
+    if (typeof num !== "number" || !Number.isFinite(num)) return 0;
+    return Math.max(0, Math.floor(num));
+  };
+  return {
+    single: read("single"),
+    double: read("double"),
+    triple: read("triple"),
+    tetris: read("tetris"),
+  };
+}
+
+function computeLinesFromClears(lineClears: LineClears): number {
+  return (
+    lineClears.single +
+    lineClears.double * 2 +
+    lineClears.triple * 3 +
+    lineClears.tetris * 4
+  );
+}
+
+function computeLineClearScore(lineClears: LineClears): number {
+  return (
+    lineClears.single * 100 +
+    lineClears.double * 400 +
+    lineClears.triple * 900 +
+    lineClears.tetris * 1600
+  );
+}
+
 export async function getMyRoguelikeRuns(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
@@ -111,7 +162,11 @@ export async function startRoguelikeRun(req: AuthRequest, res: Response) {
     }
 
     const baseState = parsed.data.state ?? {};
-    const statePayload: Prisma.InputJsonValue = { ...baseState, bombsUsed: 0 };
+    const statePayload: Prisma.InputJsonValue = {
+      ...baseState,
+      bombsUsed: 0,
+      lineClears: { ...EMPTY_LINE_CLEARS },
+    };
     const payloadSize = Buffer.byteLength(JSON.stringify(statePayload), "utf8");
     if (payloadSize > MAX_STATE_BYTES) {
       return res.status(413).json({ error: "Etat trop volumineux" });
@@ -215,6 +270,7 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       lines,
       perks,
       mutations,
+      lineClears,
       bombs,
       bombsUsed,
       timeFreezeCharges,
@@ -225,7 +281,20 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
 
     const storedBombsUsed = getJsonNumber(run.state, "bombsUsed") ?? 0;
     const safeBombsUsed = Math.max(storedBombsUsed, bombsUsed);
-    const nextState = { ...(getJsonObject(run.state) ?? {}), bombsUsed: safeBombsUsed };
+    const storedLineClears = getLineClears(run.state);
+    const safeLineClears = lineClears
+      ? {
+          single: Math.max(storedLineClears.single, lineClears.single),
+          double: Math.max(storedLineClears.double, lineClears.double),
+          triple: Math.max(storedLineClears.triple, lineClears.triple),
+          tetris: Math.max(storedLineClears.tetris, lineClears.tetris),
+        }
+      : storedLineClears;
+    const nextState = {
+      ...(getJsonObject(run.state) ?? {}),
+      bombsUsed: safeBombsUsed,
+      lineClears: safeLineClears,
+    };
     const hasZeroBombBoost = mutations.some((mutation) =>
       mutation.id === "final-protocol" || mutation.id === "protocole_final"
     );
@@ -233,11 +302,19 @@ export async function checkpointRoguelikeRun(req: AuthRequest, res: Response) {
       scoreMultiplier * (hasZeroBombBoost && bombs === 0 ? 2 : 1);
 
     // Recalcul server-side pour éviter la triche : score et niveau dérivés des lignes
-    const safeLines = Math.max(run.lines, lines);
+    const totalLinesFromClears = computeLinesFromClears(safeLineClears);
+    const safeLines = Math.max(run.lines, lines, totalLinesFromClears);
     const deltaLines = Math.max(0, safeLines - run.lines);
-    const increment = BigInt(
-      Math.round(deltaLines * 100 * effectiveScoreMultiplier)
-    );
+    const deltaLineClears = {
+      single: safeLineClears.single - storedLineClears.single,
+      double: safeLineClears.double - storedLineClears.double,
+      triple: safeLineClears.triple - storedLineClears.triple,
+      tetris: safeLineClears.tetris - storedLineClears.tetris,
+    };
+    const baseScore = lineClears
+      ? computeLineClearScore(deltaLineClears)
+      : deltaLines * 100;
+    const increment = BigInt(Math.round(baseScore * effectiveScoreMultiplier));
     const computedScore = clampBigInt(run.score + increment);
     const computedLevel = Math.max(1, Math.floor(safeLines / 10) + 1);
 
