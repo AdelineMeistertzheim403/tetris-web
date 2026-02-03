@@ -1,21 +1,21 @@
 import { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Game from "./pages/Game";
-import Leaderboard from "./pages/Leaderboard";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Home from "./pages/Home";
-import Sprint from "./pages/Sprint";
-import Versus from "./pages/Versus";
-import RoguelikePage from "./pages/RoguelikePage";
-import RoguelikeLexicon from "./pages/RoguelikeLexicon";
-import AchievementsPage from "./pages/AchievementsPage";
-import Settings from "./pages/Settings";
-import { useAuth } from "./context/AuthContext";
-import { useAchievements } from "./hooks/useAchievements";
+import Navbar from "./features/app/components/Navbar";
+import Login from "./features/auth/pages/Login";
+import Register from "./features/auth/pages/Register";
+import Dashboard from "./features/app/pages/Dashboard";
+import Game from "./features/game/pages/Game";
+import Leaderboard from "./features/game/pages/Leaderboard";
+import ProtectedRoute from "./features/auth/components/ProtectedRoute";
+import Home from "./features/app/pages/Home";
+import Sprint from "./features/game/pages/Sprint";
+import Versus from "./features/versus/pages/Versus";
+import RoguelikePage from "./features/roguelike/pages/RoguelikePage";
+import RoguelikeLexicon from "./features/roguelike/pages/RoguelikeLexicon";
+import AchievementsPage from "./features/achievements/pages/AchievementsPage";
+import Settings from "./features/settings/pages/Settings";
+import { useAuth } from "./features/auth/context/AuthContext";
+import { useAchievements } from "./features/achievements/hooks/useAchievements";
 
 function App() {
   const { user } = useAuth();
