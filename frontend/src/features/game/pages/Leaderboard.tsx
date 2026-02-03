@@ -20,19 +20,22 @@ type VersusRow = {
 };
 
 export default function Leaderboard() {
+  // Ce leaderboard agrège plusieurs modes, d'où le format de ligne variable.
   const [scores, setScores] = useState<Array<LeaderboardEntry | VersusRow>>([]);
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔁 Rechargement quand le mode change
+  // Rechargement quand le mode change.
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
         setLoading(true);
         setError(null);
-        setScores([]); // évite de mapper d'anciennes données d'un autre mode
-        const data = await getLeaderboard(mode); // ✅ on lui passe le mode
+        // Évite de mapper d'anciennes données d'un autre mode.
+        setScores([]);
+        // Le backend renvoie un format spécifique selon le mode.
+        const data = await getLeaderboard(mode);
         setScores(data);
       } catch (err) {
         console.error(err);

@@ -173,7 +173,8 @@ export default function TetrisBoard({
     setTimeout(() => setBombFlash(false), 120);
   },
   rng,
-   onGameOver: async (score, level, lines) => {
+  onGameOver: async (score, level, lines) => {
+    // En mode classique/sprint/etc., on enregistre le score (pas en roguelike).
   if (onLocalGameOver) onLocalGameOver(score, lines);
 
   if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return; // ✅ garde-fou TS + skip rogue

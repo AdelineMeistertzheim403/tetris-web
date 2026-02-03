@@ -9,6 +9,7 @@ export default function RoguelikeLeaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Récupération du top 20 depuis l'API roguelike.
     let mounted = true;
     (async () => {
       try {

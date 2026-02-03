@@ -12,6 +12,7 @@ export default function Navbar() {
                  border-y-4 border-pink-500
                  font-retro uppercase tracking-wider"
     >
+      {/* Navigation conditionnelle: certaines routes sont réservées aux utilisateurs connectés. */}
       {/* 🔹 Logo */}
       <img
         src="/tetris-roguelike-logo.svg"

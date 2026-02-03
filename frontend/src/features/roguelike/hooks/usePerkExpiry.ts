@@ -8,8 +8,10 @@ type Params = {
 
 export function usePerkExpiry({ selectingPerk, setActivePerks }: Params) {
   useEffect(() => {
+    // On gèle l'expiration pendant les écrans de sélection.
     if (selectingPerk) return;
 
+    // Nettoie régulièrement les perks temporaires.
     const interval = setInterval(() => {
       const now = Date.now();
       setActivePerks((prev) => prev.filter((p) => !p.expiresAt || p.expiresAt > now));

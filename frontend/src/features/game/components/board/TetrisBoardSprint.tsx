@@ -24,6 +24,7 @@ export default function TetrisBoardSprint() {
   const { checkAchievements, updateStats } = useAchievements();
   const [countdown, setCountdown] = useState<number | null>(3);
   const visitedRef = useRef(false);
+  // Refs pour stats/achievements sans re-render.
   const holdCountRef = useRef(0);
   const hardDropCountRef = useRef(0);
   const comboStreakRef = useRef(0);
@@ -33,6 +34,7 @@ export default function TetrisBoardSprint() {
   const { effects: lineClearFx, tetrisFlash, trigger: triggerLineClearFx } = useLineClearFx();
 
   const resetRunTracking = () => {
+    // Réinitialise les compteurs spécifiques à la run.
     holdCountRef.current = 0;
     hardDropCountRef.current = 0;
     comboStreakRef.current = 0;
@@ -49,6 +51,7 @@ export default function TetrisBoardSprint() {
     targetLines: TARGET_LINES,
     pieceColors: settings.pieceColors,
     onComplete: async (elapsedMs) => {
+      // Enregistrement du score Sprint (temps en secondes).
       if (!user) return;
       try {
         const runToken = await getScoreRunToken("SPRINT");
@@ -64,6 +67,7 @@ export default function TetrisBoardSprint() {
       }
     },
     onLinesCleared: (linesCleared, clearedRows) => {
+      // FX visuels + comptage des combos/tetris pour succès.
       if (linesCleared > 0) {
         triggerLineClearFx(linesCleared, clearedRows ?? []);
       }
@@ -108,6 +112,7 @@ export default function TetrisBoardSprint() {
   });
 
   useEffect(() => {
+    // Marque le mode Sprint comme "visité".
     if (visitedRef.current) return;
     visitedRef.current = true;
     const next = updateStats((prev) => ({
@@ -120,6 +125,7 @@ export default function TetrisBoardSprint() {
   }, [checkAchievements, updateStats]);
 
   useEffect(() => {
+    // Rendu canvas: board + ghost + pièce active.
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
 
@@ -173,6 +179,7 @@ export default function TetrisBoardSprint() {
   }, [board, piece, ghostPiece]);
 
   useEffect(() => {
+    // Compte à rebours initial avant de démarrer la boucle de jeu.
     if (countdown === null) return;
     if (countdown < 0) {
       setCountdown(null);
@@ -188,6 +195,7 @@ export default function TetrisBoardSprint() {
   }, [countdown, start]);
 
   useEffect(() => {
+    // Nouvelle partie: reset moteur + compteurs.
     reset();
     setCountdown(3);
     resetRunTracking();
@@ -201,6 +209,7 @@ export default function TetrisBoardSprint() {
   }, [countdown, running, gameOver, completed, start]);
 
   const finalizeRun = (completedRun: boolean, durationMs: number) => {
+    // Empêche le double-enregistrement si plusieurs triggers arrivent.
     if (finalizedRef.current) return;
     finalizedRef.current = true;
 

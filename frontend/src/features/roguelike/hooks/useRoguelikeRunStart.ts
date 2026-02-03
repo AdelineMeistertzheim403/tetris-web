@@ -29,6 +29,7 @@ export function useRoguelikeRunStart({
   setBoardKey,
 }: Params) {
   useEffect(() => {
+    // Démarre exactement une fois par run/seed, même si le composant re-render.
     if (!hasActiveRun && !runEnded && !runStartedRef.current) {
       runStartedRef.current = true;
       const trimmedSeed = initialSeed?.trim();

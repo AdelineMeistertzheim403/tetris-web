@@ -4,6 +4,7 @@ import { useAchievements } from "../../achievements/hooks/useAchievements";
 
 export default function Game() {
   const { checkAchievements, updateStats } = useAchievements();
+  // Refs pour tracker la run sans déclencher de re-render.
   const startTimeRef = useRef<number | null>(null);
   const holdCountRef = useRef(0);
   const hardDropCountRef = useRef(0);
@@ -15,6 +16,7 @@ export default function Game() {
   const visitedRef = useRef(false);
 
   const resetRunTracking = () => {
+    // Remise à zéro des compteurs de run.
     holdCountRef.current = 0;
     hardDropCountRef.current = 0;
     comboStreakRef.current = 0;
@@ -28,6 +30,7 @@ export default function Game() {
     Object.values(values).filter(Boolean).length;
 
   useEffect(() => {
+    // Enregistre la visite du mode pour les succès globaux.
     if (visitedRef.current) return;
     visitedRef.current = true;
     const next = updateStats((prev) => ({
@@ -44,6 +47,7 @@ export default function Game() {
       <TetrisBoard
         mode="CLASSIQUE"
         onGameStart={() => {
+          // Démarrage d'une run classique.
           resetRunTracking();
           startTimeRef.current = Date.now();
         }}
@@ -54,6 +58,7 @@ export default function Game() {
           hardDropCountRef.current += 1;
         }}
         onLinesCleared={(linesCleared) => {
+          // Comptage des combos et des tetris pour les succès.
           if (linesCleared > 0) {
             comboStreakRef.current += linesCleared;
             if (comboStreakRef.current > maxComboRef.current) {
@@ -67,6 +72,7 @@ export default function Game() {
           }
         }}
         onBoardUpdate={(board) => {
+          // Détecte la hauteur max pour les succès "demi plateau".
           const rows = board.length;
           let topFilled = rows;
           for (let y = 0; y < rows; y += 1) {
@@ -81,6 +87,7 @@ export default function Game() {
           }
         }}
         onLevelChange={(level) => {
+          // Vérifie certaines conditions de succès à partir du niveau.
           levelRef.current = level;
           if (level >= 10 && maxStackHeightRef.current <= 10) {
             checkAchievements({
@@ -90,6 +97,7 @@ export default function Game() {
           }
         }}
         onLocalGameOver={(score, lines) => {
+          // Consolidation des stats + déclenchement des succès en fin de run.
           const now = Date.now();
           const durationMs = startTimeRef.current ? now - startTimeRef.current : 0;
           const noHold = holdCountRef.current === 0;

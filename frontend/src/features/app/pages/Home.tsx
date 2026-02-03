@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 export default function Home() {
+  // Page d'accueil publique (avant authentification).
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] text-center">
       <h1 className="text-4xl md:text-5xl mb-6 text-pink-400 drop-shadow-[0_0_15px_#ff00ff]">

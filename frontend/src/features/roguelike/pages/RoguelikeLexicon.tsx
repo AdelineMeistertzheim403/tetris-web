@@ -23,6 +23,7 @@ const perkIconMap: Record<string, string> = {
   "last-stand": "/last_stand.png",
 };
 
+// Détermine si une synergie est active à partir d'une liste de perks.
 function isSynergyActive(perks: string[], synergy: Synergy) {
   const count = synergy.requiredPerks.filter((perkId) => perks.includes(perkId)).length;
   const min = synergy.minCount ?? synergy.requiredPerks.length;
@@ -35,6 +36,7 @@ export default function RoguelikeLexicon() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Charge l'historique pour reconstituer les éléments déjà "découverts".
     let mounted = true;
     (async () => {
       try {
@@ -52,6 +54,7 @@ export default function RoguelikeLexicon() {
   }, []);
 
   const { unlockedPerks, unlockedMutations, unlockedSynergies } = useMemo(() => {
+    // On reconstruit l'état "débloqué" à partir des runs enregistrées.
     const perkSet = new Set<string>();
     const mutationSet = new Set<string>();
     const synergySet = new Set<string>();

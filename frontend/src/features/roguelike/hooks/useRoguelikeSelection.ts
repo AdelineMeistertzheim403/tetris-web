@@ -14,8 +14,8 @@ type Params = {
   activeMutations: ActiveMutationRuntime[];
   autoSeededMode: boolean;
   rngRef: React.MutableRefObject<(() => number) | null>;
-  perkChoices: Perk[];
-  mutationChoices: Mutation[];
+  perkChoices?: Perk[];
+  mutationChoices?: Mutation[];
   setPerkChoices: React.Dispatch<React.SetStateAction<Perk[]>>;
   setMutationChoices: React.Dispatch<React.SetStateAction<Mutation[]>>;
   setSelectingPerk: React.Dispatch<React.SetStateAction<boolean>>;
@@ -41,10 +41,13 @@ export function useRoguelikeSelection({
   useEffect(() => {
     if (!selectingPerk) return;
 
+    // Évite de régénérer les choix à chaque render ; calcule seulement si la liste est vide.
     const rng = rngRef.current ?? Math.random;
+    const safePerkChoices = perkChoices ?? [];
+    const safeMutationChoices = mutationChoices ?? [];
 
     if (selectionType === "mutation") {
-      if (mutationChoices.length > 0) return;
+      if (safeMutationChoices.length > 0) return;
       const choices = generateMutationChoices(MUTATIONS, 3, activeMutations, rng);
       if (choices.length === 0) {
         setSelectingPerk(false);
@@ -58,7 +61,7 @@ export function useRoguelikeSelection({
       return;
     }
 
-    if (perkChoices.length > 0) return;
+    if (safePerkChoices.length > 0) return;
     const choices = generatePerkChoices(
       ALL_PERKS,
       3,

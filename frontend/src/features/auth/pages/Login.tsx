@@ -10,14 +10,15 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { setUser } = useAuth(); // ✅ accès au contexte
+  const { setUser } = useAuth(); // accès au contexte auth global
   const { checkAchievements, updateStats } = useAchievements();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const loggedUser = await login(email, password); // 🔹 récupère le user
-      setUser(loggedUser); // ✅ met à jour le contexte global
+      // Auth + mise à jour du contexte global.
+      const loggedUser = await login(email, password);
+      setUser(loggedUser);
       const today = new Date().toISOString().slice(0, 10);
       const next = updateStats((prev) => {
         const uniqueDays = new Set(prev.loginDays);
@@ -33,9 +34,8 @@ export default function Login() {
           login_days_30: next.loginDays.length >= 30,
         },
       });
-      saveAchievementStats(next.loginDays).catch(() => {
-        // silent fallback to localStorage
-      });
+      // Persiste les login days côté backend, fallback silencieux en local.
+      saveAchievementStats(next.loginDays).catch(() => {});
       navigate("/dashboard");
     } catch (err) {
       setError("Email ou mot de passe invalide");

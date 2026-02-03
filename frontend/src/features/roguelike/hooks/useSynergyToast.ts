@@ -27,6 +27,7 @@ export function useSynergyToast({
   const [synergyToast, setSynergyToast] = useState<Synergy | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Applique les effets de synergie et déclenche un toast visuel à l'activation.
   useSynergies(
     activePerks.map((p) => p.id),
     {
@@ -39,6 +40,7 @@ export function useSynergyToast({
       setBombRadius,
     },
     (synergy) => {
+      // Le toast se ferme automatiquement, en remplaçant tout toast en cours.
       setSynergyToast(synergy);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -48,6 +50,7 @@ export function useSynergyToast({
   );
 
   useEffect(() => {
+    // Nettoyage des timeouts au démontage pour éviter les fuites.
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);

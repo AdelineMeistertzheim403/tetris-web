@@ -78,6 +78,7 @@ export type RoguelikeLeaderboardItem = {
 /* 🚀 Démarrer une run */
 /* ───────────────────────────── */
 export async function startRoguelikeRun(seed: string, state: RoguelikeInitialState): Promise<RoguelikeRunStateServer> {
+  // Le runToken renvoyé sert à sécuriser les checkpoints côté backend.
 
   const res = await fetch(`${API_URL}/roguelike/run/start`, {
     method: "POST",
@@ -119,6 +120,7 @@ export async function checkpointRoguelikeRun(
   payload: RoguelikeCheckpointPayload,
   runToken: string
 ): Promise<{ success: boolean; score?: string; lines?: number; level?: number }> {
+  // Le header X-Run-Token évite les sauvegardes frauduleuses.
 
   const res = await fetch(`${API_URL}/roguelike/run/${runId}/checkpoint`, {
     method: "POST",
@@ -156,6 +158,7 @@ export async function endRoguelikeRun(
   status: "FINISHED" | "ABANDONED",
   runToken: string
 ): Promise<{ success: boolean }> {
+  // Clôture la run (succès ou abandon) côté backend.
 
   const res = await fetch(`${API_URL}/roguelike/run/${runId}/end`, {
     method: "POST",

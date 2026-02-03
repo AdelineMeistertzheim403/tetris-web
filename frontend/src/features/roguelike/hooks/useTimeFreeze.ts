@@ -23,6 +23,7 @@ export function useTimeFreeze({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerTimeFreeze = useCallback(() => {
+    // Garde-fou : pas de charge ou déjà gelé.
     if (timeFreezeCharges <= 0 || timeFrozen) return;
 
     setTimeFreezeCharges((v) => v - 1 + (timeFreezeEcho ? 1 : 0));
@@ -41,6 +42,7 @@ export function useTimeFreeze({
       )
     );
 
+    // Dégel après la durée ; timer nettoyé au unmount.
     timeoutRef.current = setTimeout(() => {
       setTimeFrozen(false);
     }, timeFreezeDuration);

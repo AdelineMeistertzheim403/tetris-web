@@ -1,5 +1,6 @@
 import type { GameMode } from "../types/GameMode";
 
+// API base URL fourni par Vite (env). Centralise toutes les routes score.
 const API_URL = import.meta.env.VITE_API_URL;
 
 export type VersusMatchPayload = {
@@ -13,6 +14,7 @@ export type VersusMatchPayload = {
   }>;
 };
 
+// Récupère un runToken côté backend pour sécuriser la soumission des scores.
 export async function getScoreRunToken(mode: GameMode, matchId?: string) {
   const res = await fetch(`${API_URL}/scores/token`, {
     method: "POST",
@@ -28,7 +30,7 @@ export async function getScoreRunToken(mode: GameMode, matchId?: string) {
   return data.runToken as string;
 }
 
-// ✅ Ajouter un score
+// Ajoute un score “classique” (hors sprint qui utilise saveScore).
 export async function addScore(
   value: number,
   level: number,
@@ -50,7 +52,7 @@ export async function addScore(
   return res.json();
 }
 
-// ✅ Récupérer mes scores
+// Récupère les scores du joueur courant pour un mode donné.
 export async function getMyScores(mode: GameMode = "CLASSIQUE") {
   const res = await fetch(`${API_URL}/scores/me/${mode}`, {
     credentials: "include",
@@ -59,6 +61,7 @@ export async function getMyScores(mode: GameMode = "CLASSIQUE") {
   return res.json();
 }
 
+// Enregistre un score complet (utilisé en sprint/versus avec runToken).
 export async function saveScore(
   scoreData: {
     userId: number;
@@ -83,13 +86,14 @@ export async function saveScore(
   return res.json();
 }
 
-// ✅ Récupérer le classement
+// Récupère le leaderboard pour un mode.
 export async function getLeaderboard(mode: GameMode = "CLASSIQUE") {
   const res = await fetch(`${API_URL}/scores/leaderboard/${mode}`);
   if (!res.ok) throw new Error("Erreur de récupération du classement");
   return res.json();
 }
 
+// Sauvegarde un match Versus (payload multi-joueurs).
 export async function saveVersusMatch(payload: VersusMatchPayload) {
   const res = await fetch(`${API_URL}/scores/versus-match`, {
     method: "POST",

@@ -19,18 +19,21 @@ export function useLineClearFx() {
   const reducedMotionRef = useRef(settings.reducedMotion);
 
   const clearTimers = useCallback(() => {
+    // Nettoie toutes les animations en cours.
     timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
     timeoutsRef.current = [];
   }, []);
 
   const trigger = useCallback(
     (count: number, rows: number[] = []) => {
+      // Déclenche un FX visuel par ligne clear (désactivé si reduced motion).
       if (count <= 0) return;
       if (reducedMotionRef.current) return;
 
       const id = `${Date.now()}-${Math.random()}`;
       const duration = BASE_DURATION_MS + count * PER_LINE_DURATION_MS;
 
+      // On garde uniquement les derniers FX pour éviter un empilement infini.
       setEffects((prev) => [...prev, { id, rows, count }].slice(-MAX_EFFECTS));
 
       const clearTimeoutId = setTimeout(() => {
@@ -39,6 +42,7 @@ export function useLineClearFx() {
       timeoutsRef.current.push(clearTimeoutId);
 
       if (count >= 4) {
+        // Effet flash spécifique aux tetris.
         setTetrisFlash(true);
         const flashTimeoutId = setTimeout(() => setTetrisFlash(false), duration);
         timeoutsRef.current.push(flashTimeoutId);
@@ -48,6 +52,7 @@ export function useLineClearFx() {
   );
 
   useEffect(() => {
+    // Synchronise reduced motion et annule les FX actifs si nécessaire.
     reducedMotionRef.current = settings.reducedMotion;
     if (settings.reducedMotion) {
       clearTimers();

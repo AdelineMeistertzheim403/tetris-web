@@ -36,7 +36,7 @@ const mutationMetaMap = MUTATIONS.reduce<Record<string, { name: string; icon: st
   {}
 );
 
-
+// Calcule une durée lisible à partir des timestamps backend.
 function formatDuration(run: RoguelikeRunHistoryItem) {
   if (!run.endedAt) return null;
   const diff = new Date(run.endedAt).getTime() - new Date(run.createdAt).getTime();
@@ -76,6 +76,7 @@ export default function RoguelikeHistory() {
   const [page, setPage] = useState(0);
 
   useEffect(() => {
+    // Chargement initial de l'historique (une seule fois côté UI).
     let mounted = true;
     (async () => {
       try {
@@ -93,6 +94,7 @@ export default function RoguelikeHistory() {
   }, []);
 
   useEffect(() => {
+    // Tracking "vue d'historique" pour les succès de progression.
     const next = updateStats((prev) => ({
       ...prev,
       historyViewedCount: prev.historyViewedCount + 1,
@@ -101,12 +103,14 @@ export default function RoguelikeHistory() {
   }, [checkAchievements, updateStats]);
 
   useEffect(() => {
+    // Sécurité : si la page dépasse le nombre de runs (après refresh), on revient au début.
     if (page >= runs.length) {
       setPage(0);
     }
   }, [runs, page]);
 
   const synergiesByRun = useMemo(() => {
+    // Pré-calcul des synergies actives par run pour l'affichage.
     return runs.map((run) => {
       const perkSet = new Set(run.perks);
       return SYNERGIES.filter((s) => s.requiredPerks.every((p) => perkSet.has(p)));
