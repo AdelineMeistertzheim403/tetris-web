@@ -55,6 +55,14 @@ type AchievementStats = {
   versusWinStreak: number;
   versusLinesSent: number;
   lastScore: number | null;
+  puzzleCompletedIds: string[];
+  puzzleOptimalCount: number;
+  puzzleNoHoldCount: number;
+  puzzleSurviveCount: number;
+  puzzleFreeZonesTotal: number;
+  puzzleLinesTotal: number;
+  puzzleWinStreak: number;
+  puzzleAttemptsById: Record<string, number>;
 };
 
 // Persistance locale des achievements + stats pour éviter un fetch constant.
@@ -71,18 +79,21 @@ const DEFAULT_STATS: AchievementStats = {
     SPRINT: false,
     VERSUS: false,
     ROGUELIKE: false,
+    PUZZLE: false,
   },
   level10Modes: {
     CLASSIQUE: false,
     SPRINT: false,
     VERSUS: false,
     ROGUELIKE: false,
+    PUZZLE: false,
   },
   scoredModes: {
     CLASSIQUE: false,
     SPRINT: false,
     VERSUS: false,
     ROGUELIKE: false,
+    PUZZLE: false,
   },
   playtimeMs: 0,
   noHoldRuns: 0,
@@ -92,6 +103,14 @@ const DEFAULT_STATS: AchievementStats = {
   versusWinStreak: 0,
   versusLinesSent: 0,
   lastScore: null,
+  puzzleCompletedIds: [],
+  puzzleOptimalCount: 0,
+  puzzleNoHoldCount: 0,
+  puzzleSurviveCount: 0,
+  puzzleFreeZonesTotal: 0,
+  puzzleLinesTotal: 0,
+  puzzleWinStreak: 0,
+  puzzleAttemptsById: {},
 };
 
 const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => {
@@ -103,6 +122,11 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
     modesVisited: { ...DEFAULT_STATS.modesVisited, ...(raw.modesVisited ?? {}) },
     level10Modes: { ...DEFAULT_STATS.level10Modes, ...(raw.level10Modes ?? {}) },
     scoredModes: { ...DEFAULT_STATS.scoredModes, ...(raw.scoredModes ?? {}) },
+    puzzleCompletedIds: raw.puzzleCompletedIds ?? DEFAULT_STATS.puzzleCompletedIds,
+    puzzleAttemptsById: {
+      ...DEFAULT_STATS.puzzleAttemptsById,
+      ...(raw.puzzleAttemptsById ?? {}),
+    },
   };
 };
 
@@ -170,7 +194,15 @@ export function useAchievements() {
       a.versusWins === b.versusWins &&
       a.versusWinStreak === b.versusWinStreak &&
       a.versusLinesSent === b.versusLinesSent &&
-      a.lastScore === b.lastScore
+      a.lastScore === b.lastScore &&
+      areArraysEqual(a.puzzleCompletedIds, b.puzzleCompletedIds) &&
+      a.puzzleOptimalCount === b.puzzleOptimalCount &&
+      a.puzzleNoHoldCount === b.puzzleNoHoldCount &&
+      a.puzzleSurviveCount === b.puzzleSurviveCount &&
+      a.puzzleFreeZonesTotal === b.puzzleFreeZonesTotal &&
+      a.puzzleLinesTotal === b.puzzleLinesTotal &&
+      a.puzzleWinStreak === b.puzzleWinStreak &&
+      areRecordNumbersEqual(a.puzzleAttemptsById, b.puzzleAttemptsById)
     );
   };
 

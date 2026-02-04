@@ -28,7 +28,7 @@ jobs:
             # Ensure database is up for migrations
             docker compose -f docker-compose.prod.yml up -d db
             # Apply Prisma migrations
-            docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
+            docker compose -f docker-compose.prod.yml run --rm backend npm run prisma:migrate:deploy
             # Recreate the full stack
             export ADMINER_PORT=18081
             docker compose -f docker-compose.prod.yml down

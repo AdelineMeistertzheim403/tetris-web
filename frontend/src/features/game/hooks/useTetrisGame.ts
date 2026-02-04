@@ -17,6 +17,10 @@ type Options = {
    secondChance?: boolean;
 onConsumeSecondChance?: () => void;
   extraHold?: number;
+  initialBoard?: number[][];
+  fixedSequence?: string[];
+  onPieceLocked?: (payload: { board: number[][]; linesCleared: number; piece: Piece }) => void;
+  onSequenceEnd?: () => void;
   onGameOver?: (score: number, level: number, lines: number) => void;
   onComplete?: (elapsedMs: number) => void;
   targetLines?: number;
@@ -31,6 +35,7 @@ onConsumeSecondChance?: () => void;
   pieceColors?: Record<string, string>;
   rng?: RNG;
   onLinesCleared?: (linesCleared: number, clearedRows?: number[]) => void;
+  onInvalidMove?: (dir: "left" | "right" | "rotate") => void;
 };
 
 const DEFAULT_ROWS = 20;
@@ -76,6 +81,10 @@ export function useTetrisGame({
   onConsumeSecondChance,
   targetLines = 40,
   bagSequence,
+  initialBoard,
+  fixedSequence,
+  onPieceLocked,
+  onSequenceEnd,
   onBombExplode,
   onConsumeLines,
   incomingGarbage = 0,
@@ -90,6 +99,7 @@ export function useTetrisGame({
   pieceColors,
   rng,
   onLinesCleared,
+  onInvalidMove,
 }: Options & {
   bagSequence?: string[];
   onConsumeLines?: (lines: number) => void;
@@ -103,9 +113,22 @@ export function useTetrisGame({
   }
   const pieceColorsRef = useRef(pieceColors);
   const bagGenRef = useRef(createBagGenerator(rngRef.current, pieceColors));
-  const [board, setBoard] = useState<number[][]>(
-    Array.from({ length: rows }, () => Array(cols).fill(0))
+  const fixedQueueRef = useRef<string[] | null>(
+    fixedSequence && fixedSequence.length ? [...fixedSequence] : null
   );
+  const buildEmptyBoard = () =>
+    Array.from({ length: rows }, () => Array(cols).fill(0));
+  const normalizeBoard = (source?: number[][]) => {
+    const base = buildEmptyBoard();
+    if (!source || !source.length) return base;
+    return base.map((row, y) =>
+      row.map((_, x) => {
+        const value = source[y]?.[x];
+        return typeof value === "number" ? value : 0;
+      })
+    );
+  };
+  const [board, setBoard] = useState<number[][]>(() => normalizeBoard(initialBoard));
   const [piece, setPiece] = useState<Piece>(() => bagGenRef.current.next());
   const [nextPiece, setNextPiece] = useState<Piece>(() => bagGenRef.current.next());
   const [score, setScore] = useState(0);
@@ -127,6 +150,23 @@ export function useTetrisGame({
   const [lastStandAvailable, setLastStandAvailable] = useState(false);
   const [explosions, setExplosions] = useState<Explosion[]>([]);
 
+  const drawNextPiece = useCallback((): Piece | null => {
+    if (fixedQueueRef.current) {
+      const nextKey = fixedQueueRef.current.shift();
+      if (!nextKey) return null;
+      return createPieceFromKey(nextKey, pieceColorsRef.current);
+    }
+    return bagGenRef.current.next();
+  }, []);
+
+  const resetFixedQueue = useCallback((sequence?: string[]) => {
+    if (!sequence || !sequence.length) {
+      fixedQueueRef.current = null;
+      return;
+    }
+    fixedQueueRef.current = [...sequence];
+  }, []);
+
   const resolvePieceColor = (type: string, fallback: string) => {
     const palette = pieceColorsRef.current;
     if (!palette) return fallback;
@@ -142,6 +182,7 @@ export function useTetrisGame({
   const explosionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pendingBombsRef = useRef<number[]>([]);
   const chaosBombRef = useRef<number | null>(null);
+  const endAfterLockRef = useRef(false);
 
   const clearActivePiece = useCallback(
     (boardState: number[][], lockedPiece: Piece) => {
@@ -175,8 +216,18 @@ export function useTetrisGame({
   }, []);
 
   const spawnNewPiece = useCallback(() => {
-    setPiece(bagGenRef.current.next());
-    setNextPiece(bagGenRef.current.next());
+    const next = drawNextPiece();
+    const upcoming = drawNextPiece();
+    if (!next) {
+      setRunning(false);
+      setGameOver(true);
+      onSequenceEnd?.();
+      return;
+    }
+    setPiece(next);
+    if (upcoming) {
+      setNextPiece(upcoming);
+    }
     setGhostPiece(null);
     setCanHold(true);
     setHoldBonusLeft(extraHold);
@@ -198,7 +249,7 @@ export function useTetrisGame({
     } else {
       chaosBombRef.current = null;
     }
-  }, [extraHold, chaosMode, cursedMode]);
+  }, [drawNextPiece, extraHold, chaosMode, cursedMode, onSequenceEnd]);
 
 
   const addBomb = useCallback(() => {
@@ -221,6 +272,7 @@ const triggerBomb = useCallback(() => {
   // Si une séquence est injectée, on la concatène pour éviter un “trou” de tirage.
   useEffect(() => {
     if (bagSequence && bagSequence.length > 0) {
+      if (fixedQueueRef.current) return;
       bagGenRef.current.pushSequence([...bagSequence]);
       if (!running) {
         setPiece(bagGenRef.current.next());
@@ -232,11 +284,25 @@ const triggerBomb = useCallback(() => {
   useEffect(() => {
     // Si un RNG externe change (roguelike), on reconstruit le bag.
     if (!rng) return;
+    if (fixedQueueRef.current) return;
     rngRef.current = rng;
     bagGenRef.current = createBagGenerator(rngRef.current, pieceColorsRef.current);
     setPiece(bagGenRef.current.next());
     setNextPiece(bagGenRef.current.next());
   }, [rng]);
+
+  useEffect(() => {
+    if (!fixedSequence || fixedSequence.length === 0) return;
+    resetFixedQueue(fixedSequence);
+    const first = drawNextPiece();
+    const second = drawNextPiece();
+    if (first) setPiece(first);
+    if (second) {
+      setNextPiece(second);
+    } else if (first) {
+      setNextPiece(first);
+    }
+  }, [drawNextPiece, fixedSequence, resetFixedQueue]);
 
   useEffect(() => {
     // Les couleurs peuvent changer (settings), on rehydrate les pièces existantes.
@@ -370,6 +436,7 @@ const triggerBomb = useCallback(() => {
       const { newBoard, linesCleared, clearedRows } = clearFullLines(boardAfterGarbage);
 
       onLinesCleared?.(linesCleared, clearedRows);
+      onPieceLocked?.({ board: newBoard, linesCleared, piece: currentPiece });
 
       if (linesCleared > 0) {
         if (onConsumeLines) onConsumeLines(linesCleared);
@@ -398,7 +465,21 @@ const triggerBomb = useCallback(() => {
 
       setBoard(newBoard);
 
-      const newPiece = nextPiece ?? bagGenRef.current.next();
+      if (endAfterLockRef.current) {
+        endAfterLockRef.current = false;
+        setRunning(false);
+        setGameOver(true);
+        onSequenceEnd?.();
+        return;
+      }
+
+      const newPiece = nextPiece ?? drawNextPiece();
+      if (!newPiece) {
+        setRunning(false);
+        setGameOver(true);
+        onSequenceEnd?.();
+        return;
+      }
      if (checkCollision(newBoard, newPiece.shape, newPiece.x, newPiece.y)) {
   if (secondChance) {
     onConsumeSecondChance?.();
@@ -434,8 +515,15 @@ const triggerBomb = useCallback(() => {
       return;
     }
 
+      const upcomingPiece = drawNextPiece();
+      if (!upcomingPiece) {
+        endAfterLockRef.current = true;
+        setPiece(newPiece);
+        setNextPiece(newPiece);
+        return;
+      }
       setPiece(newPiece);
-      setNextPiece(bagGenRef.current.next());
+      setNextPiece(upcomingPiece);
       if (chaosMode || cursedMode) {
         const chance = cursedMode ? 0.25 : 0.12;
         const roll = rngRef.current();
@@ -455,7 +543,7 @@ const triggerBomb = useCallback(() => {
         chaosBombRef.current = null;
       }
     },
-    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece, chaosMode, cursedMode, onLinesCleared]
+    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece, chaosMode, cursedMode, onLinesCleared, onPieceLocked, drawNextPiece, onSequenceEnd]
   );
 
   // ----- Movement -----
@@ -475,9 +563,11 @@ const triggerBomb = useCallback(() => {
         setPiece({ ...piece, x: newX, y: newY, shape: newShape });
       } else if (dir === "down") {
         mergeAndNext(board, piece);
+      } else {
+        onInvalidMove?.(dir);
       }
     },
-    [board, gameOver, mergeAndNext, piece, running]
+    [board, gameOver, mergeAndNext, onInvalidMove, piece, running]
   );
 
   // Hard drop
@@ -621,10 +711,17 @@ const triggerBomb = useCallback(() => {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    setBoard(Array.from({ length: rows }, () => Array(cols).fill(0)));
+    setBoard(normalizeBoard(initialBoard));
     bagGenRef.current.reset();
-    setPiece(bagGenRef.current.next());
-    setNextPiece(bagGenRef.current.next());
+    resetFixedQueue(fixedSequence);
+    const first = drawNextPiece();
+    const second = drawNextPiece();
+    if (first) setPiece(first);
+    if (second) {
+      setNextPiece(second);
+    } else if (first) {
+      setNextPiece(first);
+    }
     setScore(0);
     setLines(0);
     setLevel(1);
@@ -648,7 +745,7 @@ const triggerBomb = useCallback(() => {
     chaosBombRef.current = null;
     explosionTimeoutsRef.current.forEach((id) => clearTimeout(id));
     explosionTimeoutsRef.current = [];
-  }, [cols, gravityMultiplier, rows, speed]);
+  }, [cols, drawNextPiece, fixedSequence, gravityMultiplier, initialBoard, resetFixedQueue, rows, speed]);
 
   const state = useMemo(
     () => ({
