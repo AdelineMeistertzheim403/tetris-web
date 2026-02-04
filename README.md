@@ -8,10 +8,29 @@ Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : clas
 - Infra : Docker/Docker Compose (dev & prod).
 
 ## Structure
-- `frontend/` : SPA (pages, composants, hooks de jeu, services API).
+- `frontend/` : SPA React/Vite (architecture feature-first).
 - `backend/` : API REST + WebSocket (`/ws`), Prisma, tests.
 - `docker-compose.dev.yml` / `docker-compose.prod.yml` : environnements complets (db + api + front).
 - `backend/prisma/schema.prisma` : modèles User, Score, VersusMatch, Achievement, UserAchievement, UserAchievementStats.
+
+## Architecture frontend (feature-first)
+Le front est organisé par domaine fonctionnel, chaque feature regroupe ses pages, composants et logique métier.
+
+- `frontend/src/features/` : un dossier par feature (`app`, `auth`, `achievements`, `game`, `versus`, `roguelike`, `settings`).
+- `frontend/src/features/<feature>/pages/` : pages/écrans liés à la feature.
+- `frontend/src/features/<feature>/components/` : UI spécifique à la feature (sous-dossiers par sous-système si besoin).
+- `frontend/src/features/<feature>/hooks/` : hooks React spécifiques à la feature.
+- `frontend/src/features/<feature>/logic/` : logique de gameplay/traitements purs.
+- `frontend/src/features/<feature>/data/` : données statiques (config, catalogues, listes).
+- `frontend/src/features/<feature>/services/` : appels API, side effects.
+- `frontend/src/features/<feature>/types/` : types locaux à la feature.
+- `frontend/src/features/<feature>/utils/` : helpers ciblés.
+- `frontend/src/shared/` : briques transverses réutilisables (components, ui, utils, types).
+- `frontend/src/styles/` : styles globaux et spécifiques (roguelike, perks, settings, achievements).
+
+Entrée de l’app :
+- `frontend/src/main.tsx` : bootstrap React + providers globaux.
+- `frontend/src/App.tsx` : routing et layout global.
 
 ## Modes de jeu & contrôles
 - Classique : scoring infini, sauvegarde du score par utilisateur.

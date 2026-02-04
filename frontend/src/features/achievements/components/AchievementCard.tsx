@@ -1,5 +1,5 @@
 import type { Achievement } from "../data/achievements";
-
+import { achievementIconPath } from "../../../shared/utils/assetPaths";
 
 export default function AchievementCard({
   achievement,
@@ -12,7 +12,7 @@ export default function AchievementCard({
     <div className={`achievement-card ${unlocked ? "unlocked" : "locked"}`}>
       <div className="icon-wrapper">
         {unlocked ? (
-          <img src={`/${achievement.icon}.png`} />
+          <img src={achievementIconPath(achievement.icon)} />
         ) : (
           <span className="locked-icon">?</span>
         )}

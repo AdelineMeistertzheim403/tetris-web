@@ -6,21 +6,26 @@ import { ALL_PERKS } from "../data/perks";
 import { MUTATIONS } from "../data/mutations";
 import { SYNERGIES } from "../data/synergies";
 import type { Synergy } from "../types/Synergy";
+import {
+  mutationIconPath,
+  perkIconPath,
+  synergyIconPath,
+} from "../../../shared/utils/assetPaths";
 
 const fallbackIcon = "/vite.svg";
 const perkIconMap: Record<string, string> = {
-  "extra-hold": "/extra_hold.png",
-  "soft-gravity": "/soft_gravity.png",
-  "slow-gravity": "/slow_gravity.png",
-  "score-boost": "/score_boost.png",
-  bomb: "/bomb.png",
-  "double-bomb": "/double_bomb.png",
-  "mega-bomb": "/mega_bomb.png",
-  "second-chance": "/second_chance.png",
-  "time-freeze": "/time_freeze.png",
-  "chaos-mode": "/chaos_mode.png",
-  "fast-hold-reset": "/fast_hold_reset.png",
-  "last-stand": "/last_stand.png",
+  "extra-hold": perkIconPath("extra_hold"),
+  "soft-gravity": perkIconPath("soft_gravity"),
+  "slow-gravity": perkIconPath("slow_gravity"),
+  "score-boost": perkIconPath("score_boost"),
+  bomb: perkIconPath("bomb"),
+  "double-bomb": perkIconPath("double_bomb"),
+  "mega-bomb": perkIconPath("mega_bomb"),
+  "second-chance": perkIconPath("second_chance"),
+  "time-freeze": perkIconPath("time_freeze"),
+  "chaos-mode": perkIconPath("chaos_mode"),
+  "fast-hold-reset": perkIconPath("fast_hold_reset"),
+  "last-stand": perkIconPath("last_stand"),
 };
 
 // Détermine si une synergie est active à partir d'une liste de perks.
@@ -150,7 +155,7 @@ export default function RoguelikeLexicon() {
             ) : (
               <div className="lexicon-grid">
                 {unlockedMutations.map((mutation) => {
-                  const src = mutation.icon ? `/${mutation.icon}.png` : fallbackIcon;
+                  const src = mutation.icon ? mutationIconPath(mutation.icon) : fallbackIcon;
                   return (
                     <article key={mutation.id} className="lexicon-card">
                       <span className="lexicon-icon-wrap">
@@ -179,7 +184,7 @@ export default function RoguelikeLexicon() {
             ) : (
               <div className="lexicon-grid">
                 {unlockedSynergies.map((synergy) => {
-                  const src = synergy.icon ? `/${synergy.icon}.png` : fallbackIcon;
+                  const src = synergy.icon ? synergyIconPath(synergy.icon) : fallbackIcon;
                   return (
                     <article key={synergy.id} className="lexicon-card">
                       <span className="lexicon-icon-wrap">
