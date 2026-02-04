@@ -1,6 +1,11 @@
 import type { ActiveMutationRuntime, ActivePerkRuntime } from "./RoguelikeRun";
 import { MUTATIONS } from "../../data/mutations";
 import { SYNERGIES } from "../../data/synergies";
+import {
+  mutationIconPath,
+  perkIconPath,
+  synergyIconPath,
+} from "../../../../shared/utils/assetPaths";
 
 type RoguelikeRunSummaryProps = {
   visible: boolean;
@@ -17,25 +22,25 @@ type RoguelikeRunSummaryProps = {
 
 const fallbackIcon = "/vite.svg";
 const perkIconMap: Record<string, string> = {
-  "extra-hold": "/extra_hold.png",
-  "soft-gravity": "/soft_gravity.png",
-  "slow-gravity": "/slow_gravity.png",
-  "score-boost": "/score_boost.png",
-  bomb: "/bomb.png",
-  "double-bomb": "/double_bomb.png",
-  "mega-bomb": "/mega_bomb.png",
-  "second-chance": "/second_chance.png",
-  "time-freeze": "/time_freeze.png",
-  "chaos-mode": "/chaos_mode.png",
-  "fast-hold-reset": "/fast_hold_reset.png",
-  "last-stand": "/last_stand.png",
+  "extra-hold": perkIconPath("extra_hold"),
+  "soft-gravity": perkIconPath("soft_gravity"),
+  "slow-gravity": perkIconPath("slow_gravity"),
+  "score-boost": perkIconPath("score_boost"),
+  bomb: perkIconPath("bomb"),
+  "double-bomb": perkIconPath("double_bomb"),
+  "mega-bomb": perkIconPath("mega_bomb"),
+  "second-chance": perkIconPath("second_chance"),
+  "time-freeze": perkIconPath("time_freeze"),
+  "chaos-mode": perkIconPath("chaos_mode"),
+  "fast-hold-reset": perkIconPath("fast_hold_reset"),
+  "last-stand": perkIconPath("last_stand"),
 };
 const mutationIconMap = MUTATIONS.reduce<Record<string, string>>((acc, mutation) => {
-  acc[mutation.id] = `/${mutation.icon}.png`;
+  acc[mutation.id] = mutationIconPath(mutation.icon);
   return acc;
 }, {});
 const synergyIconMap = SYNERGIES.reduce<Record<string, string>>((acc, synergy) => {
-  acc[synergy.id] = `/${synergy.icon}.png`;
+  acc[synergy.id] = synergyIconPath(synergy.icon);
   return acc;
 }, {});
 

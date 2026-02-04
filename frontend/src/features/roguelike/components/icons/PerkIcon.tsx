@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
 import type { ActivePerkRuntime } from "../run/RoguelikeRun";
+import { perkIconPath } from "../../../../shared/utils/assetPaths";
 
 type Props = {
   perk: ActivePerkRuntime;
 };
 
 const perkImageMap: Record<string, string> = {
-  "extra-hold": "/extra_hold.png",
-  "soft-gravity": "/soft_gravity.png",
-  "slow-gravity": "/slow_gravity.png",
-  "score-boost": "/score_boost.png",
-  bomb: "/bomb.png",
-  "double-bomb": "/double_bomb.png",
-  "mega-bomb": "/mega_bomb.png",
-  "second-chance": "/second_chance.png",
-  "time-freeze": "/time_freeze.png",
-  "chaos-mode": "/chaos_mode.png",
-  "fast-hold-reset": "/fast_hold_reset.png",
-  "last-stand": "/last_stand.png",
+  "extra-hold": perkIconPath("extra_hold"),
+  "soft-gravity": perkIconPath("soft_gravity"),
+  "slow-gravity": perkIconPath("slow_gravity"),
+  "score-boost": perkIconPath("score_boost"),
+  bomb: perkIconPath("bomb"),
+  "double-bomb": perkIconPath("double_bomb"),
+  "mega-bomb": perkIconPath("mega_bomb"),
+  "second-chance": perkIconPath("second_chance"),
+  "time-freeze": perkIconPath("time_freeze"),
+  "chaos-mode": perkIconPath("chaos_mode"),
+  "fast-hold-reset": perkIconPath("fast_hold_reset"),
+  "last-stand": perkIconPath("last_stand"),
 };
 
 const RADIUS = 18;

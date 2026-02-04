@@ -1,11 +1,12 @@
 import type { ActiveMutationRuntime } from "../run/RoguelikeRun";
+import { mutationIconPath } from "../../../../shared/utils/assetPaths";
 
 type Props = {
   mutation: ActiveMutationRuntime;
 };
 
 export default function MutationIcon({ mutation }: Props) {
-  const src = mutation.icon ? `/${mutation.icon}.png` : "/vite.svg";
+  const src = mutation.icon ? mutationIconPath(mutation.icon) : "/vite.svg";
 
   return (
     <div className="perk-icon">

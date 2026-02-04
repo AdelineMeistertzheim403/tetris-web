@@ -1,5 +1,5 @@
 import type { Achievement } from "../data/achievements";
-
+import { achievementIconPath } from "../../../shared/utils/assetPaths";
 
 export default function AchievementToast({
   achievement,
@@ -12,7 +12,7 @@ export default function AchievementToast({
 
   return (
     <div className="achievement-toast">
-      <img src={`/${achievement.icon}.png`} />
+      <img src={achievementIconPath(achievement.icon)} />
       <div>
         <strong>{achievement.name}</strong>
         <p>{achievement.description}</p>
