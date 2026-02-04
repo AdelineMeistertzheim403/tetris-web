@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { Synergy } from "../types/Synergy";
 import { useSynergies } from "./useSynergies";
 import type { ActivePerkRuntime } from "../components/run/RoguelikeRun";
 
 type Params = {
   activePerks: ActivePerkRuntime[];
-  setGravityMultiplier: (fn: (prev: number) => number) => void;
-  setScoreMultiplier: React.Dispatch<React.SetStateAction<number>>;
-  setChaosMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setGravityMultiplier: Dispatch<SetStateAction<number>>;
+  setScoreMultiplier: Dispatch<SetStateAction<number>>;
+  setChaosMode: Dispatch<SetStateAction<boolean>>;
   setTimeFreezeDurationSafe: (update: number | ((prev: number) => number)) => void;
   addBomb: (count: number) => void;
-  setBombRadius: React.Dispatch<React.SetStateAction<number>>;
+  setBombRadius: Dispatch<SetStateAction<number>>;
   durationMs?: number;
 };
 
