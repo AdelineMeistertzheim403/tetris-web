@@ -15,6 +15,8 @@ const MAX_ROGUELIKE_SCORE = MAX_SAFE_INT;
 const MAX_ROGUELIKE_SCORE_MULTIPLIER = MAX_SAFE_INT;
 const MAX_ROGUELIKE_GRAVITY_MULTIPLIER = 100;
 const MAX_ROGUELIKE_LINE_CLEARS = 5_000;
+const MAX_PUZZLE_MOVES = 500;
+const MAX_PUZZLE_LINES = 10_000;
 
 export const registerSchema = z.object({
   pseudo: z.string().min(2).max(50),
@@ -102,4 +104,20 @@ export const achievementUnlockSchema = z.object({
 
 export const achievementStatsSchema = z.object({
   loginDays: z.array(z.string().trim().min(1).max(10)).max(400),
+});
+
+export const puzzleAttemptSchema = z.object({
+  success: z.boolean(),
+  movesUsed: intWithin(0, MAX_PUZZLE_MOVES),
+  linesCleared: intWithin(0, MAX_PUZZLE_LINES),
+  piecesPlaced: intWithin(0, MAX_PUZZLE_MOVES),
+  holdUsed: z.boolean(),
+  efficiencyScore: intWithin(0, 1000),
+  optimal: z.boolean().optional(),
+});
+
+export const puzzleSolutionSchema = z.object({
+  movesUsed: intWithin(0, MAX_PUZZLE_MOVES),
+  data: z.record(z.string(), z.any()),
+  optimal: z.boolean().optional(),
 });

@@ -19,6 +19,7 @@ export default function AchievementsPage() {
     "SPRINT",
     "VERSUS",
     "ROGUELIKE",
+    "PUZZLE",
     "SECRETS",
   ];
 
@@ -29,6 +30,7 @@ export default function AchievementsPage() {
     SPRINT: "Mode Sprint",
     VERSUS: "Mode Versus",
     ROGUELIKE: "Mode Roguelike",
+    PUZZLE: "Mode Énigme",
     SECRETS: "Succès secrets",
   };
 

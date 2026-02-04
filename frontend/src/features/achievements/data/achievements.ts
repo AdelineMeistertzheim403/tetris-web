@@ -7,6 +7,7 @@ export type AchievementGroup =
   | "SPRINT"
   | "VERSUS"
   | "ROGUELIKE"
+  | "PUZZLE"
   | "SECRETS";
 
 export type AchievementCondition =
@@ -550,6 +551,180 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
 
   // ─────────────────────────────
+  // PUZZLE
+  // ─────────────────────────────
+  {
+    id: "puzzle-no-hold",
+    name: "Cerveau Carré",
+    description: "Résoudre un puzzle sans Hold",
+    icon: "cerveau_carre",
+    mode: "PUZZLE",
+    group: "PUZZLE",
+    condition: { type: "custom", key: "puzzle_no_hold" },
+  },
+  {
+    id: "puzzle-optimal",
+    name: "Perfection Géométrique",
+    description: "Résoudre un puzzle avec la solution optimale",
+    icon: "perfection_geometrique",
+    mode: "PUZZLE",
+    group: "PUZZLE",
+    condition: { type: "custom", key: "puzzle_optimal" },
+  },
+
+  {
+  id: "puzzle-first",
+  name: "Première Énigme",
+  description: "Résoudre un puzzle",
+  icon: "puzzle_first",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_completed_1" },
+},
+{
+  id: "puzzle-apprentice",
+  name: "Apprenti Logicien",
+  description: "Résoudre 5 puzzles",
+  icon: "puzzle_5",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_completed_5" },
+},
+{
+  id: "puzzle-master",
+  name: "Maître du Puzzle",
+  description: "Résoudre tous les puzzles",
+  icon: "puzzle_master",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_completed_all" },
+},
+
+{
+  id: "puzzle-no-hold-master",
+  name: "Esprit Pur",
+  description: "Résoudre 5 puzzles sans Hold",
+  icon: "no_hold_master",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_no_hold_5" },
+},
+{
+  id: "puzzle-no-error",
+  name: "Sans Faute",
+  description: "Résoudre un puzzle sans placement invalide",
+  icon: "sans_faute",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_no_error" },
+},
+
+{
+  id: "puzzle-optimal-first",
+  name: "Solution Élégante",
+  description: "Résoudre un puzzle avec le nombre optimal de coups",
+  icon: "solution_optimale",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_optimal_1" },
+},
+{
+  id: "puzzle-optimal-5",
+  name: "Architecte Précis",
+  description: "Résoudre 5 puzzles de manière optimale",
+  icon: "architecte_precision",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_optimal_5" },
+},
+
+{
+  id: "puzzle-speed",
+  name: "Réflexion Éclair",
+  description: "Résoudre un puzzle en moins de 30 secondes",
+  icon: "puzzle_speed",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_under_30s" },
+},
+{
+  id: "puzzle-chain",
+  name: "Enchaînement",
+  description: "Résoudre 3 puzzles d’affilée sans échec",
+  icon: "puzzle_chain",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_streak_3" },
+},
+
+{
+  id: "puzzle-survivor",
+  name: "Survivant",
+  description: "Réussir 3 puzzles de type Survie",
+  icon: "survivor",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_survive_3" },
+},
+{
+  id: "puzzle-liberator",
+  name: "Libérateur",
+  description: "Libérer 5 zones au total",
+  icon: "liberator",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_free_zones_5" },
+},
+{
+  id: "puzzle-cleaner",
+  name: "Nettoyeur",
+  description: "Clear 10 lignes via des puzzles",
+  icon: "puzzle_cleaner",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_lines_10" },
+},
+
+{
+  id: "puzzle-hard",
+  name: "Cerveau en Fusion",
+  description: "Résoudre un puzzle Hard",
+  icon: "brain_overclock",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_hard_completed" },
+},
+{
+  id: "puzzle-very-hard",
+  name: "Impossible n’est pas Tetris",
+  description: "Résoudre un puzzle Very Hard",
+  icon: "impossible",
+  mode: "PUZZLE",
+  group: "PUZZLE",
+  condition: { type: "custom", key: "puzzle_very_hard_completed" },
+},
+
+{
+  id: "puzzle-replay",
+  name: "Obsédé",
+  description: "Rejouer le même puzzle 3 fois",
+  icon: "loop_puzzle",
+  secret: true,
+  mode: "PUZZLE",
+  group: "SECRETS",
+  condition: { type: "custom", key: "puzzle_same_3" },
+},
+{
+  id: "puzzle-wrong-way",
+  name: "Contre-Intuition",
+  description: "Résoudre un puzzle en utilisant une stratégie non prévue",
+  icon: "counter_logic",
+  secret: true,
+  mode: "PUZZLE",
+  group: "SECRETS",
+  condition: { type: "custom", key: "puzzle_alt_solution" },
+},
+  // ─────────────────────────────
   // SECRETS
   // ─────────────────────────────
   {
@@ -593,4 +768,3 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "custom", key: "same_score_twice" },
   },
 ];
-

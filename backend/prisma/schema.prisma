@@ -18,6 +18,8 @@ model User {
   versusAsPlayer2 VersusMatch[] @relation("VersusPlayer2")
   versusAsWinner  VersusMatch[] @relation("VersusWinner")
    roguelikeRuns RoguelikeRun[]
+  puzzleAttempts PuzzleAttempt[]
+  puzzleSolutions PuzzleSolution[]
   achievements UserAchievement[]
   achievementStats UserAchievementStats?
   createdAt DateTime @default(now())
@@ -121,4 +123,53 @@ enum GameMode {
   CLASSIQUE
   SPRINT
   VERSUS
+}
+
+model Puzzle {
+  id          String   @id
+  name        String
+  description String
+  difficulty  String   @default("normal")
+  definition  Json
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attempts PuzzleAttempt[]
+  solutions PuzzleSolution[]
+}
+
+model PuzzleAttempt {
+  id              Int      @id @default(autoincrement())
+  puzzleId        String
+  userId          Int
+  success         Boolean
+  movesUsed       Int
+  linesCleared    Int
+  piecesPlaced    Int
+  holdUsed        Boolean
+  efficiencyScore Int
+  optimal         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  puzzle Puzzle @relation(fields: [puzzleId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, puzzleId])
+}
+
+model PuzzleSolution {
+  id        Int      @id @default(autoincrement())
+  puzzleId  String
+  userId    Int
+  movesUsed Int
+  data      Json
+  optimal   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  puzzle Puzzle @relation(fields: [puzzleId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, puzzleId])
 }

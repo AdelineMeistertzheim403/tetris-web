@@ -65,6 +65,14 @@ export default function Navbar() {
         )}
 
         {user ? (
+          <Link to="/puzzle" className="neon-link text-pink-400">
+            Puzzle
+          </Link>
+        ) : (
+          <div></div>
+        )}
+
+        {user ? (
           <Link to="/achievements" className="neon-link text-pink-400">
             Succès
           </Link>

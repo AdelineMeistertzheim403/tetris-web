@@ -7,6 +7,9 @@
     "build": "npx prisma generate && tsc",
     "start": "node dist/server.js",
     "prisma:generate": "cross-env DATABASE_URL=postgresql://tetris_user:tetris_pass@localhost:5432/tetris_db?schema=public prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev --schema prisma/schema.prisma",
+    "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
+    "prisma:seed": "tsx prisma/seed.ts",
     "test": "cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub prisma generate --schema prisma/schema.prisma && cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub vitest run"
   },
   "keywords": [],
@@ -47,5 +50,8 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^2.1.4"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

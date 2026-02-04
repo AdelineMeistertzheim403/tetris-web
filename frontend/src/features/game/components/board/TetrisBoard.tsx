@@ -5,6 +5,7 @@ import GameLayout from "../layout/GameLayout";
 import { addScore, getScoreRunToken } from "../../services/scoreService";
 import { useTetrisGame } from "../../hooks/useTetrisGame";
 import type { GameMode } from "../../types/GameMode";
+import type { Piece } from "../../types/Piece";
 import { useLineClearFx } from "../../hooks/useLineClearFx";
 import { useSettings } from "../../../settings/context/SettingsContext";
 import StatCard from "../../../../shared/components/ui/cards/StatCard";
@@ -14,9 +15,13 @@ type TetrisBoardProps = {
   mode?: GameMode;
   scoreMode?: GameMode | null;
   bagSequence?: string[];
+  fixedSequence?: string[];
+  initialBoard?: number[][];
   incomingGarbage?: number;
   onConsumeLines?: (lines: number) => void;
   onLinesCleared?: (lines: number, clearedRows?: number[]) => void;
+  onPieceLocked?: (payload: { board: number[][]; linesCleared: number; piece: Piece }) => void;
+  onSequenceEnd?: () => void;
   onGarbageConsumed?: () => void;
   autoStart?: boolean;
   scoreMultiplier?: number;
@@ -41,6 +46,7 @@ type TetrisBoardProps = {
   onLevelChange?: (level: number) => void;
   onHold?: () => void;
   onHardDrop?: () => void;
+  onInvalidMove?: (dir: "left" | "right" | "rotate") => void;
   bombsGranted?: number;
   fastHoldReset?: boolean;
   lastStand?: boolean;
@@ -49,6 +55,10 @@ type TetrisBoardProps = {
   rotationDelayMs?: number;
   chaosDrift?: boolean;
   pieceMutation?: boolean;
+  disableHold?: boolean;
+  hideStats?: boolean;
+  hideSidebar?: boolean;
+  layout?: "default" | "plain";
 };
 
 const ROWS = 20;
@@ -82,9 +92,13 @@ export default function TetrisBoard({
   mode = "CLASSIQUE",
   scoreMode,
   bagSequence,
+  fixedSequence,
+  initialBoard,
   incomingGarbage = 0,
   onConsumeLines,
   onLinesCleared,
+  onPieceLocked,
+  onSequenceEnd,
   onGarbageConsumed,
   scoreMultiplier = 1,
   autoStart = true,
@@ -108,6 +122,7 @@ export default function TetrisBoard({
   onLevelChange,
   onHold,
   onHardDrop,
+  onInvalidMove,
   paused = false,
   bombsGranted = 0,
   fastHoldReset = false,
@@ -117,6 +132,10 @@ export default function TetrisBoard({
   chaosDrift = false,
   pieceMutation = false,
   rng,
+  disableHold = false,
+  hideStats = false,
+  hideSidebar = false,
+  layout = "default",
 }: TetrisBoardProps) {
   const { settings } = useSettings();
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
@@ -151,10 +170,14 @@ export default function TetrisBoard({
   const { state, actions } = useTetrisGame({
     mode,
     bagSequence,
+    fixedSequence,
+    initialBoard,
     gravityMultiplier,
     extraHold,
     onConsumeLines,
     onLinesCleared: handleLinesCleared,
+    onPieceLocked,
+    onSequenceEnd,
     incomingGarbage,
     onGarbageConsumed,
     scoreMultiplier,
@@ -167,8 +190,9 @@ export default function TetrisBoard({
     pieceMutation,
     pieceColors: settings.pieceColors,
     bombRadius,
+    onInvalidMove,
   onConsumeSecondChance,
-     onBombExplode: () => {
+  onBombExplode: () => {
     setBombFlash(true);
     setTimeout(() => setBombFlash(false), 120);
   },
@@ -177,7 +201,7 @@ export default function TetrisBoard({
     // En mode classique/sprint/etc., on enregistre le score (pas en roguelike).
   if (onLocalGameOver) onLocalGameOver(score, lines);
 
-  if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return; // ✅ garde-fou TS + skip rogue
+  if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE" || effectiveScoreMode === "PUZZLE") return;
 
   try {
     let runToken = scoreRunTokenRef.current;
@@ -189,7 +213,7 @@ export default function TetrisBoard({
   } catch (err) {
     console.error("Erreur enregistrement score :", err);
   }
-},
+  },
   });
 
   const {
@@ -228,6 +252,7 @@ export default function TetrisBoard({
       return hardDrop();
     }
     if (dir === "hold") {
+      if (disableHold) return;
       onHold?.();
       return handleHold();
     }
@@ -278,7 +303,7 @@ export default function TetrisBoard({
   }, [enableLastStand, lastStand]);
 
   useEffect(() => {
-    if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE") return;
+  if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE" || effectiveScoreMode === "PUZZLE") return;
     getScoreRunToken(effectiveScoreMode)
       .then((token) => {
         scoreRunTokenRef.current = token;
@@ -447,139 +472,151 @@ useEffect(() => {
   }
 }, [pause, paused, start]);
 
-  return (
-    <div className="relative flex items-start justify-center gap-8">
-      {bombFlash && (
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      background: "rgba(255, 80, 80, 0.35)",
-      pointerEvents: "none",
-      zIndex: 20,
-    }}
-  />
-)}
-      <GameLayout
-        canvas={
-          <div className="tetris-canvas-wrap">
-            <canvas
-              ref={canvasRef}
-              width={COLS * CELL_SIZE}
-              height={ROWS * CELL_SIZE}
-              style={{
-                border: "2px solid var(--ui-board-border, #555)",
-                background: "var(--ui-board-bg, #111)",
-                boxShadow: "0 0 20px rgba(0,0,0,0.8)",
-              }}
-            />
-            {tetrisFlash && <div className="tetris-flash" />}
-            {lineClearFx.flatMap((effect) =>
-              effect.rows.map((row, idx) => (
-                <div
-                  key={`${effect.id}-${row}`}
-                  className={`line-clear line-clear--${effect.count} ${
-                    effect.count === 2 && idx % 2 === 1 ? "line-clear--reverse" : ""
-                  }`}
-                  style={{ top: row * CELL_SIZE, height: CELL_SIZE }}
-                />
-              ))
-            )}
-          </div>
-        }
-        sidebar={
+  const boardCanvas = (
+    <div className="tetris-canvas-wrap">
+      <canvas
+        ref={canvasRef}
+        width={COLS * CELL_SIZE}
+        height={ROWS * CELL_SIZE}
+        style={{
+          border: "2px solid var(--ui-board-border, #555)",
+          background: "var(--ui-board-bg, #111)",
+          boxShadow: "0 0 20px rgba(0,0,0,0.8)",
+        }}
+      />
+      {tetrisFlash && <div className="tetris-flash" />}
+      {lineClearFx.flatMap((effect) =>
+        effect.rows.map((row, idx) => (
           <div
-            style={{
-              background: "var(--ui-panel-bg, #141414)",
-              borderRadius: "12px",
-              padding: "25px 30px",
-              boxShadow: "0 0 20px rgba(0,0,0,0.6)",
-              width: "220px",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            key={`${effect.id}-${row}`}
+            className={`line-clear line-clear--${effect.count} ${
+              effect.count === 2 && idx % 2 === 1 ? "line-clear--reverse" : ""
+            }`}
+            style={{ top: row * CELL_SIZE, height: CELL_SIZE }}
+          />
+        ))
+      )}
+    </div>
+  );
+
+  const sidebarContent = hideSidebar ? null : (
+    <div
+      style={{
+        background: "var(--ui-panel-bg, #141414)",
+        borderRadius: "12px",
+        padding: "25px 30px",
+        boxShadow: "0 0 20px rgba(0,0,0,0.6)",
+        width: "220px",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
+        {!hideStats && (
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <StatCard
+                label="SCORE"
+                value={roundedScore}
+                valueColor="#00eaff"
+                accentColor="#f5f5f5"
+              />
+              <div className="score-gain-flash" key={gainFxKey}>
                 <StatCard
-                  label="SCORE"
-                  value={roundedScore}
-                  valueColor="#00eaff"
-                  accentColor="#f5f5f5"
+                  label=""
+                  value={lastClearLabel}
+                  valueColor={lastClearColor}
+                  accentColor="#cccccc"
                 />
-                <div className="score-gain-flash" key={gainFxKey}>
-                  <StatCard
-                    label=""
-                    value={lastClearLabel}
-                    valueColor={lastClearColor}
-                    accentColor="#cccccc"
-                  />
-                </div>
-              </div>
-              <StatCard label="LIGNES" value={lines} valueColor="#9eff8c" accentColor="#cccccc" />
-              <StatCard label="NIVEAU" value={level} valueColor="#facc15" accentColor="#cccccc" />
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "20px",
-                  width: "100%",
-                  marginTop: "10px",
-                  padding: "10px 0",
-                  borderTop: "1px solid var(--ui-board-border, #333)",
-                }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <h3
-                    style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
-                  >
-                    HOLD
-                  </h3>
-
-                  <div
-                    style={{
-                      width: PREVIEW_SIZE,
-                      height: PREVIEW_SIZE,
-                      border: "2px solid var(--ui-board-border, #333)",
-                      background: "var(--ui-board-bg, #111)",
-                      borderRadius: "6px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {holdPiece && <NextPiece piece={holdPiece} />}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: "center" }}>
-                  <h3
-                    style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
-                  >
-                    NEXT
-                  </h3>
-
-                  <div
-                    style={{
-                      width: PREVIEW_SIZE,
-                      height: PREVIEW_SIZE,
-                      border: "2px solid var(--ui-board-border, #333)",
-                      background: "var(--ui-board-bg, #111)",
-                      borderRadius: "6px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <NextPiece piece={nextPiece} />
-                  </div>
-                </div>
               </div>
             </div>
+            <StatCard label="LIGNES" value={lines} valueColor="#9eff8c" accentColor="#cccccc" />
+            <StatCard label="NIVEAU" value={level} valueColor="#facc15" accentColor="#cccccc" />
+          </>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "20px",
+            width: "100%",
+            marginTop: "10px",
+            padding: "10px 0",
+            borderTop: "1px solid var(--ui-board-border, #333)",
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <h3
+              style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+            >
+              HOLD
+            </h3>
+
+            <div
+              style={{
+                width: PREVIEW_SIZE,
+                height: PREVIEW_SIZE,
+                border: "2px solid var(--ui-board-border, #333)",
+                background: "var(--ui-board-bg, #111)",
+                borderRadius: "6px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {holdPiece && <NextPiece piece={holdPiece} />}
+            </div>
           </div>
-        }
-      />
+
+          <div style={{ textAlign: "center" }}>
+            <h3
+              style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+            >
+              NEXT
+            </h3>
+
+            <div
+              style={{
+                width: PREVIEW_SIZE,
+                height: PREVIEW_SIZE,
+                border: "2px solid var(--ui-board-border, #333)",
+                background: "var(--ui-board-bg, #111)",
+                borderRadius: "6px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <NextPiece piece={nextPiece} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const shouldUseGameLayout = layout === "default" && !hideSidebar;
+
+  return (
+    <div className={shouldUseGameLayout ? "relative flex items-start justify-center gap-8" : "relative"}>
+      {bombFlash && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(255, 80, 80, 0.35)",
+            pointerEvents: "none",
+            zIndex: 20,
+          }}
+        />
+      )}
+
+      {shouldUseGameLayout ? (
+        <GameLayout canvas={boardCanvas} sidebar={sidebarContent} />
+      ) : (
+        boardCanvas
+      )}
 
       {!hideGameOverOverlay && (
         <FullScreenOverlay show={gameOver && countdown === null}>
