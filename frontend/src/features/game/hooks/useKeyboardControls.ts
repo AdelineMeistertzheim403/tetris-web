@@ -22,6 +22,7 @@ export function useKeyboardControls(onMove: (dir: ControlAction) => void) {
 
   const actionMapRef = useRef(actionMap);
   const holdKeyRef = useRef(normalizeKey(settings.keyBindings.hold));
+  // Évite les déclenchements répétés sur une touche maintenue (notamment Hold).
   const pressedKeysRef = useRef<Set<string>>(new Set());
 
   // toujours à jour

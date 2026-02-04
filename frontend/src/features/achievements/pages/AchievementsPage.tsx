@@ -11,6 +11,7 @@ export default function AchievementsPage() {
   const { achievements } = useAchievements();
   const [filter, setFilter] = useState<Filter>("all");
 
+  // Ordre d'affichage explicite pour garder une lecture cohérente.
   const groupOrder: AchievementGroup[] = [
     "GLOBAL",
     "CROSS",
@@ -32,6 +33,7 @@ export default function AchievementsPage() {
   };
 
   const filtered = useMemo(() => {
+    // Filtrage local en mémoire (pas d'appel réseau).
     switch (filter) {
       case "unlocked":
         return achievements.filter((a) => a.unlocked);
@@ -43,6 +45,7 @@ export default function AchievementsPage() {
   }, [achievements, filter]);
 
   const grouped = useMemo(() => {
+    // Regroupement par catégorie pour un rendu en sections.
     const map = new Map<AchievementGroup, typeof filtered>();
     for (const achievement of filtered) {
       const group = achievement.group ?? "ROGUELIKE";

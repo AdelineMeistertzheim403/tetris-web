@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
-// ✅ Connexion
+// Connexion: session cookie (credentials include).
 export async function login(email: string, password: string) {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
@@ -15,6 +15,7 @@ export async function login(email: string, password: string) {
   return data.user;
 }
 
+// Inscription d'un nouvel utilisateur.
 export async function register(pseudo: string, email: string, password: string) {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -27,8 +28,7 @@ export async function register(pseudo: string, email: string, password: string) 
   return res.json();
 }
 
-
-// ✅ Déconnexion
+// Déconnexion (invalidate côté serveur).
 export async function logout() {
   await fetch(`${API_URL}/auth/logout`, {
     method: "POST",
@@ -36,7 +36,7 @@ export async function logout() {
   });
 }
 
-// ✅ Vérifier si connecté
+// Récupère l'utilisateur courant (null si non authentifié).
 export async function getCurrentUser() {
   const res = await fetch(`${API_URL}/auth/me`, {
     credentials: "include",

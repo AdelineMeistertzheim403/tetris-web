@@ -53,6 +53,7 @@ export default function RoguelikeRunSummary({
 }: RoguelikeRunSummaryProps) {
   if (!visible) return null;
 
+  // Recalcule les synergies actives à partir des perks obtenus.
   const perkIds = perks.map((perk) => perk.id);
   const activeSynergies = SYNERGIES.filter((synergy) => {
     const count = synergy.requiredPerks.filter((perkId) => perkIds.includes(perkId)).length;

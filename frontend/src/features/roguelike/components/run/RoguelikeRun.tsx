@@ -43,6 +43,11 @@ export type ActiveMutationRuntime = Mutation & {
   stacks: number;
 };
 
+// RoguelikeRun orchestre tout le cycle de vie d’une run :
+// - état des perks/mutations/modificateurs
+// - checkpoints de progression + suivi score/niveau
+// - composition UI (panneaux, overlays, résumé)
+// La logique lourde est déléguée à des hooks pour garder le composant lisible.
 export default function RoguelikeRun({
   initialSeed,
   seededMode = false,
@@ -50,6 +55,7 @@ export default function RoguelikeRun({
   initialSeed?: string;
   seededMode?: boolean;
 }) {
+  // Flux de sélection (perk vs mutation) et modificateurs de run.
   const [selectingPerk, setSelectingPerk] = useState(true);
   const [selectionType, setSelectionType] = useState<"perk" | "mutation">("perk");
   const [gravityMultiplier, setGravityMultiplier] = useState(1);
@@ -59,6 +65,7 @@ export default function RoguelikeRun({
   const [scoreMultiplier, setScoreMultiplier] = useState(1);
   const [secondChance, setSecondChance] = useState(false);
   const [usedSecondChance, setUsedSecondChance] = useState(false);
+  // Time-freeze a son propre sous-état et des helpers d’update “safe”.
   const {
     timeFreezeCharges,
     setTimeFreezeCharges,
@@ -102,6 +109,7 @@ export default function RoguelikeRun({
   const [summaryScore, setSummaryScore] = useState(0);
   const [summaryLines, setSummaryLines] = useState(0);
   const [summaryLevel, setSummaryLevel] = useState(1);
+  // RNG déterministe par run ; reset quand le seed change.
   const rngRef = useRef<(() => number) | null>(null);
   const [boardKey, setBoardKey] = useState(0);
   const runStartedRef = useRef(false);
@@ -113,7 +121,6 @@ export default function RoguelikeRun({
     startTimeRef,
     holdCountRef,
     hardDropCountRef,
-    comboStreakRef,
     maxComboRef,
     lineClearTotalsRef,
     tetrisCleared,
@@ -125,6 +132,7 @@ export default function RoguelikeRun({
     onHold,
     onHardDrop,
   } = useRoguelikeStatsTracking();
+  // Auto-fermeture des toasts d’achievements après un court délai.
   useAutoClearRecentAchievements(recentUnlocks, clearRecent);
 
   const countTrue = useCallback(
@@ -150,6 +158,7 @@ export default function RoguelikeRun({
     setBombsGranted((v) => v + count);
   }, []);
   const resetLocalState = useCallback(() => {
+    // Reset complet des modificateurs/choix entre runs.
     resetLineClears();
     setActivePerks([]);
     setActiveMutations([]);
@@ -270,6 +279,7 @@ export default function RoguelikeRun({
   const { run, startRun, checkpoint, finishRun, hasActiveRun } = useRoguelikeRun();
 
   const handleConsumeLines = (linesCleared: number) => {
+    // Met à jour le total de lignes et ouvre un choix toutes les 10 lignes.
     setTotalLines((prev) => {
       const newTotal = prev + linesCleared;
       const nextLevel = Math.floor(newTotal / 10) + 1;
@@ -287,6 +297,7 @@ export default function RoguelikeRun({
       }
 
       if (newTotal >= nextChoiceAt) {
+        // Ouvre le choix et persiste un snapshot de checkpoint.
         setSelectionType(nextLevel >= 12 ? "mutation" : "perk");
         setSelectingPerk(true);
         setPerkChoices([]);
@@ -360,6 +371,7 @@ export default function RoguelikeRun({
   };
 
   const handleSelectMutation = (mutation: Mutation) => {
+    // Applique les contraintes unique/stack avant d’exécuter la mutation.
     const existing = activeMutations.find((m) => m.id === mutation.id);
     const maxStacks = mutation.maxStacks ?? Number.POSITIVE_INFINITY;
     if (existing && (mutation.unique || (mutation.stackable && existing.stacks >= maxStacks))) {
@@ -414,6 +426,7 @@ export default function RoguelikeRun({
 
   const handleBombUsed = () => {
     setBombsUsed((v) => v + 1);
+    // Les chain explosions peuvent rembourser une bombe (proc fixe).
     if (chainExplosions) {
       const rng = rngRef.current ?? Math.random;
       if (rng() < 0.35) {
@@ -457,7 +470,7 @@ export default function RoguelikeRun({
     setBombRadius,
   });
 
-  useRoguelikeSelection({
+  const selectionParams = {
     selectingPerk,
     selectionType,
     activePerks,
@@ -471,9 +484,12 @@ export default function RoguelikeRun({
     setSelectingPerk,
     onSelectPerk: handleSelectPerk,
     onSelectMutation: handleSelectMutation,
-  });
+  };
+
+  useRoguelikeSelection(selectionParams);
 
   useEffect(() => {
+    // Force le mode Chaos si le perk est actif.
     setChaosMode(activePerks.some((p) => p.id === "chaos-mode"));
   }, [activePerks]);
 

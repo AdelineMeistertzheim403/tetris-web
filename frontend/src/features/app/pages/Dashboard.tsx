@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
 
   const handleLogout = async () => {
+    // Déconnexion + retour à l'accueil.
     await logoutUser();
     navigate("/");
   };
@@ -38,6 +39,7 @@ export default function Dashboard() {
     async function fetchScores() {
       try {
         if (mode === "VERSUS") {
+          // En Versus: on filtre les matchs où le joueur est impliqué.
           const data = await getLeaderboard("VERSUS");
           const mine = (data as VersusRow[]).filter(
             (row) =>
@@ -48,6 +50,7 @@ export default function Dashboard() {
           );
           setScores(mine);
         } else {
+          // En solo: on récupère uniquement les scores du joueur.
           const data = await getMyScores(mode);
           // tri différent selon le mode
           const sorted =

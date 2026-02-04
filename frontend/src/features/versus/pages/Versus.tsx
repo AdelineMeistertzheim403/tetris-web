@@ -11,6 +11,7 @@ function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
+// Seuil de “zone rouge” pour détecter une victoire “parfaite”.
 const RED_ZONE_HEIGHT = 16;
 
 export default function Versus() {
@@ -31,6 +32,7 @@ export default function Versus() {
   const levelRef = useRef(1);
   const finalizedRef = useRef(false);
 
+  // Réinitialise les compteurs locaux pour les stats/achievements.
   const resetRunTracking = () => {
     startTimeRef.current = null;
     runDurationRef.current = 0;
@@ -48,6 +50,7 @@ export default function Versus() {
   const countTrue = (values: Record<string, boolean>) =>
     Object.values(values).filter(Boolean).length;
 
+  // L’ID effectif de match est soit l’ID choisi, soit l’ID tapé.
   const joinId = useMemo(
     () => (chosenMatchId ?? manualMatchId) || undefined,
     [manualMatchId, chosenMatchId]
@@ -79,6 +82,7 @@ export default function Versus() {
   }, [currentMatchId]);
 
   useEffect(() => {
+    // Marque le mode Versus comme visité (achievements).
     if (visitedRef.current) return;
     visitedRef.current = true;
     const next = updateStats((prev) => ({
@@ -91,12 +95,14 @@ export default function Versus() {
   }, [checkAchievements, updateStats]);
 
   useEffect(() => {
+    // À chaque match, on réinitialise le tracking local.
     if (currentMatchId) {
       resetRunTracking();
     }
   }, [currentMatchId]);
 
   useEffect(() => {
+    // Sauvegarde du match : un seul joueur (slot 1) écrit pour éviter les doublons.
     if (!matchOver || !results || slot === null || !user || hasSavedResult) return;
     // Pour Ã©viter deux Ã©critures (une par joueur), seul le slot 1 sauvegarde
     if (slot !== 1) return;
@@ -122,6 +128,7 @@ export default function Versus() {
   }, [currentMatchId, hasSavedResult, matchOver, playersInfo, results, slot, user]);
 
   useEffect(() => {
+    // Calcul final des achievements quand le match est terminé.
     if (!matchOver || !results || slot === null) return;
     if (finalizedRef.current) return;
     const myResult = results.find((r) => r.slot === slot) ?? null;
@@ -190,6 +197,7 @@ export default function Versus() {
   }, [matchOver, results, slot, updateStats, checkAchievements]);
 
   if (startReady) {
+    // Match prêt : rendu de la partie en direct (local + adversaire).
     const myResult = results?.find((r) => r.slot === slot) ?? null;
     const oppResult = results?.find((r) => r.slot !== slot) ?? null;
 

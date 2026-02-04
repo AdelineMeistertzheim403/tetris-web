@@ -59,6 +59,9 @@ const getExplosionFrameCount = (radius: number) => {
   return 4; // 3x3
 };
 
+// Hook central du gameplay Tetris :
+// gère le state du board, la gravité, les collisions, le score/level
+// et expose des actions (move, rotate, hard drop, hold, etc.).
 export function useTetrisGame({
   rows = DEFAULT_ROWS,
   cols = DEFAULT_COLS,
@@ -93,6 +96,7 @@ export function useTetrisGame({
   incomingGarbage?: number;
   onGarbageConsumed?: () => void;
 }) {
+  // RNG stable pour garantir une séquence de pièces cohérente.
   const rngRef = useRef<RNG>(() => Math.random());
   if (rng && rngRef.current !== rng) {
     rngRef.current = rng;
@@ -213,8 +217,8 @@ const triggerBomb = useCallback(() => {
   pendingBombsRef.current.push(finalRadius);
 }, [bombs, piece, gameOver, running, chaosMode, bombRadius]);
 
-  // Mettre à jour le bag quand une nouvelle séquence arrive
-  // Ajout de bag externe : on concatène pour éviter de tomber en panne de tirage
+  // Met à jour le bag quand une nouvelle séquence arrive.
+  // Si une séquence est injectée, on la concatène pour éviter un “trou” de tirage.
   useEffect(() => {
     if (bagSequence && bagSequence.length > 0) {
       bagGenRef.current.pushSequence([...bagSequence]);
@@ -226,6 +230,7 @@ const triggerBomb = useCallback(() => {
   }, [bagSequence, running]);
 
   useEffect(() => {
+    // Si un RNG externe change (roguelike), on reconstruit le bag.
     if (!rng) return;
     rngRef.current = rng;
     bagGenRef.current = createBagGenerator(rngRef.current, pieceColorsRef.current);
@@ -234,6 +239,7 @@ const triggerBomb = useCallback(() => {
   }, [rng]);
 
   useEffect(() => {
+    // Les couleurs peuvent changer (settings), on rehydrate les pièces existantes.
     pieceColorsRef.current = pieceColors;
     bagGenRef.current.setColors(pieceColors);
 
@@ -253,6 +259,7 @@ const triggerBomb = useCallback(() => {
   }, [speed]);
 
   useEffect(() => {
+    // Chaos/cursed : gravité instable, recalculée périodiquement.
     if (!chaosMode && !cursedMode) {
       setChaosGravityFactor(1);
       return;
@@ -273,10 +280,12 @@ const triggerBomb = useCallback(() => {
   }, [chaosMode, cursedMode]);
 
   useEffect(() => {
+    // Vitesse effective = base * gravité * facteur chaos.
     setSpeedMs(baseSpeedMs * gravityMultiplier * chaosGravityFactor);
   }, [baseSpeedMs, gravityMultiplier, chaosGravityFactor]);
 
   const computeGhost = useCallback(
+    // Calcule la projection “ghost” en descendant jusqu’à la prochaine collision.
     (current: Piece, stateBoard: number[][]) => {
       let ghostY = current.y;
       while (!checkCollision(stateBoard, current.shape, current.x, ghostY + 1)) {
@@ -288,6 +297,8 @@ const triggerBomb = useCallback(() => {
   );
 
   const mergeAndNext = useCallback(
+    // Fusionne la pièce dans le board, applique les bombes éventuelles,
+    // puis prépare la prochaine pièce.
     (currentBoard: number[][], currentPiece: Piece) => {
       const merged = mergePiece(currentBoard, currentPiece.shape, currentPiece.x, currentPiece.y);
       setCanHold(true);

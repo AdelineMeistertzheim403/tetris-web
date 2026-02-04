@@ -11,6 +11,7 @@ export function getTimeFreezeDurationMs(
   perk: TimeFreezePerk | null | undefined,
   fallbackMs: number = DEFAULT_TIME_FREEZE_DURATION_MS
 ) {
+  // On ne retourne une durée que pour le perk "time-freeze".
   if (!perk || perk.id !== "time-freeze") return null;
   return perk.durationMs ?? fallbackMs;
 }
@@ -20,6 +21,7 @@ export function applyTimeFreezeDurationFromPerk(
   setTimeFreezeDuration: Dispatch<SetStateAction<number>>,
   fallbackMs: number = DEFAULT_TIME_FREEZE_DURATION_MS
 ) {
+  // Applique la durée issue du perk, avec un fallback si absent.
   const durationMs = getTimeFreezeDurationMs(perk, fallbackMs);
   if (durationMs === null) return null;
   setTimeFreezeDuration(durationMs);
@@ -31,6 +33,7 @@ export function applyTimeFreezeDurationUpdate(
   setTimeFreezeDuration: Dispatch<SetStateAction<number>>,
   fallbackMs: number = DEFAULT_TIME_FREEZE_DURATION_MS
 ) {
+  // Sécurise les mises à jour pour éviter une durée nulle ou négative.
   setTimeFreezeDuration((prev) => {
     const next = typeof update === "function" ? update(prev) : update;
     if (!Number.isFinite(next) || next <= 0) return fallbackMs;

@@ -11,12 +11,14 @@ export function useSynergies(
   const activated = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    // Si on n’a plus de perks actifs, on réinitialise le cache d’activation.
     if (activePerkIds.length === 0) {
       activated.current.clear();
     }
   }, [activePerkIds.length]);
 
   useEffect(() => {
+    // Active chaque synergie une seule fois (si unique) quand les conditions sont remplies.
     SYNERGIES.forEach((synergy) => {
       const count = synergy.requiredPerks.filter(p =>
         activePerkIds.includes(p)
