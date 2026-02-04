@@ -7,20 +7,25 @@ import { SYNERGIES } from "../../data/synergies";
 import { MUTATIONS } from "../../data/mutations";
 import { useAchievements } from "../../../achievements/hooks/useAchievements";
 import { formatScore } from "../../utils/formatScore";
+import {
+  mutationIconPath,
+  perkIconPath,
+  synergyIconPath,
+} from "../../../../shared/utils/assetPaths";
 
 const perkImageMap: Record<string, string> = {
-  "extra-hold": "/extra_hold.png",
-  "soft-gravity": "/soft_gravity.png",
-  "slow-gravity": "/slow_gravity.png",
-  "score-boost": "/score_boost.png",
-  bomb: "/bomb.png",
-  "double-bomb": "/double_bomb.png",
-  "mega-bomb": "/mega_bomb.png",
-  "second-chance": "/second_chance.png",
-  "time-freeze": "/time_freeze.png",
-  "chaos-mode": "/chaos_mode.png",
-  "fast-hold-reset": "/fast_hold_reset.png",
-  "last-stand": "/last_stand.png",
+  "extra-hold": perkIconPath("extra_hold"),
+  "soft-gravity": perkIconPath("soft_gravity"),
+  "slow-gravity": perkIconPath("slow_gravity"),
+  "score-boost": perkIconPath("score_boost"),
+  bomb: perkIconPath("bomb"),
+  "double-bomb": perkIconPath("double_bomb"),
+  "mega-bomb": perkIconPath("mega_bomb"),
+  "second-chance": perkIconPath("second_chance"),
+  "time-freeze": perkIconPath("time_freeze"),
+  "chaos-mode": perkIconPath("chaos_mode"),
+  "fast-hold-reset": perkIconPath("fast_hold_reset"),
+  "last-stand": perkIconPath("last_stand"),
 };
 
 const perkNameMap = ALL_PERKS.reduce<Record<string, string>>((acc, perk) => {
@@ -180,7 +185,7 @@ export default function RoguelikeHistory() {
                       mutationList.map((mutation) => {
                         const meta = mutationMetaMap[mutation.id];
                         const label = meta?.name ?? mutation.id;
-                        const icon = meta?.icon ? `/${meta.icon}.png` : "/vite.svg";
+                        const icon = meta?.icon ? mutationIconPath(meta.icon) : "/vite.svg";
                         const stackCount = mutation.stacks ?? 1;
                         const stackSuffix = stackCount > 1 ? ` x${stackCount}` : "";
                         return (
@@ -210,7 +215,7 @@ export default function RoguelikeHistory() {
                       synergiesByRun[page].map((syn) => (
                         <img
                           key={syn.id}
-                          src={`/${syn.icon}.png`}
+                          src={synergyIconPath(syn.icon)}
                           alt={syn.name}
                           title={syn.name}
                           className="synergy-chip"
