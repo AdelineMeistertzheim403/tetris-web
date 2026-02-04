@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import TetrisBoard from "../components/board/TetrisBoard";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../types/GameMode";
 
 export default function Game() {
   const { checkAchievements, updateStats } = useAchievements();
@@ -38,7 +39,7 @@ export default function Game() {
       modesVisited: { ...prev.modesVisited, CLASSIQUE: true },
     }));
     checkAchievements({
-      custom: { modes_visited_all: countTrue(next.modesVisited) >= 4 },
+      custom: { modes_visited_all: countTrue(next.modesVisited) >= TOTAL_GAME_MODES },
     });
   }, [checkAchievements, updateStats]);
 
@@ -141,8 +142,8 @@ export default function Game() {
               playtime_60m: next.playtimeMs >= 60 * 60 * 1000,
               playtime_300m: next.playtimeMs >= 300 * 60 * 1000,
               level_10_three_modes: countTrue(next.level10Modes) >= 3,
-              scored_all_modes: countTrue(next.scoredModes) >= 4,
-              modes_visited_all: countTrue(next.modesVisited) >= 4,
+              scored_all_modes: countTrue(next.scoredModes) >= TOTAL_SCORED_MODES,
+              modes_visited_all: countTrue(next.modesVisited) >= TOTAL_GAME_MODES,
               same_score_twice: sameScoreTwice,
             },
           });

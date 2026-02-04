@@ -54,6 +54,11 @@ npm run dev
 - `POST /api/roguelike/run/:id/end`
 - `GET /api/roguelike/leaderboard`
 - `GET /api/roguelike/runs/me`
+- `GET /api/puzzles`
+- `GET /api/puzzles/me/completions`
+- `GET /api/puzzles/:id`
+- `POST /api/puzzles/:id/attempt`
+- `POST /api/puzzles/:id/solution`
 
 ## Détail par fichier de routes
 ### Auth & headers
@@ -86,6 +91,13 @@ npm run dev
 - `POST /api/roguelike/run/:id/end` : fin de run (JWT requis).
 - `GET /api/roguelike/leaderboard` : leaderboard roguelike.
 - `GET /api/roguelike/runs/me` : runs du joueur (JWT requis).
+
+### `src/routes/puzzle.routes.ts`
+- `GET /api/puzzles` : liste des puzzles.
+- `GET /api/puzzles/me/completions` : puzzles terminés (JWT requis).
+- `GET /api/puzzles/:id` : détail d’un puzzle.
+- `POST /api/puzzles/:id/attempt` : enregistre une tentative (JWT requis).
+- `POST /api/puzzles/:id/solution` : enregistre une solution (JWT requis).
 
 ## Schéma d’architecture
 ```

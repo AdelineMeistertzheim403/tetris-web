@@ -5,6 +5,7 @@ import RoguelikeRun from "../components/run/RoguelikeRun";
 import RoguelikeHistory from "../components/history/RoguelikeHistory";
 import RoguelikeLeaderboard from "../components/history/RoguelikeLeaderboard";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
 
 export default function RoguelikePage() {
   const { updateStats, checkAchievements } = useAchievements();
@@ -26,7 +27,7 @@ export default function RoguelikePage() {
       modesVisited: { ...prev.modesVisited, ROGUELIKE: true },
     }));
     const visitedCount = Object.values(next.modesVisited).filter(Boolean).length;
-    if (visitedCount >= 4) {
+    if (visitedCount >= TOTAL_GAME_MODES) {
       checkAchievements({ custom: { modes_visited_all: true } });
     }
   }, [checkAchievements, updateStats]);

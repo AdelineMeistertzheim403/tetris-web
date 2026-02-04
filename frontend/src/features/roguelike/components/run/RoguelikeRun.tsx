@@ -5,6 +5,7 @@ import type { Mutation } from "../../types/Mutation";
 import type { MutationContext } from "../../types/MutationContext";
 import { applyPerk } from "../../logic/applyPerk";
 import { useRoguelikeRun } from "../../hooks/useRoguelikeRun";
+import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../../game/types/GameMode";
 import RoguelikeRunSummary from "./RoguelikeRunSummary";
 import { useNavigate } from "react-router-dom";
 import { createRng } from "../../../../shared/utils/rng";
@@ -617,8 +618,8 @@ export default function RoguelikeRun({
                 playtime_60m: next.playtimeMs >= 60 * 60 * 1000,
                 playtime_300m: next.playtimeMs >= 300 * 60 * 1000,
                 level_10_three_modes: countTrue(next.level10Modes) >= 3,
-                scored_all_modes: countTrue(next.scoredModes) >= 4,
-                modes_visited_all: countTrue(next.modesVisited) >= 4,
+                scored_all_modes: countTrue(next.scoredModes) >= TOTAL_SCORED_MODES,
+                modes_visited_all: countTrue(next.modesVisited) >= TOTAL_GAME_MODES,
                 same_score_twice: sameScoreTwice,
               },
             });
