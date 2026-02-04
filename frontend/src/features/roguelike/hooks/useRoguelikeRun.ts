@@ -67,6 +67,7 @@ export function useRoguelikeRun() {
       checkpointLock.current = true;
 
       try {
+        // Normalisation des valeurs envoyées au backend pour éviter les incohérences.
         const normalizedScore = Math.round(payload.score);
         const normalizedLines = Math.round(payload.lines);
         const normalizedLevel = Math.max(1, Math.round(payload.level));

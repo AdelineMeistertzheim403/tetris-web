@@ -13,18 +13,19 @@ export default function Register() {
   const { checkAchievements } = useAchievements();
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Validation simple côté client puis création de compte.
     e.preventDefault();
     if (password !== confirm) {
       alert("Les mots de passe ne correspondent pas !");
       return;
-    } else {
-      try {
+    }
+
+    try {
       await register(pseudo, email, password);
       checkAchievements({ custom: { created_account: true } });
       navigate("/login");
     } catch (err) {
       setError("Erreur lors de l'inscription");
-    }
     }
   };
 

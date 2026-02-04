@@ -11,6 +11,7 @@ export function generateMutationChoices(
   activeMutations: ActiveMutationState[],
   rng: () => number
 ): Mutation[] {
+  // Filtre les mutations proposées selon l'état actif (unique/stackable).
   const pool = allMutations.filter((mutation) => {
     const active = activeMutations.find((m) => m.id === mutation.id);
     if (!active) return true;
@@ -28,6 +29,7 @@ export function generateMutationChoices(
   const available = [...pool];
   const result: Mutation[] = [];
 
+  // Tirage simple sans doublon dans la sélection.
   while (result.length < count && available.length > 0) {
     const index = Math.floor(rng() * available.length);
     const [picked] = available.splice(index, 1);

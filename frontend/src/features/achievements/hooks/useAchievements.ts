@@ -57,6 +57,7 @@ type AchievementStats = {
   lastScore: number | null;
 };
 
+// Persistance locale des achievements + stats pour éviter un fetch constant.
 const STORAGE_KEY = "tetris-roguelike-achievements";
 const STATS_KEY = "tetris-roguelike-achievement-stats";
 
@@ -235,6 +236,7 @@ export function useAchievements() {
     [unlocked]
   );
 
+  // Met à jour les stats locales (et persiste) via un updater fonctionnel.
   const updateStats = useCallback(
     (updater: (prev: AchievementStats) => AchievementStats) => {
       const next = updater(statsRef.current);
@@ -247,6 +249,7 @@ export function useAchievements() {
     []
   );
 
+  // Enregistre une nouvelle run (utilisé pour les achievements liés aux runs/seed).
   const registerRun = useCallback(
     (seed?: string) => {
       let sameSeedRuns = 0;
@@ -271,6 +274,7 @@ export function useAchievements() {
   // ─────────────────────────────
   // CHECKER
   // ─────────────────────────────
+  // Évalue l’ensemble des achievements à partir d’un contexte d’événement.
   const checkAchievements = useCallback(
     (ctx: AchievementContext) => {
       const newlyUnlocked: Achievement[] = [];

@@ -23,12 +23,14 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
+    // Marque la création de compte comme “achievement” une seule fois après login.
     if (!user) return;
     checkAchievements({ custom: { created_account: true } });
   }, [checkAchievements, user]);
 
   return (
     <>
+      {/* Navbar globale affichée sur toutes les routes */}
       <Navbar />
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Home />} />

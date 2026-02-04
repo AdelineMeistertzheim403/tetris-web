@@ -11,6 +11,7 @@ import { COLORS } from "../../game/logic/shapes";
 import { DEFAULT_KEY_BINDINGS, normalizeKey, type KeyBindings } from "../../game/utils/controls";
 import type { Settings, UiColors, PieceColors } from "../types/Settings";
 
+// Clé de persistance locale pour conserver les préférences utilisateur.
 const STORAGE_KEY = "tetris-user-settings";
 
 export const DEFAULT_UI_COLORS: UiColors = {
@@ -72,6 +73,7 @@ type SettingsContextValue = {
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
+// Fusionne des settings partiels avec les defaults (résilience aux anciennes versions).
 const mergeSettings = (raw: Partial<Settings> | null): Settings => {
   if (!raw) return DEFAULT_SETTINGS;
   const merged = {
@@ -81,12 +83,12 @@ const mergeSettings = (raw: Partial<Settings> | null): Settings => {
     uiColors: { ...DEFAULT_SETTINGS.uiColors, ...(raw.uiColors ?? {}) },
     pieceColors: { ...DEFAULT_SETTINGS.pieceColors, ...(raw.pieceColors ?? {}) },
   };
-  const normalizedKeyBindings = Object.fromEntries(
-    Object.entries(merged.keyBindings).map(([action, key]) => [
-      action,
-      normalizeKey(key),
-    ])
-  ) as KeyBindings;
+  const normalizedKeyBindings: KeyBindings = { ...merged.keyBindings } as KeyBindings;
+  (Object.keys(normalizedKeyBindings) as Array<keyof KeyBindings>).forEach((action) => {
+    const key = normalizedKeyBindings[action];
+    normalizedKeyBindings[action] =
+      typeof key === "string" ? normalizeKey(key) : DEFAULT_SETTINGS.keyBindings[action];
+  });
   return {
     ...merged,
     keyBindings: normalizedKeyBindings,
@@ -114,7 +116,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       keyBindings: {
         ...prev.keyBindings,
         ...Object.fromEntries(
-          Object.entries(next).map(([action, key]) => [action, normalizeKey(key)])
+          Object.entries(next).flatMap(([action, key]) =>
+            typeof key === "string" ? [[action, normalizeKey(key)]] : []
+          )
         ),
       },
     }));

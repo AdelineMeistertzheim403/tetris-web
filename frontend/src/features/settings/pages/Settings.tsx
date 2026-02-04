@@ -55,6 +55,7 @@ export default function Settings() {
   const keyBindings = settings.keyBindings;
 
   const listeningLabel = useMemo(() => {
+    // Libellé affiché lorsque l'on attend une touche.
     if (!listeningAction) return null;
     return controlActionLabels[listeningAction];
   }, [listeningAction]);
@@ -63,6 +64,7 @@ export default function Settings() {
     if (!listeningAction) return;
 
     const handler = (event: KeyboardEvent) => {
+      // Capture de la touche pour remapper une action.
       if (event.key === "Escape") {
         setListeningAction(null);
         setKeyError(null);
@@ -78,6 +80,7 @@ export default function Settings() {
       );
 
       if (conflict) {
+        // Empêche les doublons de touches entre actions.
         setKeyError(
           `La touche ${formatKeyLabel(normalized)} est déjà utilisée pour ${
             controlActionLabels[conflict[0] as ControlAction]
@@ -86,6 +89,7 @@ export default function Settings() {
         return;
       }
 
+      // Mise à jour persistée dans le contexte settings.
       updateKeyBindings({ [listeningAction]: normalized });
       setListeningAction(null);
       setKeyError(null);

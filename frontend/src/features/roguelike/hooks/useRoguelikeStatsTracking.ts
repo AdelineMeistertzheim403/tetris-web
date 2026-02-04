@@ -8,6 +8,7 @@ export type LineClearTotals = {
 };
 
 export function useRoguelikeStatsTracking() {
+  // Refs pour stats de run sans déclencher de re-render.
   const startTimeRef = useRef<number | null>(null);
   const holdCountRef = useRef(0);
   const hardDropCountRef = useRef(0);
@@ -23,6 +24,7 @@ export function useRoguelikeStatsTracking() {
   const [tetrisCleared, setTetrisCleared] = useState(false);
 
   const resetLineClears = useCallback(() => {
+    // Remet à zéro les compteurs par type de ligne.
     lineClearTotalsRef.current = {
       single: 0,
       double: 0,
@@ -32,6 +34,7 @@ export function useRoguelikeStatsTracking() {
   }, []);
 
   const resetRunTracking = useCallback(() => {
+    // Reset complet des statistiques d'une run roguelike.
     startTimeRef.current = null;
     holdCountRef.current = 0;
     hardDropCountRef.current = 0;
@@ -43,6 +46,7 @@ export function useRoguelikeStatsTracking() {
   }, [resetLineClears]);
 
   const recordLineClear = useCallback((linesCleared: number) => {
+    // Historise le nombre de clears par type pour les badges/succès.
     if (linesCleared === 1) lineClearTotalsRef.current.single += 1;
     if (linesCleared === 2) lineClearTotalsRef.current.double += 1;
     if (linesCleared === 3) lineClearTotalsRef.current.triple += 1;
@@ -50,6 +54,7 @@ export function useRoguelikeStatsTracking() {
   }, []);
 
   const handleLinesCleared = useCallback((linesCleared: number) => {
+    // Gestion des combos (streak), utilisée pour achievements et UI.
     if (linesCleared > 0) {
       recordLineClear(linesCleared);
       comboStreakRef.current += linesCleared;
@@ -62,6 +67,7 @@ export function useRoguelikeStatsTracking() {
   }, [recordLineClear]);
 
   const noteTetrisCleared = useCallback(() => {
+    // Trace une ligne de 4 (tetris) pour les succès.
     setTetrisCleared(true);
     tetrisCountRef.current += 1;
   }, []);

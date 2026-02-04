@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user from the API on startup
+  // Charge l’utilisateur courant au démarrage (session existante).
   useEffect(() => {
     let active = true;
 
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // ✅ Fonction de déconnexion complète
+  // Déconnexion complète (backend + reset local).
   const logoutUser = async () => {
     await logout();
     setUser(null);

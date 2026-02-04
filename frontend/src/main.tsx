@@ -10,6 +10,7 @@ import "./styles/perks.scss";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
+      {/* Providers globaux : settings d’UI + auth utilisateur */}
       <SettingsProvider>
         <AuthProvider>
           <App />

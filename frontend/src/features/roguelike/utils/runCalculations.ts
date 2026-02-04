@@ -11,6 +11,7 @@ export type StatusBadge = {
 };
 
 export function clampGravityMultiplier(value: number) {
+  // Garde un multiplicateur de gravité dans une plage "safe".
   return Math.min(MAX_GRAVITY_MULTIPLIER, Math.max(MIN_GRAVITY_MULTIPLIER, value));
 }
 
@@ -23,6 +24,7 @@ export function getEffectiveGravityMultiplier({
   lineSlowActive: boolean;
   currentLevel: number;
 }) {
+  // La gravité "effective" plafonne selon le niveau pour éviter des vitesses ingérables.
   const rawGravityMultiplier = gravityMultiplier * (lineSlowActive ? 1.5 : 1);
   const gravityMultiplierCap = Math.max(
     MIN_EFFECTIVE_GRAVITY_MULTIPLIER,
@@ -41,6 +43,7 @@ export function getEffectiveScoreMultiplier({
   zeroBombBoost: boolean;
   bombs: number;
 }) {
+  // Bonus conditionnel si aucune bombe utilisée.
   return scoreMultiplier * (zeroBombBoost && bombs === 0 ? 2 : 1);
 }
 
@@ -77,6 +80,7 @@ export function buildStatusBadges({
   rotationDelayMs: number;
   timeFreezeEcho: boolean;
 }): StatusBadge[] {
+  // Centralise la construction des badges visibles dans l'UI.
   const badges: StatusBadge[] = [];
 
   badges.push({ label: "Score", value: `x${effectiveScoreMultiplier.toFixed(2)}`, tone: "gold" });

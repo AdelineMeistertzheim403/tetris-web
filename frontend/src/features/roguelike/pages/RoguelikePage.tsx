@@ -8,6 +8,7 @@ import { useAchievements } from "../../achievements/hooks/useAchievements";
 
 export default function RoguelikePage() {
   const { updateStats, checkAchievements } = useAchievements();
+  // État de la page "hub" roguelike: démarrage d'une run, onglet actif, et mode seed.
   const [started, setStarted] = useState(false);
   const [activeTab, setActiveTab] = useState<"history" | "leaderboard">("history");
   const [showSeedInput, setShowSeedInput] = useState(false);
@@ -17,6 +18,7 @@ export default function RoguelikePage() {
   const visitedRef = useRef(false);
 
   useEffect(() => {
+    // Tracking "visite de mode" pour les succès globaux.
     if (visitedRef.current) return;
     visitedRef.current = true;
     const next = updateStats((prev) => ({
@@ -30,16 +32,19 @@ export default function RoguelikePage() {
   }, [checkAchievements, updateStats]);
 
   if (started) {
+    // Une fois la run lancée, on bascule entièrement sur le composant de run.
     return <RoguelikeRun initialSeed={seedToPlay ?? undefined} seededMode={seededMode} />;
   }
 
   const handleStartRandom = () => {
+    // Démarrage d'une run aléatoire (seed générée côté jeu).
     setSeededMode(false);
     setSeedToPlay(null);
     setStarted(true);
   };
 
   const handleStartSeed = (seed: string) => {
+    // Démarrage d'une run seedée: on normalise la seed pour garantir une RNG stable.
     const normalized = seed.trim().toUpperCase();
     if (!normalized) return;
     setSeededMode(true);

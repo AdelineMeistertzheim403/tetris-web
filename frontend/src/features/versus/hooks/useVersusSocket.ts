@@ -18,6 +18,7 @@ type JoinParams = {
 };
 
 function buildWsUrl(): string | null {
+  // Construit l'URL WS à partir du backend HTTP (http -> ws, https -> wss).
   const api = import.meta.env.VITE_API_URL;
   if (!api) return null;
   try {
@@ -31,6 +32,7 @@ function buildWsUrl(): string | null {
 }
 
 export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
+  // État de transport + état de match synchronisé par WS.
   const [connected, setConnected] = useState(false);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
   const [players, setPlayers] = useState(0);
@@ -51,6 +53,7 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
   const slotRef = useRef<number | null>(null);
 
   const resetState = () => {
+    // Remise à zéro totale entre deux sessions de match.
     setConnected(false);
     setCurrentMatchId(null);
     setPlayers(0);
@@ -74,7 +77,7 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
       return;
     }
 
-    // reset slot/results à chaque nouvelle connexion
+    // Reset slot/results à chaque nouvelle connexion.
     slotRef.current = null;
     setSlot(null);
     setResults(null);
@@ -102,6 +105,7 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
       try {
         const msg = JSON.parse(evt.data) as IncomingMessage;
         if (msg.type === "match_joined") {
+          // Réception de l'état initial du match.
           if (msg.self && msg.slot) {
             slotRef.current = msg.slot;
             setSlot(msg.slot);
@@ -114,6 +118,7 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
           setOpponentFinished(false);
         }
         if (msg.type === "start") {
+          // Début du match : on reçoit le sac partagé.
           if (msg.slot && slotRef.current === null) {
             slotRef.current = msg.slot;
             setSlot(msg.slot);
@@ -122,6 +127,7 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
           setBagSequence(msg.bag);
         }
         if (msg.type === "bag_refill") {
+          // Recharge de sac pour synchroniser la génération de pièces.
           setBagSequence(msg.bag);
         }
         if (msg.type === "garbage") {
@@ -154,6 +160,7 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
   }, [wsUrl, matchId]);
 
   const leaveMatch = () => {
+    // Quitte proprement le match côté client.
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -162,16 +169,19 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
   };
 
   const sendLinesCleared = (lines: number) => {
+    // Informe le serveur du nombre de lignes pour calculer le garbage.
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: "lines_cleared", lines }));
   };
 
   const sendGameOver = (score: number, lines: number) => {
+    // Envoie la fin de partie avec score/lignes.
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: "game_over", score, lines }));
   };
 
   const sendBoardState = (board: number[][]) => {
+    // Envoie l'état du plateau pour l'aperçu adversaire.
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: "state", board }));
   };
