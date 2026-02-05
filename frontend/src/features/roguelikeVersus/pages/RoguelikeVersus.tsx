@@ -83,7 +83,6 @@ export default function RoguelikeVersus() {
   const [currentLines, setCurrentLines] = useState(0);
   const [totalLines, setTotalLines] = useState(0);
   const [nextRewardAt, setNextRewardAt] = useState(REWARD_INTERVAL_LINES);
-  const [elapsedMs, setElapsedMs] = useState(0);
   const [pieceLockTick, setPieceLockTick] = useState(0);
   const [initialRewardGiven, setInitialRewardGiven] = useState(false);
   const [stolenBonusScore, setStolenBonusScore] = useState(0);
@@ -196,14 +195,6 @@ export default function RoguelikeVersus() {
     rngRef.current = createRng(`rv-${currentMatchId}`);
   }, [currentMatchId]);
 
-  useEffect(() => {
-    if (!startReady) return;
-    const timer = setInterval(() => {
-      if (!startTimeRef.current) return;
-      setElapsedMs(Date.now() - startTimeRef.current);
-    }, 500);
-    return () => clearInterval(timer);
-  }, [startReady]);
 
 
   useEffect(() => {
