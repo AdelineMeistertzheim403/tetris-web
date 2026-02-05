@@ -918,6 +918,7 @@ export default function RoguelikeVersus() {
             {opponentFinished && !matchOver && (
               <p className="text-green-300">Adversaire a terminé</p>
             )}
+            <p className="text-xs text-gray-400 mt-2">Lignes totales: {totalLines}</p>
             {selectingReward && rewardOptions.length > 0 && (
               <div className="mt-4 w-full max-w-[240px] text-left bg-black/70 border border-pink-500/60 rounded-lg p-3">
                 <p className="text-xs text-yellow-300 mb-2">
