@@ -616,6 +616,18 @@ const generateBatch = (): PuzzleSeedRow[] => {
 };
 
 async function main() {
+  const seedIfEmpty =
+    process.env.SEED_IF_EMPTY === "1" ||
+    process.env.SEED_IF_EMPTY === "true";
+  if (seedIfEmpty) {
+    const existingCount = await prisma.puzzle.count();
+    if (existingCount > 0) {
+      console.log(
+        `[seed] Skip: ${existingCount} puzzle(s) already exist (SEED_IF_EMPTY=1).`
+      );
+      return;
+    }
+  }
   const puzzles = [...(await loadPuzzles()), ...generatedPuzzles, ...generateBatch()];
   for (const puzzle of puzzles) {
     const normalizedBoard = normalizeBoard(puzzle.definition.initialBoard);
