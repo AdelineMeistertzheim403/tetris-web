@@ -42,9 +42,9 @@ export default function Dashboard() {
     setLoading(true);
     async function fetchScores() {
       try {
-        if (mode === "VERSUS") {
-          // En Versus: on filtre les matchs où le joueur est impliqué.
-          const data = await getLeaderboard("VERSUS");
+        if (mode === "VERSUS" || mode === "ROGUELIKE_VERSUS") {
+          // En modes PVP: on filtre les matchs où le joueur est impliqué.
+          const data = await getLeaderboard(mode);
           const mine = (data as VersusRow[]).filter(
             (row) =>
               row.player1?.pseudo === user?.pseudo ||
@@ -142,6 +142,13 @@ export default function Dashboard() {
               image: "/Game_Mode/roguelike.png",
             },
             {
+              title: "Roguelike Versus",
+              desc: "Roguelike compétitif en 1v1.",
+              path: "/roguelike-versus",
+              accent: "from-[#0d1a1a] to-[#0c2b33]",
+              image: "/Game_Mode/roguelike-versus.png",
+            },
+            {
               title: "Puzzle",
               desc: "Plateaux fixes et objectifs précis.",
               path: "/puzzle",
@@ -182,6 +189,7 @@ export default function Dashboard() {
               <option value="CLASSIQUE"> Mode Classique</option>
               <option value="SPRINT"> Mode Sprint</option>
               <option value="VERSUS"> Mode Versus</option>
+              <option value="ROGUELIKE_VERSUS"> Mode Roguelike Versus</option>
             </select>
           </div>
 
@@ -194,7 +202,7 @@ export default function Dashboard() {
               <h2 className="text-2xl text-yellow-400 mb-4 text-center">
                 🏆 Tes 10 meilleurs scores — {mode}
               </h2>
-              {mode === "VERSUS" ? (
+              {mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" ? (
                 <table className="w-full border border-pink-500 rounded-lg bg-black bg-opacity-60 text-center bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-[0_0_20px_#ff00ff]">
                   <thead>
                     <tr className="text-yellow-400 border-b border-pink-500">

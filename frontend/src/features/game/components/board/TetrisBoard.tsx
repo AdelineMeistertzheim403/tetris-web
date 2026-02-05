@@ -16,6 +16,8 @@ type TetrisBoardProps = {
   scoreMode?: GameMode | null;
   bagSequence?: string[];
   fixedSequence?: string[];
+  forcedSequence?: string[];
+  forcedSequenceToken?: number;
   initialBoard?: number[][];
   incomingGarbage?: number;
   onConsumeLines?: (lines: number) => void;
@@ -56,6 +58,9 @@ type TetrisBoardProps = {
   chaosDrift?: boolean;
   pieceMutation?: boolean;
   disableHold?: boolean;
+  invertControls?: boolean;
+  hidePreview?: boolean;
+  fogRows?: number;
   hideStats?: boolean;
   hideSidebar?: boolean;
   layout?: "default" | "plain";
@@ -93,6 +98,8 @@ export default function TetrisBoard({
   scoreMode,
   bagSequence,
   fixedSequence,
+  forcedSequence,
+  forcedSequenceToken,
   initialBoard,
   incomingGarbage = 0,
   onConsumeLines,
@@ -133,6 +140,9 @@ export default function TetrisBoard({
   pieceMutation = false,
   rng,
   disableHold = false,
+  invertControls = false,
+  hidePreview = false,
+  fogRows = 0,
   hideStats = false,
   hideSidebar = false,
   layout = "default",
@@ -171,6 +181,8 @@ export default function TetrisBoard({
     mode,
     bagSequence,
     fixedSequence,
+    forcedSequence,
+    forcedSequenceToken,
     initialBoard,
     gravityMultiplier,
     extraHold,
@@ -201,7 +213,13 @@ export default function TetrisBoard({
     // En mode classique/sprint/etc., on enregistre le score (pas en roguelike).
   if (onLocalGameOver) onLocalGameOver(score, lines);
 
-  if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE" || effectiveScoreMode === "PUZZLE") return;
+  if (
+    !effectiveScoreMode ||
+    effectiveScoreMode === "ROGUELIKE" ||
+    effectiveScoreMode === "ROGUELIKE_VERSUS" ||
+    effectiveScoreMode === "PUZZLE"
+  )
+    return;
 
   try {
     let runToken = scoreRunTokenRef.current;
@@ -247,6 +265,12 @@ export default function TetrisBoard({
   const bombsGrantRef = useRef(0);
 
     useKeyboardControls((dir) => {
+    const effectiveDir =
+      invertControls && (dir === "left" || dir === "right")
+        ? dir === "left"
+          ? "right"
+          : "left"
+        : dir;
     if (dir === "harddrop") {
       onHardDrop?.();
       return hardDrop();
@@ -275,7 +299,7 @@ export default function TetrisBoard({
       }
       lastRotationRef.current = now;
     }
-    movePiece(dir as "left" | "right" | "down" | "rotate");
+    movePiece(effectiveDir as "left" | "right" | "down" | "rotate");
   });
 
   useEffect(() => {
@@ -376,6 +400,12 @@ useEffect(() => {
 
     if (onBoardUpdate) onBoardUpdate(board);
 
+    if (fogRows > 0) {
+      const fogHeight = Math.min(ROWS, fogRows) * CELL_SIZE;
+      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      ctx.fillRect(0, ROWS * CELL_SIZE - fogHeight, COLS * CELL_SIZE, fogHeight);
+    }
+
     if (framesReady && explosionFramesRef.current.length) {
       explosions.forEach((exp) => {
         const frameCount = getExplosionFrameCount(exp.radius);
@@ -399,7 +429,7 @@ useEffect(() => {
         ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dw, dh);
       });
     }
-  }, [board, piece, ghostPiece, explosions, onBoardUpdate, framesReady, explosionFrameTick]);
+  }, [board, piece, ghostPiece, explosions, onBoardUpdate, framesReady, explosionFrameTick, fogRows]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -442,7 +472,7 @@ useEffect(() => {
 
     for (let i = 1; i <= totalFrames; i++) {
       const img = new Image();
-      img.src = `/${i}.png`;
+      img.src = `/explosions/${i}.png`;
       img.onload = markLoaded;
       img.onerror = markLoaded;
       frames.push(img);
@@ -533,65 +563,67 @@ useEffect(() => {
           </>
         )}
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "20px",
-            width: "100%",
-            marginTop: "10px",
-            padding: "10px 0",
-            borderTop: "1px solid var(--ui-board-border, #333)",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <h3
-              style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
-            >
-              HOLD
-            </h3>
+        {!hidePreview && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "20px",
+              width: "100%",
+              marginTop: "10px",
+              padding: "10px 0",
+              borderTop: "1px solid var(--ui-board-border, #333)",
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <h3
+                style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+              >
+                HOLD
+              </h3>
 
-            <div
-              style={{
-                width: PREVIEW_SIZE,
-                height: PREVIEW_SIZE,
-                border: "2px solid var(--ui-board-border, #333)",
-                background: "var(--ui-board-bg, #111)",
-                borderRadius: "6px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {holdPiece && <NextPiece piece={holdPiece} />}
+              <div
+                style={{
+                  width: PREVIEW_SIZE,
+                  height: PREVIEW_SIZE,
+                  border: "2px solid var(--ui-board-border, #333)",
+                  background: "var(--ui-board-bg, #111)",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {holdPiece && <NextPiece piece={holdPiece} />}
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center" }}>
+              <h3
+                style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
+              >
+                NEXT
+              </h3>
+
+              <div
+                style={{
+                  width: PREVIEW_SIZE,
+                  height: PREVIEW_SIZE,
+                  border: "2px solid var(--ui-board-border, #333)",
+                  background: "var(--ui-board-bg, #111)",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <NextPiece piece={nextPiece} />
+              </div>
             </div>
           </div>
-
-          <div style={{ textAlign: "center" }}>
-            <h3
-              style={{ marginBottom: "8px", fontSize: "0.9rem", color: "var(--ui-muted, #bbbbbb)" }}
-            >
-              NEXT
-            </h3>
-
-            <div
-              style={{
-                width: PREVIEW_SIZE,
-                height: PREVIEW_SIZE,
-                border: "2px solid var(--ui-board-border, #333)",
-                background: "var(--ui-board-bg, #111)",
-                borderRadius: "6px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <NextPiece piece={nextPiece} />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

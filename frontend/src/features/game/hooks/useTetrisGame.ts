@@ -16,6 +16,8 @@ type Options = {
    scoreMultiplier?: number;
    secondChance?: boolean;
 onConsumeSecondChance?: () => void;
+  forcedSequence?: string[];
+  forcedSequenceToken?: number;
   extraHold?: number;
   initialBoard?: number[][];
   fixedSequence?: string[];
@@ -83,6 +85,8 @@ export function useTetrisGame({
   bagSequence,
   initialBoard,
   fixedSequence,
+  forcedSequence,
+  forcedSequenceToken,
   onPieceLocked,
   onSequenceEnd,
   onBombExplode,
@@ -116,6 +120,7 @@ export function useTetrisGame({
   const fixedQueueRef = useRef<string[] | null>(
     fixedSequence && fixedSequence.length ? [...fixedSequence] : null
   );
+  const forcedSequenceRef = useRef<number | null>(null);
   const buildEmptyBoard = () =>
     Array.from({ length: rows }, () => Array(cols).fill(0));
   const normalizeBoard = (source?: number[][]) => {
@@ -290,6 +295,16 @@ const triggerBomb = useCallback(() => {
     setPiece(bagGenRef.current.next());
     setNextPiece(bagGenRef.current.next());
   }, [rng]);
+
+  useEffect(() => {
+    if (!forcedSequence || forcedSequence.length === 0) return;
+    if (forcedSequenceToken === undefined || forcedSequenceToken === null) return;
+    if (forcedSequenceRef.current === forcedSequenceToken) return;
+    forcedSequenceRef.current = forcedSequenceToken;
+    if (!fixedQueueRef.current) {
+      bagGenRef.current.pushSequence([...forcedSequence]);
+    }
+  }, [forcedSequence, forcedSequenceToken]);
 
   useEffect(() => {
     if (!fixedSequence || fixedSequence.length === 0) return;
