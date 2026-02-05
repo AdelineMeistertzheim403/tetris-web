@@ -54,6 +54,10 @@ type AchievementStats = {
   versusWins: number;
   versusWinStreak: number;
   versusLinesSent: number;
+  roguelikeVersusMatches: number;
+  roguelikeVersusWins: number;
+  roguelikeVersusWinStreak: number;
+  roguelikeVersusLinesSent: number;
   lastScore: number | null;
   puzzleCompletedIds: string[];
   puzzleOptimalCount: number;
@@ -79,6 +83,7 @@ const DEFAULT_STATS: AchievementStats = {
     SPRINT: false,
     VERSUS: false,
     ROGUELIKE: false,
+    ROGUELIKE_VERSUS: false,
     PUZZLE: false,
   },
   level10Modes: {
@@ -86,6 +91,7 @@ const DEFAULT_STATS: AchievementStats = {
     SPRINT: false,
     VERSUS: false,
     ROGUELIKE: false,
+    ROGUELIKE_VERSUS: false,
     PUZZLE: false,
   },
   scoredModes: {
@@ -93,6 +99,7 @@ const DEFAULT_STATS: AchievementStats = {
     SPRINT: false,
     VERSUS: false,
     ROGUELIKE: false,
+    ROGUELIKE_VERSUS: false,
     PUZZLE: false,
   },
   playtimeMs: 0,
@@ -102,6 +109,10 @@ const DEFAULT_STATS: AchievementStats = {
   versusWins: 0,
   versusWinStreak: 0,
   versusLinesSent: 0,
+  roguelikeVersusMatches: 0,
+  roguelikeVersusWins: 0,
+  roguelikeVersusWinStreak: 0,
+  roguelikeVersusLinesSent: 0,
   lastScore: null,
   puzzleCompletedIds: [],
   puzzleOptimalCount: 0,
@@ -194,6 +205,10 @@ export function useAchievements() {
       a.versusWins === b.versusWins &&
       a.versusWinStreak === b.versusWinStreak &&
       a.versusLinesSent === b.versusLinesSent &&
+      a.roguelikeVersusMatches === b.roguelikeVersusMatches &&
+      a.roguelikeVersusWins === b.roguelikeVersusWins &&
+      a.roguelikeVersusWinStreak === b.roguelikeVersusWinStreak &&
+      a.roguelikeVersusLinesSent === b.roguelikeVersusLinesSent &&
       a.lastScore === b.lastScore &&
       areArraysEqual(a.puzzleCompletedIds, b.puzzleCompletedIds) &&
       a.puzzleOptimalCount === b.puzzleOptimalCount &&

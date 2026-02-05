@@ -1,10 +1,17 @@
-export type GameMode = "CLASSIQUE" | "SPRINT" | "VERSUS" | "ROGUELIKE" | "PUZZLE";
+export type GameMode =
+  | "CLASSIQUE"
+  | "SPRINT"
+  | "VERSUS"
+  | "ROGUELIKE"
+  | "ROGUELIKE_VERSUS"
+  | "PUZZLE";
 
 export const GAME_MODES: GameMode[] = [
   "CLASSIQUE",
   "SPRINT",
   "VERSUS",
   "ROGUELIKE",
+  "ROGUELIKE_VERSUS",
   "PUZZLE",
 ];
 
