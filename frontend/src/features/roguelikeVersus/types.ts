@@ -11,6 +11,8 @@ export type RvEffect = { mirrorCopy?: boolean } & (
   | { type: "garbage_storm"; durationMs: number }
   | { type: "double_garbage"; durationMs: number }
   | { type: "double_vision"; durationMs: number }
+  | { type: "storm_tick"; count: number }
+  | { type: "steal_lines"; count: number; score: number }
   | { type: "bonus"; durationMs: number; id: string }
   | { type: "debuff"; durationMs: number; id: string }
 );
@@ -25,9 +27,8 @@ export type RvRewardOption =
   | { kind: "debuff"; id: "slow" | "invert" | "preview_off"; title?: string; description?: string };
 
 export type RvMutationContext = {
-  setGarbageMultiplier: (fn: (v: number) => number) => void;
   setGravityMultiplier: (fn: (v: number) => number) => void;
-  setGarbageShieldRatio: (value: number) => void;
+  setScoreMultiplier: (fn: (v: number) => number) => void;
   enableInstable: () => void;
 };
 
@@ -56,5 +57,18 @@ export type RvSynergy = {
     setGarbageMultiplier: (fn: (v: number) => number) => void;
     enableMirrorCurse: () => void;
     setDamageReduction: (value: number) => void;
+  }) => void;
+};
+
+export type RvPerk = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  apply: (ctx: {
+    addHoldSlot: () => void;
+    addTimeFreeze: (count?: number) => void;
+    addScoreBoost: (value?: number) => void;
+    sendTacticalBomb: () => void;
   }) => void;
 };

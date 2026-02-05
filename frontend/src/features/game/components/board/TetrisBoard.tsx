@@ -472,7 +472,7 @@ useEffect(() => {
 
     for (let i = 1; i <= totalFrames; i++) {
       const img = new Image();
-      img.src = `/explosions/${i}.png`;
+      img.src = `/Explosion/${i}.png`;
       img.onload = markLoaded;
       img.onerror = markLoaded;
       frames.push(img);

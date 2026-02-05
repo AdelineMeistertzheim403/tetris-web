@@ -7,15 +7,12 @@ import { useRoguelikeVersusSocket } from "../hooks/useRoguelikeVersusSocket";
 import { saveRoguelikeVersusMatch } from "../../game/services/scoreService";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
-import { applyPerk } from "../../roguelike/logic/applyPerk";
-import { ALL_PERKS } from "../../roguelike/data/perks";
 import { useTimeFreeze } from "../../roguelike/hooks/useTimeFreeze";
 import { useTimeFreezeState } from "../../roguelike/hooks/useTimeFreezeState";
-import { applyTimeFreezeDurationFromPerk } from "../../roguelike/utils/timeFreeze";
-import type { ActivePerkRuntime } from "../../roguelike/components/run/RoguelikeRun";
 import { RV_MUTATIONS } from "../data/mutations";
 import { RV_SYNERGIES } from "../data/synergies";
 import { RV_EVENTS } from "../data/events";
+import { RV_PERKS } from "../data/perks";
 import type { RvEffect, RvPhase, RvRewardOption, RvMutation } from "../types";
 import { createRng } from "../../../shared/utils/rng";
 
@@ -37,6 +34,18 @@ const REWARD_LABELS: Record<string, string> = {
   slow: "Ralentissement",
   invert: "Inversion",
   preview_off: "Blackout",
+};
+const EVENT_LABELS: Record<string, string> = {
+  emp: "EMP",
+  blackout: "Blackout",
+  gravity: "Gravity Surge",
+  mirror: "Mirror",
+  seed: "Seed Bomb",
+  fog: "Fog Bomb",
+  time_rift: "Time Rift",
+  garbage_storm: "Garbage Storm",
+  double_garbage: "Double Garbage",
+  double_vision: "Double Vision",
 };
 
 const pickWeighted = <T,>(pool: Array<{ item: T; weight: number }>, rng: () => number): T => {
@@ -77,18 +86,27 @@ export default function RoguelikeVersus() {
   const [phase, setPhase] = useState<RvPhase>("SETUP");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pieceLockTick, setPieceLockTick] = useState(0);
+  const [initialRewardGiven, setInitialRewardGiven] = useState(false);
+  const [stolenBonusScore, setStolenBonusScore] = useState(0);
+  const [stolenBonusLines, setStolenBonusLines] = useState(0);
+  const [stolenPenaltyScore, setStolenPenaltyScore] = useState(0);
+  const [stolenPenaltyLines, setStolenPenaltyLines] = useState(0);
+  const [lineThiefActive, setLineThiefActive] = useState(false);
+  const [activeEvent, setActiveEvent] = useState<{ name: string; endsAt: number } | null>(null);
+  const [activeEventCountdown, setActiveEventCountdown] = useState(0);
   const [rewardOptions, setRewardOptions] = useState<RvRewardOption[]>([]);
   const [selectingReward, setSelectingReward] = useState(false);
   const [rewardDeadline, setRewardDeadline] = useState<number | null>(null);
   const [rewardCountdown, setRewardCountdown] = useState(0);
-  const [activePerks, setActivePerks] = useState<ActivePerkRuntime[]>([]);
+  const [activePerks, setActivePerks] = useState<
+    Array<{ id: string; name: string; description: string; icon: string; rarity?: string }>
+  >([]);
   const [activeMutations, setActiveMutations] = useState<Array<{ mutation: RvMutation; stacks: number }>>(
     []
   );
 
   const [scoreMultiplier, setScoreMultiplier] = useState(1);
   const [baseGravityMultiplier, setBaseGravityMultiplier] = useState(1);
-  const [garbageMultiplier, setGarbageMultiplier] = useState(1);
   const [extraHoldSlots, setExtraHoldSlots] = useState(0);
   const [bombsGranted, setBombsGranted] = useState(0);
   const [bombRadius, setBombRadius] = useState(1);
@@ -99,7 +117,6 @@ export default function RoguelikeVersus() {
   const [chaosMode, setChaosMode] = useState(false);
   const [chaosDrift, setChaosDrift] = useState(false);
   const [pieceMutation, setPieceMutation] = useState(false);
-  const [garbageShieldRatio, setGarbageShieldRatio] = useState(0);
   const [garbageShield, setGarbageShield] = useState(0);
   const [bonusDamageReduction, setBonusDamageReduction] = useState(0);
   const [synergyDamageReduction, setSynergyDamageReduction] = useState(0);
@@ -200,6 +217,7 @@ export default function RoguelikeVersus() {
   useEffect(() => {
     if (!startReady) return;
     if (!rngRef.current) return;
+    if (slot !== 1) return;
     let cancelled = false;
     let timeoutRef: ReturnType<typeof setTimeout> | null = null;
 
@@ -211,6 +229,7 @@ export default function RoguelikeVersus() {
         const event = RV_EVENTS[Math.floor(rng() * RV_EVENTS.length)];
         const effect = event.buildEffect();
         applyEffect(effect, true);
+        actions.sendEffect(effect);
         schedule();
       }, delay);
     };
@@ -220,7 +239,7 @@ export default function RoguelikeVersus() {
       cancelled = true;
       if (timeoutRef) clearTimeout(timeoutRef);
     };
-  }, [startReady]);
+  }, [actions, slot, startReady]);
 
   useEffect(() => {
     if (!pendingEffect) return;
@@ -231,9 +250,9 @@ export default function RoguelikeVersus() {
   const effectiveDamageReduction = Math.min(0.8, bonusDamageReduction + synergyDamageReduction);
   const dominationActive =
     activeMutations.length > (opponentStatus?.mutations ?? 0);
-  const effectiveGarbageMultiplier = garbageMultiplier * (dominationActive ? 1.2 : 1);
   const effectiveGravityMultiplier = baseGravityMultiplier * effectGravityMultiplier;
-  const effectiveScoreMultiplier = scoreMultiplier * bonusScoreMultiplier;
+  const effectiveScoreMultiplier =
+    scoreMultiplier * bonusScoreMultiplier * (dominationActive ? 1.2 : 1);
 
   useEffect(() => {
     if (!garbage) return;
@@ -253,10 +272,7 @@ export default function RoguelikeVersus() {
     actions.consumeGarbage();
   }, [actions, doubleGarbage, effectiveDamageReduction, garbage, garbageShield]);
 
-  useEffect(() => {
-    const now = Date.now();
-    setActivePerks((prev) => prev.filter((p) => !p.expiresAt || p.expiresAt > now));
-  }, [elapsedMs]);
+  // Pas d'expiration automatique sur les perks PVP pour l'instant.
 
   useEffect(() => {
     if (!startReady) return;
@@ -278,7 +294,7 @@ export default function RoguelikeVersus() {
     timeFreezeEcho,
     setTimeFreezeCharges,
     setTimeFrozen,
-    setActivePerks,
+    setActivePerks: () => {},
   });
 
   const resetRunTracking = () => {
@@ -297,13 +313,20 @@ export default function RoguelikeVersus() {
     setNextRewardAt(REWARD_INTERVAL_LINES);
     setCurrentScore(0);
     setCurrentLines(0);
+    setInitialRewardGiven(false);
+    setStolenBonusScore(0);
+    setStolenBonusLines(0);
+    setStolenPenaltyScore(0);
+    setStolenPenaltyLines(0);
+    setLineThiefActive(false);
+    setActiveEvent(null);
+    setActiveEventCountdown(0);
     setActivePerks([]);
     setActiveMutations([]);
     setScoreMultiplier(1);
     setBonusScoreMultiplier(1);
     setBaseGravityMultiplier(1);
     setEffectGravityMultiplier(1);
-    setGarbageMultiplier(1);
     setExtraHoldSlots(0);
     setBombsGranted(0);
     setBombRadius(1);
@@ -314,7 +337,6 @@ export default function RoguelikeVersus() {
     setChaosMode(false);
     setChaosDrift(false);
     setPieceMutation(false);
-    setGarbageShieldRatio(0);
     setGarbageShield(0);
     setBonusDamageReduction(0);
     setSynergyDamageReduction(0);
@@ -351,6 +373,22 @@ export default function RoguelikeVersus() {
       }
     }
 
+    if (effect.type === "storm_tick") {
+      const amount = doubleGarbage ? effect.count * 2 : effect.count;
+      setIncomingGarbage((v) => v + amount);
+      return;
+    }
+
+    if (effect.type === "steal_lines") {
+      setStolenPenaltyLines((v) => v + effect.count);
+      setStolenPenaltyScore((v) => v + effect.score);
+      setCurrentLines((v) => Math.max(0, v - effect.count));
+      setCurrentScore((v) => Math.max(0, v - effect.score));
+      const amount = doubleGarbage ? effect.count * 2 : effect.count;
+      if (amount > 0) setIncomingGarbage((v) => v + amount);
+      return;
+    }
+
     if (effect.type === "emp" || effect.type === "blackout") {
       setDisableHold(true);
       setHidePreview(true);
@@ -358,18 +396,30 @@ export default function RoguelikeVersus() {
         setDisableHold(false);
         setHidePreview(false);
       }, effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS[effect.type],
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
     if (effect.type === "gravity") {
       setEffectGravityMultiplier(effect.multiplier);
       clearLater(() => setEffectGravityMultiplier(1), effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS.gravity,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
     if (effect.type === "mirror") {
       setInvertControls(true);
       clearLater(() => setInvertControls(false), effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS.mirror,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
@@ -381,12 +431,20 @@ export default function RoguelikeVersus() {
         setForcedSequence([]);
         setForcedSequenceToken((v) => v + 1);
       }, effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS.seed,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
     if (effect.type === "fog") {
       setFogRows(effect.rows);
       clearLater(() => setFogRows(0), effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS.fog,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
@@ -397,24 +455,40 @@ export default function RoguelikeVersus() {
         setEffectGravityMultiplier(effect.slowMultiplier);
         clearLater(() => setEffectGravityMultiplier(1), effect.durationMs);
       }
+      setActiveEvent({
+        name: EVENT_LABELS.time_rift,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
     if (effect.type === "garbage_storm") {
       setGarbageStorm(true);
       clearLater(() => setGarbageStorm(false), effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS.garbage_storm,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
     if (effect.type === "double_garbage") {
       setDoubleGarbage(true);
       clearLater(() => setDoubleGarbage(false), effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS.double_garbage,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
     if (effect.type === "double_vision") {
       setDoubleVision(true);
       clearLater(() => setDoubleVision(false), effect.durationMs);
+      setActiveEvent({
+        name: EVENT_LABELS.double_vision,
+        endsAt: Date.now() + effect.durationMs,
+      });
       return;
     }
 
@@ -438,11 +512,14 @@ export default function RoguelikeVersus() {
     if (existing && mutation.stackable && mutation.maxStacks && existing.stacks >= mutation.maxStacks) return;
 
     mutation.apply({
-      setGarbageMultiplier,
       setGravityMultiplier: (fn) => setBaseGravityMultiplier((v) => fn(v)),
-      setGarbageShieldRatio,
+      setScoreMultiplier: (fn) => setScoreMultiplier((v) => fn(v)),
       enableInstable: () => setInstable(true),
     });
+
+    if (mutation.id === "line-thief") {
+      setLineThiefActive(true);
+    }
 
     setActiveMutations((prev) => {
       const current = prev.find((m) => m.mutation.id === mutation.id);
@@ -525,7 +602,7 @@ export default function RoguelikeVersus() {
     while (options.length < 3) {
       const kind = pickWeighted(categories.map((c) => ({ item: c.kind, weight: c.weight })), rng);
       if (kind === "perk") {
-        const pool = ALL_PERKS.filter((p) => !activePerks.some((ap) => ap.id === p.id));
+        const pool = RV_PERKS.filter((p) => !activePerks.some((ap) => ap.id === p.id));
         if (!pool.length) continue;
         const perk = pool[Math.floor(rng() * pool.length)];
         if (!perk || used.has(perk.id)) continue;
@@ -593,34 +670,37 @@ export default function RoguelikeVersus() {
     setRewardDeadline(null);
 
     if (option.kind === "perk") {
-      const perk = ALL_PERKS.find((p) => p.id === option.id);
+      const perk = RV_PERKS.find((p) => p.id === option.id);
       if (!perk) return;
-      const isTimeFreeze = perk.id === "time-freeze";
 
-      applyPerk(perk, {
+      const sendTacticalBomb = () => {
+        const rng = rngRef.current ?? Math.random;
+        const piece = ["I", "O", "T", "S", "Z", "L", "J"][Math.floor(rng() * 7)];
+        const bombs: Array<RvEffect> = [
+          { type: "emp", durationMs: 5000 },
+          { type: "gravity", durationMs: 6000, multiplier: 2 },
+          { type: "mirror", durationMs: 3000 },
+          { type: "seed", durationMs: 6000, piece, count: 5 },
+          { type: "fog", durationMs: 6000, rows: 3 },
+        ];
+        actions.sendEffect(bombs[Math.floor(rng() * bombs.length)]);
+      };
+
+      perk.apply({
         addHoldSlot: () => setExtraHoldSlots((v) => v + 1),
-        slowGravity: (factor = 1.2) => setBaseGravityMultiplier((v) => v * factor),
-        addBomb: (count = 1) => setBombsGranted((v) => v + count),
-        addScoreBoost: (value = 0.3) => setScoreMultiplier((v) => v + value),
-        grantSecondChance: () => setSecondChance(true),
         addTimeFreeze: (count = 1) => setTimeFreezeCharges((v) => v + count),
-        enableChaosMode: () => setChaosMode(true),
-        setBombRadius: (radius: number) => setBombRadius(radius),
-        enableFastHoldReset: () => setFastHoldReset(true),
-        enableLastStand: () => setLastStand(true),
+        addScoreBoost: (value = 0.3) => setScoreMultiplier((v) => v + value),
+        sendTacticalBomb,
       });
-
-      if (isTimeFreeze) {
-        applyTimeFreezeDurationFromPerk(perk, setTimeFreezeDurationSafe);
-      }
 
       setActivePerks((prev) => [
         ...prev,
         {
-          ...perk,
-          startedAt: isTimeFreeze ? undefined : Date.now(),
-          expiresAt: !isTimeFreeze && perk.durationMs ? Date.now() + perk.durationMs : undefined,
-          pending: isTimeFreeze,
+          id: perk.id,
+          name: perk.name,
+          description: perk.description,
+          icon: perk.icon,
+          rarity: "rare",
         },
       ]);
       return;
@@ -693,6 +773,32 @@ export default function RoguelikeVersus() {
   }, [selectingReward, rewardDeadline]);
 
   useEffect(() => {
+    if (!activeEvent) {
+      setActiveEventCountdown(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, activeEvent.endsAt - Date.now());
+      setActiveEventCountdown(Math.ceil(remaining / 1000));
+      if (remaining <= 0) {
+        setActiveEvent(null);
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [activeEvent]);
+
+  useEffect(() => {
+    if (!garbageStorm) return;
+    if (slot !== 1) return;
+    const interval = setInterval(() => {
+      const amount = doubleGarbage ? 2 : 1;
+      setIncomingGarbage((v) => v + amount);
+      actions.sendEffect({ type: "storm_tick", count: 1 });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [actions, garbageStorm, doubleGarbage, slot]);
+
+  useEffect(() => {
     if (!selectingReward) return;
     if (rewardDeadline !== null) return;
     if (!rewardOptions.length) return;
@@ -700,6 +806,17 @@ export default function RoguelikeVersus() {
     const pick = rewardOptions[Math.floor(rng() * rewardOptions.length)];
     handleRewardSelect(pick);
   }, [selectingReward, rewardDeadline, rewardOptions]);
+
+  const triggerInitialReward = () => {
+    if (initialRewardGiven) return;
+    const options = buildRewardOptions();
+    if (!options.length) return;
+    setRewardOptions(options);
+    setSelectingReward(true);
+    setRewardDeadline(Date.now() + 10_000);
+    setInitialRewardGiven(true);
+    setNextRewardAt(REWARD_INTERVAL_LINES);
+  };
 
   useEffect(() => {
     if (!matchOver || !results || slot === null || !user || hasSavedResult) return;
@@ -815,22 +932,10 @@ export default function RoguelikeVersus() {
             incomingGarbage={incomingGarbage}
             onGarbageConsumed={() => setIncomingGarbage(0)}
             onConsumeLines={(lines) => {
-              let effective = lines;
-              if (phase === "SETUP") effective = Math.round(lines * 0.6);
-              if (phase === "OVERLOAD") effective = Math.round(lines * 1.4);
-              effective = Math.round(effective * effectiveGarbageMultiplier);
-              if (doubleGarbage) effective = Math.round(effective * 2);
-              if (garbageShieldRatio > 0 && effective > 0) {
-                const shieldGain = Math.max(1, Math.round(effective * garbageShieldRatio));
-                setGarbageShield((v) => v + shieldGain);
-              }
-              if (effective > 0) {
-                linesSentRef.current += effective;
-                actions.sendLinesCleared(effective);
-                if (garbageStorm) {
-                  setIncomingGarbage((v) => v + Math.max(1, Math.round(effective * 0.5)));
-                }
-              }
+              // Pas de garbage sur 2/3/4 lignes. On garde seulement le cas 1 ligne.
+              if (lines !== 1) return;
+              linesSentRef.current += 1;
+              actions.sendLinesCleared(1);
             }}
             onLinesCleared={(linesCleared) => {
               if (linesCleared > 0) {
@@ -843,6 +948,16 @@ export default function RoguelikeVersus() {
               }
               if (linesCleared === 4) {
                 tetrisCountRef.current += 1;
+              }
+              if (lineThiefActive && linesCleared > 0) {
+                const rng = rngRef.current ?? Math.random;
+                if (rng() < 0.3) {
+                  setStolenBonusLines((v) => v + 1);
+                  setStolenBonusScore((v) => v + 100);
+                  setCurrentLines((v) => v + 1);
+                  setCurrentScore((v) => v + 100);
+                  actions.sendEffect({ type: "steal_lines", count: 1, score: 100 });
+                }
               }
               setCurrentLines((v) => v + linesCleared);
               setTotalLines((prev) => {
@@ -872,12 +987,15 @@ export default function RoguelikeVersus() {
               if (startTimeRef.current) {
                 runDurationRef.current = Date.now() - startTimeRef.current;
               }
-              actions.sendGameOver(score, lines);
+              const finalScore = Math.max(0, score + stolenBonusScore - stolenPenaltyScore);
+              const finalLines = Math.max(0, lines + stolenBonusLines - stolenPenaltyLines);
+              actions.sendGameOver(finalScore, finalLines);
             }}
             hideGameOverOverlay
             onGameStart={() => {
               resetRunTracking();
               startTimeRef.current = Date.now();
+              triggerInitialReward();
             }}
             onHold={() => {
               holdCountRef.current += 1;
@@ -919,6 +1037,15 @@ export default function RoguelikeVersus() {
               <p className="text-green-300">Adversaire a terminé</p>
             )}
             <p className="text-xs text-gray-400 mt-2">Lignes totales: {totalLines}</p>
+            {activeEvent && (
+              <div className="mt-2 w-full max-w-[240px] text-left bg-black/70 border border-cyan-500/60 rounded-lg p-3">
+                <p className="text-xs text-cyan-200">Event actif</p>
+                <p className="text-sm text-white">{activeEvent.name}</p>
+                <p className="text-xs text-gray-300">
+                  {activeEventCountdown > 0 ? `${activeEventCountdown}s restantes` : "se termine..."}
+                </p>
+              </div>
+            )}
             {selectingReward && rewardOptions.length > 0 && (
               <div className="mt-4 w-full max-w-[240px] text-left bg-black/70 border border-pink-500/60 rounded-lg p-3">
                 <p className="text-xs text-yellow-300 mb-2">

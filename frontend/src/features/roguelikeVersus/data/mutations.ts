@@ -4,20 +4,20 @@ export const RV_MUTATIONS: RvMutation[] = [
   {
     id: "berserker",
     name: "Berserker",
-    description: "+50% garbage envoyé, gravité +50%.",
+    description: "+50% score, gravité +50%.",
     icon: "berserker",
-    apply: ({ setGarbageMultiplier, setGravityMultiplier }) => {
-      setGarbageMultiplier((v) => v * 1.5);
+    apply: ({ setGravityMultiplier, setScoreMultiplier }) => {
+      setScoreMultiplier((v) => v + 0.5);
       setGravityMultiplier((v) => v * 1.5);
     },
   },
   {
     id: "line-thief",
     name: "Voleur de lignes",
-    description: "20% du garbage envoyé devient un bouclier.",
+    description: "+20% score (compense l'absence de garbage).",
     icon: "line_thief",
-    apply: ({ setGarbageShieldRatio }) => {
-      setGarbageShieldRatio(0.2);
+    apply: ({ setScoreMultiplier }) => {
+      setScoreMultiplier((v) => v + 0.2);
     },
   },
   {
