@@ -13,7 +13,7 @@ import { RV_MUTATIONS } from "../data/mutations";
 import { RV_SYNERGIES } from "../data/synergies";
 import { RV_EVENTS } from "../data/events";
 import { RV_PERKS } from "../data/perks";
-import type { RvEffect, RvPhase, RvRewardOption, RvMutation } from "../types";
+import type { RvEffect, RvRewardOption, RvMutation } from "../types";
 import { createRng } from "../../../shared/utils/rng";
 
 function randomMatchId() {
@@ -83,7 +83,6 @@ export default function RoguelikeVersus() {
   const [currentLines, setCurrentLines] = useState(0);
   const [totalLines, setTotalLines] = useState(0);
   const [nextRewardAt, setNextRewardAt] = useState(REWARD_INTERVAL_LINES);
-  const [phase, setPhase] = useState<RvPhase>("SETUP");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pieceLockTick, setPieceLockTick] = useState(0);
   const [initialRewardGiven, setInitialRewardGiven] = useState(false);
@@ -142,7 +141,6 @@ export default function RoguelikeVersus() {
     timeFrozen,
     setTimeFrozen,
     timeFreezeDuration,
-    setTimeFreezeDurationSafe,
     timeFreezeEcho,
     setTimeFreezeEcho,
     resetTimeFreezeState,
@@ -207,12 +205,6 @@ export default function RoguelikeVersus() {
     return () => clearInterval(timer);
   }, [startReady]);
 
-  useEffect(() => {
-    if (!startReady) return;
-    if (elapsedMs < 60_000) return setPhase("SETUP");
-    if (elapsedMs < 180_000) return setPhase("ESCALATION");
-    setPhase("OVERLOAD");
-  }, [elapsedMs, startReady]);
 
   useEffect(() => {
     if (!startReady) return;
