@@ -23,74 +23,30 @@ export default function Navbar() {
       {/* 🔹 Liens principaux */}
       <div className="flex gap-16 text-lg items-center">
         {user ? (
-          <Link to="/dashboard" className="neon-link text-pink-400">
-            Dashboard
-          </Link>
+          <>
+            <Link to="/dashboard" className="neon-link text-pink-400">
+              Dashboard
+            </Link>
+            <Link to="/achievements" className="neon-link text-pink-400">
+              Succès
+            </Link>
+            <Link to="/settings" className="neon-link text-pink-400">
+              Paramètres
+            </Link>
+            <Link to="/leaderboard" className="neon-link text-pink-400">
+              Classement
+            </Link>
+          </>
         ) : (
-          <Link to="/" className="neon-link text-pink-400">
-            Accueil
-          </Link>
+          <>
+            <Link to="/" className="neon-link text-pink-400">
+              Accueil
+            </Link>
+            <Link to="/leaderboard" className="neon-link text-pink-400">
+              Classement
+            </Link>
+          </>
         )}
-        {user ? (
-          <Link to="/game" className="neon-link text-pink-400">
-            Jouer
-          </Link>
-        ) : (
-          <div></div>
-        )}
-        {user ? (
-          <Link to="/sprint" className="neon-link text-pink-400">
-            Sprint
-          </Link>
-
-        ) : (
-          <div></div>
-        )}
-        {user ? (
-          <Link to="/versus" className="neon-link text-pink-400">
-            Versus
-          </Link>
-
-        ) : (
-          <div></div>
-        )}
-
-        {user ? (
-          <Link to="/roguelike" className="nav-link roguelike">
-            ROGUELIKE
-          </Link>
-
-        ) : (
-          <div></div>
-        )}
-
-        {user ? (
-          <Link to="/puzzle" className="neon-link text-pink-400">
-            Puzzle
-          </Link>
-        ) : (
-          <div></div>
-        )}
-
-        {user ? (
-          <Link to="/achievements" className="neon-link text-pink-400">
-            Succès
-          </Link>
-        ) : (
-          <div></div>
-        )}
-
-        {user ? (
-          <Link to="/settings" className="neon-link text-pink-400">
-            Paramètres
-          </Link>
-        ) : (
-          <div></div>
-        )}
-
-        <Link to="/leaderboard" className="neon-link text-pink-400">
-          Classement
-        </Link>
       </div>
 
       {/* 🔹 Section droite */}
