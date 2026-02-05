@@ -51,6 +51,8 @@ export const versusMatchSchema = z.object({
     .length(2),
 });
 
+export const roguelikeVersusMatchSchema = versusMatchSchema;
+
 export const roguelikeStartSchema = z.object({
   seed: z.string().trim().min(1).max(64),
   state: z.record(z.string(), z.any()).optional(), // valider la structure exacte cote front, borne ici au type et a la taille

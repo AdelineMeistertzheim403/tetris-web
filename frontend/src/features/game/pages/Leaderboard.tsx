@@ -62,6 +62,7 @@ export default function Leaderboard() {
           <option value="CLASSIQUE"> Mode Classique</option>
           <option value="SPRINT"> Mode Sprint</option>
           <option value="VERSUS"> Mode Versus</option>
+          <option value="ROGUELIKE_VERSUS"> Mode Roguelike Versus</option>
         </select>
       </div>
 
@@ -72,7 +73,7 @@ export default function Leaderboard() {
         <p className="text-red-500">{error}</p>
       ) : scores.length === 0 ? (
         <p className="text-gray-400">Aucun score enregistré pour ce mode</p>
-      ) : mode === "VERSUS" ? (
+      ) : mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" ? (
         <table className="border border-pink-500 rounded-lg w-[90%] bg-black bg-opacity-50 bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-lg">
           <thead>
             <tr className="text-yellow-400">

@@ -108,3 +108,20 @@ export async function saveVersusMatch(payload: VersusMatchPayload) {
   if (!res.ok) throw new Error("Erreur lors de l'enregistrement du match versus");
   return res.json();
 }
+
+// Sauvegarde un match Roguelike Versus (payload multi-joueurs).
+export async function saveRoguelikeVersusMatch(payload: VersusMatchPayload) {
+  const res = await fetch(`${API_URL}/scores/roguelike-versus-match`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Run-Token": await getScoreRunToken("ROGUELIKE_VERSUS", payload.matchId),
+    },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+
+  if (!res.ok)
+    throw new Error("Erreur lors de l'enregistrement du match roguelike versus");
+  return res.json();
+}

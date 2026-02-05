@@ -7,6 +7,7 @@ export type AchievementGroup =
   | "SPRINT"
   | "VERSUS"
   | "ROGUELIKE"
+  | "ROGUELIKE_VERSUS"
   | "PUZZLE"
   | "SECRETS";
 
@@ -368,6 +369,73 @@ export const ACHIEVEMENTS: Achievement[] = [
     mode: "VERSUS",
     group: "VERSUS",
     condition: { type: "custom", key: "versus_lines_sent_20" },
+  },
+
+  // ─────────────────────────────
+  // MODE ROGUELIKE VERSUS
+  // ─────────────────────────────
+  {
+    id: "rv-first",
+    name: "Premier Duel Rogue",
+    description: "Jouer un match Roguelike Versus",
+    icon: "RV_premier_duel",
+    mode: "ROGUELIKE_VERSUS",
+    group: "ROGUELIKE_VERSUS",
+    condition: { type: "custom", key: "rv_match_1" },
+  },
+  {
+    id: "rv-10",
+    name: "Rivalité Rogue",
+    description: "Jouer 10 matchs Roguelike Versus",
+    icon: "RV_rivaliter",
+    mode: "ROGUELIKE_VERSUS",
+    group: "ROGUELIKE_VERSUS",
+    condition: { type: "custom", key: "rv_match_10" },
+  },
+  {
+    id: "rv-50",
+    name: "Vétéran Rogue",
+    description: "Jouer 50 matchs Roguelike Versus",
+    icon: "RV_veteran",
+    mode: "ROGUELIKE_VERSUS",
+    group: "ROGUELIKE_VERSUS",
+    condition: { type: "custom", key: "rv_match_50" },
+  },
+  {
+    id: "rv-win",
+    name: "Vainqueur Rogue",
+    description: "Gagner un match Roguelike Versus",
+    icon: "RV_vainqueur",
+    mode: "ROGUELIKE_VERSUS",
+    group: "ROGUELIKE_VERSUS",
+    condition: { type: "custom", key: "rv_win_1" },
+  },
+  {
+    id: "rv-streak-5",
+    name: "Dominateur Rogue",
+    description: "Gagner 5 matchs Roguelike Versus d’affilée",
+    icon: "RV_dominateur",
+    mode: "ROGUELIKE_VERSUS",
+    group: "ROGUELIKE_VERSUS",
+    condition: { type: "custom", key: "rv_win_streak_5" },
+  },
+  {
+    id: "rv-perfect",
+    name: "Intouchable Rogue",
+    description: "Gagner sans jamais atteindre la zone rouge",
+    icon: "RV_intouchable",
+    mode: "ROGUELIKE_VERSUS",
+    group: "ROGUELIKE_VERSUS",
+    condition: { type: "custom", key: "rv_perfect_win" },
+  },
+  {
+    id: "rv-send-30",
+    name: "Harceleur Rogue",
+    description: "Envoyer 30 lignes en Roguelike Versus",
+    icon: "harceleur",
+    mode: "ROGUELIKE_VERSUS",
+    group: "ROGUELIKE_VERSUS",
+    condition: { type: "custom", key: "rv_lines_sent_30" },
   },
 
   // ─────────────────────────────
