@@ -22,7 +22,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd ~/tetris-web
-            git pull
+            git fetch origin
+            git checkout main
+            git reset --hard origin/main
             # Build backend image for migrations
             docker compose -f docker-compose.prod.yml build backend
             # Ensure database is up for migrations
@@ -34,4 +36,5 @@ jobs:
             # Recreate the full stack
             export ADMINER_PORT=18081
             docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up --build -d
+            docker compose -f docker-compose.prod.yml build --no-cache
+            docker compose -f docker-compose.prod.yml up -d
