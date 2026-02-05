@@ -34,4 +34,4 @@ jobs:
             # Recreate the full stack
             export ADMINER_PORT=18081
             docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up --build -d
+            docker compose -f docker-compose.prod.yml up --build --no-cache -d
