@@ -4,19 +4,27 @@ import { logger } from "../logger";
 
 type Match = {
   id: string;
-  mode: "VERSUS" | "ROGUELIKE_VERSUS";
+  mode: "VERSUS" | "ROGUELIKE_VERSUS" | "BRICKFALL_VERSUS";
   players: Set<WebSocket>;
   slots: Map<WebSocket, { slot: number; userId?: number; pseudo?: string }>;
   finished: Map<number, { score: number; lines: number }>;
 };
 
 type IncomingMessage =
-  | { type: "join_match"; matchId?: string; userId?: number; pseudo?: string; mode?: "VERSUS" | "ROGUELIKE_VERSUS" }
+  | {
+      type: "join_match";
+      matchId?: string;
+      userId?: number;
+      pseudo?: string;
+      mode?: "VERSUS" | "ROGUELIKE_VERSUS" | "BRICKFALL_VERSUS";
+    }
   | { type: "lines_cleared"; lines: number }
   | { type: "state"; board: number[][] }
   | { type: "game_over"; score: number; lines: number }
   | { type: "rv_effect"; effect: any }
-  | { type: "rv_status"; status: any };
+  | { type: "rv_status"; status: any }
+  | { type: "bf_event"; event: any }
+  | { type: "bf_state"; state: any };
 
 type OutgoingMessage =
   | { type: "match_joined"; matchId: string; players: number; slot: number }
@@ -29,7 +37,9 @@ type OutgoingMessage =
   | { type: "match_over"; results: Array<{ slot: number; score: number; lines: number }> }
   | { type: "players_sync"; players: Array<{ slot: number; userId?: number; pseudo?: string }> }
   | { type: "rv_effect"; effect: any }
-  | { type: "rv_status"; status: any };
+  | { type: "rv_status"; status: any }
+  | { type: "bf_event"; event: any }
+  | { type: "bf_state"; state: any };
 
 const matches = new Map<string, Match>();
 const BAG_REFILL_SIZE = 21; // 3 bags
@@ -151,7 +161,9 @@ export function setupWebsocket(server: HttpServer) {
         const garbage =
           currentMatch.mode === "ROGUELIKE_VERSUS"
             ? Math.max(0, parsed.lines)
-            : Math.max(0, garbageMap[parsed.lines] ?? 0);
+            : currentMatch.mode === "BRICKFALL_VERSUS"
+              ? 0
+              : Math.max(0, garbageMap[parsed.lines] ?? 0);
         if (garbage > 0) {
           broadcast(currentMatch, { type: "garbage", count: garbage }, ws);
         }
@@ -170,6 +182,14 @@ export function setupWebsocket(server: HttpServer) {
 
       if (parsed.type === "rv_status") {
         broadcast(currentMatch, { type: "rv_status", status: parsed.status }, ws);
+      }
+
+      if (parsed.type === "bf_event") {
+        broadcast(currentMatch, { type: "bf_event", event: parsed.event }, ws);
+      }
+
+      if (parsed.type === "bf_state") {
+        broadcast(currentMatch, { type: "bf_state", state: parsed.state }, ws);
       }
 
       if (parsed.type === "game_over") {

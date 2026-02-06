@@ -9,7 +9,9 @@ type IncomingMessage =
   | { type: "opponent_finished" }
   | { type: "match_over"; results: Array<{ slot: number; score: number; lines: number }> }
   | { type: "opponent_state"; board: number[][] }
-  | { type: "players_sync"; players: Array<{ slot: number; pseudo?: string; userId?: number }> };
+  | { type: "players_sync"; players: Array<{ slot: number; pseudo?: string; userId?: number }> }
+  | { type: "bf_event"; event: any }
+  | { type: "bf_state"; state: any };
 
 type JoinParams = {
   matchId?: string;
@@ -18,7 +20,6 @@ type JoinParams = {
 };
 
 function buildWsUrl(): string | null {
-  // Construit l'URL WS à partir du backend HTTP (http -> ws, https -> wss).
   const explicitWs = import.meta.env.VITE_WS_URL as string | undefined;
   if (explicitWs) return explicitWs;
   const api = import.meta.env.VITE_API_URL;
@@ -33,33 +34,33 @@ function buildWsUrl(): string | null {
   }
 }
 
-export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
-  // État de transport + état de match synchronisé par WS.
+export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams) {
   const [connected, setConnected] = useState(false);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
   const [players, setPlayers] = useState(0);
-  const [bag, setBag] = useState<string[]>([]);
+  const [bagSequence, setBagSequence] = useState<string[]>([]);
   const [garbage, setGarbage] = useState(0);
   const [opponentLeft, setOpponentLeft] = useState(false);
   const [matchOver, setMatchOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bagSequence, setBagSequence] = useState<string[]>([]);
   const [opponentBoard, setOpponentBoard] = useState<number[][] | null>(null);
   const [slot, setSlot] = useState<number | null>(null);
-  const [results, setResults] = useState<Array<{ slot: number; score: number; lines: number }> | null>(null);
+  const [results, setResults] = useState<Array<{ slot: number; score: number; lines: number }> | null>(
+    null
+  );
   const [opponentFinished, setOpponentFinished] = useState(false);
   const [playersInfo, setPlayersInfo] = useState<Array<{ slot: number; pseudo?: string; userId?: number }>>([]);
+  const [pendingEvent, setPendingEvent] = useState<any | null>(null);
+  const [opponentBrickfallState, setOpponentBrickfallState] = useState<any | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const wsUrl = useMemo(buildWsUrl, []);
   const slotRef = useRef<number | null>(null);
 
   const resetState = () => {
-    // Remise à zéro totale entre deux sessions de match.
     setConnected(false);
     setCurrentMatchId(null);
     setPlayers(0);
-    setBag([]);
     setBagSequence([]);
     setGarbage(0);
     setOpponentLeft(false);
@@ -70,6 +71,8 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
     setResults(null);
     setOpponentFinished(false);
     setPlayersInfo([]);
+    setPendingEvent(null);
+    setOpponentBrickfallState(null);
     slotRef.current = null;
   };
 
@@ -79,7 +82,6 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
       return;
     }
 
-    // Reset slot/results à chaque nouvelle connexion.
     slotRef.current = null;
     setSlot(null);
     setResults(null);
@@ -91,7 +93,15 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
     ws.onopen = () => {
       setConnected(true);
       setError(null);
-      ws.send(JSON.stringify({ type: "join_match", matchId, userId, pseudo }));
+      ws.send(
+        JSON.stringify({
+          type: "join_match",
+          matchId,
+          userId,
+          pseudo,
+          mode: "BRICKFALL_VERSUS",
+        })
+      );
     };
 
     ws.onerror = (evt) => {
@@ -107,7 +117,6 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
       try {
         const msg = JSON.parse(evt.data) as IncomingMessage;
         if (msg.type === "match_joined") {
-          // Réception de l'état initial du match.
           if (msg.self && msg.slot) {
             slotRef.current = msg.slot;
             setSlot(msg.slot);
@@ -120,16 +129,13 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
           setOpponentFinished(false);
         }
         if (msg.type === "start") {
-          // Début du match : on reçoit le sac partagé.
           if (msg.slot && slotRef.current === null) {
             slotRef.current = msg.slot;
             setSlot(msg.slot);
           }
-          setBag(msg.bag);
           setBagSequence(msg.bag);
         }
         if (msg.type === "bag_refill") {
-          // Recharge de sac pour synchroniser la génération de pièces.
           setBagSequence(msg.bag);
         }
         if (msg.type === "garbage") {
@@ -151,6 +157,12 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
         if (msg.type === "players_sync") {
           setPlayersInfo(msg.players);
         }
+        if (msg.type === "bf_event") {
+          setPendingEvent(msg.event);
+        }
+        if (msg.type === "bf_state") {
+          setOpponentBrickfallState(msg.state);
+        }
       } catch (err) {
         console.error("WS parse error", err);
       }
@@ -159,10 +171,9 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
     return () => {
       ws.close();
     };
-  }, [wsUrl, matchId]);
+  }, [wsUrl, matchId, userId, pseudo]);
 
   const leaveMatch = () => {
-    // Quitte proprement le match côté client.
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -171,30 +182,37 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
   };
 
   const sendLinesCleared = (lines: number) => {
-    // Informe le serveur du nombre de lignes pour calculer le garbage.
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: "lines_cleared", lines }));
   };
 
   const sendGameOver = (score: number, lines: number) => {
-    // Envoie la fin de partie avec score/lignes.
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: "game_over", score, lines }));
   };
 
   const sendBoardState = (board: number[][]) => {
-    // Envoie l'état du plateau pour l'aperçu adversaire.
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: "state", board }));
   };
 
+  const sendBrickfallEvent = (event: any) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ type: "bf_event", event }));
+  };
+
+  const sendBrickfallState = (state: any) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ type: "bf_state", state }));
+  };
+
   const consumeGarbage = () => setGarbage(0);
+  const consumePendingEvent = () => setPendingEvent(null);
 
   return {
     connected,
     currentMatchId,
     players,
-    bag,
     bagSequence,
     garbage,
     opponentBoard,
@@ -205,6 +223,8 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
     results,
     error,
     playersInfo,
+    pendingEvent,
+    opponentBrickfallState,
     actions: {
       sendLinesCleared,
       sendGameOver,
@@ -212,6 +232,9 @@ export function useVersusSocket({ matchId, userId, pseudo }: JoinParams) {
       sendBoardState,
       leaveMatch,
       resetState,
+      sendBrickfallEvent,
+      sendBrickfallState,
+      consumePendingEvent,
     },
   };
 }

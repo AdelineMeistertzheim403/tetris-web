@@ -135,6 +135,13 @@ export default function Dashboard() {
               image: "/Game_Mode/versus.png",
             },
             {
+              title: "Brickfall Versus",
+              desc: "Tetris x casse-brique asymétrique.",
+              path: "/brickfall-versus",
+              accent: "from-[#00121a] to-[#00314a]",
+              image: "/Game_Mode/brickfall.png",
+            },
+            {
               title: "Roguelike",
               desc: "Perks, mutations et synergies.",
               path: "/roguelike",
@@ -189,6 +196,7 @@ export default function Dashboard() {
               <option value="CLASSIQUE"> Mode Classique</option>
               <option value="SPRINT"> Mode Sprint</option>
               <option value="VERSUS"> Mode Versus</option>
+              <option value="BRICKFALL_VERSUS"> Mode Brickfall Versus</option>
               <option value="ROGUELIKE_VERSUS"> Mode Roguelike Versus</option>
             </select>
           </div>
@@ -202,7 +210,7 @@ export default function Dashboard() {
               <h2 className="text-2xl text-yellow-400 mb-4 text-center">
                 🏆 Tes 10 meilleurs scores — {mode}
               </h2>
-              {mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" ? (
+              {mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" || mode === "BRICKFALL_VERSUS" ? (
                 <table className="w-full border border-pink-500 rounded-lg bg-black bg-opacity-60 text-center bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-[0_0_20px_#ff00ff]">
                   <thead>
                     <tr className="text-yellow-400 border-b border-pink-500">

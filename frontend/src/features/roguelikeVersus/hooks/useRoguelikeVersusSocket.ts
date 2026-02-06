@@ -29,6 +29,8 @@ export type RvStatus = {
 };
 
 function buildWsUrl(): string | null {
+  const explicitWs = import.meta.env.VITE_WS_URL as string | undefined;
+  if (explicitWs) return explicitWs;
   const api = import.meta.env.VITE_API_URL;
   if (!api) return null;
   try {
