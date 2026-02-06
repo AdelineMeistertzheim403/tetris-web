@@ -29,11 +29,19 @@
         "..........",
         "######...."
       ],
-      "sequence": ["I", "T"],
+      "sequence": [
+        "I",
+        "T"
+      ],
       "maxMoves": 1,
       "allowHold": false,
       "optimalMoves": 1,
-      "objectives": [{ "type": "clear_lines", "count": 1 }]
+      "objectives": [
+        {
+          "type": "clear_lines",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -66,14 +74,24 @@
         "..........",
         ".........."
       ],
-      "sequence": ["S", "Z", "T", "O", "L"],
+      "sequence": [
+        "S",
+        "Z",
+        "T",
+        "O",
+        "L"
+      ],
       "maxMoves": 4,
       "allowHold": false,
       "optimalMoves": 4,
-      "objectives": [{ "type": "survive_pieces", "count": 4 }]
+      "objectives": [
+        {
+          "type": "survive_pieces",
+          "count": 4
+        }
+      ]
     }
-  }
-  ,
+  },
   {
     "id": "puzzle-003",
     "name": "Double Coup",
@@ -104,11 +122,20 @@
         "####.#####",
         "####.#####"
       ],
-      "sequence": ["I", "I", "T"],
+      "sequence": [
+        "I",
+        "I",
+        "T"
+      ],
       "maxMoves": 2,
       "allowHold": false,
       "optimalMoves": 2,
-      "objectives": [{ "type": "clear_lines", "count": 2 }]
+      "objectives": [
+        {
+          "type": "clear_lines",
+          "count": 2
+        }
+      ]
     }
   },
   {
@@ -141,11 +168,24 @@
         "#######...",
         "#######..."
       ],
-      "sequence": ["L", "J", "T", "S"],
+      "sequence": [
+        "L",
+        "J",
+        "T",
+        "S"
+      ],
       "maxMoves": 3,
       "allowHold": false,
       "optimalMoves": 3,
-      "objectives": [{ "type": "free_zone", "x": 7, "y": 17, "width": 3, "height": 3 }]
+      "objectives": [
+        {
+          "type": "free_zone",
+          "x": 7,
+          "y": 17,
+          "width": 3,
+          "height": 3
+        }
+      ]
     }
   },
   {
@@ -178,11 +218,25 @@
         "...###....",
         "..####...."
       ],
-      "sequence": ["S", "Z", "T", "O", "L", "J", "I", "T"],
+      "sequence": [
+        "S",
+        "Z",
+        "T",
+        "O",
+        "L",
+        "J",
+        "I",
+        "T"
+      ],
       "maxMoves": 6,
       "allowHold": false,
       "optimalMoves": 6,
-      "objectives": [{ "type": "survive_pieces", "count": 6 }]
+      "objectives": [
+        {
+          "type": "survive_pieces",
+          "count": 6
+        }
+      ]
     }
   },
   {
@@ -215,11 +269,21 @@
         "#####.####",
         "#####.####"
       ],
-      "sequence": ["I", "T", "I", "O"],
+      "sequence": [
+        "I",
+        "T",
+        "I",
+        "O"
+      ],
       "maxMoves": 3,
       "allowHold": false,
       "optimalMoves": 3,
-      "objectives": [{ "type": "clear_lines", "count": 3 }]
+      "objectives": [
+        {
+          "type": "clear_lines",
+          "count": 3
+        }
+      ]
     }
   },
   {
@@ -249,14 +313,28 @@
         "..........",
         "##########",
         "##########",
-        "###....###",
-        "###....###"
+        "###.#.####",
+        "###.#.####"
       ],
-      "sequence": ["O", "S", "Z", "T", "L"],
+      "sequence": [
+        "O",
+        "S",
+        "Z",
+        "T",
+        "L"
+      ],
       "maxMoves": 4,
       "allowHold": false,
       "optimalMoves": 4,
-      "objectives": [{ "type": "free_zone", "x": 3, "y": 18, "width": 4, "height": 2 }]
+      "objectives": [
+        {
+          "type": "free_zone",
+          "x": 3,
+          "y": 18,
+          "width": 4,
+          "height": 2
+        }
+      ]
     }
   },
   {
@@ -289,11 +367,26 @@
         "###.......",
         "####......"
       ],
-      "sequence": ["J", "L", "S", "Z", "T", "O", "I", "T", "S"],
+      "sequence": [
+        "J",
+        "L",
+        "S",
+        "Z",
+        "T",
+        "O",
+        "I",
+        "T",
+        "S"
+      ],
       "maxMoves": 7,
       "allowHold": false,
       "optimalMoves": 7,
-      "objectives": [{ "type": "survive_pieces", "count": 7 }]
+      "objectives": [
+        {
+          "type": "survive_pieces",
+          "count": 7
+        }
+      ]
     }
   },
   {
@@ -326,13 +419,32 @@
         "##......##",
         "##########"
       ],
-      "sequence": ["I", "O", "T", "L", "J", "S"],
+      "sequence": [
+        "I",
+        "O",
+        "T",
+        "L",
+        "J",
+        "S"
+      ],
       "maxMoves": 5,
       "allowHold": false,
       "optimalMoves": 5,
       "objectives": [
-        { "type": "free_zone", "x": 0, "y": 17, "width": 2, "height": 2 },
-        { "type": "free_zone", "x": 8, "y": 17, "width": 2, "height": 2 }
+        {
+          "type": "free_zone",
+          "x": 0,
+          "y": 17,
+          "width": 2,
+          "height": 2
+        },
+        {
+          "type": "free_zone",
+          "x": 8,
+          "y": 17,
+          "width": 2,
+          "height": 2
+        }
       ]
     }
   },
@@ -366,11 +478,22 @@
         "###.######",
         "###.######"
       ],
-      "sequence": ["I", "I", "T", "O", "S"],
+      "sequence": [
+        "I",
+        "I",
+        "T",
+        "O",
+        "S"
+      ],
       "maxMoves": 4,
       "allowHold": false,
       "optimalMoves": 4,
-      "objectives": [{ "type": "clear_lines", "count": 3 }]
+      "objectives": [
+        {
+          "type": "clear_lines",
+          "count": 3
+        }
+      ]
     }
   },
   {
@@ -403,11 +526,22 @@
         "..##......",
         "..##......"
       ],
-      "sequence": ["L", "J", "S", "Z", "T"],
+      "sequence": [
+        "L",
+        "J",
+        "S",
+        "Z",
+        "T"
+      ],
       "maxMoves": 5,
       "allowHold": false,
       "optimalMoves": 5,
-      "objectives": [{ "type": "survive_pieces", "count": 5 }]
+      "objectives": [
+        {
+          "type": "survive_pieces",
+          "count": 5
+        }
+      ]
     }
   },
   {
@@ -440,11 +574,25 @@
         "...###....",
         "..####...."
       ],
-      "sequence": ["J", "L", "S", "Z", "T", "O", "S", "Z"],
+      "sequence": [
+        "J",
+        "L",
+        "S",
+        "Z",
+        "T",
+        "O",
+        "S",
+        "Z"
+      ],
       "maxMoves": 8,
       "allowHold": false,
       "optimalMoves": 8,
-      "objectives": [{ "type": "survive_pieces", "count": 8 }]
+      "objectives": [
+        {
+          "type": "survive_pieces",
+          "count": 8
+        }
+      ]
     }
   },
   {
@@ -473,17 +621,36 @@
         "..........",
         "..........",
         "##########",
-        "##..##..##",
-        "##..##..##",
+        "###.###.##",
+        "###.###.##",
         "##########"
       ],
-      "sequence": ["T", "S", "Z", "L", "J", "O"],
+      "sequence": [
+        "T",
+        "S",
+        "Z",
+        "L",
+        "J",
+        "O"
+      ],
       "maxMoves": 6,
       "allowHold": false,
       "optimalMoves": 6,
       "objectives": [
-        { "type": "free_zone", "x": 2, "y": 17, "width": 2, "height": 2 },
-        { "type": "free_zone", "x": 6, "y": 17, "width": 2, "height": 2 }
+        {
+          "type": "free_zone",
+          "x": 2,
+          "y": 17,
+          "width": 2,
+          "height": 2
+        },
+        {
+          "type": "free_zone",
+          "x": 6,
+          "y": 17,
+          "width": 2,
+          "height": 2
+        }
       ]
     }
   }

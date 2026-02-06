@@ -10,6 +10,8 @@
     "prisma:migrate:dev": "prisma migrate dev --schema prisma/schema.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
     "prisma:seed": "tsx prisma/seed.ts",
+    "puzzle:validate": "tsx scripts/validate-puzzles.ts",
+    "puzzle:sync": "tsx scripts/sync-puzzles.ts",
     "test": "cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub prisma generate --schema prisma/schema.prisma && cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub vitest run"
   },
   "keywords": [],
@@ -41,7 +43,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.10.7",
+    "@types/node": "^24.10.11",
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.5.12",
     "cross-env": "^10.1.0",
