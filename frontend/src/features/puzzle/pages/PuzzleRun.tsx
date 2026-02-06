@@ -125,7 +125,7 @@ export default function PuzzleRun() {
       } else if (obj.type === "survive_pieces") {
         met = piecesPlaced >= obj.count;
       } else if (obj.type === "free_zone") {
-        met = isFreeZoneClear(lastBoard, obj);
+        met = piecesPlaced > 0 && isFreeZoneClear(lastBoard, obj);
       }
       return { obj, met };
     });
@@ -409,7 +409,13 @@ export default function PuzzleRun() {
             hideSidebar
             layout="plain"
             disableHold={!puzzle.allowHold}
+            contracts={puzzle.contracts}
             onHold={() => setHoldUsed(true)}
+            onContractViolation={(reason) => {
+              if (status !== "running") return;
+              setStatus("failed");
+              setFailureReason(reason);
+            }}
             onLinesCleared={(count) => setLinesCleared((prev) => prev + count)}
             onInvalidMove={() => {
               invalidMovesRef.current += 1;

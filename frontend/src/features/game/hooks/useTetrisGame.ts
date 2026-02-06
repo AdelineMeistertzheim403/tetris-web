@@ -38,6 +38,10 @@ onConsumeSecondChance?: () => void;
   rng?: RNG;
   onLinesCleared?: (linesCleared: number, clearedRows?: number[]) => void;
   onInvalidMove?: (dir: "left" | "right" | "rotate") => void;
+  contracts?: {
+    noLineClears?: boolean;
+  };
+  onContractViolation?: (reason: string) => void;
 };
 
 const DEFAULT_ROWS = 20;
@@ -104,6 +108,8 @@ export function useTetrisGame({
   rng,
   onLinesCleared,
   onInvalidMove,
+  contracts,
+  onContractViolation,
 }: Options & {
   bagSequence?: string[];
   onConsumeLines?: (lines: number) => void;
@@ -133,9 +139,25 @@ export function useTetrisGame({
       })
     );
   };
+  const initialPiecesRef = useRef<{ piece: Piece; nextPiece: Piece } | null>(null);
+  if (!initialPiecesRef.current) {
+    const drawInitialPiece = () => {
+      if (fixedQueueRef.current) {
+        const nextKey = fixedQueueRef.current.shift();
+        if (nextKey) return createPieceFromKey(nextKey, pieceColorsRef.current);
+      }
+      return bagGenRef.current.next();
+    };
+    const first = drawInitialPiece();
+    const second = drawInitialPiece();
+    initialPiecesRef.current = {
+      piece: first,
+      nextPiece: second ?? first,
+    };
+  }
   const [board, setBoard] = useState<number[][]>(() => normalizeBoard(initialBoard));
-  const [piece, setPiece] = useState<Piece>(() => bagGenRef.current.next());
-  const [nextPiece, setNextPiece] = useState<Piece>(() => bagGenRef.current.next());
+  const [piece, setPiece] = useState<Piece>(() => initialPiecesRef.current!.piece);
+  const [nextPiece, setNextPiece] = useState<Piece>(() => initialPiecesRef.current!.nextPiece);
   const [score, setScore] = useState(0);
   const [lines, setLines] = useState(0);
   const [level, setLevel] = useState(1);
@@ -449,6 +471,16 @@ const triggerBomb = useCallback(() => {
         garbageRef.current = 0;
       }
       const { newBoard, linesCleared, clearedRows } = clearFullLines(boardAfterGarbage);
+
+      if (contracts?.noLineClears && linesCleared > 0) {
+        onLinesCleared?.(linesCleared, clearedRows);
+        onPieceLocked?.({ board: newBoard, linesCleared, piece: currentPiece });
+        setBoard(newBoard);
+        setRunning(false);
+        setGameOver(true);
+        onContractViolation?.("Lignes interdites pour ce puzzle.");
+        return;
+      }
 
       onLinesCleared?.(linesCleared, clearedRows);
       onPieceLocked?.({ board: newBoard, linesCleared, piece: currentPiece });

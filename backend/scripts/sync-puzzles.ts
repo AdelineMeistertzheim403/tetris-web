@@ -4,30 +4,25 @@ import {
   generatedPuzzles,
   loadPuzzles,
   normalizeBoard,
-} from "./puzzleData";
+} from "../prisma/puzzleData";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const seedIfEmpty =
-    process.env.SEED_IF_EMPTY === "1" ||
-    process.env.SEED_IF_EMPTY === "true";
-  if (seedIfEmpty) {
-    const existingCount = await prisma.puzzle.count();
-    if (existingCount > 0) {
-      console.log(
-        `[seed] Skip: ${existingCount} puzzle(s) already exist (SEED_IF_EMPTY=1).`
-      );
-      return;
-    }
-  }
-  const puzzles = [...(await loadPuzzles()), ...generatedPuzzles, ...generateBatch()];
+  const puzzles = [
+    ...(await loadPuzzles()),
+    ...generatedPuzzles,
+    ...generateBatch(),
+  ];
+
+  let upserted = 0;
   for (const puzzle of puzzles) {
     const normalizedBoard = normalizeBoard(puzzle.definition.initialBoard);
     const definition = {
       ...puzzle.definition,
       initialBoard: normalizedBoard,
     } as Prisma.InputJsonValue;
+
     await prisma.puzzle.upsert({
       where: { id: puzzle.id },
       update: {
@@ -48,7 +43,10 @@ async function main() {
         active: puzzle.active ?? true,
       },
     });
+    upserted += 1;
   }
+
+  console.log(`[puzzle:sync] Upserted ${upserted} puzzle(s).`);
 }
 
 main()
@@ -56,7 +54,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (err) => {
-    console.error("Seed error:", err);
+    console.error("Puzzle sync error:", err);
     await prisma.$disconnect();
     process.exit(1);
   });
