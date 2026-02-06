@@ -49,6 +49,10 @@ type TetrisBoardProps = {
   onHold?: () => void;
   onHardDrop?: () => void;
   onInvalidMove?: (dir: "left" | "right" | "rotate") => void;
+  contracts?: {
+    noLineClears?: boolean;
+  };
+  onContractViolation?: (reason: string) => void;
   bombsGranted?: number;
   fastHoldReset?: boolean;
   lastStand?: boolean;
@@ -130,6 +134,8 @@ export default function TetrisBoard({
   onHold,
   onHardDrop,
   onInvalidMove,
+  contracts,
+  onContractViolation,
   paused = false,
   bombsGranted = 0,
   fastHoldReset = false,
@@ -203,6 +209,8 @@ export default function TetrisBoard({
     pieceColors: settings.pieceColors,
     bombRadius,
     onInvalidMove,
+    contracts,
+    onContractViolation,
   onConsumeSecondChance,
   onBombExplode: () => {
     setBombFlash(true);
