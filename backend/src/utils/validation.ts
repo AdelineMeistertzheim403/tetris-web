@@ -30,9 +30,9 @@ export const loginSchema = z.object({
 });
 
 export const scoreSchema = z.object({
-  value: z.number().int().min(0).max(999999),
-  level: z.number().int().min(0).max(30),
-  lines: z.number().int().min(0).max(9999),
+  value: z.number().int().min(0).max(9999999),
+  level: z.number().int().min(0).max(999),
+  lines: z.number().int().min(0).max(99999),
   mode: z.nativeEnum(GameMode),
 });
 
