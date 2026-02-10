@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type IncomingMessage =
   | { type: "match_joined"; matchId: string; players: number; slot?: number; self?: boolean }
-  | { type: "start"; matchId: string; bag: string[]; slot?: number }
+  | { type: "start"; matchId: string; bag: string[]; slot?: number; startAt?: number }
   | { type: "bag_refill"; bag: string[] }
   | { type: "garbage"; count: number }
   | { type: "opponent_left" }
@@ -17,6 +17,7 @@ type JoinParams = {
   matchId?: string;
   userId?: number;
   pseudo?: string;
+  preferredRole?: "ARCHITECT" | "DEMOLISHER";
 };
 
 function buildWsUrl(): string | null {
@@ -34,7 +35,12 @@ function buildWsUrl(): string | null {
   }
 }
 
-export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams) {
+export function useBrickfallVersusSocket({
+  matchId,
+  userId,
+  pseudo,
+  preferredRole,
+}: JoinParams) {
   const [connected, setConnected] = useState(false);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
   const [players, setPlayers] = useState(0);
@@ -52,6 +58,7 @@ export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams
   const [playersInfo, setPlayersInfo] = useState<Array<{ slot: number; pseudo?: string; userId?: number }>>([]);
   const [pendingEvent, setPendingEvent] = useState<any | null>(null);
   const [opponentBrickfallState, setOpponentBrickfallState] = useState<any | null>(null);
+  const [startAt, setStartAt] = useState<number | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const wsUrl = useMemo(buildWsUrl, []);
@@ -73,12 +80,17 @@ export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams
     setPlayersInfo([]);
     setPendingEvent(null);
     setOpponentBrickfallState(null);
+    setStartAt(null);
     slotRef.current = null;
   };
 
   useEffect(() => {
     if (!wsUrl) {
       setError("WS URL non configurée (VITE_API_URL manquant)");
+      return;
+    }
+    if (!matchId) {
+      setConnected(false);
       return;
     }
 
@@ -100,6 +112,7 @@ export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams
           userId,
           pseudo,
           mode: "BRICKFALL_VERSUS",
+          preferredRole,
         })
       );
     };
@@ -134,6 +147,7 @@ export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams
             setSlot(msg.slot);
           }
           setBagSequence(msg.bag);
+          setStartAt(msg.startAt ?? Date.now());
         }
         if (msg.type === "bag_refill") {
           setBagSequence(msg.bag);
@@ -171,7 +185,7 @@ export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams
     return () => {
       ws.close();
     };
-  }, [wsUrl, matchId, userId, pseudo]);
+  }, [wsUrl, matchId, userId, pseudo, preferredRole]);
 
   const leaveMatch = () => {
     if (wsRef.current) {
@@ -225,6 +239,7 @@ export function useBrickfallVersusSocket({ matchId, userId, pseudo }: JoinParams
     playersInfo,
     pendingEvent,
     opponentBrickfallState,
+    startAt,
     actions: {
       sendLinesCleared,
       sendGameOver,

@@ -2,7 +2,12 @@ import { Router, Response } from "express";
 import { createHmac } from "crypto";
 import rateLimit from "express-rate-limit";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
-import { scoreSchema, versusMatchSchema, roguelikeVersusMatchSchema } from "../utils/validation";
+import {
+  scoreSchema,
+  versusMatchSchema,
+  roguelikeVersusMatchSchema,
+  brickfallVersusMatchSchema,
+} from "../utils/validation";
 import { GameMode } from "../types/GameMode";
 import prisma from "../prisma/client";
 import { logger } from "../logger";
@@ -296,6 +301,110 @@ router.post("/roguelike-versus-match", verifyToken, async (req: AuthRequest, res
 });
 
 /**
+ * Enregistrer un résultat de match Brickfall Versus (2 joueurs, une seule ligne)
+ */
+router.post("/brickfall-versus-match", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const parsed = brickfallVersusMatchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
+    }
+
+    const matchId = parsed.data.matchId ?? null;
+    const providedToken = extractRunToken(req);
+    const expectedToken = computeScoreToken(userId, GameMode.BRICKFALL_VERSUS, matchId ?? undefined);
+    if (!providedToken || providedToken !== expectedToken) {
+      return res.status(403).json({ error: "Token de run invalide" });
+    }
+
+    const players = parsed.data.players.map((p) => ({
+      ...p,
+      pseudo: p.pseudo.trim(),
+    }));
+
+    if (new Set(players.map((p) => p.slot)).size !== players.length) {
+      return res.status(400).json({ error: "Les slots doivent etre uniques" });
+    }
+
+    if (!players.some((p) => p.userId === userId)) {
+      return res.status(403).json({ error: "Le match doit inclure le joueur connecte" });
+    }
+
+    const playerIds = Array.from(new Set(players.map((p) => p.userId).filter(Boolean))) as number[];
+    const userRecords = playerIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: playerIds } },
+          select: { id: true, pseudo: true },
+        })
+      : [];
+
+    if (userRecords.length !== playerIds.length) {
+      return res.status(400).json({ error: "Un des joueurs references est introuvable" });
+    }
+
+    const usersById = new Map(userRecords.map((u) => [u.id, u]));
+
+    const normalizedPlayers = players.map((p) => {
+      if (!p.userId) return p;
+      const found = usersById.get(p.userId);
+      return { ...p, pseudo: found?.pseudo ?? p.pseudo };
+    });
+
+    const [p1, p2] = [...normalizedPlayers].sort((a, b) => a.slot - b.slot);
+    const winner = p1.score === p2.score ? null : p1.score > p2.score ? p1 : p2;
+    const winnerId = winner?.userId ?? null;
+    const winnerPseudo =
+      winnerId !== null && usersById.get(winnerId)
+        ? usersById.get(winnerId)?.pseudo ?? null
+        : winner?.pseudo ?? null;
+
+    const existing = await prisma.brickfallVersusMatch.findFirst({
+      where: {
+        matchId: parsed.data.matchId,
+        player1Pseudo: p1.pseudo,
+        player2Pseudo: p2.pseudo,
+        player1Role: p1.role,
+        player2Role: p2.role,
+        player1Score: p1.score,
+        player2Score: p2.score,
+      },
+    });
+
+    if (existing) {
+      return res.json(existing);
+    }
+
+    const created = await prisma.brickfallVersusMatch.create({
+      data: {
+        matchId: parsed.data.matchId,
+        player1Id: p1.userId,
+        player1Pseudo: p1.pseudo,
+        player1Role: p1.role,
+        player1Score: p1.score,
+        player1Lines: p1.lines,
+        player2Id: p2.userId,
+        player2Pseudo: p2.pseudo,
+        player2Role: p2.role,
+        player2Score: p2.score,
+        player2Lines: p2.lines,
+        winnerId,
+        winnerPseudo,
+      },
+    });
+
+    res.status(201).json(created);
+  } catch (err) {
+    logger.error({ err }, "Erreur enregistrement match brickfall versus");
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+/**
  * Recuperer les scores du joueur connecte
  */
 router.get("/me/:mode", verifyToken, async (req: AuthRequest, res: Response) => {
@@ -329,6 +438,80 @@ router.get("/leaderboard/:mode", leaderboardLimiter, async (req: AuthRequest, re
 
     if (!Object.values(GameMode).includes(mode as GameMode))
       return res.status(400).json({ error: "Mode de jeu invalide" });
+
+    if (mode === GameMode.BRICKFALL_VERSUS) {
+      const matches = await prisma.brickfallVersusMatch.findMany({
+        orderBy: [{ createdAt: "desc" }],
+        take: 500,
+      });
+
+      type PlayerStats = {
+        userId: number | null;
+        pseudo: string;
+        wins: number;
+        losses: number;
+        architectGames: number;
+        demolisherGames: number;
+        architectWins: number;
+        demolisherWins: number;
+      };
+      const byPlayer = new Map<string, PlayerStats>();
+      const upsert = (
+        userId: number | null,
+        pseudo: string,
+        role: "ARCHITECT" | "DEMOLISHER",
+        won: boolean
+      ) => {
+        const key = userId ? `id:${userId}` : `pseudo:${pseudo}`;
+        const current = byPlayer.get(key) ?? {
+          userId,
+          pseudo,
+          wins: 0,
+          losses: 0,
+          architectGames: 0,
+          demolisherGames: 0,
+          architectWins: 0,
+          demolisherWins: 0,
+        };
+        if (won) current.wins += 1;
+        else current.losses += 1;
+        if (role === "ARCHITECT") {
+          current.architectGames += 1;
+          if (won) current.architectWins += 1;
+        } else {
+          current.demolisherGames += 1;
+          if (won) current.demolisherWins += 1;
+        }
+        byPlayer.set(key, current);
+      };
+
+      matches.forEach((m) => {
+        if (!m.winnerId && !m.winnerPseudo) return;
+        const p1Won =
+          (m.winnerId !== null && m.winnerId === m.player1Id) ||
+          (m.winnerId === null && m.winnerPseudo === m.player1Pseudo);
+        const p2Won =
+          (m.winnerId !== null && m.winnerId === m.player2Id) ||
+          (m.winnerId === null && m.winnerPseudo === m.player2Pseudo);
+        upsert(m.player1Id ?? null, m.player1Pseudo, m.player1Role, p1Won);
+        upsert(m.player2Id ?? null, m.player2Pseudo, m.player2Role, p2Won);
+      });
+
+      const leaderboard = Array.from(byPlayer.values())
+        .map((p) => ({
+          ...p,
+          rankScore: p.wins - p.losses,
+          winRate: p.wins + p.losses > 0 ? p.wins / (p.wins + p.losses) : 0,
+        }))
+        .sort((a, b) => {
+          if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          return b.winRate - a.winRate;
+        })
+        .slice(0, 20);
+
+      return res.json(leaderboard);
+    }
 
     if (mode === GameMode.VERSUS || mode === GameMode.ROGUELIKE_VERSUS) {
       const isRoguelikeVersus = mode === GameMode.ROGUELIKE_VERSUS;

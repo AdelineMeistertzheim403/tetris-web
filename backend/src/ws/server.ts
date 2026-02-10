@@ -5,6 +5,7 @@ import { logger } from "../logger";
 type Match = {
   id: string;
   mode: "VERSUS" | "ROGUELIKE_VERSUS" | "BRICKFALL_VERSUS";
+  creatorPreferredRole?: "ARCHITECT" | "DEMOLISHER";
   players: Set<WebSocket>;
   slots: Map<WebSocket, { slot: number; userId?: number; pseudo?: string }>;
   finished: Map<number, { score: number; lines: number }>;
@@ -17,6 +18,7 @@ type IncomingMessage =
       userId?: number;
       pseudo?: string;
       mode?: "VERSUS" | "ROGUELIKE_VERSUS" | "BRICKFALL_VERSUS";
+      preferredRole?: "ARCHITECT" | "DEMOLISHER";
     }
   | { type: "lines_cleared"; lines: number }
   | { type: "state"; board: number[][] }
@@ -28,7 +30,7 @@ type IncomingMessage =
 
 type OutgoingMessage =
   | { type: "match_joined"; matchId: string; players: number; slot: number }
-  | { type: "start"; matchId: string; bag: string[]; slot?: number }
+  | { type: "start"; matchId: string; bag: string[]; slot?: number; startAt?: number }
   | { type: "bag_refill"; bag: string[] }
   | { type: "garbage"; count: number }
   | { type: "opponent_left" }
@@ -84,6 +86,27 @@ function broadcastPlayersSync(match: Match) {
   broadcast(match, { type: "players_sync", players });
 }
 
+function resolveSlotForJoin(
+  match: Match,
+  joinerCount: number,
+  preferredRole?: "ARCHITECT" | "DEMOLISHER"
+) {
+  if (match.mode !== "BRICKFALL_VERSUS") return joinerCount;
+  const usedSlots = new Set(Array.from(match.slots.values()).map((info) => info.slot));
+  if (joinerCount === 1) {
+    const creatorRole = preferredRole ?? "ARCHITECT";
+    match.creatorPreferredRole = creatorRole;
+    return creatorRole === "ARCHITECT" ? 1 : 2;
+  }
+  if (joinerCount === 2) {
+    if (!usedSlots.has(1)) return 1;
+    if (!usedSlots.has(2)) return 2;
+  }
+  let fallback = 1;
+  while (usedSlots.has(fallback)) fallback += 1;
+  return fallback;
+}
+
 export function setupWebsocket(server: HttpServer) {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -107,6 +130,7 @@ export function setupWebsocket(server: HttpServer) {
           match = {
             id: matchId,
             mode: parsed.mode ?? "VERSUS",
+            creatorPreferredRole: undefined,
             players: new Set(),
             slots: new Map(),
             finished: new Map(),
@@ -114,7 +138,7 @@ export function setupWebsocket(server: HttpServer) {
           matches.set(matchId, match);
         }
         match.players.add(ws);
-        slot = match.players.size; // simple slot index (1-based)
+        slot = resolveSlotForJoin(match, match.players.size, parsed.preferredRole);
         match.slots.set(ws, {
           slot,
           userId: parsed.userId,
@@ -142,10 +166,17 @@ export function setupWebsocket(server: HttpServer) {
         // Démarrer quand 2 joueurs présents
         if (match.players.size >= 2) {
           const bag = generateBags(3); // 3 bags d'avance
+          const startAt = Date.now() + 500;
           // envoyer le slot à chacun
           match.players.forEach((player) => {
             const playerSlot = match?.slots.get(player)?.slot ?? 0;
-            const payload = { type: "start", matchId, bag, slot: playerSlot } as OutgoingMessage & { slot?: number };
+            const payload = {
+              type: "start",
+              matchId,
+              bag,
+              slot: playerSlot,
+              startAt,
+            } as OutgoingMessage & { slot?: number };
             if (player.readyState === WebSocket.OPEN) {
               player.send(JSON.stringify(payload));
             }
@@ -201,6 +232,25 @@ export function setupWebsocket(server: HttpServer) {
         }
         // informer l'autre joueur que quelqu'un a fini
         broadcast(currentMatch, { type: "opponent_finished" }, ws);
+        if (currentMatch.mode === "BRICKFALL_VERSUS") {
+          const slotIds = Array.from(currentMatch.slots.values()).map((s) => s.slot);
+          const reporterScore = parsed.score ?? 0;
+          slotIds.forEach((s) => {
+            if (!currentMatch?.finished.has(s)) {
+              currentMatch?.finished.set(s, {
+                score: reporterScore > 0 ? 0 : 1,
+                lines: 0,
+              });
+            }
+          });
+          const results = Array.from(currentMatch.finished.entries()).map(([s, res]) => ({
+            slot: s,
+            score: res.score,
+            lines: res.lines,
+          }));
+          broadcast(currentMatch, { type: "match_over", results });
+          return;
+        }
         if (currentMatch.finished.size >= currentMatch.players.size) {
           const results = Array.from(currentMatch.finished.entries()).map(
             ([s, res]) => ({ slot: s, score: res.score, lines: res.lines })

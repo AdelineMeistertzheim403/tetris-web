@@ -72,6 +72,7 @@ type TetrisBoardProps = {
   layout?: "default" | "plain";
   externalBoardEdits?: Array<{ x: number; y: number }>;
   externalBoardEditToken?: number;
+  externalSpecialMarkers?: Array<{ x: number; y: number; type: "armored" | "bomb" | "cursed" | "mirror" }>;
 };
 
 const DEFAULT_ROWS = 20;
@@ -160,6 +161,7 @@ export default function TetrisBoard({
   layout = "default",
   externalBoardEdits,
   externalBoardEditToken,
+  externalSpecialMarkers,
 }: TetrisBoardProps) {
   const { settings } = useSettings();
   const effectiveRows = rows ?? DEFAULT_ROWS;
@@ -422,6 +424,25 @@ useEffect(() => {
 
     if (onBoardUpdate) onBoardUpdate(board);
 
+    if (externalSpecialMarkers && externalSpecialMarkers.length > 0) {
+      for (const marker of externalSpecialMarkers) {
+        const { x, y, type } = marker;
+        if (x < 0 || x >= effectiveCols || y < 0 || y >= effectiveRows) continue;
+        if (!board[y]?.[x]) continue;
+        if (type === "armored") ctx.fillStyle = "rgba(148, 163, 184, 0.55)";
+        else if (type === "bomb") ctx.fillStyle = "rgba(239, 68, 68, 0.62)";
+        else if (type === "cursed") ctx.fillStyle = "rgba(124, 58, 237, 0.62)";
+        else ctx.fillStyle = "rgba(34, 211, 238, 0.62)";
+        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 13px monospace";
+        if (type === "armored") ctx.fillText("A", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+        else if (type === "bomb") ctx.fillText("B", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+        else if (type === "cursed") ctx.fillText("C", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+        else ctx.fillText("M", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+      }
+    }
+
     if (fogRows > 0) {
       const fogHeight = Math.min(effectiveRows, fogRows) * CELL_SIZE;
       ctx.fillStyle = "rgba(0,0,0,0.65)";
@@ -464,6 +485,7 @@ useEffect(() => {
     onBoardUpdate,
     framesReady,
     explosionFrameTick,
+    externalSpecialMarkers,
     fogRows,
     effectiveCols,
     effectiveRows,

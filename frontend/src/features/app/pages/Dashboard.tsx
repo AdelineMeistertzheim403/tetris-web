@@ -23,10 +23,23 @@ type VersusRow = {
   createdAt?: string;
 };
 
+type BrickfallLeaderboardRow = {
+  userId: number | null;
+  pseudo: string;
+  wins: number;
+  losses: number;
+  architectGames: number;
+  demolisherGames: number;
+  architectWins: number;
+  demolisherWins: number;
+  rankScore: number;
+  winRate: number;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
-  const [scores, setScores] = useState<Array<UserScore | VersusRow>>([]);
+  const [scores, setScores] = useState<Array<UserScore | VersusRow | BrickfallLeaderboardRow>>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
   const [tab, setTab] = useState<"modes" | "scores">("modes");
@@ -51,6 +64,12 @@ export default function Dashboard() {
               row.player2?.pseudo === user?.pseudo ||
               row.player1?.userId === user?.id ||
               row.player2?.userId === user?.id
+          );
+          setScores(mine);
+        } else if (mode === "BRICKFALL_VERSUS") {
+          const data = await getLeaderboard(mode);
+          const mine = (data as BrickfallLeaderboardRow[]).filter(
+            (row) => row.userId === user?.id || row.pseudo === user?.pseudo
           );
           setScores(mine);
         } else {
@@ -210,7 +229,35 @@ export default function Dashboard() {
               <h2 className="text-2xl text-yellow-400 mb-4 text-center">
                 🏆 Tes 10 meilleurs scores — {mode}
               </h2>
-              {mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" || mode === "BRICKFALL_VERSUS" ? (
+              {mode === "BRICKFALL_VERSUS" ? (
+                <table className="w-full border border-pink-500 rounded-lg bg-black bg-opacity-60 text-center bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-[0_0_20px_#ff00ff]">
+                  <thead>
+                    <tr className="text-yellow-400 border-b border-pink-500">
+                      <th className="py-2">#</th>
+                      <th>Pseudo</th>
+                      <th>V/D total</th>
+                      <th>Wins Architecte</th>
+                      <th>Wins Démolisseur</th>
+                      <th>Rang</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(scores as BrickfallLeaderboardRow[]).map((row, i) => (
+                      <tr
+                        key={`${row.userId ?? "anon"}-${row.pseudo}`}
+                        className="hover:bg-pink-900/30 transition border-b border-pink-700"
+                      >
+                        <td className="py-2 text-pink-300">{i + 1}</td>
+                        <td className="text-white font-bold">{row.pseudo}</td>
+                        <td className="text-white">{row.wins}V / {row.losses}D</td>
+                        <td className="text-cyan-300">{row.architectWins}</td>
+                        <td className="text-green-300">{row.demolisherWins}</td>
+                        <td className="text-yellow-300 font-bold">{row.rankScore}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" ? (
                 <table className="w-full border border-pink-500 rounded-lg bg-black bg-opacity-60 text-center bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-[0_0_20px_#ff00ff]">
                   <thead>
                     <tr className="text-yellow-400 border-b border-pink-500">

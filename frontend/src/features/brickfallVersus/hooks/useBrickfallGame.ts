@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BRICKFALL_BALANCE } from "../config/balance";
 
 type BrickfallEvent =
   | { type: "line_clear"; lines: number }
@@ -16,6 +17,7 @@ export type BrickfallState = {
   architectPiecesPlaced: number;
   lives: number;
   lastSpawnedBlock: BrickfallEvent | null;
+  spawnTick: number;
 };
 
 type BrickfallGameOptions = {
@@ -29,8 +31,9 @@ export function useBrickfallGame({ onState, onOutgoingEvent }: BrickfallGameOpti
   const [blocksDestroyed, setBlocksDestroyed] = useState(0);
   const [pendingGarbageTriggers, setPendingGarbageTriggers] = useState(0);
   const [architectPiecesPlaced, setArchitectPiecesPlaced] = useState(0);
-  const [lives, setLives] = useState(1);
+  const [lives, setLives] = useState(BRICKFALL_BALANCE.demolisher.startLives);
   const [lastSpawnedBlock, setLastSpawnedBlock] = useState<BrickfallEvent | null>(null);
+  const [spawnTick, setSpawnTick] = useState(0);
 
   const state = useMemo(
     () => ({
@@ -41,6 +44,7 @@ export function useBrickfallGame({ onState, onOutgoingEvent }: BrickfallGameOpti
       architectPiecesPlaced,
       lives,
       lastSpawnedBlock,
+      spawnTick,
     }),
     [
       ballSpeedMultiplier,
@@ -50,6 +54,7 @@ export function useBrickfallGame({ onState, onOutgoingEvent }: BrickfallGameOpti
       architectPiecesPlaced,
       lives,
       lastSpawnedBlock,
+      spawnTick,
     ]
   );
 
@@ -59,7 +64,9 @@ export function useBrickfallGame({ onState, onOutgoingEvent }: BrickfallGameOpti
 
   const applyIncomingEvent = useCallback((event: BrickfallEvent) => {
     if (event.type === "line_clear") {
-      setBallSpeedMultiplier((prev) => prev + event.lines * 0.05);
+      setBallSpeedMultiplier(
+        (prev) => prev + event.lines * BRICKFALL_BALANCE.architect.lineClearSpeedStep
+      );
       return;
     }
     if (event.type === "apply_debuff") {
@@ -68,6 +75,7 @@ export function useBrickfallGame({ onState, onOutgoingEvent }: BrickfallGameOpti
     }
     if (event.type === "spawn_block") {
       setLastSpawnedBlock(event);
+      setSpawnTick((prev) => prev + 1);
       return;
     }
     if (event.type === "pieces_placed") {
@@ -81,11 +89,16 @@ export function useBrickfallGame({ onState, onOutgoingEvent }: BrickfallGameOpti
       setBlocksDestroyed((prev) => prev + count);
       setPendingGarbageTriggers((prev) => {
         const next = prev + count;
-        const triggers = Math.floor(next / 5);
+        const triggers = Math.floor(
+          next / BRICKFALL_BALANCE.interactions.destroyedBlocksPerGarbageTrigger
+        );
         if (triggers > 0) {
-          onOutgoingEvent?.({ type: "blocks_destroyed", count: triggers * 5 });
+          onOutgoingEvent?.({
+            type: "blocks_destroyed",
+            count: triggers * BRICKFALL_BALANCE.interactions.destroyedBlocksPerGarbageTrigger,
+          });
         }
-        return next % 5;
+        return next % BRICKFALL_BALANCE.interactions.destroyedBlocksPerGarbageTrigger;
       });
     },
     [onOutgoingEvent]
