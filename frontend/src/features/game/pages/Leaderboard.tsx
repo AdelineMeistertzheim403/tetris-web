@@ -19,9 +19,22 @@ type VersusRow = {
   player2: { pseudo: string; score: number; lines: number; wins: number; losses: number };
 };
 
+type BrickfallLeaderboardRow = {
+  userId: number | null;
+  pseudo: string;
+  wins: number;
+  losses: number;
+  architectGames: number;
+  demolisherGames: number;
+  architectWins: number;
+  demolisherWins: number;
+  rankScore: number;
+  winRate: number;
+};
+
 export default function Leaderboard() {
   // Ce leaderboard agrège plusieurs modes, d'où le format de ligne variable.
-  const [scores, setScores] = useState<Array<LeaderboardEntry | VersusRow>>([]);
+  const [scores, setScores] = useState<Array<LeaderboardEntry | VersusRow | BrickfallLeaderboardRow>>([]);
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +75,7 @@ export default function Leaderboard() {
           <option value="CLASSIQUE"> Mode Classique</option>
           <option value="SPRINT"> Mode Sprint</option>
           <option value="VERSUS"> Mode Versus</option>
+          <option value="BRICKFALL_VERSUS"> Mode Brickfall Versus</option>
           <option value="ROGUELIKE_VERSUS"> Mode Roguelike Versus</option>
         </select>
       </div>
@@ -73,6 +87,34 @@ export default function Leaderboard() {
         <p className="text-red-500">{error}</p>
       ) : scores.length === 0 ? (
         <p className="text-gray-400">Aucun score enregistré pour ce mode</p>
+      ) : mode === "BRICKFALL_VERSUS" ? (
+        <table className="border border-pink-500 rounded-lg w-[90%] bg-black bg-opacity-50 bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-lg">
+          <thead>
+            <tr className="text-yellow-400">
+              <th className="py-2">#</th>
+              <th>Joueur</th>
+              <th>Rôle principal</th>
+              <th>Victoires / Défaites</th>
+              <th>Wins par rôle</th>
+              <th>Score de rang</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(scores as BrickfallLeaderboardRow[]).map((row, i) => {
+              const mainRole = row.architectGames >= row.demolisherGames ? "Architecte" : "Démolisseur";
+              return (
+                <tr key={`${row.userId ?? "anon"}-${row.pseudo}`} className="hover:bg-pink-900 transition border-t border-pink-500/30">
+                  <td className="py-2">{i + 1}</td>
+                  <td className="font-semibold">{row.pseudo}</td>
+                  <td>{mainRole}</td>
+                  <td>{row.wins}V / {row.losses}D</td>
+                  <td>A: {row.architectWins} | D: {row.demolisherWins}</td>
+                  <td className="text-cyan-300 font-bold">{row.rankScore}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       ) : mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" ? (
         <table className="border border-pink-500 rounded-lg w-[90%] bg-black bg-opacity-50 bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-lg">
           <thead>

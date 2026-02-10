@@ -9,6 +9,7 @@ export type VersusMatchPayload = {
     slot: number;
     userId?: number;
     pseudo: string;
+    role?: "ARCHITECT" | "DEMOLISHER";
     score: number;
     lines: number;
   }>;
@@ -123,5 +124,22 @@ export async function saveRoguelikeVersusMatch(payload: VersusMatchPayload) {
 
   if (!res.ok)
     throw new Error("Erreur lors de l'enregistrement du match roguelike versus");
+  return res.json();
+}
+
+// Sauvegarde un match Brickfall Versus (payload multi-joueurs + roles).
+export async function saveBrickfallVersusMatch(payload: VersusMatchPayload) {
+  const res = await fetch(`${API_URL}/scores/brickfall-versus-match`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Run-Token": await getScoreRunToken("BRICKFALL_VERSUS", payload.matchId),
+    },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+
+  if (!res.ok)
+    throw new Error("Erreur lors de l'enregistrement du match brickfall versus");
   return res.json();
 }

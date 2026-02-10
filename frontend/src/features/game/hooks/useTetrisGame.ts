@@ -42,6 +42,8 @@ onConsumeSecondChance?: () => void;
     noLineClears?: boolean;
   };
   onContractViolation?: (reason: string) => void;
+  externalBoardEdits?: Array<{ x: number; y: number }>;
+  externalBoardEditToken?: number;
 };
 
 const DEFAULT_ROWS = 20;
@@ -110,6 +112,8 @@ export function useTetrisGame({
   onInvalidMove,
   contracts,
   onContractViolation,
+  externalBoardEdits,
+  externalBoardEditToken,
 }: Options & {
   bagSequence?: string[];
   onConsumeLines?: (lines: number) => void;
@@ -340,6 +344,20 @@ const triggerBomb = useCallback(() => {
       setNextPiece(first);
     }
   }, [drawNextPiece, fixedSequence, resetFixedQueue]);
+
+  useEffect(() => {
+    if (!externalBoardEdits || externalBoardEdits.length === 0) return;
+    if (externalBoardEditToken === undefined || externalBoardEditToken === null) return;
+    setBoard((prev) => {
+      const next = prev.map((row) => [...row]);
+      externalBoardEdits.forEach((cell) => {
+        if (cell.y < 0 || cell.y >= next.length) return;
+        if (cell.x < 0 || cell.x >= next[0].length) return;
+        next[cell.y][cell.x] = 0;
+      });
+      return next;
+    });
+  }, [externalBoardEdits, externalBoardEditToken]);
 
   useEffect(() => {
     // Les couleurs peuvent changer (settings), on rehydrate les pièces existantes.

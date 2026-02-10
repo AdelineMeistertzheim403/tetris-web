@@ -17,6 +17,9 @@ model User {
   versusAsPlayer1 VersusMatch[] @relation("VersusPlayer1")
   versusAsPlayer2 VersusMatch[] @relation("VersusPlayer2")
   versusAsWinner  VersusMatch[] @relation("VersusWinner")
+  brickfallVersusAsPlayer1 BrickfallVersusMatch[] @relation("BrickfallVersusPlayer1")
+  brickfallVersusAsPlayer2 BrickfallVersusMatch[] @relation("BrickfallVersusPlayer2")
+  brickfallVersusAsWinner  BrickfallVersusMatch[] @relation("BrickfallVersusWinner")
   roguelikeVersusAsPlayer1 RoguelikeVersusMatch[] @relation("RoguelikeVersusPlayer1")
   roguelikeVersusAsPlayer2 RoguelikeVersusMatch[] @relation("RoguelikeVersusPlayer2")
   roguelikeVersusAsWinner  RoguelikeVersusMatch[] @relation("RoguelikeVersusWinner")
@@ -77,6 +80,28 @@ model RoguelikeVersusMatch {
   player1 User? @relation("RoguelikeVersusPlayer1", fields: [player1Id], references: [id])
   player2 User? @relation("RoguelikeVersusPlayer2", fields: [player2Id], references: [id])
   winner  User? @relation("RoguelikeVersusWinner", fields: [winnerId], references: [id])
+}
+
+model BrickfallVersusMatch {
+  id             Int      @id @default(autoincrement())
+  matchId        String?
+  player1Id      Int?
+  player1Pseudo  String
+  player1Role    BrickfallRole
+  player1Score   Int
+  player1Lines   Int
+  player2Id      Int?
+  player2Pseudo  String
+  player2Role    BrickfallRole
+  player2Score   Int
+  player2Lines   Int
+  winnerId       Int?
+  winnerPseudo   String?
+  createdAt      DateTime @default(now())
+
+  player1 User? @relation("BrickfallVersusPlayer1", fields: [player1Id], references: [id])
+  player2 User? @relation("BrickfallVersusPlayer2", fields: [player2Id], references: [id])
+  winner  User? @relation("BrickfallVersusWinner", fields: [winnerId], references: [id])
 }
 
 model RoguelikeRun {
@@ -146,7 +171,13 @@ enum GameMode {
   CLASSIQUE
   SPRINT
   VERSUS
+  BRICKFALL_VERSUS
   ROGUELIKE_VERSUS
+}
+
+enum BrickfallRole {
+  ARCHITECT
+  DEMOLISHER
 }
 
 model Puzzle {
