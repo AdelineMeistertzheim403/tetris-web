@@ -6,6 +6,7 @@ export type AchievementGroup =
   | "CLASSIQUE"
   | "SPRINT"
   | "VERSUS"
+  | "BRICKFALL"
   | "ROGUELIKE"
   | "ROGUELIKE_VERSUS"
   | "PUZZLE"
@@ -369,6 +370,92 @@ export const ACHIEVEMENTS: Achievement[] = [
     mode: "VERSUS",
     group: "VERSUS",
     condition: { type: "custom", key: "versus_lines_sent_20" },
+  },
+
+  // ─────────────────────────────
+  // MODE BRICKFALL VERSUS
+  // ─────────────────────────────
+  {
+    id: "bf-builder",
+    name: "Architecte",
+    description: "Survivre une manche complète en tant qu’Architecte",
+    icon: "architecte_brickfall",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_survive_architect" },
+  },
+  {
+    id: "bf-fortress",
+    name: "Forteresse",
+    description: "Créer 10 blocs blindés en une manche",
+    icon: "forteresse",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_armored_10" },
+  },
+  {
+    id: "bf-overflow",
+    name: "Surcharge",
+    description: "Faire perdre le Démolisseur par saturation",
+    icon: "surcharge",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_overwhelm" },
+  },
+  {
+    id: "bf-breaker",
+    name: "Démolisseur",
+    description: "Détruire 50 blocs en une manche",
+    icon: "demolisseur",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_blocks_50" },
+  },
+  {
+    id: "bf-heartbreaker",
+    name: "Briseur de Cœur",
+    description: "Détruire le Cœur Structurel",
+    icon: "briseur_de_coeur",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_core_destroyed" },
+  },
+  {
+    id: "bf-no-miss",
+    name: "Précision Mortelle",
+    description: "Gagner une manche sans perdre de balle",
+    icon: "precision_mortelle",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_no_ball_lost" },
+  },
+  {
+    id: "bf-chaos",
+    name: "Chaos Absolu",
+    description: "Déclencher 5 effets chaos en une manche",
+    icon: "chaos_absolu",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_chaos_5" },
+  },
+  {
+    id: "bf-dual-master",
+    name: "Double Maîtrise",
+    description: "Gagner une manche dans chaque rôle",
+    icon: "double_maitrise",
+    mode: "BRICKFALL_VERSUS",
+    group: "BRICKFALL",
+    condition: { type: "custom", key: "bf_win_both_roles" },
+  },
+  {
+    id: "bf-mirror",
+    name: "Miroir Brisé",
+    description: "Gagner une manche après inversion totale des contrôles",
+    icon: "miroir_briser",
+    secret: true,
+    mode: "BRICKFALL_VERSUS",
+    group: "SECRETS",
+    condition: { type: "custom", key: "bf_inverted_win" },
   },
 
   // ─────────────────────────────

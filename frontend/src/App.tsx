@@ -13,6 +13,7 @@ import Versus from "./features/versus/pages/Versus";
 import RoguelikePage from "./features/roguelike/pages/RoguelikePage";
 import RoguelikeLexicon from "./features/roguelike/pages/RoguelikeLexicon";
 import RoguelikeVersus from "./features/roguelikeVersus/pages/RoguelikeVersus";
+import BrickfallVersus from "./features/brickfallVersus/pages/BrickfallVersus";
 import AchievementsPage from "./features/achievements/pages/AchievementsPage";
 import Settings from "./features/settings/pages/Settings";
 import PuzzleSelect from "./features/puzzle/pages/PuzzleSelect";
@@ -51,6 +52,7 @@ function App() {
       />
       <Route path="/sprint" element={<Sprint />} />
       <Route path="/versus" element={<Versus />} />
+      <Route path="/brickfall-versus" element={<BrickfallVersus />} />
       <Route path="/roguelike" element={<RoguelikePage />} />
       <Route path="/roguelike-versus" element={<RoguelikeVersus />} />
       <Route path="/roguelike/lexique" element={<RoguelikeLexicon />} />

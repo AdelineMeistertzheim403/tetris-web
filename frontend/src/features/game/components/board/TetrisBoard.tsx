@@ -14,6 +14,8 @@ import FullScreenOverlay from "../../../../shared/components/ui/overlays/FullScr
 type TetrisBoardProps = {
   mode?: GameMode;
   scoreMode?: GameMode | null;
+  rows?: number;
+  cols?: number;
   bagSequence?: string[];
   fixedSequence?: string[];
   forcedSequence?: string[];
@@ -68,10 +70,13 @@ type TetrisBoardProps = {
   hideStats?: boolean;
   hideSidebar?: boolean;
   layout?: "default" | "plain";
+  externalBoardEdits?: Array<{ x: number; y: number }>;
+  externalBoardEditToken?: number;
+  externalSpecialMarkers?: Array<{ x: number; y: number; type: "armored" | "bomb" | "cursed" | "mirror" }>;
 };
 
-const ROWS = 20;
-const COLS = 10;
+const DEFAULT_ROWS = 20;
+const DEFAULT_COLS = 10;
 const CELL_SIZE = 30;
 const PREVIEW_SIZE = 4 * CELL_SIZE;
 const EXPLOSION_FRAME_DURATION_MS = 80;
@@ -100,6 +105,8 @@ const getExplosionFrameCount = (radius: number) => {
 export default function TetrisBoard({
   mode = "CLASSIQUE",
   scoreMode,
+  rows,
+  cols,
   bagSequence,
   fixedSequence,
   forcedSequence,
@@ -152,8 +159,13 @@ export default function TetrisBoard({
   hideStats = false,
   hideSidebar = false,
   layout = "default",
+  externalBoardEdits,
+  externalBoardEditToken,
+  externalSpecialMarkers,
 }: TetrisBoardProps) {
   const { settings } = useSettings();
+  const effectiveRows = rows ?? DEFAULT_ROWS;
+  const effectiveCols = cols ?? DEFAULT_COLS;
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [countdown, setCountdown] = useState<number | null>(autoStart ? 3 : null);
@@ -185,6 +197,8 @@ export default function TetrisBoard({
 
   const { state, actions } = useTetrisGame({
     mode,
+    rows: effectiveRows,
+    cols: effectiveCols,
     bagSequence,
     fixedSequence,
     forcedSequence,
@@ -211,7 +225,9 @@ export default function TetrisBoard({
     onInvalidMove,
     contracts,
     onContractViolation,
-  onConsumeSecondChance,
+    externalBoardEdits,
+    externalBoardEditToken,
+    onConsumeSecondChance,
   onBombExplode: () => {
     setBombFlash(true);
     setTimeout(() => setBombFlash(false), 120);
@@ -359,7 +375,7 @@ useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, COLS * CELL_SIZE, ROWS * CELL_SIZE);
+    ctx.clearRect(0, 0, effectiveCols * CELL_SIZE, effectiveRows * CELL_SIZE);
     board.forEach((row, y) =>
       row.forEach((cell, x) => {
         if (cell) {
@@ -400,18 +416,42 @@ useEffect(() => {
     );
 
     ctx.strokeStyle = "#222";
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
+    for (let y = 0; y < effectiveRows; y++) {
+      for (let x = 0; x < effectiveCols; x++) {
         ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
     }
 
     if (onBoardUpdate) onBoardUpdate(board);
 
+    if (externalSpecialMarkers && externalSpecialMarkers.length > 0) {
+      for (const marker of externalSpecialMarkers) {
+        const { x, y, type } = marker;
+        if (x < 0 || x >= effectiveCols || y < 0 || y >= effectiveRows) continue;
+        if (!board[y]?.[x]) continue;
+        if (type === "armored") ctx.fillStyle = "rgba(148, 163, 184, 0.55)";
+        else if (type === "bomb") ctx.fillStyle = "rgba(239, 68, 68, 0.62)";
+        else if (type === "cursed") ctx.fillStyle = "rgba(124, 58, 237, 0.62)";
+        else ctx.fillStyle = "rgba(34, 211, 238, 0.62)";
+        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 13px monospace";
+        if (type === "armored") ctx.fillText("A", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+        else if (type === "bomb") ctx.fillText("B", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+        else if (type === "cursed") ctx.fillText("C", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+        else ctx.fillText("M", x * CELL_SIZE + 9, y * CELL_SIZE + 20);
+      }
+    }
+
     if (fogRows > 0) {
-      const fogHeight = Math.min(ROWS, fogRows) * CELL_SIZE;
+      const fogHeight = Math.min(effectiveRows, fogRows) * CELL_SIZE;
       ctx.fillStyle = "rgba(0,0,0,0.65)";
-      ctx.fillRect(0, ROWS * CELL_SIZE - fogHeight, COLS * CELL_SIZE, fogHeight);
+      ctx.fillRect(
+        0,
+        effectiveRows * CELL_SIZE - fogHeight,
+        effectiveCols * CELL_SIZE,
+        fogHeight
+      );
     }
 
     if (framesReady && explosionFramesRef.current.length) {
@@ -437,7 +477,19 @@ useEffect(() => {
         ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dw, dh);
       });
     }
-  }, [board, piece, ghostPiece, explosions, onBoardUpdate, framesReady, explosionFrameTick, fogRows]);
+  }, [
+    board,
+    piece,
+    ghostPiece,
+    explosions,
+    onBoardUpdate,
+    framesReady,
+    explosionFrameTick,
+    externalSpecialMarkers,
+    fogRows,
+    effectiveCols,
+    effectiveRows,
+  ]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -514,8 +566,8 @@ useEffect(() => {
     <div className="tetris-canvas-wrap">
       <canvas
         ref={canvasRef}
-        width={COLS * CELL_SIZE}
-        height={ROWS * CELL_SIZE}
+        width={effectiveCols * CELL_SIZE}
+        height={effectiveRows * CELL_SIZE}
         style={{
           border: "2px solid var(--ui-board-border, #555)",
           background: "var(--ui-board-bg, #111)",
