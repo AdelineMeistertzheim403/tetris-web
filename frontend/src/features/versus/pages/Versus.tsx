@@ -13,7 +13,17 @@ import {
   getTetrobotsPersonality,
   type TetrobotsPersonality,
 } from "../../game/ai/tetrobots";
+import {
+  getBotBubbleAccent,
+  getBotMessage,
+  getMoodFromEvent,
+  type BotMood,
+  type BotEvent,
+} from "../../game/ai/tetrobotsChat";
+import { TetrobotsAvatar } from "../components/TetrobotsAvatar";
+import { BotSpeechBubble } from "../components/BotSpeechBubble";
 import { createRng } from "../../../shared/utils/rng";
+import "../../../styles/tetrobots-avatar.css";
 
 function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
@@ -42,6 +52,18 @@ function countBoardHoles(board: number[][] | null): number {
   }
 
   return holes;
+}
+
+function getStackHeight(board: number[][]): number {
+  const rows = board.length;
+  let topFilled = rows;
+  for (let y = 0; y < rows; y += 1) {
+    if (board[y].some((cell) => cell !== 0)) {
+      topFilled = y;
+      break;
+    }
+  }
+  return rows - topFilled;
 }
 
 function useMarkVersusVisited() {
@@ -456,6 +478,8 @@ function VersusTetrobots() {
   const [botResult, setBotResult] = useState<EndResult | null>(null);
   const [botPersonalityId, setBotPersonalityId] = useState<TetrobotsPersonality["id"]>("balanced");
   const [hasSavedResult, setHasSavedResult] = useState(false);
+  const [botMessage, setBotMessage] = useState<string | null>(null);
+  const [botMood, setBotMood] = useState<BotMood>("idle");
 
   const startTimeRef = useRef<number | null>(null);
   const runDurationRef = useRef(0);
@@ -472,11 +496,48 @@ function VersusTetrobots() {
   const botBoardRef = useRef<number[][] | null>(null);
   const botBlunderRef = useRef(false);
   const botPersonalityWinsRef = useRef<Set<TetrobotsPersonality["id"]>>(new Set());
+  const playerLiveScoreRef = useRef(0);
+  const playerLiveLinesRef = useRef(0);
+  const botLiveScoreRef = useRef(0);
+  const botLiveLinesRef = useRef(0);
+  const botLastMessageAtRef = useRef(0);
+  const botMessageCooldownMs = 2200;
+  const playerChainRef = useRef(0);
+  const playerB2BRef = useRef(0);
+  const playerHighStackAnnouncedRef = useRef(false);
+  const closeCallAnnouncedRef = useRef(false);
+  const longMatchAnnouncedRef = useRef(false);
+  const matchStartAnnouncedRef = useRef(false);
+  const playerStackHeightRef = useRef(0);
+  const botStackHeightRef = useRef(0);
+  const botMoodTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useMarkVersusVisited();
 
-  const matchOver = started && !!playerResult && !!botResult;
+  const matchOver = started && (!!playerResult || !!botResult);
   const botPersonality = getTetrobotsPersonality(botPersonalityId);
+  const botBubbleAccent = getBotBubbleAccent(botPersonality);
+
+  const emitBotEvent = (event: BotEvent, bypassCooldown = false) => {
+    const now = Date.now();
+    if (!bypassCooldown && now - botLastMessageAtRef.current < botMessageCooldownMs) {
+      return;
+    }
+    const message = getBotMessage(botPersonality, event);
+    const mood = getMoodFromEvent(botPersonality, event.type);
+    setBotMood(mood);
+    if (botMoodTimeoutRef.current) {
+      clearTimeout(botMoodTimeoutRef.current);
+    }
+    if (mood !== "thinking") {
+      botMoodTimeoutRef.current = setTimeout(() => {
+        setBotMood("idle");
+      }, mood === "glitch" ? 700 : 1300);
+    }
+    if (!message) return;
+    botLastMessageAtRef.current = now;
+    setBotMessage(message);
+  };
 
   const countTrue = (values: Record<string, boolean>) =>
     Object.values(values).filter(Boolean).length;
@@ -501,7 +562,70 @@ function VersusTetrobots() {
     playerBoardRef.current = null;
     botBoardRef.current = null;
     botBlunderRef.current = false;
+    playerLiveScoreRef.current = 0;
+    playerLiveLinesRef.current = 0;
+    botLiveScoreRef.current = 0;
+    botLiveLinesRef.current = 0;
+    playerChainRef.current = 0;
+    playerB2BRef.current = 0;
+    playerHighStackAnnouncedRef.current = false;
+    closeCallAnnouncedRef.current = false;
+    longMatchAnnouncedRef.current = false;
+    matchStartAnnouncedRef.current = false;
+    playerStackHeightRef.current = 0;
+    botStackHeightRef.current = 0;
+    setBotMessage(null);
+    setBotMood("idle");
   };
+
+  useEffect(() => {
+    if (!started) return;
+    if (!playerResult && !botResult) return;
+    if (playerResult && botResult) return;
+
+    if (startTimeRef.current && runDurationRef.current === 0) {
+      runDurationRef.current = Date.now() - startTimeRef.current;
+    }
+
+    if (playerResult && !botResult) {
+      setBotResult({
+        score: Math.max(botLiveScoreRef.current, playerResult.score + 1),
+        lines: botLiveLinesRef.current,
+      });
+      return;
+    }
+
+    if (botResult && !playerResult) {
+      setPlayerResult({
+        score: Math.max(playerLiveScoreRef.current, botResult.score + 1),
+        lines: playerLiveLinesRef.current,
+      });
+    }
+  }, [started, playerResult, botResult]);
+
+  useEffect(() => {
+    if (!started || matchOver) return;
+    const timeout = setTimeout(() => {
+      if (longMatchAnnouncedRef.current) return;
+      longMatchAnnouncedRef.current = true;
+      emitBotEvent({ type: "long_match" });
+    }, 90_000);
+    return () => clearTimeout(timeout);
+  }, [started, matchOver, botPersonalityId]);
+
+  useEffect(() => {
+    return () => {
+      if (botMoodTimeoutRef.current) {
+        clearTimeout(botMoodTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!matchOver || !playerResult || !botResult) return;
+    const botWon = botResult.score > playerResult.score;
+    emitBotEvent({ type: botWon ? "bot_win" : "bot_lose" }, true);
+  }, [matchOver, playerResult, botResult, botPersonalityId]);
 
   useEffect(() => {
     if (!matchOver || !playerResult || !botResult || finalizedRef.current) return;
@@ -690,7 +814,7 @@ function VersusTetrobots() {
   const myLines = playerResult?.lines ?? 0;
   const botScore = botResult?.score ?? 0;
   const botLines = botResult?.lines ?? 0;
-  const botWaiting = !!playerResult && !botResult;
+  const botWaiting = !!playerResult && !botResult && !matchOver;
 
   return (
     <div className="min-h-screen flex flex-col items-center text-center text-pink-300 font-['Press_Start_2P'] py-6 relative" key={roundKey}>
@@ -713,31 +837,51 @@ function VersusTetrobots() {
           }}
           onLinesCleared={(linesCleared) => {
             if (linesCleared > 0) {
+              playerLiveLinesRef.current += linesCleared;
+              playerChainRef.current += 1;
               comboStreakRef.current += linesCleared;
               if (comboStreakRef.current > maxComboRef.current) {
                 maxComboRef.current = comboStreakRef.current;
               }
+              if (playerChainRef.current >= 2) {
+                emitBotEvent({ type: "player_combo", value: playerChainRef.current });
+              }
             } else {
+              playerChainRef.current = 0;
               comboStreakRef.current = 0;
             }
             if (linesCleared === 4) {
+              playerB2BRef.current += 1;
               tetrisCountRef.current += 1;
+              emitBotEvent({ type: "player_tetris" });
+              if (playerB2BRef.current >= 2) {
+                emitBotEvent({ type: "player_back_to_back" });
+              }
+            } else if (linesCleared > 0) {
+              playerB2BRef.current = 0;
             }
           }}
           onBoardUpdate={(board) => {
             playerBoardRef.current = board;
-            const rows = board.length;
-            let topFilled = rows;
-            for (let y = 0; y < rows; y += 1) {
-              if (board[y].some((cell) => cell !== 0)) {
-                topFilled = y;
-                break;
-              }
-            }
-            const height = rows - topFilled;
+            const height = getStackHeight(board);
+            playerStackHeightRef.current = height;
             if (height > maxStackHeightRef.current) {
               maxStackHeightRef.current = height;
             }
+            if (height >= RED_ZONE_HEIGHT && !playerHighStackAnnouncedRef.current) {
+              playerHighStackAnnouncedRef.current = true;
+              emitBotEvent({ type: "player_high_stack" });
+            }
+            const nearDanger =
+              playerStackHeightRef.current >= RED_ZONE_HEIGHT - 1 &&
+              botStackHeightRef.current >= RED_ZONE_HEIGHT - 1;
+            if (nearDanger && !closeCallAnnouncedRef.current) {
+              closeCallAnnouncedRef.current = true;
+              emitBotEvent({ type: "close_call" });
+            }
+          }}
+          onScoreChange={(score) => {
+            playerLiveScoreRef.current = score;
           }}
           onLocalGameOver={(score, lines) => {
             setPlayerResult({ score, lines });
@@ -746,9 +890,14 @@ function VersusTetrobots() {
             }
           }}
           hideGameOverOverlay
+          paused={matchOver}
           onGameStart={() => {
             resetRunTracking();
             startTimeRef.current = Date.now();
+            if (!matchStartAnnouncedRef.current) {
+              matchStartAnnouncedRef.current = true;
+              emitBotEvent({ type: "match_start" }, true);
+            }
           }}
           onHold={() => {
             holdCountRef.current += 1;
@@ -763,7 +912,21 @@ function VersusTetrobots() {
 
         <div className="flex flex-col gap-2 items-center">
           <p className="text-xs text-gray-300 mb-2">Grille Tetrobots</p>
-          <OpponentBoard board={botBoard} />
+          <TetrobotsAvatar mood={botMood} personalityId={botPersonality.id} />
+          <div style={{ height: 16, width: "100%" }} />
+          <div className="mb-4">
+            <OpponentBoard board={botBoard} />
+          </div>
+          {botMessage && (
+            <>
+              <div style={{ height: 16, width: "100%" }} />
+              <BotSpeechBubble
+                message={botMessage}
+                speaker={botPersonality.name}
+                accentColor={botBubbleAccent}
+              />
+            </>
+          )}
           {botWaiting && <p className="text-green-300">Tetrobots réfléchit...</p>}
           {!!botResult && <p className="text-yellow-300">Tetrobots a terminé</p>}
         </div>
@@ -784,19 +947,33 @@ function VersusTetrobots() {
               setPlayerIncomingGarbage((prev) => prev + garbage);
             }
           }}
+          onLinesCleared={(linesCleared) => {
+            if (linesCleared > 0) {
+              botLiveLinesRef.current += linesCleared;
+              if (linesCleared === 4) {
+                emitBotEvent({ type: "bot_tetris" });
+              }
+            }
+          }}
           onTetrobotsPlan={({ isBlunder }) => {
             if (isBlunder) {
               botBlunderRef.current = true;
+              emitBotEvent({ type: "bot_blunder" });
             }
           }}
           onBoardUpdate={(board) => {
             setBotBoard(board);
             botBoardRef.current = board;
+            botStackHeightRef.current = getStackHeight(board);
+          }}
+          onScoreChange={(score) => {
+            botLiveScoreRef.current = score;
           }}
           onLocalGameOver={(score, lines) => {
             setBotResult({ score, lines });
           }}
           hideGameOverOverlay
+          paused={matchOver}
         />
       </div>
 
