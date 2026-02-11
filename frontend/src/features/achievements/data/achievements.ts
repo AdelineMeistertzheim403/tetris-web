@@ -6,6 +6,7 @@ export type AchievementGroup =
   | "CLASSIQUE"
   | "SPRINT"
   | "VERSUS"
+  | "BOT"
   | "BRICKFALL"
   | "ROGUELIKE"
   | "ROGUELIKE_VERSUS"
@@ -922,4 +923,125 @@ export const ACHIEVEMENTS: Achievement[] = [
     group: "SECRETS",
     condition: { type: "custom", key: "same_score_twice" },
   },
+   // ─────────────────────────────
+  // Tetrobots
+  // ─────────────────────────────
+  {
+  id: "bot-first-match",
+  name: "Test de Turing",
+  description: "Jouer un match contre Tetrobots",
+  icon: "bot_first",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_match_1" },
+},
+{
+  id: "bot-first-win",
+  name: "Machine Battue",
+  description: "Gagner un match contre Tetrobots",
+  icon: "bot_win",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_win_1" },
+},
+{
+  id: "bot-rookie-win",
+  name: "Début Prometteur",
+  description: "Battre Tetrobots Rookie",
+  icon: "bot_rookie",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_rookie_win" },
+},
+{
+  id: "bot-balanced-win",
+  name: "Système Déstabilisé",
+  description: "Battre Tetrobots Pulse",
+  icon: "bot_balanced",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_balanced_win" },
+},
+{
+  id: "bot-apex-win",
+  name: "Briseur d’Algorithme",
+  description: "Battre Tetrobots Apex",
+  icon: "bot_apex",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_apex_win" },
+},
+{
+  id: "bot-perfect",
+  name: "Sans Bug",
+  description: "Battre Tetrobots sans jamais atteindre la zone rouge",
+  icon: "bot_perfect",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_perfect_win" },
+},
+{
+  id: "bot-speed-kill",
+  name: "Overclocké",
+  description: "Battre Tetrobots en moins de 60 secondes",
+  icon: "bot_speed",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_win_under_60s" },
+},
+{
+  id: "bot-blunder",
+  name: "Faille Détectée",
+  description: "Gagner après une erreur du bot",
+  icon: "bot_blunder",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_won_after_blunder" },
+},
+{
+  id: "bot-clean-stack",
+  name: "Empilement Supérieur",
+  description: "Avoir moins de trous que le bot en fin de partie",
+  icon: "bot_stack",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_fewer_holes" },
+},
+{
+  id: "bot-streak-5",
+  name: "Dominateur Numérique",
+  description: "Battre Tetrobots 5 fois d’affilée",
+  icon: "bot_streak",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_win_streak_5" },
+},
+{
+  id: "bot-evolution",
+  name: "Évolution Forcée",
+  description: "Battre les 3 personnalités dans la même session",
+  icon: "bot_evolution",
+  secret: true,
+  mode: "VERSUS",
+  group: "SECRETS",
+  condition: { type: "custom", key: "bot_all_personalities_session" },
+},
+{
+  id: "bot-apex-10",
+  name: "Terminator",
+  description: "Battre Tetrobots Apex 10 fois",
+  icon: "bot_terminator",
+  mode: "VERSUS",
+  group: "BOT",
+  condition: { type: "custom", key: "bot_apex_win_10" },
+},
+{
+  id: "bot-heuristic-master",
+  name: "Maître des Heuristiques",
+  description: "Gagner contre Apex avec plus de lignes cleared",
+  icon: "bot_heuristic",
+  mode: "VERSUS",
+  group: "SECRETS",
+  condition: { type: "custom", key: "bot_outscore_lines_apex" },
+},
 ];

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useVersusSocket } from "../hooks/useVersusSocket";
 import TetrisBoard from "../../game/components/board/TetrisBoard";
@@ -7,20 +8,66 @@ import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreen
 import { saveVersusMatch } from "../../game/services/scoreService";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
+import {
+  TETROBOTS_PERSONALITIES,
+  getTetrobotsPersonality,
+  type TetrobotsPersonality,
+} from "../../game/ai/tetrobots";
+import { createRng } from "../../../shared/utils/rng";
 
 function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
-// Seuil de “zone rouge” pour détecter une victoire “parfaite”.
 const RED_ZONE_HEIGHT = 16;
+const VERSUS_GARBAGE_MAP = [0, 0, 1, 2, 4];
 
-export default function Versus() {
+type EndResult = { score: number; lines: number };
+
+function countBoardHoles(board: number[][] | null): number {
+  if (!board || board.length === 0 || board[0].length === 0) return 0;
+  const rows = board.length;
+  const cols = board[0].length;
+  let holes = 0;
+
+  for (let x = 0; x < cols; x += 1) {
+    let seenBlock = false;
+    for (let y = 0; y < rows; y += 1) {
+      if (board[y][x] !== 0) {
+        seenBlock = true;
+      } else if (seenBlock) {
+        holes += 1;
+      }
+    }
+  }
+
+  return holes;
+}
+
+function useMarkVersusVisited() {
+  const { checkAchievements, updateStats } = useAchievements();
+  const visitedRef = useRef(false);
+
+  const countTrue = (values: Record<string, boolean>) => Object.values(values).filter(Boolean).length;
+
+  useEffect(() => {
+    if (visitedRef.current) return;
+    visitedRef.current = true;
+    const next = updateStats((prev) => ({
+      ...prev,
+      modesVisited: { ...prev.modesVisited, VERSUS: true },
+    }));
+    checkAchievements({
+      custom: { modes_visited_all: countTrue(next.modesVisited) >= TOTAL_GAME_MODES },
+    });
+  }, [checkAchievements, updateStats]);
+}
+
+function VersusPvp() {
   const { user } = useAuth();
   const { checkAchievements, updateStats } = useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
   const [chosenMatchId, setChosenMatchId] = useState<string | undefined>(undefined);
-  const visitedRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
   const runDurationRef = useRef(0);
   const holdCountRef = useRef(0);
@@ -33,7 +80,8 @@ export default function Versus() {
   const levelRef = useRef(1);
   const finalizedRef = useRef(false);
 
-  // Réinitialise les compteurs locaux pour les stats/achievements.
+  useMarkVersusVisited();
+
   const resetRunTracking = () => {
     startTimeRef.current = null;
     runDurationRef.current = 0;
@@ -51,7 +99,6 @@ export default function Versus() {
   const countTrue = (values: Record<string, boolean>) =>
     Object.values(values).filter(Boolean).length;
 
-  // L’ID effectif de match est soit l’ID choisi, soit l’ID tapé.
   const joinId = useMemo(
     () => (chosenMatchId ?? manualMatchId) || undefined,
     [manualMatchId, chosenMatchId]
@@ -83,29 +130,13 @@ export default function Versus() {
   }, [currentMatchId]);
 
   useEffect(() => {
-    // Marque le mode Versus comme visité (achievements).
-    if (visitedRef.current) return;
-    visitedRef.current = true;
-    const next = updateStats((prev) => ({
-      ...prev,
-      modesVisited: { ...prev.modesVisited, VERSUS: true },
-    }));
-    checkAchievements({
-      custom: { modes_visited_all: countTrue(next.modesVisited) >= TOTAL_GAME_MODES },
-    });
-  }, [checkAchievements, updateStats]);
-
-  useEffect(() => {
-    // À chaque match, on réinitialise le tracking local.
     if (currentMatchId) {
       resetRunTracking();
     }
   }, [currentMatchId]);
 
   useEffect(() => {
-    // Sauvegarde du match : un seul joueur (slot 1) écrit pour éviter les doublons.
     if (!matchOver || !results || slot === null || !user || hasSavedResult) return;
-    // Pour Ã©viter deux Ã©critures (une par joueur), seul le slot 1 sauvegarde
     if (slot !== 1) return;
     if (results.length < 2) return;
 
@@ -124,12 +155,13 @@ export default function Versus() {
       }),
     };
 
-    saveVersusMatch(payload).catch((err) => console.error("Erreur enregistrement match versus :", err));
+    saveVersusMatch(payload).catch((err) =>
+      console.error("Erreur enregistrement match versus :", err)
+    );
     setHasSavedResult(true);
   }, [currentMatchId, hasSavedResult, matchOver, playersInfo, results, slot, user]);
 
   useEffect(() => {
-    // Calcul final des achievements quand le match est terminé.
     if (!matchOver || !results || slot === null) return;
     if (finalizedRef.current) return;
     const myResult = results.find((r) => r.slot === slot) ?? null;
@@ -198,15 +230,12 @@ export default function Versus() {
   }, [matchOver, results, slot, updateStats, checkAchievements]);
 
   if (startReady) {
-    // Match prêt : rendu de la partie en direct (local + adversaire).
     const myResult = results?.find((r) => r.slot === slot) ?? null;
     const oppResult = results?.find((r) => r.slot !== slot) ?? null;
 
     return (
       <div className="min-h-screen flex flex-col items-center text-center text-pink-300 font-['Press_Start_2P'] py-6 relative">
-        <h1 className="text-3xl text-yellow-400 mb-4 drop-shadow-[0_0_15px_#ff00ff]">
-          Partie VS
-        </h1>
+        <h1 className="text-3xl text-yellow-400 mb-4 drop-shadow-[0_0_15px_#ff00ff]">Partie VS</h1>
         <p className="text-sm text-cyan-200 mb-4">
           {user ? `Connecté en tant que ${user.pseudo}` : "Non connecté"}
         </p>
@@ -275,9 +304,7 @@ export default function Versus() {
             <p className="text-xs text-gray-300 mb-2">Grille adverse</p>
             <OpponentBoard board={opponentBoard} />
             {opponentLeft && <p className="text-yellow-300">Adversaire parti</p>}
-            {opponentFinished && !matchOver && (
-              <p className="text-green-300">Adversaire a terminé</p>
-            )}
+            {opponentFinished && !matchOver && <p className="text-green-300">Adversaire a terminé</p>}
           </div>
         </div>
         {error && <p className="text-red-400 mt-2">{error}</p>}
@@ -306,13 +333,8 @@ export default function Versus() {
             }}
           >
             <h2 className="text-xl text-yellow-300">Résultats</h2>
-            <p>
-              Toi : {myResult ? `${myResult.score} pts / ${myResult.lines} lignes` : "n/a"}
-            </p>
-            <p>
-              Adversaire :{" "}
-              {oppResult ? `${oppResult.score} pts / ${oppResult.lines} lignes` : "n/a"}
-            </p>
+            <p>Toi : {myResult ? `${myResult.score} pts / ${myResult.lines} lignes` : "n/a"}</p>
+            <p>Adversaire : {oppResult ? `${oppResult.score} pts / ${oppResult.lines} lignes` : "n/a"}</p>
             <div className="flex gap-4 mt-2">
               <button
                 className="retro-btn"
@@ -334,14 +356,9 @@ export default function Versus() {
 
   return (
     <div className="min-h-screen flex flex-col items-center text-center text-pink-300 font-['Press_Start_2P'] py-10">
-      <h1 className="text-3xl text-yellow-400 mb-6 drop-shadow-[0_0_15px_#ff00ff]">
-        Mode Versus (beta)
-      </h1>
+      <h1 className="text-3xl text-yellow-400 mb-6 drop-shadow-[0_0_15px_#ff00ff]">Mode Versus</h1>
 
-      <div
-        className="grid grid-cols-1 md:grid-cols-2 gap-5 w-[90%]"
-        style={{ maxWidth: "820px" }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-[90%]" style={{ maxWidth: "820px" }}>
         <div
           style={{
             background: "rgba(0,0,0,0.85)",
@@ -424,4 +441,413 @@ export default function Versus() {
       </div>
     </div>
   );
+}
+
+function VersusTetrobots() {
+  const { user } = useAuth();
+  const { checkAchievements, updateStats } = useAchievements();
+  const [roundSeed, setRoundSeed] = useState(() => `tetrobots-${Date.now()}`);
+  const [roundKey, setRoundKey] = useState(0);
+  const [started, setStarted] = useState(false);
+  const [playerIncomingGarbage, setPlayerIncomingGarbage] = useState(0);
+  const [botIncomingGarbage, setBotIncomingGarbage] = useState(0);
+  const [botBoard, setBotBoard] = useState<number[][] | null>(null);
+  const [playerResult, setPlayerResult] = useState<EndResult | null>(null);
+  const [botResult, setBotResult] = useState<EndResult | null>(null);
+  const [botPersonalityId, setBotPersonalityId] = useState<TetrobotsPersonality["id"]>("balanced");
+  const [hasSavedResult, setHasSavedResult] = useState(false);
+
+  const startTimeRef = useRef<number | null>(null);
+  const runDurationRef = useRef(0);
+  const holdCountRef = useRef(0);
+  const hardDropCountRef = useRef(0);
+  const comboStreakRef = useRef(0);
+  const maxComboRef = useRef(0);
+  const tetrisCountRef = useRef(0);
+  const linesSentRef = useRef(0);
+  const maxStackHeightRef = useRef(0);
+  const levelRef = useRef(1);
+  const finalizedRef = useRef(false);
+  const playerBoardRef = useRef<number[][] | null>(null);
+  const botBoardRef = useRef<number[][] | null>(null);
+  const botBlunderRef = useRef(false);
+  const botPersonalityWinsRef = useRef<Set<TetrobotsPersonality["id"]>>(new Set());
+
+  useMarkVersusVisited();
+
+  const matchOver = started && !!playerResult && !!botResult;
+  const botPersonality = getTetrobotsPersonality(botPersonalityId);
+
+  const countTrue = (values: Record<string, boolean>) =>
+    Object.values(values).filter(Boolean).length;
+
+  const mapGarbage = (lines: number) => Math.max(0, VERSUS_GARBAGE_MAP[lines] ?? 0);
+
+  const playerRng = useMemo(() => createRng(roundSeed), [roundSeed]);
+  const botRng = useMemo(() => createRng(roundSeed), [roundSeed]);
+
+  const resetRunTracking = () => {
+    startTimeRef.current = null;
+    runDurationRef.current = 0;
+    holdCountRef.current = 0;
+    hardDropCountRef.current = 0;
+    comboStreakRef.current = 0;
+    maxComboRef.current = 0;
+    tetrisCountRef.current = 0;
+    linesSentRef.current = 0;
+    maxStackHeightRef.current = 0;
+    levelRef.current = 1;
+    finalizedRef.current = false;
+    playerBoardRef.current = null;
+    botBoardRef.current = null;
+    botBlunderRef.current = false;
+  };
+
+  useEffect(() => {
+    if (!matchOver || !playerResult || !botResult || finalizedRef.current) return;
+
+    const win = playerResult.score > botResult.score;
+    const perfectWin = win && maxStackHeightRef.current < RED_ZONE_HEIGHT;
+    const durationMs = runDurationRef.current;
+    const noHold = holdCountRef.current === 0;
+    const noHardDrop = hardDropCountRef.current === 0;
+    const level = levelRef.current;
+    const playerHoles = countBoardHoles(playerBoardRef.current);
+    const botHoles = countBoardHoles(botBoardRef.current);
+    const wonVsRookie = win && botPersonalityId === "rookie";
+    const wonVsBalanced = win && botPersonalityId === "balanced";
+    const wonVsApex = win && botPersonalityId === "apex";
+    if (wonVsRookie) botPersonalityWinsRef.current.add("rookie");
+    if (wonVsBalanced) botPersonalityWinsRef.current.add("balanced");
+    if (wonVsApex) botPersonalityWinsRef.current.add("apex");
+    let sameScoreTwice = false;
+
+    const next = updateStats((prev) => {
+      sameScoreTwice = prev.lastScore !== null && prev.lastScore === playerResult.score;
+      return {
+        ...prev,
+        versusMatches: prev.versusMatches + 1,
+        versusWins: prev.versusWins + (win ? 1 : 0),
+        versusWinStreak: win ? prev.versusWinStreak + 1 : 0,
+        versusLinesSent: prev.versusLinesSent + linesSentRef.current,
+        botMatches: prev.botMatches + 1,
+        botWins: prev.botWins + (win ? 1 : 0),
+        botWinStreak: win ? prev.botWinStreak + 1 : 0,
+        botApexWins: prev.botApexWins + (wonVsApex ? 1 : 0),
+        scoredModes: {
+          ...prev.scoredModes,
+          VERSUS: playerResult.score > 0 ? true : prev.scoredModes.VERSUS,
+        },
+        level10Modes: {
+          ...prev.level10Modes,
+          VERSUS: level >= 10 ? true : prev.level10Modes.VERSUS,
+        },
+        playtimeMs: prev.playtimeMs + durationMs,
+        noHoldRuns: prev.noHoldRuns + (noHold ? 1 : 0),
+        hardDropCount: prev.hardDropCount + hardDropCountRef.current,
+        lastScore: playerResult.score,
+      };
+    });
+
+    checkAchievements({
+      mode: "VERSUS",
+      score: playerResult.score,
+      lines: playerResult.lines,
+      level,
+      tetrisCleared: tetrisCountRef.current > 0,
+      custom: {
+        versus_match_1: next.versusMatches >= 1,
+        versus_match_10: next.versusMatches >= 10,
+        versus_match_50: next.versusMatches >= 50,
+        versus_win_1: next.versusWins >= 1,
+        versus_win_streak_5: next.versusWinStreak >= 5,
+        versus_perfect_win: perfectWin,
+        versus_lines_sent_20: next.versusLinesSent >= 20,
+        combo_5: maxComboRef.current >= 5,
+        no_hold_runs_10: next.noHoldRuns >= 10,
+        harddrop_50: next.hardDropCount >= 50,
+        no_harddrop_10_min: durationMs >= 10 * 60 * 1000 && noHardDrop,
+        playtime_60m: next.playtimeMs >= 60 * 60 * 1000,
+        playtime_300m: next.playtimeMs >= 300 * 60 * 1000,
+        level_10_three_modes: countTrue(next.level10Modes) >= 3,
+        scored_all_modes: countTrue(next.scoredModes) >= TOTAL_SCORED_MODES,
+        modes_visited_all: countTrue(next.modesVisited) >= TOTAL_GAME_MODES,
+        same_score_twice: sameScoreTwice,
+        bot_match_1: next.botMatches >= 1,
+        bot_win_1: next.botWins >= 1,
+        bot_rookie_win: wonVsRookie,
+        bot_balanced_win: wonVsBalanced,
+        bot_apex_win: wonVsApex,
+        bot_perfect_win: perfectWin,
+        bot_win_under_60s: win && durationMs > 0 && durationMs < 60_000,
+        bot_won_after_blunder: win && botBlunderRef.current,
+        bot_fewer_holes: win && playerHoles < botHoles,
+        bot_win_streak_5: next.botWinStreak >= 5,
+        bot_all_personalities_session:
+          botPersonalityWinsRef.current.size >= TETROBOTS_PERSONALITIES.length,
+        bot_apex_win_10: next.botApexWins >= 10,
+        bot_outscore_lines_apex: wonVsApex && playerResult.lines > botResult.lines,
+      },
+    });
+
+    finalizedRef.current = true;
+  }, [botPersonalityId, botResult, checkAchievements, matchOver, playerResult, updateStats]);
+
+  useEffect(() => {
+    if (!matchOver || !playerResult || !botResult || !user || hasSavedResult) return;
+    const payload = {
+      matchId: roundSeed,
+      players: [
+        {
+          slot: 1,
+          userId: user.id,
+          pseudo: user.pseudo,
+          score: playerResult.score,
+          lines: playerResult.lines,
+        },
+        {
+          slot: 2,
+          pseudo: botPersonality.name,
+          score: botResult.score,
+          lines: botResult.lines,
+        },
+      ],
+    };
+
+    saveVersusMatch(payload).catch((err) =>
+      console.error("Erreur enregistrement match versus (Tetrobots) :", err)
+    );
+    setHasSavedResult(true);
+  }, [botPersonality.name, botResult, hasSavedResult, matchOver, playerResult, roundSeed, user]);
+
+  const startMatch = () => {
+    setRoundSeed(`tetrobots-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`);
+    setRoundKey((prev) => prev + 1);
+    setStarted(true);
+    setPlayerIncomingGarbage(0);
+    setBotIncomingGarbage(0);
+    setBotBoard(null);
+    setPlayerResult(null);
+    setBotResult(null);
+    setHasSavedResult(false);
+    resetRunTracking();
+  };
+
+  const backToLobby = () => {
+    setStarted(false);
+    setPlayerIncomingGarbage(0);
+    setBotIncomingGarbage(0);
+    setBotBoard(null);
+    setPlayerResult(null);
+    setBotResult(null);
+    setHasSavedResult(false);
+    resetRunTracking();
+  };
+
+  if (!started) {
+    return (
+      <div className="min-h-screen flex flex-col items-center text-center text-pink-300 font-['Press_Start_2P'] py-10">
+        <h1 className="text-3xl text-yellow-400 mb-6 drop-shadow-[0_0_15px_#ff00ff]">Mode Versus - Solo</h1>
+
+        <div
+          className="w-[90%] max-w-[820px]"
+          style={{
+            background: "rgba(0,0,0,0.85)",
+            border: "2px solid #ff00ff",
+            borderRadius: "12px",
+            padding: "24px",
+            boxShadow: "0 0 18px #ff00ff",
+          }}
+        >
+          <p className="text-sm text-cyan-200 text-left mb-4">
+            {user ? `Connecté en tant que ${user.pseudo}` : "Non connecté"}
+          </p>
+
+          <div className="text-left flex flex-col gap-3">
+            <label className="text-xs text-yellow-300 uppercase tracking-wide">Adversaire bot</label>
+            <select
+              value={botPersonalityId}
+              onChange={(e) => setBotPersonalityId(e.target.value as TetrobotsPersonality["id"])}
+              className="retro-select w-full"
+            >
+              {TETROBOTS_PERSONALITIES.map((personality) => (
+                <option key={personality.id} value={personality.id}>
+                  {personality.name} - {personality.difficultyLabel}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-300">{botPersonality.description}</p>
+            <button className="retro-btn self-start mt-2" onClick={startMatch}>
+              Lancer le duel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const myScore = playerResult?.score ?? 0;
+  const myLines = playerResult?.lines ?? 0;
+  const botScore = botResult?.score ?? 0;
+  const botLines = botResult?.lines ?? 0;
+  const botWaiting = !!playerResult && !botResult;
+
+  return (
+    <div className="min-h-screen flex flex-col items-center text-center text-pink-300 font-['Press_Start_2P'] py-6 relative" key={roundKey}>
+      <h1 className="text-3xl text-yellow-400 mb-2 drop-shadow-[0_0_15px_#ff00ff]">Partie VS Tetrobots</h1>
+      <p className="text-xs text-cyan-200 mb-4">{botPersonality.name} - {botPersonality.difficultyLabel}</p>
+
+      <div className="flex gap-6 items-start">
+        <TetrisBoard
+          mode="VERSUS"
+          scoreMode={null}
+          rng={playerRng}
+          incomingGarbage={playerIncomingGarbage}
+          onGarbageConsumed={() => setPlayerIncomingGarbage(0)}
+          onConsumeLines={(lines) => {
+            const garbage = mapGarbage(lines);
+            linesSentRef.current += lines;
+            if (garbage > 0) {
+              setBotIncomingGarbage((prev) => prev + garbage);
+            }
+          }}
+          onLinesCleared={(linesCleared) => {
+            if (linesCleared > 0) {
+              comboStreakRef.current += linesCleared;
+              if (comboStreakRef.current > maxComboRef.current) {
+                maxComboRef.current = comboStreakRef.current;
+              }
+            } else {
+              comboStreakRef.current = 0;
+            }
+            if (linesCleared === 4) {
+              tetrisCountRef.current += 1;
+            }
+          }}
+          onBoardUpdate={(board) => {
+            playerBoardRef.current = board;
+            const rows = board.length;
+            let topFilled = rows;
+            for (let y = 0; y < rows; y += 1) {
+              if (board[y].some((cell) => cell !== 0)) {
+                topFilled = y;
+                break;
+              }
+            }
+            const height = rows - topFilled;
+            if (height > maxStackHeightRef.current) {
+              maxStackHeightRef.current = height;
+            }
+          }}
+          onLocalGameOver={(score, lines) => {
+            setPlayerResult({ score, lines });
+            if (startTimeRef.current) {
+              runDurationRef.current = Date.now() - startTimeRef.current;
+            }
+          }}
+          hideGameOverOverlay
+          onGameStart={() => {
+            resetRunTracking();
+            startTimeRef.current = Date.now();
+          }}
+          onHold={() => {
+            holdCountRef.current += 1;
+          }}
+          onHardDrop={() => {
+            hardDropCountRef.current += 1;
+          }}
+          onLevelChange={(level) => {
+            levelRef.current = level;
+          }}
+        />
+
+        <div className="flex flex-col gap-2 items-center">
+          <p className="text-xs text-gray-300 mb-2">Grille Tetrobots</p>
+          <OpponentBoard board={botBoard} />
+          {botWaiting && <p className="text-green-300">Tetrobots réfléchit...</p>}
+          {!!botResult && <p className="text-yellow-300">Tetrobots a terminé</p>}
+        </div>
+      </div>
+
+      <div style={{ position: "absolute", opacity: 0, pointerEvents: "none", width: 0, height: 0, overflow: "hidden" }}>
+        <TetrisBoard
+          mode="VERSUS"
+          scoreMode={null}
+          rng={botRng}
+          keyboardControlsEnabled={false}
+          tetrobotsPersonalityId={botPersonalityId}
+          incomingGarbage={botIncomingGarbage}
+          onGarbageConsumed={() => setBotIncomingGarbage(0)}
+          onConsumeLines={(lines) => {
+            const garbage = mapGarbage(lines);
+            if (garbage > 0) {
+              setPlayerIncomingGarbage((prev) => prev + garbage);
+            }
+          }}
+          onTetrobotsPlan={({ isBlunder }) => {
+            if (isBlunder) {
+              botBlunderRef.current = true;
+            }
+          }}
+          onBoardUpdate={(board) => {
+            setBotBoard(board);
+            botBoardRef.current = board;
+          }}
+          onLocalGameOver={(score, lines) => {
+            setBotResult({ score, lines });
+          }}
+          hideGameOverOverlay
+        />
+      </div>
+
+      <FullScreenOverlay show={botWaiting}>
+        <div className="flex flex-col gap-3 items-center text-white text-lg font-bold">
+          <p>Tetrobots termine sa partie...</p>
+        </div>
+      </FullScreenOverlay>
+
+      <FullScreenOverlay show={matchOver}>
+        <div
+          style={{
+            background: "rgba(0,0,0,0.85)",
+            border: "2px solid #ff00ff",
+            borderRadius: "12px",
+            padding: "24px 28px",
+            minWidth: "320px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            alignItems: "center",
+            color: "white",
+            textAlign: "center",
+            boxShadow: "0 0 20px #ff00ff",
+          }}
+        >
+          <h2 className="text-xl text-yellow-300">Résultats</h2>
+          <p>Toi : {myScore} pts / {myLines} lignes</p>
+          <p>Tetrobots : {botScore} pts / {botLines} lignes</p>
+          <p className="text-cyan-300">{myScore > botScore ? "Victoire" : myScore < botScore ? "Défaite" : "Égalité"}</p>
+          <div className="flex gap-4 mt-2">
+            <button className="retro-btn" onClick={startMatch}>
+              Rejouer
+            </button>
+            <button className="retro-btn" onClick={backToLobby}>
+              Retour lobby
+            </button>
+          </div>
+        </div>
+      </FullScreenOverlay>
+    </div>
+  );
+}
+
+export default function Versus() {
+  const [searchParams] = useSearchParams();
+  const queue = (searchParams.get("queue") ?? "pvp").toLowerCase();
+
+  if (queue === "bot") {
+    return <VersusTetrobots />;
+  }
+
+  return <VersusPvp />;
 }

@@ -54,6 +54,10 @@ type AchievementStats = {
   versusWins: number;
   versusWinStreak: number;
   versusLinesSent: number;
+  botMatches: number;
+  botWins: number;
+  botWinStreak: number;
+  botApexWins: number;
   roguelikeVersusMatches: number;
   roguelikeVersusWins: number;
   roguelikeVersusWinStreak: number;
@@ -116,6 +120,10 @@ const DEFAULT_STATS: AchievementStats = {
   versusWins: 0,
   versusWinStreak: 0,
   versusLinesSent: 0,
+  botMatches: 0,
+  botWins: 0,
+  botWinStreak: 0,
+  botApexWins: 0,
   roguelikeVersusMatches: 0,
   roguelikeVersusWins: 0,
   roguelikeVersusWinStreak: 0,
@@ -216,6 +224,10 @@ export function useAchievements() {
       a.versusWins === b.versusWins &&
       a.versusWinStreak === b.versusWinStreak &&
       a.versusLinesSent === b.versusLinesSent &&
+      a.botMatches === b.botMatches &&
+      a.botWins === b.botWins &&
+      a.botWinStreak === b.botWinStreak &&
+      a.botApexWins === b.botApexWins &&
       a.roguelikeVersusMatches === b.roguelikeVersusMatches &&
       a.roguelikeVersusWins === b.roguelikeVersusWins &&
       a.roguelikeVersusWinStreak === b.roguelikeVersusWinStreak &&

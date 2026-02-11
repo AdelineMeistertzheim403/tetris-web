@@ -36,6 +36,14 @@ type BrickfallLeaderboardRow = {
   winRate: number;
 };
 
+type ModeCard = {
+  title: string;
+  desc: string;
+  path: string;
+  accent: string;
+  image: string;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
@@ -43,6 +51,60 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
   const [tab, setTab] = useState<"modes" | "scores">("modes");
+  const [showVersusChoice, setShowVersusChoice] = useState(false);
+  const soloModes: ModeCard[] = [
+    {
+      title: "Classique",
+      desc: "Le mode original pour scorer.",
+      path: "/game",
+      accent: "from-[#0b001a] to-[#1a0033]",
+      image: "/Game_Mode/classique.png",
+    },
+    {
+      title: "Sprint",
+      desc: "Fais le meilleur temps sur 40 lignes.",
+      path: "/sprint",
+      accent: "from-[#001a12] to-[#003329]",
+      image: "/Game_Mode/sprint.png",
+    },
+    {
+      title: "Roguelike",
+      desc: "Perks, mutations et synergies.",
+      path: "/roguelike",
+      accent: "from-[#12001a] to-[#2a003d]",
+      image: "/Game_Mode/roguelike.png",
+    },
+    {
+      title: "Puzzle",
+      desc: "Plateaux fixes et objectifs précis.",
+      path: "/puzzle",
+      accent: "from-[#1a1200] to-[#332400]",
+      image: "/Game_Mode/puzzle.png",
+    },
+  ];
+  const versusModes: ModeCard[] = [
+    {
+      title: "Versus",
+      desc: "Affronte d'autres joueurs.",
+      path: "/versus",
+      accent: "from-[#1a0010] to-[#33001f]",
+      image: "/Game_Mode/versus.png",
+    },
+    {
+      title: "Roguelike Versus",
+      desc: "Roguelike compétitif en 1v1.",
+      path: "/roguelike-versus",
+      accent: "from-[#0d1a1a] to-[#0c2b33]",
+      image: "/Game_Mode/roguelike-versus.png",
+    },
+    {
+      title: "Brickfall Versus",
+      desc: "Tetris x casse-brique asymétrique.",
+      path: "/brickfall-versus",
+      accent: "from-[#00121a] to-[#00314a]",
+      image: "/Game_Mode/brickfall.png",
+    },
+  ];
 
   const handleLogout = async () => {
     // Déconnexion + retour à l'accueil.
@@ -130,77 +192,100 @@ export default function Dashboard() {
       </div>
 
       {tab === "modes" && (
-        <div className="mode-card-grid">
-          {[
-            {
-              title: "Classique",
-              desc: "Le mode original pour scorer.",
-              path: "/game",
-              accent: "from-[#0b001a] to-[#1a0033]",
-              image: "/Game_Mode/classique.png",
-            },
-            {
-              title: "Sprint",
-              desc: "Fais le meilleur temps sur 40 lignes.",
-              path: "/sprint",
-              accent: "from-[#001a12] to-[#003329]",
-              image: "/Game_Mode/sprint.png",
-            },
-            {
-              title: "Versus",
-              desc: "Affronte d'autres joueurs.",
-              path: "/versus",
-              accent: "from-[#1a0010] to-[#33001f]",
-              image: "/Game_Mode/versus.png",
-            },
-            {
-              title: "Brickfall Versus",
-              desc: "Tetris x casse-brique asymétrique.",
-              path: "/brickfall-versus",
-              accent: "from-[#00121a] to-[#00314a]",
-              image: "/Game_Mode/brickfall.png",
-            },
-            {
-              title: "Roguelike",
-              desc: "Perks, mutations et synergies.",
-              path: "/roguelike",
-              accent: "from-[#12001a] to-[#2a003d]",
-              image: "/Game_Mode/roguelike.png",
-            },
-            {
-              title: "Roguelike Versus",
-              desc: "Roguelike compétitif en 1v1.",
-              path: "/roguelike-versus",
-              accent: "from-[#0d1a1a] to-[#0c2b33]",
-              image: "/Game_Mode/roguelike-versus.png",
-            },
-            {
-              title: "Puzzle",
-              desc: "Plateaux fixes et objectifs précis.",
-              path: "/puzzle",
-              accent: "from-[#1a1200] to-[#332400]",
-              image: "/Game_Mode/puzzle.png",
-            },
-          ].map((modeCard) => (
-            <button
-              key={modeCard.title}
-              onClick={() => navigate(modeCard.path)}
-              className={`mode-card bg-gradient-to-b ${modeCard.accent}`}
-            >
-              <div className="mode-card__icon">
-                <img
-                  src={modeCard.image}
-                  alt={modeCard.title}
-                  className="mode-card__image"
-                  loading="lazy"
-                />
-              </div>
-              <div className="mode-card__content">
-                <h3>{modeCard.title}</h3>
-                <p>{modeCard.desc}</p>
-              </div>
-            </button>
-          ))}
+        <div className="mode-sections">
+          <section className="mode-section">
+            <h2 className="mode-section__title">Mode Solo</h2>
+            <div className="mode-card-grid mode-card-grid--solo">
+              {soloModes.map((modeCard) => (
+                <button
+                  key={modeCard.title}
+                  onClick={() => navigate(modeCard.path)}
+                  className={`mode-card bg-gradient-to-b ${modeCard.accent}`}
+                >
+                  <div className="mode-card__icon">
+                    <img
+                      src={modeCard.image}
+                      alt={modeCard.title}
+                      className="mode-card__image"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="mode-card__content">
+                    <h3>{modeCard.title}</h3>
+                    <p>{modeCard.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className="mode-section">
+            <h2 className="mode-section__title">Mode Versus</h2>
+            <div className="mode-card-grid mode-card-grid--versus">
+              {versusModes.map((modeCard) => (
+                <button
+                  key={modeCard.title}
+                  onClick={() => {
+                    if (modeCard.path === "/versus") {
+                      setShowVersusChoice(true);
+                      return;
+                    }
+                    navigate(modeCard.path);
+                  }}
+                  className={`mode-card bg-gradient-to-b ${modeCard.accent}`}
+                >
+                  <div className="mode-card__icon">
+                    <img
+                      src={modeCard.image}
+                      alt={modeCard.title}
+                      className="mode-card__image"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="mode-card__content">
+                    <h3>{modeCard.title}</h3>
+                    <p>{modeCard.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {showVersusChoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-xl rounded-xl border-2 border-pink-500 bg-[#130212] p-6 text-left shadow-[0_0_20px_#ff00ff]">
+            <h2 className="text-xl text-yellow-300 mb-4">Mode Versus</h2>
+            <p className="text-sm text-gray-200 mb-6">
+              Choisis ton type de duel avant de lancer la partie.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                className="retro-btn text-left"
+                onClick={() => {
+                  setShowVersusChoice(false);
+                  navigate("/versus?queue=bot");
+                }}
+              >
+                Solo vs Tetrobots
+              </button>
+              <button
+                className="retro-btn text-left"
+                onClick={() => {
+                  setShowVersusChoice(false);
+                  navigate("/versus?queue=pvp");
+                }}
+              >
+                Joueur vs Joueur
+              </button>
+              <button
+                className="retro-btn text-left"
+                onClick={() => setShowVersusChoice(false)}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
