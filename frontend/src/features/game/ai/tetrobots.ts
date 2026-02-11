@@ -16,6 +16,8 @@ export type TetrobotsPersonality = {
   description: string;
   reactionMs: number;
   mistakeRate: number;
+  tone: "friendly" | "neutral" | "aggressive";
+  egoLevel: number;
   weights: HeuristicWeights;
 };
 
@@ -33,6 +35,8 @@ const PERSONALITIES: TetrobotsPersonality[] = [
     description: "Calme mais imprécis. Il survit, sans trop optimiser.",
     reactionMs: 170,
     mistakeRate: 0.2,
+    tone: "friendly",
+    egoLevel: 20,
     weights: {
       totalHeight: 0.43,
       holes: 0.88,
@@ -48,6 +52,8 @@ const PERSONALITIES: TetrobotsPersonality[] = [
     description: "Profil polyvalent, bon en attaque et en stabilité.",
     reactionMs: 105,
     mistakeRate: 0.08,
+    tone: "neutral",
+    egoLevel: 55,
     weights: {
       totalHeight: 0.49,
       holes: 0.95,
@@ -63,6 +69,8 @@ const PERSONALITIES: TetrobotsPersonality[] = [
     description: "Très agressif et rapide, minimise les erreurs.",
     reactionMs: 62,
     mistakeRate: 0.02,
+    tone: "aggressive",
+    egoLevel: 90,
     weights: {
       totalHeight: 0.57,
       holes: 1.15,

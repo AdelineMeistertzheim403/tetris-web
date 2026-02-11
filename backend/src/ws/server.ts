@@ -224,6 +224,9 @@ export function setupWebsocket(server: HttpServer) {
       }
 
       if (parsed.type === "game_over") {
+        if (currentMatch.finished.size >= currentMatch.players.size) {
+          return;
+        }
         if (slot > 0) {
           currentMatch.finished.set(slot, {
             score: parsed.score ?? 0,
@@ -251,12 +254,24 @@ export function setupWebsocket(server: HttpServer) {
           broadcast(currentMatch, { type: "match_over", results });
           return;
         }
-        if (currentMatch.finished.size >= currentMatch.players.size) {
-          const results = Array.from(currentMatch.finished.entries()).map(
-            ([s, res]) => ({ slot: s, score: res.score, lines: res.lines })
-          );
-          broadcast(currentMatch, { type: "match_over", results });
-        }
+        // En versus classique / roguelike versus: fin immédiate au premier game over.
+        // Le joueur encore en vie gagne automatiquement.
+        const slotIds = Array.from(currentMatch.slots.values()).map((s) => s.slot);
+        const reporterScore = parsed.score ?? 0;
+        slotIds.forEach((s) => {
+          if (!currentMatch?.finished.has(s)) {
+            currentMatch?.finished.set(s, {
+              score: reporterScore + 1,
+              lines: 0,
+            });
+          }
+        });
+        const results = Array.from(currentMatch.finished.entries()).map(([s, res]) => ({
+          slot: s,
+          score: res.score,
+          lines: res.lines,
+        }));
+        broadcast(currentMatch, { type: "match_over", results });
       }
     });
 

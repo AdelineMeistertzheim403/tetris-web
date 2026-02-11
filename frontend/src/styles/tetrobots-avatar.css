@@ -1,0 +1,102 @@
+.bot-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 16px;
+  background: rgba(10, 10, 12, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #334155;
+  box-shadow: 0 0 16px rgba(148, 163, 184, 0.3);
+}
+
+.bot-avatar__image {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 12px;
+  image-rendering: auto;
+}
+
+.bot-avatar.evil {
+  animation: glowEvil 0.9s infinite alternate;
+}
+
+.bot-avatar.glitch {
+  animation: glitch 0.2s infinite;
+}
+
+.pulse {
+  animation: pulseAnim 0.42s ease;
+}
+
+.bot-speech {
+  background: rgba(0, 0, 0, 0.82);
+  border: 2px solid;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  width: min(280px, 90vw);
+  animation: fadeIn 0.24s ease;
+}
+
+.bot-speech__speaker {
+  margin: 0 0 4px;
+  font-size: 10px;
+}
+
+.bot-speech__text {
+  margin: 0;
+  color: #f1f5f9;
+  line-height: 1.35;
+}
+
+@keyframes glowEvil {
+  from {
+    box-shadow: 0 0 18px rgba(244, 63, 94, 0.45);
+  }
+  to {
+    box-shadow: 0 0 34px rgba(239, 68, 68, 0.75);
+  }
+}
+
+@keyframes glitch {
+  0% {
+    transform: translate(0px);
+  }
+  25% {
+    transform: translate(2px);
+  }
+  50% {
+    transform: translate(-2px);
+  }
+  75% {
+    transform: translate(1px);
+  }
+  100% {
+    transform: translate(0px);
+  }
+}
+
+@keyframes pulseAnim {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
