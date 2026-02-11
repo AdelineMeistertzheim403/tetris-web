@@ -631,25 +631,56 @@ export default function BrickfallVersus() {
 
         {(matchOver || opponentLeft) && (
           <FullScreenOverlay show>
-            <div className="text-center text-yellow-300 font-['Press_Start_2P']">
-              <h2 className="text-2xl mb-4">Match terminé</h2>
+            <div
+              style={{
+                background: "rgba(0,0,0,0.85)",
+                border: "2px solid #ff00ff",
+                borderRadius: "12px",
+                padding: "24px 28px",
+                minWidth: "320px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                alignItems: "center",
+                color: "white",
+                textAlign: "center",
+                boxShadow: "0 0 20px #ff00ff",
+              }}
+            >
+              <h2 className="text-xl text-yellow-300">Résultats</h2>
+              {results && slot !== null && (
+                <>
+                  {(() => {
+                    const me = results.find((r) => r.slot === slot) ?? null;
+                    const opp = results.find((r) => r.slot !== slot) ?? null;
+                    return (
+                      <>
+                        <p>
+                          Toi : {me ? `${me.score} pts / ${me.lines} lignes` : "n/a"}
+                        </p>
+                        <p>
+                          Adversaire : {opp ? `${opp.score} pts / ${opp.lines} lignes` : "n/a"}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </>
+              )}
               {opponentLeft ? (
-                <p>Adversaire parti</p>
+                <p className="text-yellow-300">Adversaire parti</p>
               ) : winnerInfo ? (
-                <div className="space-y-2">
-                  <p>Vainqueur</p>
+                <>
                   <p className="text-cyan-200">{winnerInfo.pseudo}</p>
                   <p className="text-xs text-pink-200">Rôle: {winnerInfo.role}</p>
-                </div>
+                </>
               ) : (
                 <p>Match terminé</p>
               )}
-              <button
-                className="mt-6 px-4 py-2 rounded bg-pink-700 hover:bg-pink-600"
-                onClick={leaveMatch}
-              >
-                Quitter
-              </button>
+              <div className="flex gap-4 mt-2">
+                <button className="retro-btn" onClick={leaveMatch}>
+                  Retour lobby
+                </button>
+              </div>
             </div>
           </FullScreenOverlay>
         )}
@@ -658,61 +689,112 @@ export default function BrickfallVersus() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-center text-pink-300 font-['Press_Start_2P']">
-      <h1 className="text-3xl text-yellow-400 mb-6">Brickfall Versus</h1>
-      <p className="text-sm text-cyan-200 mb-6">
-        {connected ? "Connecté" : "Connexion..."} — {error ?? "Prêt"}
-      </p>
+    <div className="min-h-screen flex flex-col items-center text-center text-pink-300 font-['Press_Start_2P'] py-10">
+      <h1 className="text-3xl text-yellow-400 mb-6 drop-shadow-[0_0_15px_#ff00ff]">
+        Mode Brickfall Versus
+      </h1>
 
-      <div className="flex flex-col gap-4 w-full max-w-md">
-        {currentMatchId && !startReady && (
-          <div className="rounded-xl border border-pink-500 bg-black/60 p-4 text-left text-xs text-pink-100 space-y-2">
-            <div>Match: {currentMatchId}</div>
-            <div>Players: {players}</div>
-            <div>Status: {connected ? "connecté" : "connexion..."}</div>
-            <div>En attente d’un adversaire...</div>
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 gap-5 w-[90%]"
+        style={{ maxWidth: "920px" }}
+      >
+        <div
+          style={{
+            background: "rgba(0,0,0,0.85)",
+            border: "2px solid #ff00ff",
+            borderRadius: "12px",
+            padding: "20px",
+            boxShadow: "0 0 18px #ff00ff",
+          }}
+        >
+          <p className="text-sm text-cyan-200 text-left">
+            {user ? `Connecté en tant que ${user.pseudo}` : "Non connecté"}
+          </p>
+
+          <div className="text-left flex flex-col gap-3 mt-3">
+            <label className="text-xs text-yellow-300 uppercase tracking-wide">
+              Créer / Rejoindre
+            </label>
+
+            <input
+              className="retro-input w-full"
+              placeholder="ID de match (vide pour créer)"
+              value={manualMatchId}
+              onChange={(e) => setManualMatchId(e.target.value)}
+            />
+
+            <select
+              value={creatorRoleChoice}
+              onChange={(e) =>
+                setCreatorRoleChoice(e.target.value as "ARCHITECT" | "DEMOLISHER")
+              }
+              className="retro-input w-full"
+            >
+              <option value="ARCHITECT">Créer en Architecte</option>
+              <option value="DEMOLISHER">Créer en Démolisseur</option>
+            </select>
+
+            <div className="flex gap-3">
+              <button className="retro-btn flex-1" onClick={createMatch}>
+                Créer un match
+              </button>
+              <button className="retro-btn flex-1" onClick={joinMatch}>
+                Rejoindre
+              </button>
+            </div>
+
+            {currentMatchId && (
+              <button className="retro-btn w-full" onClick={leaveMatch}>
+                Quitter le match
+              </button>
+            )}
           </div>
-        )}
-        <input
-          className="px-4 py-3 rounded bg-black/60 border border-pink-500 text-pink-200"
-          placeholder="ID de match"
-          value={manualMatchId}
-          onChange={(e) => setManualMatchId(e.target.value)}
-        />
-        <div className="flex gap-3">
-          <select
-            value={creatorRoleChoice}
-            onChange={(e) =>
-              setCreatorRoleChoice(e.target.value as "ARCHITECT" | "DEMOLISHER")
-            }
-            className="px-3 py-3 rounded bg-black/60 border border-pink-500 text-pink-200"
-          >
-            <option value="ARCHITECT">Créer en Architecte</option>
-            <option value="DEMOLISHER">Créer en Démolisseur</option>
-          </select>
+
+          <div className="grid grid-cols-2 gap-2 text-left text-sm bg-pink-900/20 p-3 rounded-md border border-pink-500/50 mt-4">
+            <div>
+              <p className="text-gray-300">Statut WS</p>
+              <p className={connected ? "text-green-300" : "text-red-400"}>
+                {connected ? "connecté" : "connexion..."}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-300">Joueurs</p>
+              <p className="text-white">{players}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-gray-300">ID match</p>
+              <p className="text-white">{currentMatchId ?? "en attente"}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-gray-300">État</p>
+              <p className="text-pink-100">
+                {error ?? (currentMatchId && !startReady ? "En attente d’un adversaire..." : "Prêt")}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            className="flex-1 px-4 py-3 rounded bg-pink-700 hover:bg-pink-600"
-            onClick={createMatch}
-          >
-            Créer un match
-          </button>
-          <button
-            className="flex-1 px-4 py-3 rounded bg-cyan-700 hover:bg-cyan-600"
-            onClick={joinMatch}
-          >
-            Rejoindre
-          </button>
+
+        <div
+          style={{
+            background: "rgba(0,0,0,0.85)",
+            border: "2px solid #ff00ff",
+            borderRadius: "12px",
+            padding: "20px",
+            boxShadow: "0 0 18px #ff00ff",
+          }}
+          className="flex flex-col gap-4"
+        >
+          <p className="text-left text-yellow-300 text-xs uppercase tracking-wide">
+            Comment jouer
+          </p>
+          <ul className="text-left text-sm text-gray-200 space-y-2">
+            <li>Crée un match vide ou rejoins un ID existant.</li>
+            <li>Le créateur choisit son rôle: Architecte ou Démolisseur.</li>
+            <li>L’Architecte joue au Tetris et envoie des blocs/débuffs.</li>
+            <li>Le Démolisseur casse la structure pour vider les vies adverses.</li>
+            <li>Le match démarre dès que 2 joueurs sont connectés.</li>
+          </ul>
         </div>
-        {currentMatchId && (
-          <button
-            className="px-4 py-3 rounded bg-pink-900/70 hover:bg-pink-800"
-            onClick={leaveMatch}
-          >
-            Quitter le match
-          </button>
-        )}
       </div>
     </div>
   );

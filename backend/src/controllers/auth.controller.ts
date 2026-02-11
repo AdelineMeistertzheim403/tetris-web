@@ -87,7 +87,7 @@ export const login = async (req: Request, res: Response) => {
       ...getAuthCookieOptions(),
       maxAge: AUTH_COOKIE_MAX_AGE_MS,
     });
-    res.json({ user: safeUser });
+    res.json({ user: safeUser, token });
   } catch (err: any) {
     logger.error({ err }, "Erreur login");
     res.status(500).json({ error: "Erreur lors de la connexion" });
