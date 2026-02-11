@@ -1040,6 +1040,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   name: "Maître des Heuristiques",
   description: "Gagner contre Apex avec plus de lignes cleared",
   icon: "bot_heuristic",
+  secret: true,
   mode: "VERSUS",
   group: "SECRETS",
   condition: { type: "custom", key: "bot_outscore_lines_apex" },
