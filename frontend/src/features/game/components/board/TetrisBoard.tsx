@@ -10,6 +10,12 @@ import { useLineClearFx } from "../../hooks/useLineClearFx";
 import { useSettings } from "../../../settings/context/SettingsContext";
 import StatCard from "../../../../shared/components/ui/cards/StatCard";
 import FullScreenOverlay from "../../../../shared/components/ui/overlays/FullScreenOverlay";
+import {
+  computeTetrobotsPlan,
+  getShapeSignature,
+  getTetrobotsPersonality,
+  type TetrobotsPersonality,
+} from "../../ai/tetrobots";
 
 type TetrisBoardProps = {
   mode?: GameMode;
@@ -73,6 +79,9 @@ type TetrisBoardProps = {
   externalBoardEdits?: Array<{ x: number; y: number }>;
   externalBoardEditToken?: number;
   externalSpecialMarkers?: Array<{ x: number; y: number; type: "armored" | "bomb" | "cursed" | "mirror" }>;
+  keyboardControlsEnabled?: boolean;
+  tetrobotsPersonalityId?: TetrobotsPersonality["id"] | null;
+  onTetrobotsPlan?: (payload: { isBlunder: boolean }) => void;
 };
 
 const DEFAULT_ROWS = 20;
@@ -162,6 +171,9 @@ export default function TetrisBoard({
   externalBoardEdits,
   externalBoardEditToken,
   externalSpecialMarkers,
+  keyboardControlsEnabled = true,
+  tetrobotsPersonalityId = null,
+  onTetrobotsPlan,
 }: TetrisBoardProps) {
   const { settings } = useSettings();
   const effectiveRows = rows ?? DEFAULT_ROWS;
@@ -174,6 +186,7 @@ export default function TetrisBoard({
   const [framesReady, setFramesReady] = useState(false);
   const [explosionFrameTick, setExplosionFrameTick] = useState(0);
   const lastRotationRef = useRef(0);
+  const botActionRef = useRef(0);
   const hasStartedRef = useRef(false);
   const scoreRunTokenRef = useRef<string | null>(null);
   const [lastClearPoints, setLastClearPoints] = useState(0);
@@ -289,6 +302,7 @@ export default function TetrisBoard({
   const bombsGrantRef = useRef(0);
 
     useKeyboardControls((dir) => {
+    if (!keyboardControlsEnabled) return;
     const effectiveDir =
       invertControls && (dir === "left" || dir === "right")
         ? dir === "left"
@@ -325,6 +339,49 @@ export default function TetrisBoard({
     }
     movePiece(effectiveDir as "left" | "right" | "down" | "rotate");
   });
+
+  useEffect(() => {
+    if (!tetrobotsPersonalityId) return;
+    if (!state.running || state.gameOver || countdown !== null) return;
+    const personality = getTetrobotsPersonality(tetrobotsPersonalityId);
+    const now = Date.now();
+    if (now - botActionRef.current < personality.reactionMs) return;
+    botActionRef.current = now;
+
+    const plan = computeTetrobotsPlan(state.board, state.piece, personality);
+    if (!plan) {
+      hardDrop();
+      return;
+    }
+    onTetrobotsPlan?.({ isBlunder: plan.isBlunder === true });
+
+    const currentSignature = getShapeSignature(state.piece.shape);
+    const targetSignature = getShapeSignature(plan.targetShape);
+    if (currentSignature !== targetSignature) {
+      movePiece("rotate");
+      return;
+    }
+
+    if (state.piece.x < plan.targetX) {
+      movePiece("right");
+      return;
+    }
+    if (state.piece.x > plan.targetX) {
+      movePiece("left");
+      return;
+    }
+    hardDrop();
+  }, [
+    countdown,
+    hardDrop,
+    movePiece,
+    onTetrobotsPlan,
+    state.board,
+    state.gameOver,
+    state.piece,
+    state.running,
+    tetrobotsPersonalityId,
+  ]);
 
   useEffect(() => {
     const diff = bombsGranted - bombsGrantRef.current;

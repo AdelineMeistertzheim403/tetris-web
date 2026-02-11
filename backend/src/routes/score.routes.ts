@@ -1,5 +1,6 @@
 import { Router, Response } from "express";
 import { createHmac } from "crypto";
+import bcrypt from "bcrypt";
 import rateLimit from "express-rate-limit";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
 import {
@@ -25,6 +26,39 @@ const leaderboardLimiter = rateLimit({
   windowMs: 5 * 1000,
   max: 20,
 });
+
+const TETROBOTS_PSEUDO_PREFIX = "Tetrobots";
+const TETROBOTS_EMAIL_DOMAIN = "bots.tetris.local";
+const TETROBOTS_PASSWORD_HASH = bcrypt.hashSync(`${env.jwtSecret}:tetrobots-bot`, 10);
+
+function isTetrobotsPseudo(pseudo: string): boolean {
+  return pseudo.trim().startsWith(TETROBOTS_PSEUDO_PREFIX);
+}
+
+function toBotEmail(pseudo: string): string {
+  const slug = pseudo
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const localPart = slug || "tetrobots";
+  return `${localPart}@${TETROBOTS_EMAIL_DOMAIN}`;
+}
+
+async function ensureTetrobotsUserId(pseudo: string): Promise<number> {
+  const created = await prisma.user.upsert({
+    where: { pseudo },
+    update: {},
+    create: {
+      pseudo,
+      email: toBotEmail(pseudo),
+      password: TETROBOTS_PASSWORD_HASH,
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
 
 function computeScoreToken(userId: number, mode: GameMode, matchId?: string | null) {
   const payload = `${userId}:${mode}:${matchId ?? ""}`;
@@ -121,10 +155,19 @@ router.post("/versus-match", verifyToken, async (req: AuthRequest, res: Response
       return res.status(403).json({ error: "Token de run invalide" });
     }
 
-    const players = parsed.data.players.map((p) => ({
-      ...p,
-      pseudo: p.pseudo.trim(),
-    }));
+    const players = await Promise.all(
+      parsed.data.players.map(async (p) => {
+        const pseudo = p.pseudo.trim();
+        if (p.userId) {
+          return { ...p, pseudo };
+        }
+        if (!isTetrobotsPseudo(pseudo)) {
+          return { ...p, pseudo };
+        }
+        const botUserId = await ensureTetrobotsUserId(pseudo);
+        return { ...p, pseudo, userId: botUserId };
+      })
+    );
 
     if (new Set(players.map((p) => p.slot)).size !== players.length) {
       return res.status(400).json({ error: "Les slots doivent etre uniques" });

@@ -1,4 +1,5 @@
 import type { GameMode } from "../types/GameMode";
+import { getAuthHeader } from "../../auth/services/authService";
 
 // API base URL fourni par Vite (env). Centralise toutes les routes score.
 const API_URL = import.meta.env.VITE_API_URL;
@@ -21,6 +22,7 @@ export async function getScoreRunToken(mode: GameMode, matchId?: string) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ mode, matchId }),
     credentials: "include",
@@ -44,6 +46,7 @@ export async function addScore(
     headers: {
       "Content-Type": "application/json",
       "X-Run-Token": runToken,
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ value, level, lines, mode, runToken }),
     credentials: "include",
@@ -56,6 +59,9 @@ export async function addScore(
 // Récupère les scores du joueur courant pour un mode donné.
 export async function getMyScores(mode: GameMode = "CLASSIQUE") {
   const res = await fetch(`${API_URL}/scores/me/${mode}`, {
+    headers: {
+      ...getAuthHeader(),
+    },
     credentials: "include",
   });
   if (!res.ok) throw new Error("Erreur de récupération des scores");
@@ -78,6 +84,7 @@ export async function saveScore(
     headers: {
       "Content-Type": "application/json",
       "X-Run-Token": runToken,
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ ...scoreData, runToken }), // ✅ ici, plus de { scoreData }
     credentials: "include",
@@ -101,6 +108,7 @@ export async function saveVersusMatch(payload: VersusMatchPayload) {
     headers: {
       "Content-Type": "application/json",
       "X-Run-Token": await getScoreRunToken("VERSUS", payload.matchId),
+      ...getAuthHeader(),
     },
     body: JSON.stringify(payload),
     credentials: "include",
@@ -117,6 +125,7 @@ export async function saveRoguelikeVersusMatch(payload: VersusMatchPayload) {
     headers: {
       "Content-Type": "application/json",
       "X-Run-Token": await getScoreRunToken("ROGUELIKE_VERSUS", payload.matchId),
+      ...getAuthHeader(),
     },
     body: JSON.stringify(payload),
     credentials: "include",
@@ -134,6 +143,7 @@ export async function saveBrickfallVersusMatch(payload: VersusMatchPayload) {
     headers: {
       "Content-Type": "application/json",
       "X-Run-Token": await getScoreRunToken("BRICKFALL_VERSUS", payload.matchId),
+      ...getAuthHeader(),
     },
     body: JSON.stringify(payload),
     credentials: "include",

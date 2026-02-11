@@ -1,3 +1,4 @@
+import { getAuthHeader } from "../../auth/services/authService";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export type AchievementUnlockPayload = {
@@ -13,6 +14,9 @@ export async function fetchUnlockedAchievements(): Promise<
   { id: string; unlockedAt: number }[]
 > {
   const res = await fetch(`${API_URL}/achievements`, {
+    headers: {
+      ...getAuthHeader(),
+    },
     credentials: "include",
   });
 
@@ -32,6 +36,7 @@ export async function unlockAchievements(
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ achievements }),
   });
@@ -43,6 +48,9 @@ export async function unlockAchievements(
 
 export async function fetchAchievementStats(): Promise<{ loginDays: string[] }> {
   const res = await fetch(`${API_URL}/achievements/stats`, {
+    headers: {
+      ...getAuthHeader(),
+    },
     credentials: "include",
   });
 
@@ -60,6 +68,7 @@ export async function saveAchievementStats(loginDays: string[]): Promise<void> {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ loginDays }),
   });
