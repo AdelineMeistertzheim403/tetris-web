@@ -11,6 +11,7 @@ export type RvEffect = { mirrorCopy?: boolean } & (
   | { type: "garbage_storm"; durationMs: number }
   | { type: "double_garbage"; durationMs: number }
   | { type: "double_vision"; durationMs: number }
+  | { type: "bomb_blast"; cells: Array<{ x: number; y: number }> }
   | { type: "storm_tick"; count: number }
   | { type: "steal_lines"; count: number; score: number }
   | { type: "bonus"; durationMs: number; id: string }
@@ -65,6 +66,7 @@ export type RvPerk = {
   name: string;
   description: string;
   icon: string;
+  rarity?: "common" | "rare" | "epic";
   apply: (ctx: {
     addHoldSlot: () => void;
     addTimeFreeze: (count?: number) => void;

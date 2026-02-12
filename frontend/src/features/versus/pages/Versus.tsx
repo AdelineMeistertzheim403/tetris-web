@@ -508,6 +508,7 @@ function VersusTetrobots() {
   const closeCallAnnouncedRef = useRef(false);
   const longMatchAnnouncedRef = useRef(false);
   const matchStartAnnouncedRef = useRef(false);
+  const comebackAnnouncedRef = useRef(false);
   const playerStackHeightRef = useRef(0);
   const botStackHeightRef = useRef(0);
   const botMoodTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -572,10 +573,25 @@ function VersusTetrobots() {
     closeCallAnnouncedRef.current = false;
     longMatchAnnouncedRef.current = false;
     matchStartAnnouncedRef.current = false;
+    comebackAnnouncedRef.current = false;
     playerStackHeightRef.current = 0;
     botStackHeightRef.current = 0;
     setBotMessage(null);
     setBotMood("idle");
+  };
+
+  const maybeEmitComeback = () => {
+    if (!started || matchOver) return;
+    const playerScore = playerLiveScoreRef.current;
+    const botScore = botLiveScoreRef.current;
+    if (playerScore < botScore) {
+      comebackAnnouncedRef.current = true;
+      return;
+    }
+    if (comebackAnnouncedRef.current && playerScore > botScore) {
+      emitBotEvent({ type: "comeback" });
+      comebackAnnouncedRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -882,6 +898,7 @@ function VersusTetrobots() {
           }}
           onScoreChange={(score) => {
             playerLiveScoreRef.current = score;
+            maybeEmitComeback();
           }}
           onLocalGameOver={(score, lines) => {
             setPlayerResult({ score, lines });
@@ -968,6 +985,7 @@ function VersusTetrobots() {
           }}
           onScoreChange={(score) => {
             botLiveScoreRef.current = score;
+            maybeEmitComeback();
           }}
           onLocalGameOver={(score, lines) => {
             setBotResult({ score, lines });

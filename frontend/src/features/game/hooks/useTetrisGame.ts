@@ -348,16 +348,46 @@ const triggerBomb = useCallback(() => {
   useEffect(() => {
     if (!externalBoardEdits || externalBoardEdits.length === 0) return;
     if (externalBoardEditToken === undefined || externalBoardEditToken === null) return;
+    const validCells = externalBoardEdits.filter(
+      (cell) => cell.y >= 0 && cell.y < rows && cell.x >= 0 && cell.x < cols
+    );
+    if (validCells.length === 0) return;
+
+    const minX = Math.min(...validCells.map((cell) => cell.x));
+    const maxX = Math.max(...validCells.map((cell) => cell.x));
+    const minY = Math.min(...validCells.map((cell) => cell.y));
+    const maxY = Math.max(...validCells.map((cell) => cell.y));
+    const centerX = Math.round((minX + maxX) / 2);
+    const centerY = Math.round((minY + maxY) / 2);
+    const radius = Math.max(1, Math.floor(Math.max(maxX - minX, maxY - minY) / 2));
+
     setBoard((prev) => {
       const next = prev.map((row) => [...row]);
-      externalBoardEdits.forEach((cell) => {
-        if (cell.y < 0 || cell.y >= next.length) return;
-        if (cell.x < 0 || cell.x >= next[0].length) return;
+      validCells.forEach((cell) => {
         next[cell.y][cell.x] = 0;
       });
       return next;
     });
-  }, [externalBoardEdits, externalBoardEditToken]);
+
+    onBombExplode?.();
+    const explosionId = `${Date.now()}-${rngRef.current()}`;
+    setExplosions((prev) => [
+      ...prev,
+      {
+        id: explosionId,
+        x: centerX,
+        y: centerY,
+        radius,
+        startedAt: Date.now(),
+      },
+    ]);
+    const frames = getExplosionFrameCount(radius);
+    const animationDuration = frames * EXPLOSION_FRAME_DURATION_MS;
+    const expTimeout = setTimeout(() => {
+      setExplosions((prev) => prev.filter((e) => e.id !== explosionId));
+    }, animationDuration + 50);
+    explosionTimeoutsRef.current.push(expTimeout);
+  }, [cols, externalBoardEdits, externalBoardEditToken, onBombExplode, rows]);
 
   useEffect(() => {
     // Les couleurs peuvent changer (settings), on rehydrate les pièces existantes.

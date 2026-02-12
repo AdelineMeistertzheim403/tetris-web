@@ -1,7 +1,22 @@
 import { checkCollision, clearFullLines, mergePiece, rotateMatrix } from "../logic/boardUtils";
 import type { Piece } from "../types/Piece";
 
+/**
+ * Tetrobots AI (V1)
+ *
+ * Pipeline de décision (à chaque pièce):
+ * 1) Générer les rotations uniques de la pièce courante.
+ * 2) Énumérer les positions horizontales valides et simuler la chute.
+ * 3) Évaluer le board obtenu via une heuristique (lignes, trous, hauteur, bumpiness).
+ * 4) Choisir le meilleur placement (ou un "blunder" contrôlé selon la personnalité).
+ *
+ * Réglage de difficulté:
+ * - `reactionMs`: vitesse d'action perçue.
+ * - `mistakeRate`: fréquence d'erreurs simulées.
+ * - `weights`: style de jeu (survie vs agressivité line clear).
+ */
 type HeuristicWeights = {
+  // Plus la valeur est élevée, plus le bot pénalise/récompense ce critère.
   totalHeight: number;
   holes: number;
   bumpiness: number;
@@ -28,6 +43,7 @@ export type TetrobotsPlan = {
 };
 
 const PERSONALITIES: TetrobotsPersonality[] = [
+  // Les personnalités combinent vitesse de réaction + tendance à l'erreur + pondérations.
   {
     id: "rookie",
     name: "Tetrobots Rookie",
@@ -84,6 +100,7 @@ const PERSONALITIES: TetrobotsPersonality[] = [
 const matrixKey = (shape: number[][]) => shape.map((row) => row.join("")).join("|");
 
 const getUniqueRotations = (shape: number[][]) => {
+  // Évite d'évaluer deux fois la même rotation (ex: pièce O).
   const rotations: number[][][] = [];
   const seen = new Set<string>();
   let current = shape;
@@ -99,6 +116,7 @@ const getUniqueRotations = (shape: number[][]) => {
 };
 
 const getColumnHeights = (board: number[][]) => {
+  // Hauteur de chaque colonne mesurée depuis le bas.
   const rows = board.length;
   const cols = board[0]?.length ?? 0;
   const heights = Array(cols).fill(0);
@@ -113,6 +131,7 @@ const getColumnHeights = (board: number[][]) => {
 };
 
 const getHoleCount = (board: number[][]) => {
+  // Un trou = case vide sous au moins un bloc dans la même colonne.
   const rows = board.length;
   const cols = board[0]?.length ?? 0;
   let holes = 0;
@@ -136,6 +155,7 @@ const evaluateBoard = (
   linesCleared: number,
   weights: HeuristicWeights
 ) => {
+  // Score heuristique classique: on récompense les lignes, on pénalise instabilité/risque.
   const heights = getColumnHeights(board);
   const totalHeight = heights.reduce((sum, h) => sum + h, 0);
   const maxHeight = heights.reduce((max, h) => (h > max ? h : max), 0);
@@ -168,6 +188,10 @@ export function computeTetrobotsPlan(
   personality: TetrobotsPersonality,
   rng: () => number = Math.random
 ): TetrobotsPlan | null {
+  // 1) Génère tous les placements atteignables (x + rotation),
+  // 2) Simule la chute + clear,
+  // 3) Score chaque board,
+  // 4) Choisit le meilleur (ou une mauvaise option simulée selon la difficulté).
   const rotations = getUniqueRotations(piece.shape);
   const cols = board[0]?.length ?? 10;
   const candidates: Array<{ score: number; plan: TetrobotsPlan }> = [];
@@ -197,6 +221,7 @@ export function computeTetrobotsPlan(
   candidates.sort((a, b) => b.score - a.score);
   const topCount = Math.min(3, candidates.length);
   const shouldBlunder = rng() < personality.mistakeRate;
+  // Les erreurs du bot restent contrôlées: il choisit parmi le top 3 plutôt qu'au hasard total.
   if (shouldBlunder && topCount > 1) {
     const pick = 1 + Math.floor(rng() * (topCount - 1));
     return { ...candidates[pick].plan, isBlunder: true };

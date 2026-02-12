@@ -6,6 +6,7 @@ export const RV_PERKS: RvPerk[] = [
     name: "Hold+",
     description: "Ajoute un slot de Hold.",
     icon: "extra-hold",
+    rarity: "common",
     apply: ({ addHoldSlot }) => addHoldSlot(),
   },
   {
@@ -13,6 +14,7 @@ export const RV_PERKS: RvPerk[] = [
     name: "Time Freeze",
     description: "+1 charge de time freeze.",
     icon: "time-freeze",
+    rarity: "rare",
     apply: ({ addTimeFreeze }) => addTimeFreeze(1),
   },
   {
@@ -20,6 +22,7 @@ export const RV_PERKS: RvPerk[] = [
     name: "Boost Score",
     description: "+30% score.",
     icon: "score-boost",
+    rarity: "common",
     apply: ({ addScoreBoost }) => addScoreBoost(0.3),
   },
   {
@@ -27,6 +30,7 @@ export const RV_PERKS: RvPerk[] = [
     name: "Bombe tactique",
     description: "Envoie une bombe tactique à l’adversaire.",
     icon: "tactical-bomb",
+    rarity: "epic",
     apply: ({ sendTacticalBomb }) => sendTacticalBomb(),
   },
 ];
