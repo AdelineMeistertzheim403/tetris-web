@@ -265,10 +265,19 @@ router.post("/roguelike-versus-match", verifyToken, async (req: AuthRequest, res
       return res.status(403).json({ error: "Token de run invalide" });
     }
 
-    const players = parsed.data.players.map((p) => ({
-      ...p,
-      pseudo: p.pseudo.trim(),
-    }));
+    const players = await Promise.all(
+      parsed.data.players.map(async (p) => {
+        const pseudo = p.pseudo.trim();
+        if (p.userId) {
+          return { ...p, pseudo };
+        }
+        if (!isTetrobotsPseudo(pseudo)) {
+          return { ...p, pseudo };
+        }
+        const botUserId = await ensureTetrobotsUserId(pseudo);
+        return { ...p, pseudo, userId: botUserId };
+      })
+    );
 
     if (new Set(players.map((p) => p.slot)).size !== players.length) {
       return res.status(400).json({ error: "Les slots doivent etre uniques" });
