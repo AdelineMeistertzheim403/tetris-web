@@ -616,12 +616,14 @@ useEffect(() => {
   }, [explosions.length]);
 
   useEffect(() => {
-  if (paused) {
-    pause();
-  } else {
+    if (paused) {
+      pause();
+      return;
+    }
+    // N'autorise pas le démarrage avant la fin du compte à rebours.
+    if (countdown !== null) return;
     start();
-  }
-}, [pause, paused, start]);
+  }, [countdown, pause, paused, start]);
 
   const boardCanvas = (
     <div className="tetris-canvas-wrap">
