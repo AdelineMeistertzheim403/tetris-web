@@ -52,6 +52,7 @@ export default function Dashboard() {
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
   const [tab, setTab] = useState<"modes" | "scores">("modes");
   const [showVersusChoice, setShowVersusChoice] = useState(false);
+  const [showRoguelikeVersusChoice, setShowRoguelikeVersusChoice] = useState(false);
   const soloModes: ModeCard[] = [
     {
       title: "Classique",
@@ -229,6 +230,10 @@ export default function Dashboard() {
                       setShowVersusChoice(true);
                       return;
                     }
+                    if (modeCard.path === "/roguelike-versus") {
+                      setShowRoguelikeVersusChoice(true);
+                      return;
+                    }
                     navigate(modeCard.path);
                   }}
                   className={`mode-card bg-gradient-to-b ${modeCard.accent}`}
@@ -281,6 +286,43 @@ export default function Dashboard() {
               <button
                 className="retro-btn text-left"
                 onClick={() => setShowVersusChoice(false)}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRoguelikeVersusChoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-xl rounded-xl border-2 border-pink-500 bg-[#130212] p-6 text-left shadow-[0_0_20px_#ff00ff]">
+            <h2 className="text-xl text-yellow-300 mb-4">Mode Roguelike Versus</h2>
+            <p className="text-sm text-gray-200 mb-6">
+              Choisis ton type de duel avant de lancer la partie.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                className="retro-btn text-left"
+                onClick={() => {
+                  setShowRoguelikeVersusChoice(false);
+                  navigate("/roguelike-versus?queue=bot");
+                }}
+              >
+                Solo vs Tetrobots
+              </button>
+              <button
+                className="retro-btn text-left"
+                onClick={() => {
+                  setShowRoguelikeVersusChoice(false);
+                  navigate("/roguelike-versus?queue=pvp");
+                }}
+              >
+                Joueur vs Joueur
+              </button>
+              <button
+                className="retro-btn text-left"
+                onClick={() => setShowRoguelikeVersusChoice(false)}
               >
                 Annuler
               </button>

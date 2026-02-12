@@ -29,6 +29,14 @@
   animation: glitch 0.2s infinite;
 }
 
+.bot-avatar.overclock {
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.75);
+}
+
+.bot-avatar.chaos {
+  animation: chaosPulse 0.45s infinite alternate;
+}
+
 .pulse {
   animation: pulseAnim 0.42s ease;
 }
@@ -87,6 +95,17 @@
   }
   to {
     transform: scale(1.08);
+  }
+}
+
+@keyframes chaosPulse {
+  from {
+    box-shadow: 0 0 14px rgba(217, 70, 239, 0.45);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 28px rgba(239, 68, 68, 0.75);
+    transform: scale(1.04);
   }
 }
 
