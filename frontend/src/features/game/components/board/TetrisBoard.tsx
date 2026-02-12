@@ -80,6 +80,7 @@ type TetrisBoardProps = {
   externalBoardEditToken?: number;
   externalSpecialMarkers?: Array<{ x: number; y: number; type: "armored" | "bomb" | "cursed" | "mirror" }>;
   keyboardControlsEnabled?: boolean;
+  disableBombKey?: boolean;
   tetrobotsPersonalityId?: TetrobotsPersonality["id"] | null;
   onTetrobotsPlan?: (payload: { isBlunder: boolean }) => void;
 };
@@ -172,6 +173,7 @@ export default function TetrisBoard({
   externalBoardEditToken,
   externalSpecialMarkers,
   keyboardControlsEnabled = true,
+  disableBombKey = false,
   tetrobotsPersonalityId = null,
   onTetrobotsPlan,
 }: TetrisBoardProps) {
@@ -193,6 +195,10 @@ export default function TetrisBoard({
   const [lastClearLines, setLastClearLines] = useState(0);
   const [gainFxKey, setGainFxKey] = useState(0);
   const { effects: lineClearFx, tetrisFlash, trigger: triggerLineClearFx } = useLineClearFx();
+  const handleBombExplode = useCallback(() => {
+    setBombFlash(true);
+    setTimeout(() => setBombFlash(false), 120);
+  }, []);
 
   const handleLinesCleared = useCallback(
     (linesCleared: number, clearedRows?: number[]) => {
@@ -241,10 +247,7 @@ export default function TetrisBoard({
     externalBoardEdits,
     externalBoardEditToken,
     onConsumeSecondChance,
-  onBombExplode: () => {
-    setBombFlash(true);
-    setTimeout(() => setBombFlash(false), 120);
-  },
+  onBombExplode: handleBombExplode,
   rng,
   onGameOver: async (score, level, lines) => {
     // En mode classique/sprint/etc., on enregistre le score (pas en roguelike).
@@ -319,6 +322,7 @@ export default function TetrisBoard({
       return handleHold();
     }
     if (dir === "bomb") {
+      if (disableBombKey) return;
       if (bombs <= 0) return;
       triggerBomb();
       onBombUsed?.();
