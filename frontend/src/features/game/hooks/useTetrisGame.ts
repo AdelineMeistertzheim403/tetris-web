@@ -44,6 +44,7 @@ onConsumeSecondChance?: () => void;
   onContractViolation?: (reason: string) => void;
   externalBoardEdits?: Array<{ x: number; y: number }>;
   externalBoardEditToken?: number;
+  externalBoardEditEffect?: "explosion" | "none";
 };
 
 const DEFAULT_ROWS = 20;
@@ -114,6 +115,7 @@ export function useTetrisGame({
   onContractViolation,
   externalBoardEdits,
   externalBoardEditToken,
+  externalBoardEditEffect = "explosion",
 }: Options & {
   bagSequence?: string[];
   onConsumeLines?: (lines: number) => void;
@@ -369,25 +371,27 @@ const triggerBomb = useCallback(() => {
       return next;
     });
 
-    onBombExplode?.();
-    const explosionId = `${Date.now()}-${rngRef.current()}`;
-    setExplosions((prev) => [
-      ...prev,
-      {
-        id: explosionId,
-        x: centerX,
-        y: centerY,
-        radius,
-        startedAt: Date.now(),
-      },
-    ]);
-    const frames = getExplosionFrameCount(radius);
-    const animationDuration = frames * EXPLOSION_FRAME_DURATION_MS;
-    const expTimeout = setTimeout(() => {
-      setExplosions((prev) => prev.filter((e) => e.id !== explosionId));
-    }, animationDuration + 50);
-    explosionTimeoutsRef.current.push(expTimeout);
-  }, [cols, externalBoardEdits, externalBoardEditToken, onBombExplode, rows]);
+    if (externalBoardEditEffect === "explosion") {
+      onBombExplode?.();
+      const explosionId = `${Date.now()}-${rngRef.current()}`;
+      setExplosions((prev) => [
+        ...prev,
+        {
+          id: explosionId,
+          x: centerX,
+          y: centerY,
+          radius,
+          startedAt: Date.now(),
+        },
+      ]);
+      const frames = getExplosionFrameCount(radius);
+      const animationDuration = frames * EXPLOSION_FRAME_DURATION_MS;
+      const expTimeout = setTimeout(() => {
+        setExplosions((prev) => prev.filter((e) => e.id !== explosionId));
+      }, animationDuration + 50);
+      explosionTimeoutsRef.current.push(expTimeout);
+    }
+  }, [cols, externalBoardEditEffect, externalBoardEdits, externalBoardEditToken, onBombExplode, rows]);
 
   useEffect(() => {
     // Les couleurs peuvent changer (settings), on rehydrate les pièces existantes.

@@ -10,6 +10,10 @@ type Filter = "all" | "unlocked" | "locked";
 export default function AchievementsPage() {
   const { achievements } = useAchievements();
   const [filter, setFilter] = useState<Filter>("all");
+  const visibleAchievements = useMemo(
+    () => achievements.filter((a) => a.mode !== "BRICKFALL_VERSUS"),
+    [achievements]
+  );
 
   // Ordre d'affichage explicite pour garder une lecture cohérente.
   const groupOrder: AchievementGroup[] = [
@@ -19,7 +23,6 @@ export default function AchievementsPage() {
     "SPRINT",
     "VERSUS",
     "BOT",
-    "BRICKFALL",
     "ROGUELIKE",
     "ROGUELIKE_VERSUS",
     "PUZZLE",
@@ -44,13 +47,13 @@ export default function AchievementsPage() {
     // Filtrage local en mémoire (pas d'appel réseau).
     switch (filter) {
       case "unlocked":
-        return achievements.filter((a) => a.unlocked);
+        return visibleAchievements.filter((a) => a.unlocked);
       case "locked":
-        return achievements.filter((a) => !a.unlocked);
+        return visibleAchievements.filter((a) => !a.unlocked);
       default:
-        return achievements;
+        return visibleAchievements;
     }
-  }, [achievements, filter]);
+  }, [filter, visibleAchievements]);
 
   const grouped = useMemo(() => {
     // Regroupement par catégorie pour un rendu en sections.
@@ -63,14 +66,14 @@ export default function AchievementsPage() {
     return map;
   }, [filtered]);
 
-  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const unlockedCount = visibleAchievements.filter((a) => a.unlocked).length;
 
   return (
     <div className="achievements-page">
       <header>
         <h1>Succès</h1>
         <p>
-          {unlockedCount}/{achievements.length} débloqués
+          {unlockedCount}/{visibleAchievements.length} débloqués
         </p>
       </header>
 

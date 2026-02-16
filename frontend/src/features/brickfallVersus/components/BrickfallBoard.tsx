@@ -196,14 +196,6 @@ export default function BrickfallBoard({
       const sourceRow = targetBoard[rows - 1 - y] ?? [];
       return Array.from({ length: cols }, (_, x) => (sourceRow[x] ? 1 : 0));
     });
-    const mask = destroyedRef.current;
-    if (mask.size) {
-      for (let y = 0; y < rows; y += 1) {
-        for (let x = 0; x < cols; x += 1) {
-          if (mask.has(`${x}:${y}`)) normalized[y][x] = 0;
-        }
-      }
-    }
     blocksRef.current = normalized;
   }, [cols, rows, targetBoard]);
 
@@ -432,6 +424,7 @@ export default function BrickfallBoard({
     if (!interactive) return;
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
+    let rafId = 0;
 
     paddleRef.current = { x: width / 2 - basePaddleWidth / 2, width: basePaddleWidth };
     livesRef.current = BRICKFALL_BALANCE.demolisher.startLives;
@@ -623,7 +616,7 @@ export default function BrickfallBoard({
         if (!paused) {
           const nextDrops: Drop[] = [];
           for (const drop of dropsRef.current) {
-            drop.y += drop.vy * stepDelta;
+            drop.y += drop.vy * stepDelta * Math.max(1, speedMul * 0.9);
             const paddleLeft = paddleRef.current.x;
             const paddleRight = paddleLeft + paddleRef.current.width;
             if (drop.y >= paddleY && drop.y <= paddleY + cellSize && drop.x >= paddleLeft && drop.x <= paddleRight) {
@@ -751,10 +744,14 @@ export default function BrickfallBoard({
         });
       }
 
-      requestAnimationFrame(step);
+      rafId = requestAnimationFrame(step);
     };
 
-    requestAnimationFrame(step);
+    rafId = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(rafId);
+      lastFrameRef.current = null;
+    };
   }, [
     activatePowerUp,
     ballRadius,

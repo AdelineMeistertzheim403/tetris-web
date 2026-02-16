@@ -6,7 +6,10 @@ import { normalizeKey } from "../utils/controls";
 /**
  * Listener unique (window) avec callback toujours à jour.
  */
-export function useKeyboardControls(onMove: (dir: ControlAction) => void) {
+export function useKeyboardControls(
+  onMove: (dir: ControlAction) => void,
+  enabled: boolean = true
+) {
   const cbRef = useRef(onMove);
   const { settings } = useSettings();
 
@@ -39,6 +42,7 @@ export function useKeyboardControls(onMove: (dir: ControlAction) => void) {
   }, [settings.keyBindings.hold]);
 
   useEffect(() => {
+    if (!enabled) return;
     const handler = (e: KeyboardEvent) => {
       const key = normalizeKey(e.key);
       let action = actionMapRef.current.get(key);
@@ -69,5 +73,5 @@ export function useKeyboardControls(onMove: (dir: ControlAction) => void) {
       window.removeEventListener("keydown", handler);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, []);
+  }, [enabled]);
 }
