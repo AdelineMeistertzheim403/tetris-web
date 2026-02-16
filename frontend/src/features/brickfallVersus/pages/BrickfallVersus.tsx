@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import TetrisBoard from "../../game/components/board/TetrisBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
@@ -10,6 +11,7 @@ import type { BrickfallRole, BrickfallWinReason } from "../config/balance";
 import { recordBrickfallRound } from "../utils/matchStats";
 import { saveBrickfallVersusMatch } from "../../game/services/scoreService";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import BrickfallVersusTetrobots from "./BrickfallVersusBot";
 
 function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
@@ -58,7 +60,7 @@ type ArchitectSpecialMarker = {
   type: "armored" | "bomb" | "cursed" | "mirror";
 };
 
-export default function BrickfallVersus() {
+function BrickfallVersusPvp() {
   const { user } = useAuth();
   const { checkAchievements, updateStats } = useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
@@ -798,4 +800,15 @@ export default function BrickfallVersus() {
       </div>
     </div>
   );
+}
+
+export default function BrickfallVersus() {
+  const [searchParams] = useSearchParams();
+  const queue = (searchParams.get("queue") ?? "pvp").toLowerCase();
+
+  if (queue === "bot") {
+    return <BrickfallVersusTetrobots />;
+  }
+
+  return <BrickfallVersusPvp />;
 }

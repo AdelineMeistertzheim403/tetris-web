@@ -98,13 +98,6 @@ export default function Dashboard() {
       accent: "from-[#0d1a1a] to-[#0c2b33]",
       image: "/Game_Mode/roguelike-versus.png",
     },
-    {
-      title: "Brickfall Versus",
-      desc: "Tetris x casse-brique asymétrique.",
-      path: "/brickfall-versus",
-      accent: "from-[#00121a] to-[#00314a]",
-      image: "/Game_Mode/brickfall.png",
-    },
   ];
 
   const handleLogout = async () => {
@@ -342,7 +335,6 @@ export default function Dashboard() {
               <option value="CLASSIQUE"> Mode Classique</option>
               <option value="SPRINT"> Mode Sprint</option>
               <option value="VERSUS"> Mode Versus</option>
-              <option value="BRICKFALL_VERSUS"> Mode Brickfall Versus</option>
               <option value="ROGUELIKE_VERSUS"> Mode Roguelike Versus</option>
             </select>
           </div>

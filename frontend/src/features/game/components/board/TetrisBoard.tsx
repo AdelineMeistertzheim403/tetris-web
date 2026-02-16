@@ -78,7 +78,19 @@ type TetrisBoardProps = {
   layout?: "default" | "plain";
   externalBoardEdits?: Array<{ x: number; y: number }>;
   externalBoardEditToken?: number;
-  externalSpecialMarkers?: Array<{ x: number; y: number; type: "armored" | "bomb" | "cursed" | "mirror" }>;
+  externalBoardEditEffect?: "explosion" | "none";
+  externalSpecialMarkers?: Array<{
+    x: number;
+    y: number;
+    type:
+      | "armored"
+      | "bomb"
+      | "cursed"
+      | "mirror"
+      | "hit"
+      | "opponent_ball"
+      | "opponent_paddle";
+  }>;
   keyboardControlsEnabled?: boolean;
   disableBombKey?: boolean;
   tetrobotsPersonalityId?: TetrobotsPersonality["id"] | null;
@@ -171,6 +183,7 @@ export default function TetrisBoard({
   layout = "default",
   externalBoardEdits,
   externalBoardEditToken,
+  externalBoardEditEffect = "explosion",
   externalSpecialMarkers,
   keyboardControlsEnabled = true,
   disableBombKey = false,
@@ -246,6 +259,7 @@ export default function TetrisBoard({
     onContractViolation,
     externalBoardEdits,
     externalBoardEditToken,
+    externalBoardEditEffect,
     onConsumeSecondChance,
   onBombExplode: handleBombExplode,
   rng,
@@ -342,7 +356,7 @@ export default function TetrisBoard({
       lastRotationRef.current = now;
     }
     movePiece(effectiveDir as "left" | "right" | "down" | "rotate");
-  });
+  }, keyboardControlsEnabled);
 
   useEffect(() => {
     if (!tetrobotsPersonalityId) return;
@@ -489,7 +503,27 @@ useEffect(() => {
       for (const marker of externalSpecialMarkers) {
         const { x, y, type } = marker;
         if (x < 0 || x >= effectiveCols || y < 0 || y >= effectiveRows) continue;
-        if (!board[y]?.[x]) continue;
+        if (type !== "opponent_ball" && type !== "opponent_paddle" && !board[y]?.[x]) continue;
+        if (type === "opponent_ball") {
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(250, 204, 21, 0.95)";
+          ctx.arc((x + 0.5) * CELL_SIZE, (y + 0.5) * CELL_SIZE, CELL_SIZE * 0.25, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.9)";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          continue;
+        }
+        if (type === "opponent_paddle") {
+          ctx.fillStyle = "rgba(34, 211, 238, 0.5)";
+          ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE + CELL_SIZE * 0.2, CELL_SIZE, CELL_SIZE * 0.6);
+          continue;
+        }
+        if (type === "hit") {
+          ctx.fillStyle = "rgba(239, 68, 68, 0.72)";
+          ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          continue;
+        }
         if (type === "armored") ctx.fillStyle = "rgba(148, 163, 184, 0.55)";
         else if (type === "bomb") ctx.fillStyle = "rgba(239, 68, 68, 0.62)";
         else if (type === "cursed") ctx.fillStyle = "rgba(124, 58, 237, 0.62)";
