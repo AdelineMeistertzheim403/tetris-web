@@ -82,6 +82,13 @@ export default function Dashboard() {
       accent: "from-[#1a1200] to-[#332400]",
       image: "/Game_Mode/puzzle.png",
     },
+    {
+      title: "Brickfall Solo",
+      desc: "Casse-brique solo a progression.",
+      path: "/brickfall-solo",
+      accent: "from-[#00121a] to-[#00314a]",
+      image: "/Game_Mode/brickfall_solo.png",
+    },
   ];
   const versusModes: ModeCard[] = [
     {
