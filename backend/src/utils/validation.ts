@@ -139,3 +139,24 @@ export const puzzleSolutionSchema = z.object({
   data: z.record(z.string(), z.any()),
   optimal: z.boolean().optional(),
 });
+
+const brickfallSoloBrickSchema = z.object({
+  x: intWithin(0, 99),
+  y: intWithin(0, 99),
+  type: z.enum(["normal", "armor", "bonus", "malus", "explosive"]),
+  hp: intWithin(1, 10).optional(),
+  drop: z.string().trim().max(64).optional(),
+});
+
+export const brickfallSoloLevelSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(120),
+  width: intWithin(1, 100),
+  height: intWithin(1, 100),
+  boss: z.boolean().optional(),
+  bricks: z.array(brickfallSoloBrickSchema).max(2500),
+});
+
+export const brickfallSoloProgressSchema = z.object({
+  highestLevel: intWithin(1, 999),
+});

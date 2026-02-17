@@ -38,12 +38,34 @@ type BrickfallBoardProps = {
     lives: number;
   }) => void;
   onLivesChange?: (lives: number) => void;
+  onPowerUpActivated?: (
+    type: "multi_ball" | "piercing" | "paddle_extend" | "slow_motion" | "chaotic_ball"
+  ) => void;
+  initialSpecialBlocks?: Array<{
+    x: number;
+    y: number;
+    type: "armored" | "bomb" | "cursed" | "mirror";
+    hp?: number;
+  }>;
+  guaranteedDropBlocks?: Array<{
+    x: number;
+    y: number;
+    drop?: DropType | "random";
+  }>;
 };
 
 type Ball = { x: number; y: number; vx: number; vy: number; id: number };
 type SpecialBlockType = "armored" | "bomb" | "cursed" | "mirror" | "core";
+type BlockSpriteType = "normal" | "bonus" | "malus" | SpecialBlockType;
 type DropType = "multi_ball" | "piercing" | "paddle_extend" | "slow_motion" | "chaotic_ball";
 type Drop = { id: number; x: number; y: number; vy: number; type: DropType };
+type ExplosionRing = {
+  x: number;
+  y: number;
+  startedAt: number;
+  durationMs: number;
+  maxRadius: number;
+};
 type ActiveEffects = {
   piercingUntil: number;
   extendedPaddleUntil: number;
@@ -57,6 +79,16 @@ const POWER_UP_SPRITES: Record<DropType, string> = {
   paddle_extend: "/powerups/raquette_ettendue.png",
   slow_motion: "/powerups/slow_motion.png",
   chaotic_ball: "/powerups/balle_chaotique.png",
+};
+const BLOCK_SPRITES: Record<BlockSpriteType, string> = {
+  normal: "/blocs/normal.png",
+  bonus: "/blocs/bonus.png",
+  malus: "/blocs/malus.png",
+  armored: "/blocs/armored.png",
+  bomb: "/blocs/bomb.png",
+  cursed: "/blocs/cursed.png",
+  mirror: "/blocs/mirror.png",
+  core: "/blocs/core.png",
 };
 const TETROMINO_SHAPES: Array<Array<{ x: number; y: number }>> = [
   [
@@ -120,6 +152,27 @@ function randomDropType(): DropType {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function normalizeDropType(value: string | undefined): DropType | "random" | null {
+  if (!value) return null;
+  if (value === "random") return "random";
+  if (
+    value === "multi_ball" ||
+    value === "piercing" ||
+    value === "paddle_extend" ||
+    value === "slow_motion" ||
+    value === "chaotic_ball"
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function armoredColorFromHp(hp: number) {
+  if (hp >= 3) return "#4b5563";
+  if (hp >= 2) return "#9ca3af";
+  return "#d1d5db";
+}
+
 export default function BrickfallBoard({
   rows,
   cols,
@@ -144,6 +197,9 @@ export default function BrickfallBoard({
   onSpecialShapeSpawned,
   onState,
   onLivesChange,
+  onPowerUpActivated,
+  initialSpecialBlocks,
+  guaranteedDropBlocks,
 }: BrickfallBoardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -159,6 +215,7 @@ export default function BrickfallBoard({
   const nextBallIdRef = useRef(1);
   const dropsRef = useRef<Drop[]>([]);
   const powerUpImagesRef = useRef<Partial<Record<DropType, HTMLImageElement>>>({});
+  const blockImagesRef = useRef<Partial<Record<BlockSpriteType, HTMLImageElement>>>({});
   const effectsRef = useRef<ActiveEffects>({
     piercingUntil: 0,
     extendedPaddleUntil: 0,
@@ -177,12 +234,16 @@ export default function BrickfallBoard({
   const onSpecialShapeSpawnedRef =
     useRef<BrickfallBoardProps["onSpecialShapeSpawned"]>(onSpecialShapeSpawned);
   const onLivesChangeRef = useRef<BrickfallBoardProps["onLivesChange"]>(onLivesChange);
+  const onPowerUpActivatedRef =
+    useRef<BrickfallBoardProps["onPowerUpActivated"]>(onPowerUpActivated);
 
   const lastFrameRef = useRef<number | null>(null);
   const lastStateSentRef = useRef(0);
   const accumulatorRef = useRef(0);
   const destroyedRef = useRef<Set<string>>(new Set());
   const specialBlocksRef = useRef<Record<string, { type: SpecialBlockType; hp: number }>>({});
+  const guaranteedDropsRef = useRef<Record<string, DropType | "random">>({});
+  const explosionRingsRef = useRef<ExplosionRing[]>([]);
   const corePlacedRef = useRef(false);
 
   const width = cols * cellSize;
@@ -198,6 +259,32 @@ export default function BrickfallBoard({
     });
     blocksRef.current = normalized;
   }, [cols, rows, targetBoard]);
+
+  useEffect(() => {
+    const next: Record<string, { type: SpecialBlockType; hp: number }> = {};
+    for (const block of initialSpecialBlocks ?? []) {
+      if (block.x < 0 || block.x >= cols || block.y < 0 || block.y >= rows) continue;
+      // `initialSpecialBlocks` are passed in the same top-origin space as `blocksRef`.
+      const internalY = block.y;
+      const key = `${block.x}:${internalY}`;
+      next[key] = {
+        type: block.type,
+        hp: block.type === "armored" ? Math.max(2, Math.floor(block.hp ?? 3)) : 1,
+      };
+    }
+    specialBlocksRef.current = next;
+  }, [cols, initialSpecialBlocks, rows]);
+
+  useEffect(() => {
+    const next: Record<string, DropType | "random"> = {};
+    for (const block of guaranteedDropBlocks ?? []) {
+      if (block.x < 0 || block.x >= cols || block.y < 0 || block.y >= rows) continue;
+      const normalizedDrop = normalizeDropType(block.drop);
+      if (!normalizedDrop) continue;
+      next[`${block.x}:${block.y}`] = normalizedDrop;
+    }
+    guaranteedDropsRef.current = next;
+  }, [cols, guaranteedDropBlocks, rows]);
 
   useEffect(() => {
     speedRef.current = speedMultiplier;
@@ -248,6 +335,10 @@ export default function BrickfallBoard({
   }, [onSpecialShapeSpawned]);
 
   useEffect(() => {
+    onPowerUpActivatedRef.current = onPowerUpActivated;
+  }, [onPowerUpActivated]);
+
+  useEffect(() => {
     const images: Partial<Record<DropType, HTMLImageElement>> = {};
     (Object.keys(POWER_UP_SPRITES) as DropType[]).forEach((type) => {
       const img = new Image();
@@ -257,6 +348,19 @@ export default function BrickfallBoard({
     powerUpImagesRef.current = images;
     return () => {
       powerUpImagesRef.current = {};
+    };
+  }, []);
+
+  useEffect(() => {
+    const images: Partial<Record<BlockSpriteType, HTMLImageElement>> = {};
+    (Object.keys(BLOCK_SPRITES) as BlockSpriteType[]).forEach((type) => {
+      const img = new Image();
+      img.src = BLOCK_SPRITES[type];
+      images[type] = img;
+    });
+    blockImagesRef.current = images;
+    return () => {
+      blockImagesRef.current = {};
     };
   }, []);
 
@@ -352,6 +456,7 @@ export default function BrickfallBoard({
 
   const activatePowerUp = useCallback(
     (type: DropType) => {
+      onPowerUpActivatedRef.current?.(type);
       const now = Date.now();
       if (type === "multi_ball") {
         const source = ballsRef.current[0];
@@ -429,10 +534,10 @@ export default function BrickfallBoard({
     paddleRef.current = { x: width / 2 - basePaddleWidth / 2, width: basePaddleWidth };
     livesRef.current = BRICKFALL_BALANCE.demolisher.startLives;
     destroyedRef.current = new Set();
-    specialBlocksRef.current = {};
     corePlacedRef.current = false;
     onLivesChangeRef.current?.(livesRef.current);
     dropsRef.current = [];
+    explosionRingsRef.current = [];
     effectsRef.current = {
       piercingUntil: 0,
       extendedPaddleUntil: 0,
@@ -443,6 +548,76 @@ export default function BrickfallBoard({
 
     const resolveBallBlockCollision = (ball: Ball): boolean => {
       const grid = blocksRef.current;
+      const spawnDrop = (x: number, y: number) => {
+        const key = `${x}:${y}`;
+        const guaranteedDrop = guaranteedDropsRef.current[key];
+        let dropType: DropType | null = null;
+        if (guaranteedDrop) {
+          delete guaranteedDropsRef.current[key];
+          dropType = guaranteedDrop === "random" ? randomDropType() : guaranteedDrop;
+        } else if (Math.random() < BRICKFALL_BALANCE.demolisher.powerUpDropRate) {
+          dropType = randomDropType();
+        }
+        if (!dropType) return;
+        dropsRef.current.push({
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          x: x * cellSize + cellSize / 2,
+          y: y * cellSize + cellSize / 2,
+          vy: 0.06,
+          type: dropType,
+        });
+      };
+      const registerDestroyed = (x: number, y: number, specialType: SpecialBlockType | null) => {
+        const key = `${x}:${y}`;
+        destroyedRef.current.add(key);
+        onBlocksDestroyedRef.current?.(1);
+        onBlockDestroyedAtRef.current?.({ x, y: rows - 1 - y });
+        if (specialType !== "core") {
+          spawnDrop(x, y);
+        }
+      };
+      const destroyCell = (
+        x: number,
+        y: number,
+        allowBombExplosion: boolean,
+        triggerDestroyEffects: boolean
+      ): boolean => {
+        if (y < 0 || y >= rows || x < 0 || x >= cols) return false;
+        if (!grid[y]?.[x]) return false;
+        const key = `${x}:${y}`;
+        const special = specialBlocksRef.current[key];
+        grid[y][x] = 0;
+        delete specialBlocksRef.current[key];
+        registerDestroyed(x, y, special?.type ?? null);
+        if (special && triggerDestroyEffects) {
+          if (special.type === "cursed") {
+            onCursedHitRef.current?.();
+          } else if (special.type === "mirror") {
+            onMirrorHitRef.current?.();
+          } else if (special.type === "core") {
+            onCoreDestroyedRef.current?.();
+          }
+        }
+        if (special?.type === "bomb") {
+          explosionRingsRef.current.push({
+            x: x * cellSize + cellSize / 2,
+            y: y * cellSize + cellSize / 2,
+            startedAt: performance.now(),
+            durationMs: 320,
+            maxRadius: cellSize * 2.3,
+          });
+          onBombDestroyedRef.current?.({ x, y: rows - 1 - y });
+          if (allowBombExplosion) {
+            for (let dy = -1; dy <= 1; dy += 1) {
+              for (let dx = -1; dx <= 1; dx += 1) {
+                if (dx === 0 && dy === 0) continue;
+                destroyCell(x + dx, y + dy, true, true);
+              }
+            }
+          }
+        }
+        return true;
+      };
       const minX = Math.floor((ball.x - ballRadius) / cellSize);
       const maxX = Math.floor((ball.x + ballRadius) / cellSize);
       const minY = Math.floor((ball.y - ballRadius) / cellSize);
@@ -453,17 +628,8 @@ export default function BrickfallBoard({
           if (!grid[y]?.[x]) continue;
           const key = `${x}:${y}`;
           const special = specialBlocksRef.current[key];
-          let removed = false;
           if (special) {
             special.hp -= 1;
-            if (special.hp <= 0) {
-              delete specialBlocksRef.current[key];
-              grid[y][x] = 0;
-              removed = true;
-              if (special.type === "bomb") {
-                onBombDestroyedRef.current?.({ x, y: rows - 1 - y });
-              }
-            }
             if (special.type === "cursed") {
               onCursedHitRef.current?.();
             }
@@ -474,26 +640,11 @@ export default function BrickfallBoard({
             if (special.type === "core" && special.hp <= 0) {
               onCoreDestroyedRef.current?.();
             }
-          } else {
-            grid[y][x] = 0;
-            removed = true;
-          }
-          if (removed) {
-            destroyedRef.current.add(key);
-            onBlocksDestroyedRef.current?.(1);
-            onBlockDestroyedAtRef.current?.({ x, y: rows - 1 - y });
-            if (
-              special?.type !== "core" &&
-              Math.random() < BRICKFALL_BALANCE.demolisher.powerUpDropRate
-            ) {
-              dropsRef.current.push({
-                id: Date.now() + Math.floor(Math.random() * 1000),
-                x: x * cellSize + cellSize / 2,
-                y: y * cellSize + cellSize / 2,
-                vy: 0.06,
-                type: randomDropType(),
-              });
+            if (special.hp <= 0) {
+              destroyCell(x, y, true, false);
             }
+          } else {
+            destroyCell(x, y, false, false);
           }
           return true;
         }
@@ -653,11 +804,21 @@ export default function BrickfallBoard({
       for (let y = 0; y < rows; y += 1) {
         for (let x = 0; x < cols; x += 1) {
           if (!grid[y]?.[x]) continue;
+          const key = `${x}:${y}`;
           const special = specialBlocksRef.current[`${x}:${y}`];
-          if (!special) {
+          const hasGuaranteedBonus = Boolean(guaranteedDropsRef.current[key]);
+          let blockType: BlockSpriteType = "normal";
+          if (special?.type === "cursed") blockType = "malus";
+          else if (special) blockType = special.type;
+          else if (hasGuaranteedBonus) blockType = "bonus";
+          const blockImg = blockImagesRef.current[blockType];
+          const hasSprite = Boolean(blockImg && blockImg.complete && blockImg.naturalWidth > 0);
+          if (hasSprite) {
+            ctx.drawImage(blockImg as HTMLImageElement, x * cellSize, y * cellSize, cellSize, cellSize);
+          } else if (!special) {
             ctx.fillStyle = "#ff7b00";
           } else if (special.type === "armored") {
-            ctx.fillStyle = "#8b8b8b";
+            ctx.fillStyle = armoredColorFromHp(special.hp);
           } else if (special.type === "bomb") {
             ctx.fillStyle = "#ef4444";
           } else if (special.type === "cursed") {
@@ -667,7 +828,15 @@ export default function BrickfallBoard({
           } else {
             ctx.fillStyle = "#22d3ee";
           }
-          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          if (!hasSprite) {
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+          if (special?.type === "armored") {
+            ctx.fillStyle = armoredColorFromHp(special.hp);
+            ctx.globalAlpha = 0.32;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            ctx.globalAlpha = 1;
+          }
           ctx.strokeStyle = special ? "#e2e8f0" : "#111827";
           ctx.lineWidth = 1;
           ctx.strokeRect(x * cellSize + 0.5, y * cellSize + 0.5, cellSize - 1, cellSize - 1);
@@ -720,6 +889,23 @@ export default function BrickfallBoard({
         }
       }
 
+      const nowPerf = performance.now();
+      const nextRings: ExplosionRing[] = [];
+      for (const ring of explosionRingsRef.current) {
+        const t = (nowPerf - ring.startedAt) / ring.durationMs;
+        if (t >= 1) continue;
+        nextRings.push(ring);
+        const eased = Math.max(0, Math.min(1, t));
+        const radius = ring.maxRadius * eased;
+        const alpha = 1 - eased;
+        ctx.strokeStyle = `rgba(239, 68, 68, ${0.85 * alpha})`;
+        ctx.lineWidth = Math.max(1.5, cellSize * 0.1 * (1 - eased * 0.4));
+        ctx.beginPath();
+        ctx.arc(ring.x, ring.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      explosionRingsRef.current = nextRings;
+
       ctx.fillStyle = "#00eaff";
       ctx.fillRect(paddleRef.current.x, paddleY, paddleRef.current.width, cellSize * 0.5);
 
@@ -733,7 +919,6 @@ export default function BrickfallBoard({
         ctx.stroke();
       }
 
-      const nowPerf = performance.now();
       if (onStateRef.current && nowPerf - lastStateSentRef.current > 200) {
         lastStateSentRef.current = nowPerf;
         const first = ballsRef.current[0] ?? { x: 0, y: 0, vx: 0, vy: 0 };
@@ -798,8 +983,13 @@ export default function BrickfallBoard({
       for (let y = 0; y < rows; y += 1) {
         for (let x = 0; x < cols; x += 1) {
           if (grid[y]?.[x]) {
-            ctx.fillStyle = "#ff7b00";
-            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            const normalImg = blockImagesRef.current.normal;
+            if (normalImg && normalImg.complete && normalImg.naturalWidth > 0) {
+              ctx.drawImage(normalImg, x * cellSize, y * cellSize, cellSize, cellSize);
+            } else {
+              ctx.fillStyle = "#ff7b00";
+              ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            }
             ctx.strokeStyle = "#111827";
             ctx.strokeRect(x * cellSize + 0.5, y * cellSize + 0.5, cellSize - 1, cellSize - 1);
           }
