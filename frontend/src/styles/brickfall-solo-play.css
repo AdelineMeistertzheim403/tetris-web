@@ -1,0 +1,79 @@
+.brickfall-solo-play {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(211, 107, 255, 0.14), transparent 42%),
+    #05050a;
+  padding: 1.25rem 2rem 2rem;
+  color: #fff;
+}
+
+.brickfall-solo-play-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3.25rem;
+}
+
+.brickfall-solo-play-hud {
+  width: 320px;
+  margin-right: 0.75rem;
+  margin-left: -1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.brickfall-solo-hud-title {
+  font-size: 0.8rem;
+  color: #f9a8d4;
+  margin-bottom: 0.4rem;
+}
+
+.brickfall-solo-hud-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  color: #cbd5e1;
+  font-size: 0.7rem;
+}
+
+.brickfall-solo-hud-line span {
+  color: #fef08a;
+}
+
+.brickfall-solo-hud-note {
+  margin-top: 0.5rem;
+  border-top: 1px solid #273449;
+  padding-top: 0.5rem;
+  color: #93c5fd;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.brickfall-solo-play-board {
+  display: flex;
+  align-items: flex-start;
+}
+
+@media (max-width: 1200px) {
+  .brickfall-solo-play-layout {
+    gap: 2rem;
+  }
+
+  .brickfall-solo-play-hud {
+    margin-left: 0;
+    margin-right: 0;
+    width: 290px;
+  }
+}
+
+@media (max-width: 960px) {
+  .brickfall-solo-play-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .brickfall-solo-play-hud {
+    width: min(92vw, 560px);
+  }
+}

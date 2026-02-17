@@ -28,6 +28,8 @@ model User {
   puzzleSolutions PuzzleSolution[]
   achievements UserAchievement[]
   achievementStats UserAchievementStats?
+  brickfallSoloProgress BrickfallSoloProgress?
+  brickfallSoloCustomLevels BrickfallSoloCustomLevel[]
   createdAt DateTime @default(now())
 }
 
@@ -159,6 +161,29 @@ model UserAchievementStats {
   updatedAt  DateTime @updatedAt
 
   user       User     @relation(fields: [userId], references: [id])
+}
+
+model BrickfallSoloProgress {
+  userId       Int      @id
+  highestLevel Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model BrickfallSoloCustomLevel {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  levelId    String
+  definition Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, levelId])
+  @@index([userId, updatedAt])
 }
 
 enum RunStatus {

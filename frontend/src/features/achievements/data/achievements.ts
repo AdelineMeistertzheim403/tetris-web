@@ -8,6 +8,10 @@ export type AchievementGroup =
   | "VERSUS"
   | "BOT"
   | "BRICKFALL"
+  | "SOLO"
+  | "SKILL"
+  | "POWER"
+  | "EDITOR"
   | "ROGUELIKE"
   | "ROGUELIKE_VERSUS"
   | "PUZZLE"
@@ -457,6 +461,100 @@ export const ACHIEVEMENTS: Achievement[] = [
     mode: "BRICKFALL_VERSUS",
     group: "SECRETS",
     condition: { type: "custom", key: "bf_inverted_win" },
+  },
+
+  // ─────────────────────────────
+  // MODE BRICKFALL SOLO
+  // ─────────────────────────────
+  {
+    id: "bf-solo-first-win",
+    name: "Premier Impact",
+    description: "Terminer un niveau",
+    icon: "bf_solo_first",
+    mode: "BRICKFALL_SOLO",
+    group: "SOLO",
+    condition: { type: "custom", key: "bf_solo_1_clear" },
+  },
+  {
+    id: "bf-solo-world-1",
+    name: "Initiation Complete",
+    description: "Terminer le Monde 1",
+    icon: "bf_solo_world1",
+    mode: "BRICKFALL_SOLO",
+    group: "SOLO",
+    condition: { type: "custom", key: "bf_solo_world1_clear" },
+  },
+  {
+    id: "bf-solo-campaign",
+    name: "Architecte Ultime",
+    description: "Terminer la campagne complete",
+    icon: "bf_solo_campaign",
+    mode: "BRICKFALL_SOLO",
+    group: "SOLO",
+    condition: { type: "custom", key: "bf_solo_campaign_clear" },
+  },
+  {
+    id: "bf-solo-no-miss",
+    name: "Main de Fer",
+    description: "Terminer un niveau sans perdre de balle",
+    icon: "bf_solo_no_miss",
+    mode: "BRICKFALL_SOLO",
+    group: "SKILL",
+    condition: { type: "custom", key: "bf_solo_no_miss" },
+  },
+  {
+    id: "bf-solo-1000",
+    name: "Destructeur",
+    description: "Detruire 1000 blocs",
+    icon: "bf_solo_1000",
+    mode: "BRICKFALL_SOLO",
+    group: "SKILL",
+    condition: { type: "custom", key: "bf_solo_1000_blocks" },
+  },
+  {
+    id: "bf-solo-speedrun",
+    name: "Overclocke",
+    description: "Finir un niveau en moins de 45 secondes",
+    icon: "bf_solo_speedrun",
+    mode: "BRICKFALL_SOLO",
+    group: "SKILL",
+    condition: { type: "custom", key: "bf_solo_under_45s" },
+  },
+  {
+    id: "bf-solo-multi",
+    name: "Tempete de Balles",
+    description: "Activer 3 multi-balls dans un niveau",
+    icon: "bf_solo_multi",
+    mode: "BRICKFALL_SOLO",
+    group: "POWER",
+    condition: { type: "custom", key: "bf_solo_3_multiballs" },
+  },
+  {
+    id: "bf-solo-chaos",
+    name: "Chaos Maitrise",
+    description: "Gagner malgre 3 malus dans un niveau",
+    icon: "bf_solo_chaos",
+    mode: "BRICKFALL_SOLO",
+    group: "POWER",
+    condition: { type: "custom", key: "bf_solo_3_malus_win" },
+  },
+  {
+    id: "bf-editor-first",
+    name: "Createur",
+    description: "Creer un niveau personnalise",
+    icon: "bf_editor_first",
+    mode: "BRICKFALL_SOLO",
+    group: "EDITOR",
+    condition: { type: "custom", key: "bf_editor_create" },
+  },
+  {
+    id: "bf-editor-played",
+    name: "Testeur",
+    description: "Terminer son propre niveau",
+    icon: "bf_editor_play",
+    mode: "BRICKFALL_SOLO",
+    group: "EDITOR",
+    condition: { type: "custom", key: "bf_editor_win" },
   },
 
   // ─────────────────────────────

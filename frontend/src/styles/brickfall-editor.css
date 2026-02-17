@@ -1,0 +1,59 @@
+.brickfall-editor {
+  min-height: 100vh;
+  padding: 1.5rem 0 2rem;
+}
+
+.brickfall-editor-shell {
+  width: min(1700px, 94vw);
+  margin: 0 auto;
+}
+
+.brickfall-editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+
+.brickfall-editor-columns {
+  display: grid;
+  grid-template-columns: 320px 1fr 340px;
+  gap: 3rem;
+  align-items: flex-start;
+}
+
+.brickfall-editor-side {
+  min-height: 100%;
+}
+
+.brickfall-editor-grid-card {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem;
+}
+
+.brickfall-editor-grid {
+  border: 1px solid #243247;
+  box-shadow: inset 0 0 0 1px rgba(211, 107, 255, 0.1);
+}
+
+@media (max-width: 1440px) {
+  .brickfall-editor-columns {
+    grid-template-columns: 300px 1fr 320px;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .brickfall-editor-columns {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+
+  .brickfall-editor-head {
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+}
