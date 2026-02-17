@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import BrickfallBoard from "../../brickfallVersus/components/BrickfallBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
 import { BRICKFALL_BALANCE } from "../../brickfallVersus/config/balance";
@@ -27,6 +27,8 @@ type BonusDropType =
   | "slow_motion"
   | "chaotic_ball"
   | "random";
+type ActivePowerUpType = "piercing" | "paddle_extend" | "slow_motion" | "chaotic_ball";
+type ActivePowerUp = { type: ActivePowerUpType; remainingMs: number };
 
 const ROWS = 20;
 const COLS = 25;
@@ -105,7 +107,23 @@ function toBonusDropType(value: string | undefined): BonusDropType | undefined {
   return undefined;
 }
 
+function formatPowerUp(type: ActivePowerUpType): string {
+  if (type === "piercing") return "Balle perforante";
+  if (type === "paddle_extend") return "Raquette XL";
+  if (type === "slow_motion") return "Ralenti";
+  return "Balle chaotique";
+}
+
+function formatDebuff(value: string): string {
+  if (value === "paddle_shrink") return "Raquette reduite";
+  if (value === "slow") return "Lenteur";
+  if (value === "random_gravity") return "Gravite aleatoire";
+  if (value === "invert_controls") return "Controles inverses";
+  return value;
+}
+
 export default function BrickfallSoloPlay() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { checkAchievements, updateStats } = useAchievements();
   const startLives = BRICKFALL_BALANCE.demolisher.startLives;
@@ -119,6 +137,9 @@ export default function BrickfallSoloPlay() {
   const [status, setStatus] = useState<"playing" | "level_clear" | "game_over" | "campaign_clear">(
     "playing"
   );
+  const [activePowerUps, setActivePowerUps] = useState<ActivePowerUp[]>([]);
+  const [debuffUntil, setDebuffUntil] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [spawnType, setSpawnType] = useState<SpawnType | null>(null);
   const [spawnToken, setSpawnToken] = useState(0);
   const [isCustomLevel, setIsCustomLevel] = useState(false);
@@ -170,11 +191,13 @@ export default function BrickfallSoloPlay() {
 
   const applyDebuff = (nextDebuff: string, durationMs = 5000) => {
     setDebuff(nextDebuff);
+    setDebuffUntil(Date.now() + durationMs);
     if (debuffTimerRef.current !== null) {
       window.clearTimeout(debuffTimerRef.current);
     }
     debuffTimerRef.current = window.setTimeout(() => {
       setDebuff(null);
+      setDebuffUntil(null);
       debuffTimerRef.current = null;
     }, durationMs);
   };
@@ -187,6 +210,8 @@ export default function BrickfallSoloPlay() {
     setDestroyedThisLevel(0);
     setLives(startLives);
     setDebuff(null);
+    setDebuffUntil(null);
+    setActivePowerUps([]);
     setStatus("playing");
     setRoundNote(null);
     setIsCustomLevel(Boolean(customLevel));
@@ -252,6 +277,12 @@ export default function BrickfallSoloPlay() {
   }, [customParam, levelParam]);
 
   useEffect(() => {
+    if (!debuffUntil) return;
+    const id = window.setInterval(() => setNowMs(Date.now()), 200);
+    return () => window.clearInterval(id);
+  }, [debuffUntil]);
+
+  useEffect(() => {
     if (visitedRef.current) return;
     visitedRef.current = true;
     const next = updateStats((prev) => ({
@@ -303,7 +334,7 @@ export default function BrickfallSoloPlay() {
       if (capped > savedCampaignLevel) {
         setSavedCampaignLevel(capped);
         writeLocalProgress(capped);
-        void saveBrickfallSoloProgress(capped).catch(() => {});
+        void saveBrickfallSoloProgress(capped).catch(() => { });
       }
       setStatus("campaign_clear");
       return;
@@ -314,7 +345,7 @@ export default function BrickfallSoloPlay() {
       if (unlocked > savedCampaignLevel) {
         setSavedCampaignLevel(unlocked);
         writeLocalProgress(unlocked);
-        void saveBrickfallSoloProgress(unlocked).catch(() => {});
+        void saveBrickfallSoloProgress(unlocked).catch(() => { });
       }
     }
 
@@ -338,7 +369,24 @@ export default function BrickfallSoloPlay() {
           <div className="brickfall-solo-hud-line">Niveau: <span>{worldStage.stage}</span></div>
           <div className="brickfall-solo-hud-line">Progression: <span>{Math.min(levelIndex, TOTAL_LEVELS)}/{TOTAL_LEVELS}</span></div>
           <div className="brickfall-solo-hud-line">Sauvegarde: <span>{savedCampaignLevel}</span></div>
-          <div className="brickfall-solo-hud-line">Debuff actif: <span>{debuff ?? "-"}</span></div>
+          <div className="brickfall-solo-hud-line">
+            Bonus actifs:
+            <span>
+              {activePowerUps.length > 0
+                ? activePowerUps
+                  .map((effect) => `${formatPowerUp(effect.type)} (${Math.max(1, Math.ceil(effect.remainingMs / 1000))}s)`)
+                  .join(", ")
+                : "-"}
+            </span>
+          </div>
+          <div className="brickfall-solo-hud-line">
+            Malus actif:
+            <span>
+              {debuff
+                ? `${formatDebuff(debuff)}${debuffUntil ? ` (${Math.max(1, Math.ceil((debuffUntil - nowMs) / 1000))}s)` : ""}`
+                : "-"}
+            </span>
+          </div>
           <div className="brickfall-solo-hud-line">Multi-ball: <span>{multiBallLevelRef.current}</span></div>
           <div className="brickfall-solo-hud-line">Malus: <span>{malusLevelRef.current}</span></div>
           {roundNote && <div className="brickfall-solo-hud-note">{roundNote}</div>}
@@ -348,7 +396,8 @@ export default function BrickfallSoloPlay() {
           <BrickfallBoard
             rows={ROWS}
             cols={COLS}
-            cellSize={30}
+            cellWidth={54}
+            cellHeight={34}
             targetBoard={targetBoard}
             initialSpecialBlocks={specialBlocks}
             guaranteedDropBlocks={guaranteedDropBlocks}
@@ -379,6 +428,9 @@ export default function BrickfallSoloPlay() {
             onLivesChange={setLives}
             onPowerUpActivated={(type) => {
               if (type === "multi_ball") multiBallLevelRef.current += 1;
+            }}
+            onEffectsChange={(effects) => {
+              setActivePowerUps(effects.powerUps);
             }}
             onCursedHit={() => {
               malusLevelRef.current += 1;
@@ -414,6 +466,9 @@ export default function BrickfallSoloPlay() {
             <button className="retro-btn" onClick={() => loadLevel(levelIndex, isCustomLevel ? level : null)}>
               Rejouer
             </button>
+            <button className="retro-btn" onClick={() => navigate("/brickfall-solo")}>
+              Quitter
+            </button>
           </div>
         </div>
       </FullScreenOverlay>
@@ -436,9 +491,14 @@ export default function BrickfallSoloPlay() {
       <FullScreenOverlay show={status === "game_over"}>
         <div className="text-center text-yellow-300">
           <h2 className="text-2xl mb-4">Game Over</h2>
-          <button className="retro-btn" onClick={() => loadLevel(levelIndex, isCustomLevel ? level : null)}>
-            Reessayer
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button className="retro-btn" onClick={() => loadLevel(levelIndex, isCustomLevel ? level : null)}>
+              Reessayer
+            </button>
+            <button className="retro-btn" onClick={() => navigate("/brickfall-solo")}>
+              Quitter
+            </button>
+          </div>
         </div>
       </FullScreenOverlay>
     </div>
