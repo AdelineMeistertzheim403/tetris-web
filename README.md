@@ -1,6 +1,6 @@
 # Tetris Web
 
-Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : classique, sprint 40 lignes, versus en temps réel (WebSocket) et roguelike à perks. Authentification JWT, succès et classements persistés en base PostgreSQL.
+Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : classique, sprint 40 lignes, versus en temps réel (WebSocket), roguelike à perks et Brickfall (solo + versus). Authentification JWT, succès et classements persistés en base PostgreSQL.
 
 ## Stack
 - Front : React 19 + TypeScript, Vite, Tailwind classes.
@@ -16,7 +16,7 @@ Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : clas
 ## Architecture frontend (feature-first)
 Le front est organisé par domaine fonctionnel, chaque feature regroupe ses pages, composants et logique métier.
 
-- `frontend/src/features/` : un dossier par feature (`app`, `auth`, `achievements`, `game`, `versus`, `roguelike`, `settings`).
+- `frontend/src/features/` : un dossier par feature (`app`, `auth`, `achievements`, `game`, `versus`, `roguelike`, `brickfallSolo`, `brickfallVersus`, `settings`).
 - `frontend/src/features/<feature>/pages/` : pages/écrans liés à la feature.
 - `frontend/src/features/<feature>/components/` : UI spécifique à la feature (sous-dossiers par sous-système si besoin).
 - `frontend/src/features/<feature>/hooks/` : hooks React spécifiques à la feature.
@@ -36,8 +36,37 @@ Entrée de l’app :
 - Classique : scoring infini, sauvegarde du score par utilisateur.
 - Sprint : chronomètre 40 lignes, enregistrement du temps (seconds).
 - Versus : matchmaking par ID, sac partagé + garbage, sauvegarde du match.
+- Solo vs Tetrobots (Tetris Versus) : duel local contre IA avec profils de difficulté.
 - Roguelike : perks aléatoires, bombes (`B`), hold étendu.
+- Roguelike vs Tetrobots : duel roguelike contre IA (perks, synergies, mutations, bombes).
+- Brickfall Solo : campagne + niveaux custom, blocs spéciaux (`armored`, `bomb`, `cursed`, `mirror`), power-ups et progression.
+- Brickfall Versus : duel architecte/démolisseur avec envoi d’événements temps réel (spawn spéciaux, bombes, debuffs).
+- Brickfall vs Tetrobots : variante solo locale contre bot, rôles architecte/démolisseur.
 - Contrôles : flèches (gauche/droite/bas), `ArrowUp` rotation, `Espace` hard drop, `Shift` ou `C` hold, `B` bombe (roguelike).
+
+## Tetrobots (IA)
+- Personnalités IA disponibles : `Tetrobots Rookie` (facile), `Tetrobots Pulse` (normal), `Tetrobots Apex` (difficile).
+- Réglages par personnalité : temps de réaction, taux d’erreur simulée (`mistakeRate`), pondérations heuristiques (hauteur, trous, bumpiness, lignes).
+- Intégration dans les boards : planification automatique des placements via `computeTetrobotsPlan`.
+- UI dédiée : avatar/mood (`idle`, `thinking`, `happy`, `angry`, `glitch`, etc.) et bulles de dialogues contextuelles.
+- Modes concernés dans le front :
+  - `frontend/src/features/versus/` (Tetris versus bot)
+  - `frontend/src/features/roguelikeVersus/` (roguelike vs bot)
+  - `frontend/src/features/brickfallVersus/pages/BrickfallVersusBot.tsx` (Brickfall vs bot)
+- Persistance backend : les résultats bot sont normalisés côté API via des pseudos `Tetrobots...` et des comptes techniques dédiés.
+
+## Brickfall Solo : éditeur de niveaux
+- Accès depuis la page `Brickfall Solo` via le bouton éditeur.
+- L’éditeur s’ouvre sur un niveau vierge par défaut (pas d’auto-chargement d’un ancien niveau).
+- Types de blocs disponibles : `normal`, `armor`, `bonus`, `malus`, `explosive`, `cursed`, `mirror`.
+- Export : bouton `Export JSON` (fichier `.json` téléchargeable).
+- Import : bouton `Import JSON` avec sélection de fichier `.json` (niveau unique ou tableau de niveaux).
+- Sauvegarde locale + tentative de synchronisation serveur (`/api/brickfall-solo/custom-levels`).
+
+## Assets frontend
+- Les icônes de synergies utilisent les fichiers dans `frontend/public/Synergies/`.
+- Les sprites de blocs Brickfall utilisent les fichiers dans `frontend/public/blocs/`.
+- Les power-ups Brickfall utilisent les fichiers dans `frontend/public/powerups/`.
 
 ## Pré-requis
 - Node.js 18+ et npm.
