@@ -240,6 +240,7 @@ export default function BrickfallBoard({
   const lastFrameRef = useRef<number | null>(null);
   const lastStateSentRef = useRef(0);
   const accumulatorRef = useRef(0);
+  const pressedKeysRef = useRef({ left: false, right: false });
   const destroyedRef = useRef<Set<string>>(new Set());
   const specialBlocksRef = useRef<Record<string, { type: SpecialBlockType; hp: number }>>({});
   const guaranteedDropsRef = useRef<Record<string, DropType | "random">>({});
@@ -487,15 +488,33 @@ export default function BrickfallBoard({
     if (!interactive) return;
     wrapperRef.current?.focus();
 
-    const handleKeyDown = (evt: KeyboardEvent) => {
-      const invert = debuffRef.current === "invert_controls";
-      if (evt.key === "ArrowLeft" || evt.key === "a" || evt.key === "A") {
-        evt.preventDefault();
-        paddleVelRef.current = invert ? 1 : -1;
+    const syncPaddleVelocity = () => {
+      const { left, right } = pressedKeysRef.current;
+      if (left === right) {
+        paddleVelRef.current = 0;
+        return;
       }
-      if (evt.key === "ArrowRight" || evt.key === "d" || evt.key === "D") {
+      const invert = debuffRef.current === "invert_controls";
+      if (left) {
+        paddleVelRef.current = invert ? 1 : -1;
+        return;
+      }
+      paddleVelRef.current = invert ? -1 : 1;
+    };
+
+    const isLeftKey = (key: string) => key === "ArrowLeft" || key === "a" || key === "A";
+    const isRightKey = (key: string) => key === "ArrowRight" || key === "d" || key === "D";
+
+    const handleKeyDown = (evt: KeyboardEvent) => {
+      if (isLeftKey(evt.key)) {
         evt.preventDefault();
-        paddleVelRef.current = invert ? -1 : 1;
+        pressedKeysRef.current.left = true;
+        syncPaddleVelocity();
+      }
+      if (isRightKey(evt.key)) {
+        evt.preventDefault();
+        pressedKeysRef.current.right = true;
+        syncPaddleVelocity();
       }
       if (evt.key === " " || evt.code === "Space") {
         evt.preventDefault();
@@ -504,24 +523,35 @@ export default function BrickfallBoard({
     };
 
     const handleKeyUp = (evt: KeyboardEvent) => {
-      if (
-        evt.key === "ArrowLeft" ||
-        evt.key === "ArrowRight" ||
-        evt.key === "a" ||
-        evt.key === "A" ||
-        evt.key === "d" ||
-        evt.key === "D"
-      ) {
+      if (isLeftKey(evt.key) || isRightKey(evt.key)) {
         evt.preventDefault();
-        paddleVelRef.current = 0;
       }
+      if (isLeftKey(evt.key)) {
+        pressedKeysRef.current.left = false;
+        syncPaddleVelocity();
+      }
+      if (isRightKey(evt.key)) {
+        pressedKeysRef.current.right = false;
+        syncPaddleVelocity();
+      }
+    };
+
+    const handleBlur = () => {
+      pressedKeysRef.current.left = false;
+      pressedKeysRef.current.right = false;
+      paddleVelRef.current = 0;
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
+      pressedKeysRef.current.left = false;
+      pressedKeysRef.current.right = false;
+      paddleVelRef.current = 0;
     };
   }, [interactive, launchBall]);
 

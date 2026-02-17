@@ -885,12 +885,12 @@
 
 .synergy-icon { width: 120px; height: 120px; background-size: cover; background-repeat: no-repeat; }
 
-.synergy-icon.bombardier    { background-image: url("/bombardier.png"); }
-.synergy-icon.time_lord     { background-image: url("/time_lord.png"); }
-.synergy-icon.chaos_engine  { background-image: url("/chaos_engine.png"); }
-.synergy-icon.last_resort   { background-image: url("/last_resort.png"); }
-.synergy-icon.nuclear_core  { background-image: url("/nuclear_core.png"); }
-.synergy-icon.gravity_well  { background-image: url("/gravity_well.png"); }
+.synergy-icon.bombardier    { background-image: url("/Synergies/bombardier.png"); }
+.synergy-icon.time_lord     { background-image: url("/Synergies/time_lord.png"); }
+.synergy-icon.chaos_engine  { background-image: url("/Synergies/chaos_engine.png"); }
+.synergy-icon.last_resort   { background-image: url("/Synergies/last_resort.png"); }
+.synergy-icon.nuclear_core  { background-image: url("/Synergies/nuclear_core.png"); }
+.synergy-icon.gravity_well  { background-image: url("/Synergies/gravity_well.png"); }
 
 .rogue-pause-overlay {
   position: fixed;
