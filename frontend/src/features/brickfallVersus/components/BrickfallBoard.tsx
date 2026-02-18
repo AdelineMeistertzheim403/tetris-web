@@ -74,6 +74,13 @@ type ExplosionRing = {
   durationMs: number;
   maxRadius: number;
 };
+type ChaosWave = {
+  x: number;
+  y: number;
+  startedAt: number;
+  durationMs: number;
+  maxRadius: number;
+};
 type ActiveEffects = {
   piercingUntil: number;
   extendedPaddleUntil: number;
@@ -261,6 +268,8 @@ export default function BrickfallBoard({
   const specialBlocksRef = useRef<Record<string, { type: SpecialBlockType; hp: number }>>({});
   const guaranteedDropsRef = useRef<Record<string, DropType | "random">>({});
   const explosionRingsRef = useRef<ExplosionRing[]>([]);
+  const chaosWavesRef = useRef<ChaosWave[]>([]);
+  const previousVelocityRef = useRef<Record<number, { vx: number; vy: number }>>({});
   const corePlacedRef = useRef(false);
 
   const width = cols * cellW;
@@ -588,6 +597,8 @@ export default function BrickfallBoard({
     onLivesChangeRef.current?.(livesRef.current);
     dropsRef.current = [];
     explosionRingsRef.current = [];
+    chaosWavesRef.current = [];
+    previousVelocityRef.current = {};
     effectsRef.current = {
       piercingUntil: 0,
       extendedPaddleUntil: 0,
@@ -748,6 +759,10 @@ export default function BrickfallBoard({
         } else {
           const nextBalls: Ball[] = [];
           for (const ball of ballsRef.current) {
+            const previousVelocity = previousVelocityRef.current[ball.id] ?? {
+              vx: ball.vx,
+              vy: ball.vy,
+            };
             if (!Number.isFinite(ball.x) || !Number.isFinite(ball.y)) {
               ball.x = width / 2;
               ball.y = height * 0.7;
@@ -790,6 +805,28 @@ export default function BrickfallBoard({
               }
             }
 
+            if (hasChaosBall || debuffRef.current === "chaos_path") {
+              const prevNorm = Math.hypot(previousVelocity.vx, previousVelocity.vy);
+              const currNorm = Math.hypot(ball.vx, ball.vy);
+              if (prevNorm > 0.01 && currNorm > 0.01) {
+                const dot =
+                  (previousVelocity.vx * ball.vx + previousVelocity.vy * ball.vy) /
+                  (prevNorm * currNorm);
+                const clampedDot = Math.max(-1, Math.min(1, dot));
+                const angleDelta = Math.acos(clampedDot);
+                if (angleDelta > 0.35) {
+                  chaosWavesRef.current.push({
+                    x: ball.x,
+                    y: ball.y,
+                    startedAt: performance.now(),
+                    durationMs: 260,
+                    maxRadius: cellUnit * 1.8,
+                  });
+                }
+              }
+            }
+            previousVelocityRef.current[ball.id] = { vx: ball.vx, vy: ball.vy };
+
             if (!hasPiercing) {
               const hitBlock = resolveBallBlockCollision(ball);
               if (hitBlock) {
@@ -805,6 +842,14 @@ export default function BrickfallBoard({
           }
 
           ballsRef.current = nextBalls;
+          const nextVelocityState: Record<number, { vx: number; vy: number }> = {};
+          for (const ball of ballsRef.current) {
+            nextVelocityState[ball.id] = previousVelocityRef.current[ball.id] ?? {
+              vx: ball.vx,
+              vy: ball.vy,
+            };
+          }
+          previousVelocityRef.current = nextVelocityState;
           if (ballsRef.current.length === 0) {
             livesRef.current = Math.max(0, livesRef.current - 1);
             onLivesChangeRef.current?.(livesRef.current);
@@ -958,10 +1003,49 @@ export default function BrickfallBoard({
       }
       explosionRingsRef.current = nextRings;
 
+      const nextChaosWaves: ChaosWave[] = [];
+      for (const wave of chaosWavesRef.current) {
+        const t = (nowPerf - wave.startedAt) / wave.durationMs;
+        if (t >= 1) continue;
+        nextChaosWaves.push(wave);
+        const eased = Math.max(0, Math.min(1, t));
+        const radius = wave.maxRadius * eased;
+        const alpha = 0.9 * (1 - eased);
+        ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
+        ctx.lineWidth = Math.max(1, cellUnit * 0.08);
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(34, 211, 238, ${alpha * 0.7})`;
+        ctx.lineWidth = Math.max(1, cellUnit * 0.05);
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, radius * 1.25, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      chaosWavesRef.current = nextChaosWaves;
+
       ctx.fillStyle = "#00eaff";
       ctx.fillRect(paddleRef.current.x, paddleY, paddleRef.current.width, cellH * 0.5);
 
       for (const ball of ballsRef.current) {
+        if (hasPiercing) {
+          const speed = Math.hypot(ball.vx, ball.vy);
+          const dirX = speed > 0.001 ? ball.vx / speed : 0;
+          const dirY = speed > 0.001 ? ball.vy / speed : -1;
+          const segments = 6;
+          for (let i = 1; i <= segments; i += 1) {
+            const p = i / segments;
+            const trailX = ball.x - dirX * cellUnit * (0.5 + p * 1.4);
+            const trailY = ball.y - dirY * cellUnit * (0.5 + p * 1.4);
+            const radius = Math.max(1.2, ballRadius * (1 - p * 0.55));
+            const alpha = Math.max(0, 0.52 - p * 0.42);
+            const hue = 28 + Math.round((1 - p) * 22);
+            ctx.fillStyle = `hsla(${hue}, 100%, 55%, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(trailX, trailY, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
         ctx.fillStyle = "#facc15";
