@@ -156,7 +156,7 @@ export const puzzleSolutionSchema = z.object({
 const brickfallSoloBrickSchema = z.object({
   x: intWithin(0, 99),
   y: intWithin(0, 99),
-  type: z.enum(["normal", "armor", "bonus", "malus", "explosive"]),
+  type: z.enum(["normal", "armor", "bonus", "malus", "explosive", "cursed", "mirror"]),
   hp: intWithin(1, 10).optional(),
   drop: z.string().trim().max(64).optional(),
 });
