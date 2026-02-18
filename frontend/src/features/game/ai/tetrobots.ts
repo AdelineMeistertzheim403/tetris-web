@@ -97,8 +97,8 @@ const PERSONALITIES: TetrobotsPersonality[] = [
     name: "Tetrobots Apex",
     difficultyLabel: "Difficile",
     description: "Très agressif et rapide, minimise les erreurs.",
-    reactionMs: 62,
-    mistakeRate: 0.02,
+    reactionMs: 56,
+    mistakeRate: 0.01,
     tone: "aggressive",
     egoLevel: 90,
     weights: {
@@ -106,7 +106,7 @@ const PERSONALITIES: TetrobotsPersonality[] = [
       holes: 1.15,
       bumpiness: 0.28,
       maxHeight: 0.65,
-      linesCleared: 1.42,
+      linesCleared: 1.62,
     },
   },
 ];
@@ -200,6 +200,65 @@ type StrategyThresholds = {
   aggressiveAggressionCap: number;
 };
 
+type LineClearBias = {
+  safeHeightCap: number;
+  singlePenalty: number;
+  doublePenalty: number;
+  tripleBonus: number;
+  tetrisBonus: number;
+};
+
+const LINE_CLEAR_BIAS: Record<TetrobotsPersonalityId, LineClearBias> = {
+  rookie: {
+    safeHeightCap: 9,
+    singlePenalty: 0.08,
+    doublePenalty: 0.04,
+    tripleBonus: 0.9,
+    tetrisBonus: 1.4,
+  },
+  balanced: {
+    safeHeightCap: 10,
+    singlePenalty: 0.18,
+    doublePenalty: 0.12,
+    tripleBonus: 1.7,
+    tetrisBonus: 2.9,
+  },
+  apex: {
+    safeHeightCap: 11,
+    singlePenalty: 0.3,
+    doublePenalty: 0.22,
+    tripleBonus: 2.35,
+    tetrisBonus: 4.6,
+  },
+};
+
+const getLineClearStrategyMultiplier = (strategy: BotStrategy) => {
+  if (strategy === "pressure") return 1.45;
+  if (strategy === "aggressive") return 1.3;
+  if (strategy === "defensive") return 0.9;
+  if (strategy === "panic") return 0.6;
+  return 1;
+};
+
+const getLineClearBiasScore = (
+  personalityId: TetrobotsPersonalityId,
+  strategy: BotStrategy,
+  linesCleared: number,
+  postMaxHeight: number
+) => {
+  if (linesCleared <= 0) return 0;
+  const bias = LINE_CLEAR_BIAS[personalityId];
+  const strategyMult = getLineClearStrategyMultiplier(strategy);
+  const isUnsafeStack = postMaxHeight >= bias.safeHeightCap;
+  const penaltyMult = isUnsafeStack || strategy === "panic" ? 0.2 : 1;
+
+  if (linesCleared === 1) return -bias.singlePenalty * penaltyMult;
+  if (linesCleared === 2) return -bias.doublePenalty * penaltyMult;
+  if (linesCleared === 3) return bias.tripleBonus * strategyMult;
+  if (linesCleared >= 4) return bias.tetrisBonus * strategyMult;
+  return 0;
+};
+
 const STRATEGY_THRESHOLDS: Record<TetrobotsPersonalityId, StrategyThresholds> = {
   rookie: {
     pressureHeight: 18.3,
@@ -241,10 +300,10 @@ const STRATEGY_WEIGHT_DELTAS: Record<
     panic: { holes: 0.45, maxHeight: 0.4, totalHeight: 0.2 },
   },
   apex: {
-    aggressive: { linesCleared: 0.75, holes: -0.06, totalHeight: -0.03 },
-    pressure: { linesCleared: 0.9, maxHeight: -0.08 },
+    aggressive: { linesCleared: 1.0, holes: -0.08, totalHeight: -0.04 },
+    pressure: { linesCleared: 1.25, maxHeight: -0.12 },
     defensive: { holes: 0.2, maxHeight: 0.12 },
-    panic: { holes: 0.32, maxHeight: 0.25, totalHeight: 0.12, linesCleared: 0.15 },
+    panic: { holes: 0.32, maxHeight: 0.25, totalHeight: 0.12, linesCleared: 0.05 },
   },
 };
 
@@ -331,7 +390,10 @@ export function computeTetrobotsPlan(
 
       const merged = mergePiece(board, shape, x, dropY);
       const { newBoard, linesCleared } = clearFullLines(merged);
-      const score = evaluateBoard(newBoard, linesCleared, dynamicWeights);
+      const postMaxHeight = computeBotMaxHeight(newBoard);
+      const score =
+        evaluateBoard(newBoard, linesCleared, dynamicWeights) +
+        getLineClearBiasScore(personality.id, strategy, linesCleared, postMaxHeight);
       candidates.push({ score, plan: { targetX: x, targetShape: shape, strategy } });
     }
   });
