@@ -1,5 +1,13 @@
 import type { TetrobotsPersonality } from "./tetrobots";
 
+export type PlayerStyle =
+  | "aggressive"
+  | "defensive"
+  | "clean"
+  | "messy"
+  | "panic"
+  | "balanced";
+
 export type BotEvent =
   | { type: "match_start" }
   | { type: "player_tetris" }
@@ -21,7 +29,18 @@ export type BotEvent =
   | { type: "chaos_triggered" }
   | { type: "bomb_sent" }
   | { type: "huge_attack" }
-  | { type: "comeback" };
+  | { type: "comeback" }
+  | { type: "strategy_shift" }
+  | { type: "bot_strategy_shift"; from: string; to: string }
+  | { type: "bot_detect_aggressive_player" }
+  | { type: "bot_detect_defensive_player" }
+  | { type: "bot_detect_combo_spam" }
+  | { type: "bot_detect_high_risk" }
+  | { type: "bot_panic_mode" }
+  | { type: "bot_recovered" }
+  | { type: "bot_exploiting_player_pattern" }
+  | { type: "bot_failed_adaptation" }
+  | { type: "bot_analysis_complete" };
 
 export type BotMood =
   | "idle"
@@ -105,6 +124,50 @@ const BOT_DIALOGUES: Record<
       "Je tente une grosse pression.",
       "Offensive complete !",
     ],
+    strategy_shift: [
+      "Oh... tu joues differemment...",
+      "Je change ma facon de jouer.",
+    ],
+    bot_strategy_shift: [
+      "Je vais changer un peu ma facon de jouer.",
+      "Hmm... nouvelle strategie activee !",
+    ],
+    bot_detect_aggressive_player: [
+      "Tu attaques beaucoup ! Je vais essayer de bloquer...",
+      "Whoa, tu envoies beaucoup de lignes !",
+    ],
+    bot_detect_defensive_player: [
+      "Tu joues prudemment... je devrais peut-etre attaquer plus ?",
+      "Ton stack est propre. C'est impressionnant.",
+    ],
+    bot_detect_combo_spam: [
+      "Tu fais plein de combos... je vais essayer de suivre.",
+      "Tu enchaines trop vite !",
+    ],
+    bot_detect_high_risk: [
+      "On joue tous les deux tres risqué la...",
+      "Ca peut casser d'un coup.",
+    ],
+    bot_panic_mode: [
+      "Oh non... ca monte trop vite !",
+      "Je crois que je perds le controle !",
+    ],
+    bot_recovered: [
+      "Ouf, je reprends le controle.",
+      "Ca va mieux. J'ai stabilise.",
+    ],
+    bot_exploiting_player_pattern: [
+      "Tu laisses toujours ce trou a droite...",
+      "Je commence a comprendre comment tu joues.",
+    ],
+    bot_failed_adaptation: [
+      "Je pensais que ca marcherait...",
+      "Ma strategie n'a pas fonctionne...",
+    ],
+    bot_analysis_complete: [
+      "J'ai fini mon analyse.",
+      "Ok, je vois mieux ton style.",
+    ],
   },
   balanced: {
     match_start: [
@@ -160,6 +223,50 @@ const BOT_DIALOGUES: Record<
       "Sequence offensive envoi.",
       "Pression maximale appliquee.",
     ],
+    strategy_shift: [
+      "Strategie ajustee.",
+      "Recalibrage tactique effectue.",
+    ],
+    bot_strategy_shift: [
+      "Reconfiguration strategique.",
+      "Optimisation adaptative en cours.",
+    ],
+    bot_detect_aggressive_player: [
+      "Profil offensif detecte. Ajustement en cours.",
+      "Strategie d'attaque repetitive observee.",
+    ],
+    bot_detect_defensive_player: [
+      "Profil defensif detecte. Pression recommandee.",
+      "Jeu prudent observe. Angle d'attaque recherche.",
+    ],
+    bot_detect_combo_spam: [
+      "Combinaisons repetees detectees.",
+      "Spam de combo identifie.",
+    ],
+    bot_detect_high_risk: [
+      "Niveau de risque eleve detecte.",
+      "Configuration instable. Vigilance accrue.",
+    ],
+    bot_panic_mode: [
+      "Instabilite temporaire.",
+      "Risque de defaite accru.",
+    ],
+    bot_recovered: [
+      "Stabilite restauree.",
+      "Recuperation confirmee.",
+    ],
+    bot_exploiting_player_pattern: [
+      "Pattern joueur exploitable identifie.",
+      "Faille repetitive detectee.",
+    ],
+    bot_failed_adaptation: [
+      "Analyse incorrecte.",
+      "Reevaluation necessaire.",
+    ],
+    bot_analysis_complete: [
+      "Modele comportemental etabli.",
+      "Analyse terminee. Adaptation optimale.",
+    ],
   },
   apex: {
     match_start: [
@@ -214,18 +321,95 @@ const BOT_DIALOGUES: Record<
       "Synergie Apex enclenchee.",
       "Mes modules chantent a l'unisson.",
     ],
+    strategy_shift: [
+      "Je detecte ton pattern.",
+      "Nouvelle ligne tactique activee.",
+    ],
+    bot_strategy_shift: [
+      "Je m'adapte. Tu vas le regretter.",
+      "Phase suivante activee.",
+    ],
+    bot_detect_aggressive_player: [
+      "Tu attaques trop. Je vais te punir.",
+      "Offensif ? Mauvais choix.",
+    ],
+    bot_detect_defensive_player: [
+      "Tu te caches derriere ta defense.",
+      "Stack propre... mais fragile.",
+    ],
+    bot_detect_combo_spam: [
+      "Tu spams les combos. Je vais casser ton rythme.",
+      "Combos repetes. Punition en preparation.",
+    ],
+    bot_detect_high_risk: [
+      "Tu joues avec le feu.",
+      "Risque maximal. J'adore ca.",
+    ],
+    bot_panic_mode: [
+      "Interessant... tu me pousses.",
+      "Tu forces mes limites.",
+    ],
+    bot_recovered: [
+      "Je suis de retour.",
+      "Correction terminee. Tu vas tomber.",
+    ],
+    bot_exploiting_player_pattern: [
+      "Toujours le meme defaut.",
+      "Je vois ton point faible.",
+    ],
+    bot_failed_adaptation: [
+      "Anomalie imprevue.",
+      "Tu m'as surpris.",
+    ],
+    bot_analysis_complete: [
+      "Analyse complete. Tu es transparent.",
+      "Profil decode. Fin de partie proche.",
+    ],
   },
 };
 
 const LAST_PICK_BY_EVENT: Partial<
   Record<TetrobotsPersonality["id"], Partial<Record<BotEvent["type"], number>>>
 > = {};
+const STRATEGY_SHIFT_COUNT: Partial<Record<TetrobotsPersonality["id"], number>> = {};
+const ADAPTIVE_SHIFT_EVOLUTION: Record<TetrobotsPersonality["id"], string[]> = {
+  rookie: [
+    "Je m'adapte un peu.",
+    "Je crois que je t'ai compris.",
+    "Tu deviens previsible... peut-etre.",
+  ],
+  balanced: [
+    "Adaptation initiale appliquee.",
+    "Modele tactique refine.",
+    "Predictibilite adverse en hausse.",
+  ],
+  apex: [
+    "Je m'adapte.",
+    "Je t'ai compris.",
+    "Je t'ai decode.",
+    "Tu es previsible.",
+  ],
+};
 
 const applyTemplate = (message: string, event: BotEvent): string => {
   if (event.type === "player_combo") {
     return message.replace("{combo}", String(event.value));
   }
+  if (event.type === "bot_strategy_shift") {
+    return message.replace("{from}", event.from).replace("{to}", event.to);
+  }
   return message;
+};
+
+const getEvolvingShiftLine = (
+  personality: TetrobotsPersonality
+): string | null => {
+  const lines = ADAPTIVE_SHIFT_EVOLUTION[personality.id];
+  if (!lines || lines.length === 0) return null;
+  const nextCount = (STRATEGY_SHIFT_COUNT[personality.id] ?? 0) + 1;
+  STRATEGY_SHIFT_COUNT[personality.id] = nextCount;
+  const idx = Math.min(nextCount - 1, lines.length - 1);
+  return lines[idx];
 };
 
 export function getBotMessage(
@@ -233,6 +417,10 @@ export function getBotMessage(
   event: BotEvent,
   rng: () => number = Math.random
 ): string | null {
+  if (event.type === "bot_strategy_shift") {
+    const progressive = getEvolvingShiftLine(personality);
+    if (progressive) return applyTemplate(progressive, event);
+  }
   const pool = BOT_DIALOGUES[personality.id]?.[event.type];
   if (!pool || pool.length === 0) return null;
   const previousIndex = LAST_PICK_BY_EVENT[personality.id]?.[event.type];
@@ -298,7 +486,74 @@ export function getMoodFromEvent(
       return personality.id === "apex" ? "evil" : "happy";
     case "comeback":
       return "surprised";
+    case "strategy_shift":
+      return personality.id === "apex" ? "thinking" : "overclock";
+    case "bot_strategy_shift":
+      return "thinking";
+    case "bot_detect_aggressive_player":
+      return personality.id === "apex" ? "evil" : "thinking";
+    case "bot_detect_defensive_player":
+      return personality.id === "apex" ? "evil" : "thinking";
+    case "bot_detect_combo_spam":
+      return personality.id === "apex" ? "angry" : "thinking";
+    case "bot_detect_high_risk":
+      return "surprised";
+    case "bot_panic_mode":
+      return personality.id === "rookie" ? "sad" : "angry";
+    case "bot_recovered":
+      return "happy";
+    case "bot_exploiting_player_pattern":
+      return personality.id === "apex" ? "evil" : "happy";
+    case "bot_failed_adaptation":
+      return personality.id === "apex" ? "angry" : "sad";
+    case "bot_analysis_complete":
+      return "overclock";
     default:
       return "idle";
   }
+}
+
+export function getMemoryDialogue(
+  personality: TetrobotsPersonality,
+  style: PlayerStyle
+): string {
+  if (style === "aggressive") {
+    return personality.id === "apex"
+      ? "Tu attaques toujours autant. Previsible."
+      : "Tu attaques beaucoup. J'ai memorise ce schema.";
+  }
+  if (style === "clean") {
+    return "Ton empilement est propre. Interessant.";
+  }
+  if (style === "panic") {
+    return "Tu paniques en zone rouge. Je l'ai note.";
+  }
+  if (style === "messy") {
+    return personality.id === "apex"
+      ? "Beaucoup de trous... tu joues au hasard ?"
+      : "Beaucoup de trous detectes. Opportunite identifiee.";
+  }
+  if (style === "defensive") {
+    return "Tu encaisses longtemps. Je vais devoir accelerer.";
+  }
+  return "Je m'adapte a ton style.";
+}
+
+export function getScoreTrollDialogue(
+  personality: TetrobotsPersonality,
+  playerScore: number,
+  botScore: number
+): string | null {
+  const diff = playerScore - botScore;
+  if (diff > 20000) {
+    if (personality.id === "rookie") return "Je peux encore revenir !";
+    if (personality.id === "balanced") return "Avantage temporaire detecte.";
+    return "Illusion de superiorite.";
+  }
+  if (diff < -20000) {
+    if (personality.id === "rookie") return "Attends, c'est pas fini !";
+    if (personality.id === "balanced") return "Correction strategique en cours.";
+    return "Tu vas tomber.";
+  }
+  return null;
 }

@@ -11,9 +11,11 @@ import { useSettings } from "../../../settings/context/SettingsContext";
 import StatCard from "../../../../shared/components/ui/cards/StatCard";
 import FullScreenOverlay from "../../../../shared/components/ui/overlays/FullScreenOverlay";
 import {
+  type BotStrategy,
   computeTetrobotsPlan,
   getShapeSignature,
   getTetrobotsPersonality,
+  type TetrobotsAdaptiveContext,
   type TetrobotsPersonality,
 } from "../../ai/tetrobots";
 
@@ -94,7 +96,8 @@ type TetrisBoardProps = {
   keyboardControlsEnabled?: boolean;
   disableBombKey?: boolean;
   tetrobotsPersonalityId?: TetrobotsPersonality["id"] | null;
-  onTetrobotsPlan?: (payload: { isBlunder: boolean }) => void;
+  tetrobotsAdaptiveContext?: TetrobotsAdaptiveContext;
+  onTetrobotsPlan?: (payload: { isBlunder: boolean; strategy: BotStrategy }) => void;
 };
 
 const DEFAULT_ROWS = 20;
@@ -188,6 +191,7 @@ export default function TetrisBoard({
   keyboardControlsEnabled = true,
   disableBombKey = false,
   tetrobotsPersonalityId = null,
+  tetrobotsAdaptiveContext,
   onTetrobotsPlan,
 }: TetrisBoardProps) {
   const { settings } = useSettings();
@@ -366,12 +370,20 @@ export default function TetrisBoard({
     if (now - botActionRef.current < personality.reactionMs) return;
     botActionRef.current = now;
 
-    const plan = computeTetrobotsPlan(state.board, state.piece, personality);
+    const plan = computeTetrobotsPlan(
+      state.board,
+      state.piece,
+      personality,
+      tetrobotsAdaptiveContext
+    );
     if (!plan) {
       hardDrop();
       return;
     }
-    onTetrobotsPlan?.({ isBlunder: plan.isBlunder === true });
+    onTetrobotsPlan?.({
+      isBlunder: plan.isBlunder === true,
+      strategy: plan.strategy,
+    });
 
     const currentSignature = getShapeSignature(state.piece.shape);
     const targetSignature = getShapeSignature(plan.targetShape);
@@ -398,6 +410,7 @@ export default function TetrisBoard({
     state.gameOver,
     state.piece,
     state.running,
+    tetrobotsAdaptiveContext,
     tetrobotsPersonalityId,
   ]);
 

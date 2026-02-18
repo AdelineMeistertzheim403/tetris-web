@@ -6,6 +6,11 @@ import OpponentBoard from "../../game/components/board/OpponentBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
 import { useRoguelikeVersusSocket } from "../hooks/useRoguelikeVersusSocket";
 import { saveRoguelikeVersusMatch } from "../../game/services/scoreService";
+import {
+  getTetrobotsProfile,
+  updateTetrobotsProfile,
+  type PlayerProfile,
+} from "../../game/services/scoreService";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
 import { useTimeFreeze } from "../../roguelike/hooks/useTimeFreeze";
@@ -19,15 +24,25 @@ import { createRng } from "../../../shared/utils/rng";
 import {
   TETROBOTS_PERSONALITIES,
   getTetrobotsPersonality,
+  type BotStrategy,
   type TetrobotsPersonality,
 } from "../../game/ai/tetrobots";
 import {
   getBotBubbleAccent,
   getBotMessage,
+  getMemoryDialogue,
   getMoodFromEvent,
+  getScoreTrollDialogue,
   type BotEvent,
   type BotMood,
+  type PlayerStyle,
 } from "../../game/ai/tetrobotsChat";
+import {
+  TETROBOTS_ADAPTIVE_THRESHOLDS,
+  TETROBOTS_MEMORY_TIMING,
+  countBoardHoles,
+  getLeftBias,
+} from "../../game/ai/tetrobotsMemory";
 import { TetrobotsAvatar } from "../../versus/components/TetrobotsAvatar";
 import { BotSpeechBubble } from "../../versus/components/BotSpeechBubble";
 import "../../../styles/tetrobots-avatar.css";
@@ -41,6 +56,8 @@ function randomMatchId() {
 const RED_ZONE_HEIGHT = 16;
 const REWARD_INTERVAL_LINES = 10;
 const VERSUS_GARBAGE_MAP = [0, 0, 1, 2, 4];
+const MEMORY_TIMING = TETROBOTS_MEMORY_TIMING.ROGUELIKE_VERSUS;
+const ADAPTIVE = TETROBOTS_ADAPTIVE_THRESHOLDS.ROGUELIKE_VERSUS;
 const REWARD_LABELS: Record<string, string> = {
   emp: "Bombe EMP",
   gravity: "Gravity Bomb",
@@ -1440,6 +1457,28 @@ function RoguelikeVersusTetrobots() {
   const matchStartAnnouncedRef = useRef(false);
   const longMatchAnnouncedRef = useRef(false);
   const comebackAnnouncedRef = useRef(false);
+  const playerStackSumRef = useRef(0);
+  const playerStackSamplesRef = useRef(0);
+  const playerAggressionScoreRef = useRef(0);
+  const botStrategyRef = useRef<BotStrategy>("neutral");
+  const botStrategyShiftCountRef = useRef(0);
+  const aggressiveDetectAnnouncedRef = useRef(false);
+  const defensiveDetectAnnouncedRef = useRef(false);
+  const comboSpamAnnouncedRef = useRef(false);
+  const highRiskAnnouncedRef = useRef(false);
+  const exploitingPatternAnnouncedRef = useRef(false);
+  const analysisCompleteAnnouncedRef = useRef(false);
+  const lastAdaptiveEventAtRef = useRef(0);
+  const playerProfileRef = useRef<PlayerProfile | null>(null);
+  const playerStyleRef = useRef<PlayerStyle>("balanced");
+  const memoryDialogueTriggeredRef = useRef(false);
+  const sameBotMatchesRef = useRef(0);
+  const redZoneTimeMsRef = useRef(0);
+  const lastBoardSampleAtRef = useRef<number | null>(null);
+  const inRedZoneRef = useRef(false);
+  const comboSampleCountRef = useRef(0);
+  const comboValueSumRef = useRef(0);
+  const lastTrollAtRef = useRef(0);
 
   const matchOver = started && (!!playerResult || !!botResult);
   const botPersonality = getTetrobotsPersonality(botPersonalityId);
@@ -1484,6 +1523,39 @@ function RoguelikeVersusTetrobots() {
     if (!message) return;
     botLastMessageAtRef.current = now;
     setBotMessage(message);
+  };
+
+  const emitCustomBotLine = (
+    message: string,
+    mood: BotMood = "thinking",
+    bypassCooldown = false
+  ) => {
+    const now = Date.now();
+    if (!bypassCooldown && now - botLastMessageAtRef.current < 2200) return;
+    botLastMessageAtRef.current = now;
+    setBotMood(mood);
+    if (botMoodTimeoutRef.current) clearTimeout(botMoodTimeoutRef.current);
+    if (mood !== "thinking") {
+      botMoodTimeoutRef.current = setTimeout(() => setBotMood("idle"), 1300);
+    }
+    setBotMessage(message);
+  };
+
+  const canEmitAdaptiveEvent = (
+    options: { minMatchMs?: number; minLines?: number; minIntervalMs?: number } = {}
+  ) => {
+    const {
+      minMatchMs = MEMORY_TIMING.adaptiveMinMatchMs,
+      minLines = MEMORY_TIMING.adaptiveMinLines,
+      minIntervalMs = MEMORY_TIMING.adaptiveEventCooldownMs,
+    } = options;
+    if (!started || matchOver) return false;
+    if (playerLiveLinesRef.current < minLines) return false;
+    const now = Date.now();
+    if (startTimeRef.current && now - startTimeRef.current < minMatchMs) return false;
+    if (now - lastAdaptiveEventAtRef.current < minIntervalMs) return false;
+    lastAdaptiveEventAtRef.current = now;
+    return true;
   };
 
   const perkRarityWeight = (rarity: "common" | "rare" | "epic" = "common") => {
@@ -1641,6 +1713,34 @@ function RoguelikeVersusTetrobots() {
       comebackAnnouncedRef.current = false;
     }
   };
+
+  useEffect(() => {
+    if (!started || matchOver) return;
+    let cancelled = false;
+    getTetrobotsProfile()
+      .then(({ profile, style }) => {
+        if (cancelled) return;
+        playerProfileRef.current = profile;
+        playerStyleRef.current = style;
+        const sameBotMatches =
+          botPersonalityId === "rookie"
+            ? profile.matchesVsRookie
+            : botPersonalityId === "balanced"
+              ? profile.matchesVsBalanced
+              : profile.matchesVsApex;
+        sameBotMatchesRef.current = sameBotMatches;
+        if (profile.totalMatches >= 1) {
+          emitCustomBotLine(getMemoryDialogue(botPersonality, style), "thinking", true);
+          memoryDialogueTriggeredRef.current = true;
+        }
+      })
+      .catch(() => {
+        // fallback local si api indisponible
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [botPersonality, botPersonalityId, matchOver, started]);
 
   const shouldBotUseBomb = useCallback(() => {
     if (botBombCharges <= 0) return false;
@@ -2114,6 +2214,13 @@ function RoguelikeVersusTetrobots() {
     const noHardDrop = hardDropCountRef.current === 0;
     const level = levelRef.current;
     const wonVsApex = win && botPersonalityId === "apex";
+    const comboAvg =
+      comboSampleCountRef.current > 0
+        ? comboValueSumRef.current / comboSampleCountRef.current
+        : 0;
+    const totalRunMs = Math.max(1, durationMs);
+    const redZoneRate = Math.max(0, Math.min(1, redZoneTimeMsRef.current / totalRunMs));
+    const playerHoles = countBoardHoles(playerBoardRef.current);
     let sameScoreTwice = false;
 
     const next = updateStats((prev) => {
@@ -2171,6 +2278,36 @@ function RoguelikeVersusTetrobots() {
       },
     });
 
+    updateTetrobotsProfile({
+      avgHeight:
+        playerStackSamplesRef.current > 0
+          ? playerStackSumRef.current / playerStackSamplesRef.current
+          : 0,
+      holes: playerHoles,
+      comboAvg,
+      tetrisRate:
+        playerLiveLinesRef.current > 0
+          ? tetrisCountRef.current / playerLiveLinesRef.current
+          : 0,
+      linesSent: linesSentRef.current,
+      linesSurvived: playerLiveLinesRef.current,
+      redZoneTime: redZoneRate,
+      leftBias: getLeftBias(playerBoardRef.current),
+      usedHold: holdCountRef.current > 0,
+      botPersonality: botPersonalityId,
+    })
+      .then(({ profile, style }) => {
+        playerProfileRef.current = profile;
+        playerStyleRef.current = style;
+        if (botPersonalityId === "rookie") sameBotMatchesRef.current = profile.matchesVsRookie;
+        else if (botPersonalityId === "balanced")
+          sameBotMatchesRef.current = profile.matchesVsBalanced;
+        else sameBotMatchesRef.current = profile.matchesVsApex;
+      })
+      .catch(() => {
+        // non-bloquant
+      });
+
     finalizedRef.current = true;
   }, [activeMutations.length, botMutations, botPersonalityId, botResult, checkAchievements, matchOver, playerResult, updateStats]);
 
@@ -2220,6 +2357,26 @@ function RoguelikeVersusTetrobots() {
     matchStartAnnouncedRef.current = false;
     longMatchAnnouncedRef.current = false;
     comebackAnnouncedRef.current = false;
+    playerStackSumRef.current = 0;
+    playerStackSamplesRef.current = 0;
+    playerAggressionScoreRef.current = 0;
+    botStrategyRef.current = "neutral";
+    botStrategyShiftCountRef.current = 0;
+    aggressiveDetectAnnouncedRef.current = false;
+    defensiveDetectAnnouncedRef.current = false;
+    comboSpamAnnouncedRef.current = false;
+    highRiskAnnouncedRef.current = false;
+    exploitingPatternAnnouncedRef.current = false;
+    analysisCompleteAnnouncedRef.current = false;
+    lastAdaptiveEventAtRef.current = 0;
+    memoryDialogueTriggeredRef.current = false;
+    sameBotMatchesRef.current = 0;
+    redZoneTimeMsRef.current = 0;
+    lastBoardSampleAtRef.current = null;
+    inRedZoneRef.current = false;
+    comboSampleCountRef.current = 0;
+    comboValueSumRef.current = 0;
+    lastTrollAtRef.current = 0;
 
     setBotMessage(null);
     setBotMood("idle");
@@ -2488,14 +2645,40 @@ function RoguelikeVersusTetrobots() {
           }}
           onLinesCleared={(linesCleared) => {
             if (linesCleared > 0) {
+              playerAggressionScoreRef.current = Math.max(
+                0,
+                playerAggressionScoreRef.current * 0.84
+              );
               playerLiveLinesRef.current += linesCleared;
               comboStreakRef.current += linesCleared;
+              playerAggressionScoreRef.current += linesCleared * 2;
               maxComboRef.current = Math.max(maxComboRef.current, comboStreakRef.current);
+              if (
+                comboStreakRef.current >= ADAPTIVE.comboSpam.minComboStreak &&
+                !comboSpamAnnouncedRef.current
+              ) {
+                if (
+                  playerAggressionScoreRef.current >= ADAPTIVE.comboSpam.minAggression &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.comboSpam.minMatchMs,
+                    minLines: ADAPTIVE.comboSpam.minLines,
+                  })
+                ) {
+                  comboSpamAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_detect_combo_spam" });
+                }
+              }
+              if (comboStreakRef.current >= 2) {
+                comboSampleCountRef.current += 1;
+                comboValueSumRef.current += comboStreakRef.current;
+              }
             } else {
+              playerAggressionScoreRef.current *= 0.78;
               comboStreakRef.current = 0;
             }
             if (linesCleared === 4) {
               tetrisCountRef.current += 1;
+              playerAggressionScoreRef.current += 4;
               emitBotEvent({ type: "player_tetris" });
             }
             setCurrentLines((v) => v + linesCleared);
@@ -2512,6 +2695,12 @@ function RoguelikeVersusTetrobots() {
           }}
           onBoardUpdate={(board) => {
             playerBoardRef.current = board;
+            const now = Date.now();
+            const previousTs = lastBoardSampleAtRef.current;
+            if (previousTs !== null && inRedZoneRef.current) {
+              redZoneTimeMsRef.current += Math.max(0, now - previousTs);
+            }
+            lastBoardSampleAtRef.current = now;
             const rows = board.length;
             let topFilled = rows;
             for (let y = 0; y < rows; y += 1) {
@@ -2522,11 +2711,35 @@ function RoguelikeVersusTetrobots() {
             }
             const height = rows - topFilled;
             maxStackHeightRef.current = Math.max(maxStackHeightRef.current, height);
+            playerStackSumRef.current += height;
+            playerStackSamplesRef.current += 1;
+            inRedZoneRef.current = height >= RED_ZONE_HEIGHT;
             if (height >= RED_ZONE_HEIGHT) {
               emitBotEvent({ type: "player_high_stack" });
+              if (!highRiskAnnouncedRef.current) {
+                const botHeight = botBoardRef.current ? getStackHeight(botBoardRef.current) : 0;
+                const bothNearDanger =
+                  height >= RED_ZONE_HEIGHT &&
+                  botHeight >= RED_ZONE_HEIGHT - ADAPTIVE.highRisk.botDangerBuffer;
+                if (
+                  bothNearDanger &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.highRisk.minMatchMs,
+                    minLines: ADAPTIVE.highRisk.minLines,
+                  })
+                ) {
+                  highRiskAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_detect_high_risk" });
+                }
+              }
             }
           }}
           onLocalGameOver={(score, lines) => {
+            const now = Date.now();
+            if (lastBoardSampleAtRef.current !== null && inRedZoneRef.current) {
+              redZoneTimeMsRef.current += Math.max(0, now - lastBoardSampleAtRef.current);
+            }
+            lastBoardSampleAtRef.current = now;
             setPlayerResult({ score: score + playerBombBonusRef.current, lines });
             if (startTimeRef.current) runDurationRef.current = Date.now() - startTimeRef.current;
           }}
@@ -2557,6 +2770,21 @@ function RoguelikeVersusTetrobots() {
             playerLiveScoreRef.current = rounded;
             setCurrentScore(rounded);
             maybeEmitComeback();
+            const now = Date.now();
+            if (now - lastTrollAtRef.current >= MEMORY_TIMING.trollCooldownMs) {
+              const troll = getScoreTrollDialogue(
+                botPersonality,
+                playerLiveScoreRef.current + playerBombBonusRef.current,
+                botLiveScoreRef.current + botBombBonusRef.current
+              );
+              if (troll) {
+                emitCustomBotLine(
+                  troll,
+                  botPersonality.id === "apex" ? "evil" : "thinking"
+                );
+                lastTrollAtRef.current = now;
+              }
+            }
           }}
           gravityMultiplier={effectiveGravityMultiplier}
           scoreMultiplier={effectiveScoreMultiplier}
@@ -2653,6 +2881,13 @@ function RoguelikeVersusTetrobots() {
           rng={botRng}
           keyboardControlsEnabled={false}
           tetrobotsPersonalityId={botPersonalityId}
+          tetrobotsAdaptiveContext={{
+            playerAvgStackHeight:
+              playerStackSamplesRef.current > 0
+                ? playerStackSumRef.current / playerStackSamplesRef.current
+                : 0,
+            playerAggressionScore: playerAggressionScoreRef.current,
+          }}
           incomingGarbage={botIncomingGarbage}
           onGarbageConsumed={() => setBotIncomingGarbage(0)}
           onConsumeLines={(lines) => {
@@ -2665,10 +2900,109 @@ function RoguelikeVersusTetrobots() {
               if (linesCleared === 4) emitBotEvent({ type: "bot_tetris" });
             }
           }}
-          onTetrobotsPlan={({ isBlunder }) => {
+          onTetrobotsPlan={({ isBlunder, strategy }) => {
             if (isBlunder) {
               botBlunderRef.current = true;
               emitBotEvent({ type: "bot_blunder" });
+              if (botStrategyRef.current !== "neutral") {
+                if (
+                  botStrategyShiftCountRef.current >= ADAPTIVE.failedAdaptation.minStrategyShifts &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.failedAdaptation.minMatchMs,
+                    minLines: ADAPTIVE.failedAdaptation.minLines,
+                  })
+                ) {
+                  emitBotEvent({ type: "bot_failed_adaptation" });
+                }
+              }
+            }
+            if (botStrategyRef.current !== strategy) {
+              const previousStrategy = botStrategyRef.current;
+              botStrategyRef.current = strategy;
+              botStrategyShiftCountRef.current += 1;
+              if (
+                canEmitAdaptiveEvent({
+                  minMatchMs: ADAPTIVE.strategyShift.minMatchMs,
+                  minLines: ADAPTIVE.strategyShift.minLines,
+                })
+              ) {
+                emitBotEvent({ type: "bot_strategy_shift", from: previousStrategy, to: strategy });
+              }
+              if (strategy === "panic") {
+                if (
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.panicMode.minMatchMs,
+                    minLines: ADAPTIVE.panicMode.minLines,
+                    minIntervalMs: ADAPTIVE.panicMode.minIntervalMs,
+                  })
+                ) {
+                  emitBotEvent({ type: "bot_panic_mode" });
+                }
+              } else if (previousStrategy === "panic") {
+                if (
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.recovered.minMatchMs,
+                    minLines: ADAPTIVE.recovered.minLines,
+                    minIntervalMs: ADAPTIVE.recovered.minIntervalMs,
+                  })
+                ) {
+                  emitBotEvent({ type: "bot_recovered" });
+                }
+              }
+              if (strategy === "defensive" && !aggressiveDetectAnnouncedRef.current) {
+                if (
+                  playerAggressionScoreRef.current >= ADAPTIVE.detectAggressive.minAggression &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.detectAggressive.minMatchMs,
+                    minLines: ADAPTIVE.detectAggressive.minLines,
+                  })
+                ) {
+                  aggressiveDetectAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_detect_aggressive_player" });
+                }
+              }
+              if (strategy === "aggressive" && !defensiveDetectAnnouncedRef.current) {
+                const avgHeight =
+                  playerStackSamplesRef.current > 0
+                    ? playerStackSumRef.current / playerStackSamplesRef.current
+                    : 0;
+                if (
+                  avgHeight <= ADAPTIVE.detectDefensive.maxAvgHeight &&
+                  playerAggressionScoreRef.current <= ADAPTIVE.detectDefensive.maxAggression &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.detectDefensive.minMatchMs,
+                    minLines: ADAPTIVE.detectDefensive.minLines,
+                  })
+                ) {
+                  defensiveDetectAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_detect_defensive_player" });
+                }
+              }
+              if (strategy === "pressure" && !exploitingPatternAnnouncedRef.current) {
+                if (
+                  botStrategyShiftCountRef.current >= ADAPTIVE.exploitPattern.minStrategyShifts &&
+                  playerStackSamplesRef.current >= ADAPTIVE.exploitPattern.minSamples &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.exploitPattern.minMatchMs,
+                    minLines: ADAPTIVE.exploitPattern.minLines,
+                  })
+                ) {
+                  exploitingPatternAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_exploiting_player_pattern" });
+                }
+              }
+              if (
+                botStrategyShiftCountRef.current >= ADAPTIVE.analysisComplete.minStrategyShifts &&
+                !analysisCompleteAnnouncedRef.current &&
+                canEmitAdaptiveEvent({
+                  minMatchMs: ADAPTIVE.analysisComplete.minMatchMs,
+                  minLines: ADAPTIVE.analysisComplete.minLines,
+                  minIntervalMs: ADAPTIVE.analysisComplete.minIntervalMs,
+                })
+              ) {
+                analysisCompleteAnnouncedRef.current = true;
+                emitBotEvent({ type: "bot_analysis_complete" });
+              }
             }
           }}
           onBoardUpdate={(board) => {
@@ -2678,6 +3012,21 @@ function RoguelikeVersusTetrobots() {
           onScoreChange={(score) => {
             botLiveScoreRef.current = Math.round(score);
             maybeEmitComeback();
+            const now = Date.now();
+            if (now - lastTrollAtRef.current >= MEMORY_TIMING.trollCooldownMs) {
+              const troll = getScoreTrollDialogue(
+                botPersonality,
+                playerLiveScoreRef.current + playerBombBonusRef.current,
+                botLiveScoreRef.current + botBombBonusRef.current
+              );
+              if (troll) {
+                emitCustomBotLine(
+                  troll,
+                  botPersonality.id === "apex" ? "evil" : "thinking"
+                );
+                lastTrollAtRef.current = now;
+              }
+            }
           }}
           onLocalGameOver={(score, lines) => {
             setBotResult({ score: score + botBombBonusRef.current, lines });

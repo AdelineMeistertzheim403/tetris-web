@@ -16,6 +16,43 @@ export type VersusMatchPayload = {
   }>;
 };
 
+export type PlayerProfile = {
+  totalMatches: number;
+  avgStackHeight: number;
+  avgHoles: number;
+  avgCombo: number;
+  tetrisRate: number;
+  aggressionScore: number;
+  defensiveScore: number;
+  panicRate: number;
+  leftBias: number;
+  noHoldRate: number;
+  matchesVsRookie: number;
+  matchesVsBalanced: number;
+  matchesVsApex: number;
+};
+
+export type PlayerStyle =
+  | "aggressive"
+  | "defensive"
+  | "clean"
+  | "messy"
+  | "panic"
+  | "balanced";
+
+export type BotMatchStatsPayload = {
+  avgHeight: number;
+  holes: number;
+  comboAvg: number;
+  tetrisRate: number;
+  linesSent: number;
+  linesSurvived: number;
+  redZoneTime: number;
+  leftBias?: number;
+  usedHold?: boolean;
+  botPersonality?: "rookie" | "balanced" | "apex";
+};
+
 // Récupère un runToken côté backend pour sécuriser la soumission des scores.
 export async function getScoreRunToken(mode: GameMode, matchId?: string) {
   const res = await fetch(`${API_URL}/scores/token`, {
@@ -152,4 +189,29 @@ export async function saveBrickfallVersusMatch(payload: VersusMatchPayload) {
   if (!res.ok)
     throw new Error("Erreur lors de l'enregistrement du match brickfall versus");
   return res.json();
+}
+
+export async function getTetrobotsProfile() {
+  const res = await fetch(`${API_URL}/scores/tetrobots-profile`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Erreur lors de la récupération du profil Tetrobots");
+  return res.json() as Promise<{ profile: PlayerProfile; style: PlayerStyle }>;
+}
+
+export async function updateTetrobotsProfile(matchStats: BotMatchStatsPayload) {
+  const res = await fetch(`${API_URL}/scores/tetrobots-profile`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(matchStats),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Erreur lors de la mise à jour du profil Tetrobots");
+  return res.json() as Promise<{ profile: PlayerProfile; style: PlayerStyle }>;
 }

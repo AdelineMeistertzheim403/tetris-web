@@ -30,7 +30,32 @@ model User {
   achievementStats UserAchievementStats?
   brickfallSoloProgress BrickfallSoloProgress?
   brickfallSoloCustomLevels BrickfallSoloCustomLevel[]
+  botPlayerProfile BotPlayerProfile?
   createdAt DateTime @default(now())
+}
+
+model BotPlayerProfile {
+  userId Int @id
+  totalMatches Int @default(0)
+
+  avgStackHeight Float @default(0)
+  avgHoles Float @default(0)
+  avgCombo Float @default(0)
+  tetrisRate Float @default(0)
+  aggressionScore Float @default(0)
+  defensiveScore Float @default(0)
+  panicRate Float @default(0)
+  leftBias Float @default(0)
+  noHoldRate Float @default(0)
+
+  matchesVsRookie Int @default(0)
+  matchesVsBalanced Int @default(0)
+  matchesVsApex Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Score {
