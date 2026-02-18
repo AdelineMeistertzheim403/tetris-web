@@ -1,3 +1,4 @@
+// Hook React useAutoClearRecentAchievements.ts pour la logique d'etat/effets.
 import { useEffect } from "react";
 
 export function useAutoClearRecentAchievements(

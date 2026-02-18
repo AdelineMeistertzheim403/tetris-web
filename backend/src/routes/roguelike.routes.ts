@@ -9,6 +9,7 @@ import {
   getRoguelikeLeaderboard,
 } from "../controllers/roguelike.controller";
 
+// Endpoints Roguelike (run state + leaderboard).
 const router = Router();
 
 router.post("/run/start", verifyToken, startRoguelikeRun);

@@ -1,3 +1,4 @@
+// Utilitaires purs reutilisables pour ce module.
 import type { BrickfallLevel } from "../types/levels";
 import { isBrickfallLevel, normalizeBrickfallLevel } from "../types/levels";
 

@@ -1,3 +1,4 @@
+// Composant UI BotSpeechBubble.tsx.
 type Props = {
   message: string;
   speaker: string;

@@ -1,5 +1,6 @@
 export type ShapeMatrix = number[][];
 
+// Définition canonique des pièces Tetris (orientation de base).
 export const SHAPES: Record<string, ShapeMatrix> = {
   I: [
     [1, 1, 1, 1],
@@ -30,6 +31,7 @@ export const SHAPES: Record<string, ShapeMatrix> = {
   ],
 };
 
+// Palette par défaut, surchargeable selon le mode de jeu.
 export const COLORS: Record<string, string> = {
   I: "#00f0f0",
   O: "#f0f000",

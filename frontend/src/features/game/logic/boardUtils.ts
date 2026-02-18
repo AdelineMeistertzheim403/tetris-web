@@ -1,10 +1,16 @@
 import type { ShapeMatrix } from "./shapes";
 
+/**
+ * Rotation horaire d'une matrice de pièce.
+ */
 export function rotateMatrix(matrix: ShapeMatrix): ShapeMatrix {
   const rotated = matrix[0].map((_, i) => matrix.map((row) => row[i]).reverse());
   return rotated;
 }
 
+/**
+ * Détecte une collision (murs, sol, ou cellules déjà occupées).
+ */
 export function checkCollision(
   board: number[][],
   shape: ShapeMatrix,
@@ -30,6 +36,9 @@ export function checkCollision(
   return false;
 }
 
+/**
+ * Fusionne la pièce active avec le board.
+ */
 export function mergePiece(
   board: number[][],
   shape: ShapeMatrix,
@@ -47,6 +56,9 @@ export function mergePiece(
   return newBoard;
 }
 
+/**
+ * Supprime les lignes complètes et retourne le board compacté.
+ */
 export function clearFullLines(board: number[][]) {
   const clearedRows: number[] = [];
   const newBoard = board.filter((row, index) => {

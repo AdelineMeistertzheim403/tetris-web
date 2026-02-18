@@ -1,3 +1,4 @@
+// Composant UI RewardSelectionOverlay.tsx.
 import type { RvRewardOption } from "../types";
 import "../../../styles/roguelike-perks.css";
 

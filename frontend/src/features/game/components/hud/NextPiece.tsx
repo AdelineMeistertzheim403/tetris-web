@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 
 
+// Mini canvas de prévisualisation de la prochaine pièce.
 type Props = {
   piece: {
     shape: number[][];
@@ -14,6 +15,7 @@ export default function NextPiece({ piece }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // Redessine la preview à chaque changement de pièce.
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
 

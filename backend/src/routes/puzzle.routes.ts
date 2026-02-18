@@ -8,6 +8,7 @@ import {
   submitPuzzleSolution,
 } from "../controllers/puzzle.controller";
 
+// Routes publiques/privées du mode Puzzle.
 const router = Router();
 
 router.get("/", listPuzzles);

@@ -32,6 +32,7 @@ import {
   getBotMessage,
   getMemoryDialogue,
   getMoodFromEvent,
+  resetBotDialogueState,
   getScoreTrollDialogue,
   type BotEvent,
   type BotMood,
@@ -1457,6 +1458,7 @@ function RoguelikeVersusTetrobots() {
   const matchStartAnnouncedRef = useRef(false);
   const longMatchAnnouncedRef = useRef(false);
   const comebackAnnouncedRef = useRef(false);
+  const playerHighStackAnnouncedRef = useRef(false);
   const playerStackSumRef = useRef(0);
   const playerStackSamplesRef = useRef(0);
   const playerAggressionScoreRef = useRef(0);
@@ -2357,6 +2359,7 @@ function RoguelikeVersusTetrobots() {
     matchStartAnnouncedRef.current = false;
     longMatchAnnouncedRef.current = false;
     comebackAnnouncedRef.current = false;
+    playerHighStackAnnouncedRef.current = false;
     playerStackSumRef.current = 0;
     playerStackSamplesRef.current = 0;
     playerAggressionScoreRef.current = 0;
@@ -2433,6 +2436,7 @@ function RoguelikeVersusTetrobots() {
   };
 
   const startMatch = () => {
+    resetBotDialogueState(botPersonalityId);
     setRoundSeed(`rv-tetrobots-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`);
     setRoundKey((v) => v + 1);
     setStarted(true);
@@ -2715,7 +2719,10 @@ function RoguelikeVersusTetrobots() {
             playerStackSamplesRef.current += 1;
             inRedZoneRef.current = height >= RED_ZONE_HEIGHT;
             if (height >= RED_ZONE_HEIGHT) {
-              emitBotEvent({ type: "player_high_stack" });
+              if (!playerHighStackAnnouncedRef.current) {
+                playerHighStackAnnouncedRef.current = true;
+                emitBotEvent({ type: "player_high_stack" });
+              }
               if (!highRiskAnnouncedRef.current) {
                 const botHeight = botBoardRef.current ? getStackHeight(botBoardRef.current) : 0;
                 const bothNearDanger =
@@ -2732,6 +2739,8 @@ function RoguelikeVersusTetrobots() {
                   emitBotEvent({ type: "bot_detect_high_risk" });
                 }
               }
+            } else if (height <= RED_ZONE_HEIGHT - 2) {
+              playerHighStackAnnouncedRef.current = false;
             }
           }}
           onLocalGameOver={(score, lines) => {

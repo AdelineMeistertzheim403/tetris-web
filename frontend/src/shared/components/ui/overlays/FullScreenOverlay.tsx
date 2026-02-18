@@ -1,3 +1,4 @@
+// Composant UI FullScreenOverlay.tsx.
 import type { CSSProperties, ReactNode } from "react";
 
 type FullScreenOverlayProps = {

@@ -1,3 +1,4 @@
+// Utilitaires purs reutilisables pour ce module.
 export const ACHIEVEMENT_ICON_BASE = "/Achievments";
 export const PERK_ICON_BASE = "/Perks";
 export const MUTATION_ICON_BASE = "/Mutations";

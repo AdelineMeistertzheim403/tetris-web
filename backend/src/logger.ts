@@ -1,5 +1,9 @@
 import pino from "pino";
 
+/**
+ * Logger partagé backend.
+ * En dev: sortie lisible (`pino-pretty`), en prod: JSON structuré.
+ */
 const level = process.env.LOG_LEVEL || "info";
 const isDev = (process.env.NODE_ENV || "development") === "development";
 

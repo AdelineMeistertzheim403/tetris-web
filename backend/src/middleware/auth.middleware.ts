@@ -16,6 +16,10 @@ export interface AuthRequest extends Request {
   user?: JwtUserPayload;
 }
 
+/**
+ * Vérifie le JWT depuis `Authorization: Bearer` ou cookie HTTP-only.
+ * En cas de succès, attache `req.user` pour les handlers protégés.
+ */
 export const verifyToken = (
   req: AuthRequest,
   res: Response,

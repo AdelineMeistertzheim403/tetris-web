@@ -1,3 +1,4 @@
+// Composant UI PauseOverlay.tsx.
 type Props = {
   show: boolean;
   onResume: () => void;

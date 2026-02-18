@@ -1,3 +1,4 @@
+// Types partages utilises par ce module.
 export type PuzzleObjective =
   | { type: "clear_lines"; count: number }
   | { type: "free_zone"; x: number; y: number; width: number; height: number }

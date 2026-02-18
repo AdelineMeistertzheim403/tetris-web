@@ -1,3 +1,4 @@
+// Donnees statiques de reference pour ce module.
 import type { PuzzleDefinition } from "../types/Puzzle";
 
 const EMPTY_ROW = "..........";

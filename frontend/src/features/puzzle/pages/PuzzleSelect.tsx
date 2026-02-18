@@ -1,3 +1,4 @@
+// Page applicative routable.
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { PuzzleDefinition } from "../types/Puzzle";

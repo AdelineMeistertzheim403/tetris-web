@@ -1,3 +1,4 @@
+// Donnees statiques de reference pour ce module.
 import type { Perk } from "../types/Perk";
 
 export const ALL_PERKS: Perk[] = [

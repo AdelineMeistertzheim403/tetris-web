@@ -1,3 +1,4 @@
+// Types partages utilises par ce module.
 declare module "seedrandom" {
   interface PRNG {
     (): number;

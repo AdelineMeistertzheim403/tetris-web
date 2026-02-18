@@ -1,3 +1,4 @@
+// Composant UI PerkIcon.tsx.
 import { useEffect, useState } from "react";
 import type { ActivePerkRuntime } from "../run/RoguelikeRun";
 import { perkIconPath } from "../../../../shared/utils/assetPaths";

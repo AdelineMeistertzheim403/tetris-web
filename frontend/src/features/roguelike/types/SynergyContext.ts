@@ -1,3 +1,4 @@
+// Types partages utilises par ce module.
 import type { Dispatch, SetStateAction } from "react";
 
 export type SynergyContext = {

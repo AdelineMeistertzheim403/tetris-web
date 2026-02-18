@@ -1,3 +1,4 @@
+// Service d'acces aux donnees/API pour ce domaine.
 import { getAuthHeader } from "../../auth/services/authService";
 const API_URL = import.meta.env.VITE_API_URL;
 

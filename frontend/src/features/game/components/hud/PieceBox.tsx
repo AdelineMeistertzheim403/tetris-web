@@ -1,3 +1,4 @@
+// Grille miniature générique pour HOLD/NEXT.
 export default function PieceBox({
   title,
   piece,

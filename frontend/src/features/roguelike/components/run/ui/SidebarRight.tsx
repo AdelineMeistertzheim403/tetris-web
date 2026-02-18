@@ -1,3 +1,4 @@
+// Composant UI SidebarRight.tsx.
 import ControlsPanel from "../../../../game/components/hud/ControlsPanel";
 
 type Props = {

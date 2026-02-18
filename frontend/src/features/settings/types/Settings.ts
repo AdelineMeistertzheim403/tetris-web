@@ -1,3 +1,4 @@
+// Types partages utilises par ce module.
 ﻿import type { KeyBindings } from "../../game/utils/controls";
 
 export type TetrominoType = "I" | "O" | "T" | "S" | "Z" | "L" | "J";

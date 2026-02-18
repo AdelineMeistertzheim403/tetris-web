@@ -1,3 +1,4 @@
+// Composant UI SelectionOverlays.tsx.
 import type { Perk } from "../../../types/Perk";
 import type { Mutation } from "../../../types/Mutation";
 import PerkSelectionOverlay from "../../overlays/PerkSelectionOverlay";
