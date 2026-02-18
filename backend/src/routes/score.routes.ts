@@ -8,6 +8,7 @@ import {
   versusMatchSchema,
   roguelikeVersusMatchSchema,
   brickfallVersusMatchSchema,
+  botProfileUpdateSchema,
 } from "../utils/validation";
 import { GameMode } from "../types/GameMode";
 import prisma from "../prisma/client";
@@ -30,6 +31,28 @@ const leaderboardLimiter = rateLimit({
 const TETROBOTS_PSEUDO_PREFIX = "Tetrobots";
 const TETROBOTS_EMAIL_DOMAIN = "bots.tetris.local";
 const TETROBOTS_PASSWORD_HASH = bcrypt.hashSync(`${env.jwtSecret}:tetrobots-bot`, 10);
+const PROFILE_SMOOTH_ALPHA = 0.15;
+
+type PlayerStyle =
+  | "aggressive"
+  | "defensive"
+  | "clean"
+  | "messy"
+  | "panic"
+  | "balanced";
+
+type BotProfilePayload = {
+  avgHeight: number;
+  holes: number;
+  comboAvg: number;
+  tetrisRate: number;
+  linesSent: number;
+  linesSurvived: number;
+  redZoneTime: number;
+  leftBias?: number;
+  usedHold?: boolean;
+  botPersonality?: "rookie" | "balanced" | "apex";
+};
 
 function isTetrobotsPseudo(pseudo: string): boolean {
   return pseudo.trim().startsWith(TETROBOTS_PSEUDO_PREFIX);
@@ -65,6 +88,39 @@ function computeScoreToken(userId: number, mode: GameMode, matchId?: string | nu
   return createHmac("sha256", env.runTokenSecret).update(payload).digest("hex");
 }
 
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
+const lerp = (from: number, to: number, alpha: number) => from + (to - from) * alpha;
+
+function detectPlayerStyle(profile: {
+  aggressionScore: number;
+  defensiveScore: number;
+  avgHoles: number;
+  panicRate: number;
+}): PlayerStyle {
+  if (profile.aggressionScore > 30) return "aggressive";
+  if (profile.defensiveScore > 45) return "defensive";
+  if (profile.avgHoles < 2) return "clean";
+  if (profile.panicRate > 0.4) return "panic";
+  if (profile.avgHoles > 6) return "messy";
+  return "balanced";
+}
+
+function normalizeProfileUpdate(payload: BotProfilePayload) {
+  return {
+    avgHeight: clamp(payload.avgHeight, 0, 40),
+    holes: clamp(payload.holes, 0, 60),
+    comboAvg: clamp(payload.comboAvg, 0, 20),
+    tetrisRate: clamp(payload.tetrisRate, 0, 1),
+    linesSent: clamp(payload.linesSent, 0, 500),
+    linesSurvived: clamp(payload.linesSurvived, 0, 500),
+    redZoneTime: clamp(payload.redZoneTime, 0, 1),
+    leftBias: clamp(payload.leftBias ?? 0.5, 0, 1),
+    noHoldSample: payload.usedHold === false ? 1 : 0,
+  };
+}
+
 function extractRunToken(req: AuthRequest): string | null {
   const header = req.headers["x-run-token"];
   if (typeof header === "string" && header.trim()) return header.trim();
@@ -90,6 +146,109 @@ router.post("/token", verifyToken, async (req: AuthRequest, res: Response) => {
 
   const token = computeScoreToken(userId, mode, matchId);
   res.json({ runToken: token });
+});
+
+router.get("/tetrobots-profile", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const profile = await prisma.botPlayerProfile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.json({
+        profile: {
+          totalMatches: 0,
+          avgStackHeight: 0,
+          avgHoles: 0,
+          avgCombo: 0,
+          tetrisRate: 0,
+          aggressionScore: 0,
+          defensiveScore: 0,
+          panicRate: 0,
+          leftBias: 0.5,
+          noHoldRate: 0,
+          matchesVsRookie: 0,
+          matchesVsBalanced: 0,
+          matchesVsApex: 0,
+        },
+        style: "balanced",
+      });
+    }
+
+    return res.json({ profile, style: detectPlayerStyle(profile) });
+  } catch (err) {
+    logger.error({ err }, "Erreur lecture profil tetrobots");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.post("/tetrobots-profile", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const parsed = botProfileUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
+    }
+
+    const update = normalizeProfileUpdate(parsed.data);
+    const existing = await prisma.botPlayerProfile.findUnique({ where: { userId } });
+    const current = existing ?? {
+      userId,
+      totalMatches: 0,
+      avgStackHeight: 0,
+      avgHoles: 0,
+      avgCombo: 0,
+      tetrisRate: 0,
+      aggressionScore: 0,
+      defensiveScore: 0,
+      panicRate: 0,
+      leftBias: 0.5,
+      noHoldRate: 0,
+      matchesVsRookie: 0,
+      matchesVsBalanced: 0,
+      matchesVsApex: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const next = {
+      totalMatches: current.totalMatches + 1,
+      avgStackHeight: lerp(current.avgStackHeight, update.avgHeight, PROFILE_SMOOTH_ALPHA),
+      avgHoles: lerp(current.avgHoles, update.holes, PROFILE_SMOOTH_ALPHA),
+      avgCombo: lerp(current.avgCombo, update.comboAvg, PROFILE_SMOOTH_ALPHA),
+      tetrisRate: lerp(current.tetrisRate, update.tetrisRate, PROFILE_SMOOTH_ALPHA),
+      aggressionScore: lerp(current.aggressionScore, update.linesSent, PROFILE_SMOOTH_ALPHA),
+      defensiveScore: lerp(current.defensiveScore, update.linesSurvived, PROFILE_SMOOTH_ALPHA),
+      panicRate: lerp(current.panicRate, update.redZoneTime, PROFILE_SMOOTH_ALPHA),
+      leftBias: lerp(current.leftBias, update.leftBias, PROFILE_SMOOTH_ALPHA),
+      noHoldRate: lerp(current.noHoldRate, update.noHoldSample, PROFILE_SMOOTH_ALPHA),
+      matchesVsRookie:
+        current.matchesVsRookie + (parsed.data.botPersonality === "rookie" ? 1 : 0),
+      matchesVsBalanced:
+        current.matchesVsBalanced + (parsed.data.botPersonality === "balanced" ? 1 : 0),
+      matchesVsApex: current.matchesVsApex + (parsed.data.botPersonality === "apex" ? 1 : 0),
+    };
+
+    const profile = await prisma.botPlayerProfile.upsert({
+      where: { userId },
+      update: next,
+      create: {
+        userId,
+        ...next,
+      },
+    });
+
+    return res.json({ profile, style: detectPlayerStyle(profile) });
+  } catch (err) {
+    logger.error({ err }, "Erreur mise a jour profil tetrobots");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
 });
 
 /**
