@@ -1,3 +1,4 @@
+// Composant UI MutationsPanel.tsx.
 import { useMemo, useState } from "react";
 import MutationIcon from "../icons/MutationIcon";
 import type { ActiveMutationRuntime } from "../run/RoguelikeRun";

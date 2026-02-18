@@ -1,3 +1,4 @@
+// Donnees statiques de reference pour ce module.
 import type { RvEffect } from "../types";
 
 export type RvEvent = {

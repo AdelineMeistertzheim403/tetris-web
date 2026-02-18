@@ -1,3 +1,4 @@
+// HUD minimal pour les modes qui n'utilisent pas le panneau avancé.
 type HudProps = {
   score?: number
   lines?: number

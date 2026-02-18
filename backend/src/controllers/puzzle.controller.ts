@@ -4,11 +4,13 @@ import prisma from "../prisma/client";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { puzzleAttemptSchema, puzzleSolutionSchema } from "../utils/validation";
 
+// Garantit que la définition JSON est un objet exploitable côté API.
 function getJsonObject(value: Prisma.JsonValue): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
 }
 
+// Fusionne les métadonnées SQL avec la définition JSON du puzzle.
 function serializePuzzle(puzzle: {
   id: string;
   name: string;
@@ -28,6 +30,9 @@ function serializePuzzle(puzzle: {
   };
 }
 
+/**
+ * Liste tous les puzzles actifs.
+ */
 export async function listPuzzles(_req: AuthRequest, res: Response) {
   try {
     const puzzles = await prisma.puzzle.findMany({
@@ -50,6 +55,9 @@ export async function listPuzzles(_req: AuthRequest, res: Response) {
   }
 }
 
+/**
+ * Retourne le détail d'un puzzle par identifiant.
+ */
 export async function getPuzzle(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
@@ -77,6 +85,9 @@ export async function getPuzzle(req: AuthRequest, res: Response) {
   }
 }
 
+/**
+ * Résume les tentatives du joueur par puzzle.
+ */
 export async function listMyPuzzleCompletions(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
@@ -132,6 +143,9 @@ export async function listMyPuzzleCompletions(req: AuthRequest, res: Response) {
   }
 }
 
+/**
+ * Enregistre une tentative de puzzle (succès ou échec).
+ */
 export async function submitPuzzleAttempt(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
@@ -174,6 +188,9 @@ export async function submitPuzzleAttempt(req: AuthRequest, res: Response) {
   }
 }
 
+/**
+ * Enregistre une solution complète (suite de mouvements).
+ */
 export async function submitPuzzleSolution(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;

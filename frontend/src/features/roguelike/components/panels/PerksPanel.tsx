@@ -1,3 +1,4 @@
+// Composant UI PerksPanel.tsx.
 import { useMemo, useState } from "react";
 import type { Perk } from "../../types/Perk";
 import PerkIcon from "../icons/PerkIcon";

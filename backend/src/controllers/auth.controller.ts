@@ -15,6 +15,9 @@ import {
 const JWT_SECRET = env.jwtSecret;
 const JWT_EXPIRES_IN = "24h";
 
+/**
+ * Crée un utilisateur après validation et hash du mot de passe.
+ */
 export const register = async (req: Request, res: Response) => {
   try {
     const parsed = registerSchema.safeParse(req.body);
@@ -52,6 +55,9 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Authentifie un utilisateur et retourne le token (header + cookie).
+ */
 export const login = async (req: Request, res: Response) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
@@ -94,6 +100,9 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Retourne le profil minimal de l'utilisateur connecté.
+ */
 export const getMe = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;

@@ -1,3 +1,4 @@
+// Composant UI TetrobotsAvatar.tsx.
 import { useEffect, useState } from "react";
 import type { BotMood } from "../../game/ai/tetrobotsChat";
 

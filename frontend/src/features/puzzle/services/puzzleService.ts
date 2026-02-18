@@ -1,3 +1,4 @@
+// Service d'acces aux donnees/API pour ce domaine.
 import type { PuzzleDefinition } from "../types/Puzzle";
 
 const API_URL = import.meta.env.VITE_API_URL;

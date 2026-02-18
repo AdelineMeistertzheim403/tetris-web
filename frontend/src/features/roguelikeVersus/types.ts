@@ -1,3 +1,4 @@
+// Module source du projet.
 export type RvPhase = "SETUP" | "ESCALATION" | "OVERLOAD";
 
 export type RvEffect = { mirrorCopy?: boolean } & (

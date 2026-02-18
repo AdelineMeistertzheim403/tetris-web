@@ -1,3 +1,4 @@
+// Donnees statiques de reference pour ce module.
 import type { RvPerk } from "../types";
 
 export const RV_PERKS: RvPerk[] = [

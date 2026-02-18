@@ -1,3 +1,4 @@
+// Donnees statiques de reference pour ce module.
 import type { RvMutation } from "../types";
 
 export const RV_MUTATIONS: RvMutation[] = [

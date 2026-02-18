@@ -1,3 +1,4 @@
+// Composant UI MutationCard.tsx.
 import type { Mutation } from "../../types/Mutation";
 
 type Props = {

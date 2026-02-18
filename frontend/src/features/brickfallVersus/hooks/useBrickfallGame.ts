@@ -1,3 +1,4 @@
+// Hook React useBrickfallGame.ts pour la logique d'etat/effets.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BRICKFALL_BALANCE } from "../config/balance";
 

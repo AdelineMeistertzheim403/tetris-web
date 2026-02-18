@@ -19,6 +19,7 @@ import {
   getBotMessage,
   getMemoryDialogue,
   getMoodFromEvent,
+  resetBotDialogueState,
   getScoreTrollDialogue,
   type BotMood,
   type BotEvent,
@@ -941,6 +942,7 @@ function VersusTetrobots() {
   }, [botPersonality.name, botResult, hasSavedResult, matchOver, playerResult, roundSeed, user]);
 
   const startMatch = () => {
+    resetBotDialogueState(botPersonalityId);
     setRoundSeed(`tetrobots-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`);
     setRoundKey((prev) => prev + 1);
     setStarted(true);

@@ -1,3 +1,4 @@
+// Composant UI AchievementToast.tsx.
 import type { Achievement } from "../data/achievements";
 import { achievementIconPath } from "../../../shared/utils/assetPaths";
 

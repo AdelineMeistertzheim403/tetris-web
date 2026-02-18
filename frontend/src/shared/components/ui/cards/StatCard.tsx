@@ -1,3 +1,4 @@
+// Composant UI StatCard.tsx.
 type StatCardProps = {
   label: string;
   value: number | string;

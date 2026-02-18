@@ -1,5 +1,6 @@
 import PieceBox from "./PieceBox"
 
+// Affiche la pièce en hold et la prochaine pièce de la file.
 type HoldNextProps = {
   holdPiece?: number[][]
   nextPieces?: number[][][]

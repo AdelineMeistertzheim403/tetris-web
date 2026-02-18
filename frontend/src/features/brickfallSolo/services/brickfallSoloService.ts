@@ -1,3 +1,4 @@
+// Service d'acces aux donnees/API pour ce domaine.
 import { getAuthHeader } from "../../auth/services/authService";
 import type { BrickfallLevel } from "../types/levels";
 import { isBrickfallLevel, normalizeBrickfallLevel } from "../types/levels";

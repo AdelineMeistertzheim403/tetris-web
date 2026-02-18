@@ -1,3 +1,4 @@
+// Composant UI SidebarLeft.tsx.
 import type { ActiveMutationRuntime, ActivePerkRuntime } from "../RoguelikeRun";
 import type { Synergy } from "../../../types/Synergy";
 import RunInfo from "../RunInfo";

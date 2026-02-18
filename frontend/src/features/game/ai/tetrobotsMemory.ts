@@ -211,6 +211,9 @@ export const TETROBOTS_ADAPTIVE_THRESHOLDS: Record<
   },
 };
 
+/**
+ * Nombre de trous (cases vides sous un bloc) sur un board.
+ */
 export function countBoardHoles(board: number[][] | null): number {
   if (!board || board.length === 0 || board[0].length === 0) return 0;
   const rows = board.length;
@@ -226,6 +229,9 @@ export function countBoardHoles(board: number[][] | null): number {
   return holes;
 }
 
+/**
+ * Ratio d'occupation de la moitié gauche (0: droite, 1: gauche).
+ */
 export function getLeftBias(board: number[][] | null): number {
   if (!board || board.length === 0 || board[0].length === 0) return 0.5;
   const cols = board[0].length;

@@ -4,6 +4,7 @@ import prisma from "../prisma/client";
 import { logger } from "../logger";
 import { achievementStatsSchema, achievementUnlockSchema } from "../utils/validation";
 
+// Routes de progression achievements (unlock + statistiques utilisateur).
 const router = Router();
 
 router.get("/", verifyToken, async (req: AuthRequest, res: Response) => {

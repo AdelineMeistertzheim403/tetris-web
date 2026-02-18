@@ -1,3 +1,4 @@
+// Composant UI RunInfo.tsx.
 type Props = {
   linesUntilNextPerk: number;
   perkProgress: number;

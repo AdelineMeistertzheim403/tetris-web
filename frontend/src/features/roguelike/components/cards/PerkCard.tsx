@@ -1,3 +1,4 @@
+// Composant UI PerkCard.tsx.
 import type { Perk } from "../../types/Perk"
 
 

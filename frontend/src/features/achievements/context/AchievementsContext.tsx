@@ -1,3 +1,4 @@
+// Contexte React partage pour ce domaine.
 export type AchievementContext = {
   run: {
     score: number;

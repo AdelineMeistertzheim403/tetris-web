@@ -1,3 +1,4 @@
+// Composant UI MutationSelectionOverlay.tsx.
 import type { Mutation } from "../../types/Mutation";
 import { MutationCard } from "../cards/MutationCard";
 import "../../../../styles/roguelike-perks.css";

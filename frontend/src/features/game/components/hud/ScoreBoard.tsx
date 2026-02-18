@@ -1,5 +1,4 @@
-
-
+// Tableau score/lignes/niveau utilisé par les modes arcade classiques.
 type Props = {
   score: number;
   lines: number;

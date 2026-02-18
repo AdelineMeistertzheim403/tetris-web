@@ -1,3 +1,4 @@
+// Page applicative routable.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { BrickfallLevel } from "../types/levels";
