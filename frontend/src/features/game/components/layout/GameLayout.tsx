@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+// Layout commun: plateau principal à gauche, panneaux info/contrôles à droite.
 type GameLayoutProps = {
   canvas: ReactNode;
   sidebar: ReactNode;

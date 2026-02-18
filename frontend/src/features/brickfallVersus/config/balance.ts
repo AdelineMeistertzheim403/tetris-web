@@ -1,3 +1,4 @@
+// Parametres de configuration metier.
 export const BRICKFALL_BALANCE = {
   board: {
     rows: 22,

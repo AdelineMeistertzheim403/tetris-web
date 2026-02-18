@@ -1,3 +1,4 @@
+// Composant UI StatusBadges.tsx.
 import type { StatusBadge } from "../../../utils/runCalculations";
 
 type Props = {

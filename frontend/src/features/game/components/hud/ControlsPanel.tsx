@@ -1,6 +1,7 @@
 ﻿import { useSettings } from "../../../settings/context/SettingsContext";
 import { formatKeyLabel } from "../../utils/controls";
 
+// Panneau des contrôles dynamique (rebindings + charges disponibles).
 type Props = {
   bombs: number;
   timeFreezeCharges: number;

@@ -1,3 +1,7 @@
+/**
+ * Entrypoint HTTP du backend.
+ * Monte Express et le serveur WebSocket sur le même port.
+ */
 import http from "http";
 import app from "./app";
 import { env } from "./config";

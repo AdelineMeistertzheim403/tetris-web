@@ -1,3 +1,4 @@
+// Types partages utilises par ce module.
 export type BrickType =
   | "normal"
   | "armor"

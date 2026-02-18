@@ -1,3 +1,4 @@
+// Composant UI Navbar.tsx.
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 

@@ -1,3 +1,4 @@
+// Composant UI RoguelikeIntro.tsx.
 export default function RoguelikeIntro({ onStart }: { onStart: () => void }) {
   return (
     <div className="rogue-intro">

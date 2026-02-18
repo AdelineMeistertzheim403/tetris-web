@@ -1,3 +1,4 @@
+// Composant UI MutationIcon.tsx.
 import type { ActiveMutationRuntime } from "../run/RoguelikeRun";
 import { mutationIconPath } from "../../../../shared/utils/assetPaths";
 

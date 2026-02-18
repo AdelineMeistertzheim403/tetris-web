@@ -1,3 +1,4 @@
+// Liste canonique des modes supportés côté frontend.
 export type GameMode =
   | "CLASSIQUE"
   | "SPRINT"
@@ -21,6 +22,7 @@ export const GAME_MODES: GameMode[] = [
 
 export const TOTAL_GAME_MODES = GAME_MODES.length;
 
+// Tous les modes qui publient un score.
 export const SCORED_GAME_MODES: GameMode[] = GAME_MODES.filter(
   (mode) => mode !== "PUZZLE"
 );

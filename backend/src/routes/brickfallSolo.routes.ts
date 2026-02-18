@@ -7,6 +7,7 @@ import {
   brickfallSoloProgressSchema,
 } from "../utils/validation";
 
+// Routes de persistance Brickfall Solo: progression et niveaux custom.
 const router = Router();
 
 router.get("/progress", verifyToken, async (req: AuthRequest, res: Response) => {

@@ -1,3 +1,4 @@
+// Composant UI PerkSelectionOverlay.tsx.
 import type { Perk } from "../../types/Perk"
 import { PerkCard } from "../cards/PerkCard"
 import "../../../../styles/roguelike-perks.css"

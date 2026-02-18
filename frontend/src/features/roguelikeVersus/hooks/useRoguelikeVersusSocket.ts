@@ -1,3 +1,4 @@
+// Hook React useRoguelikeVersusSocket.ts pour la logique d'etat/effets.
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type IncomingMessage =

@@ -371,6 +371,9 @@ const BOT_DIALOGUES: Record<
 const LAST_PICK_BY_EVENT: Partial<
   Record<TetrobotsPersonality["id"], Partial<Record<BotEvent["type"], number>>>
 > = {};
+const EVENT_PICK_BAGS: Partial<
+  Record<TetrobotsPersonality["id"], Partial<Record<BotEvent["type"], number[]>>>
+> = {};
 const STRATEGY_SHIFT_COUNT: Partial<Record<TetrobotsPersonality["id"], number>> = {};
 const ADAPTIVE_SHIFT_EVOLUTION: Record<TetrobotsPersonality["id"], string[]> = {
   rookie: [
@@ -408,8 +411,53 @@ const getEvolvingShiftLine = (
   if (!lines || lines.length === 0) return null;
   const nextCount = (STRATEGY_SHIFT_COUNT[personality.id] ?? 0) + 1;
   STRATEGY_SHIFT_COUNT[personality.id] = nextCount;
-  const idx = Math.min(nextCount - 1, lines.length - 1);
-  return lines[idx];
+  if (nextCount > lines.length) return null;
+  return lines[nextCount - 1];
+};
+
+const shuffleIndexes = (size: number, rng: () => number): number[] => {
+  const values = Array.from({ length: size }, (_, idx) => idx);
+  for (let i = values.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [values[i], values[j]] = [values[j], values[i]];
+  }
+  return values;
+};
+
+const getDialoguePool = (
+  personality: TetrobotsPersonality,
+  event: BotEvent["type"]
+): string[] => {
+  const ownPool = BOT_DIALOGUES[personality.id]?.[event] ?? [];
+  if (event !== "bot_strategy_shift") return ownPool;
+  const legacyPool = BOT_DIALOGUES[personality.id]?.strategy_shift ?? [];
+  return [...new Set([...ownPool, ...legacyPool])];
+};
+
+const pickDialogueIndex = (
+  personality: TetrobotsPersonality,
+  event: BotEvent["type"],
+  poolSize: number,
+  rng: () => number
+): number => {
+  if (!EVENT_PICK_BAGS[personality.id]) EVENT_PICK_BAGS[personality.id] = {};
+  let bag = EVENT_PICK_BAGS[personality.id]![event];
+  const previousIndex = LAST_PICK_BY_EVENT[personality.id]?.[event];
+
+  if (!bag || bag.length === 0) {
+    bag = shuffleIndexes(poolSize, rng);
+    if (
+      poolSize > 1 &&
+      previousIndex !== undefined &&
+      bag[0] === previousIndex
+    ) {
+      const swapIdx = 1 + Math.floor(rng() * (poolSize - 1));
+      [bag[0], bag[swapIdx]] = [bag[swapIdx], bag[0]];
+    }
+    EVENT_PICK_BAGS[personality.id]![event] = bag;
+  }
+
+  return bag.shift() as number;
 };
 
 export function getBotMessage(
@@ -419,20 +467,35 @@ export function getBotMessage(
 ): string | null {
   if (event.type === "bot_strategy_shift") {
     const progressive = getEvolvingShiftLine(personality);
-    if (progressive) return applyTemplate(progressive, event);
+    if (progressive && rng() < 0.55) return applyTemplate(progressive, event);
   }
-  const pool = BOT_DIALOGUES[personality.id]?.[event.type];
+  const pool = getDialoguePool(personality, event.type);
   if (!pool || pool.length === 0) return null;
-  const previousIndex = LAST_PICK_BY_EVENT[personality.id]?.[event.type];
-  let index = Math.floor(rng() * pool.length);
-  if (pool.length > 1 && previousIndex !== undefined && index === previousIndex) {
-    index = (index + 1 + Math.floor(rng() * (pool.length - 1))) % pool.length;
-  }
+  const index = pickDialogueIndex(personality, event.type, pool.length, rng);
   if (!LAST_PICK_BY_EVENT[personality.id]) {
     LAST_PICK_BY_EVENT[personality.id] = {};
   }
   LAST_PICK_BY_EVENT[personality.id]![event.type] = index;
   return applyTemplate(pool[index], event);
+}
+
+export function resetBotDialogueState(personalityId?: TetrobotsPersonality["id"]) {
+  if (personalityId) {
+    delete LAST_PICK_BY_EVENT[personalityId];
+    delete EVENT_PICK_BAGS[personalityId];
+    delete STRATEGY_SHIFT_COUNT[personalityId];
+    return;
+  }
+
+  (Object.keys(LAST_PICK_BY_EVENT) as TetrobotsPersonality["id"][]).forEach((id) => {
+    delete LAST_PICK_BY_EVENT[id];
+  });
+  (Object.keys(EVENT_PICK_BAGS) as TetrobotsPersonality["id"][]).forEach((id) => {
+    delete EVENT_PICK_BAGS[id];
+  });
+  (Object.keys(STRATEGY_SHIFT_COUNT) as TetrobotsPersonality["id"][]).forEach((id) => {
+    delete STRATEGY_SHIFT_COUNT[id];
+  });
 }
 
 export function getBotBubbleAccent(personality: TetrobotsPersonality): string {

@@ -1,3 +1,4 @@
+// Donnees statiques de reference pour ce module.
 import type { RvSynergy } from "../types";
 
 export const RV_SYNERGIES: RvSynergy[] = [

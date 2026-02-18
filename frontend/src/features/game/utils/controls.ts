@@ -2,6 +2,7 @@
 
 export type KeyBindings = Record<ControlAction, string>;
 
+// Mapping clavier par défaut utilisé lors de l'initialisation des settings.
 export const DEFAULT_KEY_BINDINGS: KeyBindings = {
   left: "ArrowLeft",
   right: "ArrowRight",
@@ -13,12 +14,18 @@ export const DEFAULT_KEY_BINDINGS: KeyBindings = {
   freeze: "F",
 };
 
+/**
+ * Uniformise la touche brute issue des événements clavier.
+ */
 export const normalizeKey = (key: string) => {
   if (key === " ") return "Space";
   if (key.length === 1) return key.toUpperCase();
   return key;
 };
 
+/**
+ * Convertit une touche en libellé compact lisible dans l'UI.
+ */
 export const formatKeyLabel = (key: string) => {
   switch (key) {
     case "Space":
@@ -42,6 +49,7 @@ export const formatKeyLabel = (key: string) => {
   }
 };
 
+// Labels UI par action gameplay.
 export const controlActionLabels: Record<ControlAction, string> = {
   left: "Déplacer à gauche",
   right: "Déplacer à droite",

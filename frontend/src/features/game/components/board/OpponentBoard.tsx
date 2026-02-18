@@ -2,6 +2,7 @@ type OpponentBoardProps = {
   board: number[][] | null;
 };
 
+// Rendu simplifié du board adverse en Versus (read-only).
 const CELL_SIZE = 12;
 
 export default function OpponentBoard({ board }: OpponentBoardProps) {

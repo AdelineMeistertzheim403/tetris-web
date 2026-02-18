@@ -1,3 +1,4 @@
+// Types partages utilises par ce module.
 import type { MutationContext } from "./MutationContext";
 
 export type Mutation = {

@@ -1,3 +1,4 @@
+// Utilitaires purs reutilisables pour ce module.
 export type ScoreLike = number | string | bigint;
 
 export function formatScore(score: ScoreLike, locale = "fr-FR"): string {

@@ -1,3 +1,4 @@
+// Composant UI SynergyToast.tsx.
 import type { Synergy } from "../../../types/Synergy";
 
 type Props = {

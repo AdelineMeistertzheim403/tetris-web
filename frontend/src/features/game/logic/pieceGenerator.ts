@@ -1,6 +1,9 @@
 ﻿import { COLORS, SHAPES } from "./shapes";
 import type { Piece } from "../types/Piece";
 
+/**
+ * Construit une pièce jouable à partir de sa clé (`I`, `O`, `T`, ...).
+ */
 export function createPieceFromKey(
   key: string,
   colors: Record<string, string> = COLORS
@@ -17,6 +20,7 @@ export function createPieceFromKey(
   };
 }
 
+// Fisher-Yates avec RNG injecté pour reproductibilité (tests/seeds).
 function shuffle<T>(array: T[], rng: () => number): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -26,6 +30,10 @@ function shuffle<T>(array: T[], rng: () => number): T[] {
   return arr;
 }
 
+/**
+ * Générateur "7-bag" de pièces.
+ * Permet aussi d'injecter des séquences forcées (modes spéciaux/tests).
+ */
 export function createBagGenerator(
   rng: () => number,
   colors?: Record<string, string>,

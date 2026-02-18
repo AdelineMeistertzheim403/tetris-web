@@ -738,12 +738,26 @@ router.get("/leaderboard/:mode", leaderboardLimiter, async (req: AuthRequest, re
       const sourceMatches = isRoguelikeVersus
         ? await prisma.roguelikeVersusMatch.findMany({
             orderBy: [{ createdAt: "desc" }],
-            take: 200,
+            take: 400,
           })
         : await prisma.versusMatch.findMany({
             orderBy: [{ createdAt: "desc" }],
-            take: 200,
+            take: 400,
           });
+
+      const toPlayerKey = (userId: number | null, pseudo: string) =>
+        userId ? `id:${userId}` : `pseudo:${pseudo.trim().toLowerCase()}`;
+
+      const latestMatchIdByPlayer = new Map<string, number>();
+      for (const m of sourceMatches) {
+        const p1Key = toPlayerKey(m.player1Id ?? null, m.player1Pseudo);
+        if (!latestMatchIdByPlayer.has(p1Key)) latestMatchIdByPlayer.set(p1Key, m.id);
+
+        const p2Key = toPlayerKey(m.player2Id ?? null, m.player2Pseudo);
+        if (!latestMatchIdByPlayer.has(p2Key)) latestMatchIdByPlayer.set(p2Key, m.id);
+      }
+      const latestMatchIds = new Set(Array.from(latestMatchIdByPlayer.values()));
+      const filteredMatches = sourceMatches.filter((m) => latestMatchIds.has(m.id));
 
       const stats = new Map<number, { wins: number; losses: number }>();
       const bump = (id: number | null | undefined, type: "wins" | "losses") => {
@@ -760,7 +774,7 @@ router.get("/leaderboard/:mode", leaderboardLimiter, async (req: AuthRequest, re
         bump(loserId, "losses");
       });
 
-      const decorated = sourceMatches.map((m) => {
+      const decorated = filteredMatches.map((m) => {
         const p1Stats = m.player1Id ? stats.get(m.player1Id) ?? { wins: 0, losses: 0 } : { wins: 0, losses: 0 };
         const p2Stats = m.player2Id ? stats.get(m.player2Id) ?? { wins: 0, losses: 0 } : { wins: 0, losses: 0 };
         const winnerStats =
@@ -804,12 +818,29 @@ router.get("/leaderboard/:mode", leaderboardLimiter, async (req: AuthRequest, re
 
       const ordered = decorated
         .sort((a, b) => {
-          if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
-          const bWins = b.winnerId === b.player1.userId ? b.player1.wins : b.player2.wins;
-          const aWins = a.winnerId === a.player1.userId ? a.player1.wins : a.player2.wins;
-          return bWins - aWins;
+          const ratio = (wins: number, losses: number) =>
+            wins + losses > 0 ? wins / (wins + losses) : 0;
+
+          const aP1Ratio = ratio(a.player1.wins, a.player1.losses);
+          const aP2Ratio = ratio(a.player2.wins, a.player2.losses);
+          const bP1Ratio = ratio(b.player1.wins, b.player1.losses);
+          const bP2Ratio = ratio(b.player2.wins, b.player2.losses);
+
+          const aBestRatio = Math.max(aP1Ratio, aP2Ratio);
+          const bBestRatio = Math.max(bP1Ratio, bP2Ratio);
+          if (bBestRatio !== aBestRatio) return bBestRatio - aBestRatio;
+
+          const aBestWins = Math.max(a.player1.wins, a.player2.wins);
+          const bBestWins = Math.max(b.player1.wins, b.player2.wins);
+          if (bBestWins !== aBestWins) return bBestWins - aBestWins;
+
+          const aBestLosses = Math.min(a.player1.losses, a.player2.losses);
+          const bBestLosses = Math.min(b.player1.losses, b.player2.losses);
+          if (aBestLosses !== bBestLosses) return aBestLosses - bBestLosses;
+
+          return b.createdAt.getTime() - a.createdAt.getTime();
         })
-        .slice(0, 10);
+        .slice(0, 20);
 
       return res.json(ordered);
     }

@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../logger";
 
+/**
+ * Middleware d'erreur terminal.
+ * Masque les détails internes pour les erreurs 5xx.
+ */
 export function errorHandler(
   err: any,
   _req: Request,
