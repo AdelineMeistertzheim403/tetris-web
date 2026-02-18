@@ -11,18 +11,33 @@ import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode"
 import {
   TETROBOTS_PERSONALITIES,
   getTetrobotsPersonality,
+  type BotStrategy,
   type TetrobotsPersonality,
 } from "../../game/ai/tetrobots";
 import {
   getBotBubbleAccent,
   getBotMessage,
+  getMemoryDialogue,
   getMoodFromEvent,
+  getScoreTrollDialogue,
   type BotMood,
   type BotEvent,
+  type PlayerStyle,
 } from "../../game/ai/tetrobotsChat";
 import { TetrobotsAvatar } from "../components/TetrobotsAvatar";
 import { BotSpeechBubble } from "../components/BotSpeechBubble";
 import { createRng } from "../../../shared/utils/rng";
+import {
+  getTetrobotsProfile,
+  updateTetrobotsProfile,
+  type PlayerProfile,
+} from "../../game/services/scoreService";
+import {
+  TETROBOTS_ADAPTIVE_THRESHOLDS,
+  TETROBOTS_MEMORY_TIMING,
+  countBoardHoles,
+  getLeftBias,
+} from "../../game/ai/tetrobotsMemory";
 import "../../../styles/tetrobots-avatar.css";
 
 function randomMatchId() {
@@ -31,28 +46,10 @@ function randomMatchId() {
 
 const RED_ZONE_HEIGHT = 16;
 const VERSUS_GARBAGE_MAP = [0, 0, 1, 2, 4];
+const MEMORY_TIMING = TETROBOTS_MEMORY_TIMING.VERSUS;
+const ADAPTIVE = TETROBOTS_ADAPTIVE_THRESHOLDS.VERSUS;
 
 type EndResult = { score: number; lines: number };
-
-function countBoardHoles(board: number[][] | null): number {
-  if (!board || board.length === 0 || board[0].length === 0) return 0;
-  const rows = board.length;
-  const cols = board[0].length;
-  let holes = 0;
-
-  for (let x = 0; x < cols; x += 1) {
-    let seenBlock = false;
-    for (let y = 0; y < rows; y += 1) {
-      if (board[y][x] !== 0) {
-        seenBlock = true;
-      } else if (seenBlock) {
-        holes += 1;
-      }
-    }
-  }
-
-  return holes;
-}
 
 function getStackHeight(board: number[][]): number {
   const rows = board.length;
@@ -511,6 +508,35 @@ function VersusTetrobots() {
   const comebackAnnouncedRef = useRef(false);
   const playerStackHeightRef = useRef(0);
   const botStackHeightRef = useRef(0);
+  const playerStackSumRef = useRef(0);
+  const playerStackSamplesRef = useRef(0);
+  const playerAggressionScoreRef = useRef(0);
+  const botStrategyRef = useRef<BotStrategy>("neutral");
+  const botStrategyShiftCountRef = useRef(0);
+  const aggressiveDetectAnnouncedRef = useRef(false);
+  const defensiveDetectAnnouncedRef = useRef(false);
+  const comboSpamAnnouncedRef = useRef(false);
+  const highRiskAnnouncedRef = useRef(false);
+  const exploitingPatternAnnouncedRef = useRef(false);
+  const analysisCompleteAnnouncedRef = useRef(false);
+  const lastAdaptiveEventAtRef = useRef(0);
+  const botSawPressureRef = useRef(false);
+  const botSawDefensiveRef = useRef(false);
+  const botTriggeredPanicRef = useRef(false);
+  const botExploitPatternCountRef = useRef(0);
+  const botAnalysisCompleteRef = useRef(false);
+  const botFailedAdaptationRef = useRef(false);
+  const playerProfileRef = useRef<PlayerProfile | null>(null);
+  const playerStyleRef = useRef<PlayerStyle>("balanced");
+  const memoryDialogueTriggeredRef = useRef(false);
+  const botStyleDetectedRef = useRef(false);
+  const sameBotMatchesRef = useRef(0);
+  const redZoneTimeMsRef = useRef(0);
+  const lastBoardSampleAtRef = useRef<number | null>(null);
+  const inRedZoneRef = useRef(false);
+  const comboSampleCountRef = useRef(0);
+  const comboValueSumRef = useRef(0);
+  const lastTrollAtRef = useRef(0);
   const botMoodTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useMarkVersusVisited();
@@ -538,6 +564,39 @@ function VersusTetrobots() {
     if (!message) return;
     botLastMessageAtRef.current = now;
     setBotMessage(message);
+  };
+
+  const emitCustomBotLine = (
+    message: string,
+    mood: BotMood = "thinking",
+    bypassCooldown = false
+  ) => {
+    const now = Date.now();
+    if (!bypassCooldown && now - botLastMessageAtRef.current < botMessageCooldownMs) return;
+    botLastMessageAtRef.current = now;
+    setBotMood(mood);
+    if (botMoodTimeoutRef.current) clearTimeout(botMoodTimeoutRef.current);
+    if (mood !== "thinking") {
+      botMoodTimeoutRef.current = setTimeout(() => setBotMood("idle"), 1300);
+    }
+    setBotMessage(message);
+  };
+
+  const canEmitAdaptiveEvent = (
+    options: { minMatchMs?: number; minLines?: number; minIntervalMs?: number } = {}
+  ) => {
+    const {
+      minMatchMs = MEMORY_TIMING.adaptiveMinMatchMs,
+      minLines = MEMORY_TIMING.adaptiveMinLines,
+      minIntervalMs = MEMORY_TIMING.adaptiveEventCooldownMs,
+    } = options;
+    if (!started || matchOver) return false;
+    if (playerLiveLinesRef.current < minLines) return false;
+    const now = Date.now();
+    if (startTimeRef.current && now - startTimeRef.current < minMatchMs) return false;
+    if (now - lastAdaptiveEventAtRef.current < minIntervalMs) return false;
+    lastAdaptiveEventAtRef.current = now;
+    return true;
   };
 
   const countTrue = (values: Record<string, boolean>) =>
@@ -576,6 +635,33 @@ function VersusTetrobots() {
     comebackAnnouncedRef.current = false;
     playerStackHeightRef.current = 0;
     botStackHeightRef.current = 0;
+    playerStackSumRef.current = 0;
+    playerStackSamplesRef.current = 0;
+    playerAggressionScoreRef.current = 0;
+    botStrategyRef.current = "neutral";
+    botStrategyShiftCountRef.current = 0;
+    aggressiveDetectAnnouncedRef.current = false;
+    defensiveDetectAnnouncedRef.current = false;
+    comboSpamAnnouncedRef.current = false;
+    highRiskAnnouncedRef.current = false;
+    exploitingPatternAnnouncedRef.current = false;
+    analysisCompleteAnnouncedRef.current = false;
+    lastAdaptiveEventAtRef.current = 0;
+    botSawPressureRef.current = false;
+    botSawDefensiveRef.current = false;
+    botTriggeredPanicRef.current = false;
+    botExploitPatternCountRef.current = 0;
+    botAnalysisCompleteRef.current = false;
+    botFailedAdaptationRef.current = false;
+    memoryDialogueTriggeredRef.current = false;
+    botStyleDetectedRef.current = false;
+    sameBotMatchesRef.current = 0;
+    redZoneTimeMsRef.current = 0;
+    lastBoardSampleAtRef.current = null;
+    inRedZoneRef.current = false;
+    comboSampleCountRef.current = 0;
+    comboValueSumRef.current = 0;
+    lastTrollAtRef.current = 0;
     setBotMessage(null);
     setBotMood("idle");
   };
@@ -593,6 +679,36 @@ function VersusTetrobots() {
       comebackAnnouncedRef.current = false;
     }
   };
+
+  useEffect(() => {
+    if (!started || matchOver) return;
+    let cancelled = false;
+    getTetrobotsProfile()
+      .then(({ profile, style }) => {
+        if (cancelled) return;
+        playerProfileRef.current = profile;
+        playerStyleRef.current = style;
+        const sameBotMatches =
+          botPersonalityId === "rookie"
+            ? profile.matchesVsRookie
+            : botPersonalityId === "balanced"
+              ? profile.matchesVsBalanced
+              : profile.matchesVsApex;
+        sameBotMatchesRef.current = sameBotMatches;
+        if (profile.totalMatches >= 1) {
+          const line = getMemoryDialogue(botPersonality, style);
+          emitCustomBotLine(line, "thinking", true);
+          memoryDialogueTriggeredRef.current = true;
+          botStyleDetectedRef.current = true;
+        }
+      })
+      .catch(() => {
+        // mode offline/fallback: pas bloquant
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [botPersonality, botPersonalityId, matchOver, started]);
 
   useEffect(() => {
     if (!started) return;
@@ -654,6 +770,20 @@ function VersusTetrobots() {
     const level = levelRef.current;
     const playerHoles = countBoardHoles(playerBoardRef.current);
     const botHoles = countBoardHoles(botBoardRef.current);
+    const adaptiveTriggered = botStrategyShiftCountRef.current > 0;
+    const comboAvg =
+      comboSampleCountRef.current > 0
+        ? comboValueSumRef.current / comboSampleCountRef.current
+        : 0;
+    const totalRunMs = Math.max(1, durationMs);
+    const redZoneRate = Math.max(0, Math.min(1, redZoneTimeMsRef.current / totalRunMs));
+    const predictedSameBotMatches = (() => {
+      const p = playerProfileRef.current;
+      if (!p) return 1;
+      if (botPersonalityId === "rookie") return p.matchesVsRookie + 1;
+      if (botPersonalityId === "balanced") return p.matchesVsBalanced + 1;
+      return p.matchesVsApex + 1;
+    })();
     const wonVsRookie = win && botPersonalityId === "rookie";
     const wonVsBalanced = win && botPersonalityId === "balanced";
     const wonVsApex = win && botPersonalityId === "apex";
@@ -727,8 +857,58 @@ function VersusTetrobots() {
           botPersonalityWinsRef.current.size >= TETROBOTS_PERSONALITIES.length,
         bot_apex_win_10: next.botApexWins >= 10,
         bot_outscore_lines_apex: wonVsApex && playerResult.lines > botResult.lines,
+        bot_adaptive_match_1: true,
+        bot_adaptive_win: win,
+        bot_win_after_strategy_shift: win && botStrategyShiftCountRef.current > 0,
+        bot_win_vs_pressure_mode: win && botSawPressureRef.current,
+        bot_win_vs_defensive_mode: win && botSawDefensiveRef.current,
+        bot_trigger_panic: botTriggeredPanicRef.current,
+        bot_exploit_pattern_3: botExploitPatternCountRef.current >= 3,
+        bot_forced_multiple_strategy_shifts: botStrategyShiftCountRef.current >= 3,
+        bot_adaptive_apex_win: wonVsApex,
+        bot_adaptive_lines_50:
+          linesSentRef.current >= 50 && botStrategyShiftCountRef.current > 0,
+        bot_no_strategy_change_win: win && botStrategyShiftCountRef.current === 0,
+        bot_win_after_5_adaptations: win && botStrategyShiftCountRef.current >= 5,
+        bot_adapt_failed_analysis: win && botAnalysisCompleteRef.current && botFailedAdaptationRef.current,
+        bot_adapt_all_personalities_session:
+          botPersonalityWinsRef.current.size >= TETROBOTS_PERSONALITIES.length,
+        bot_memory_dialogue: memoryDialogueTriggeredRef.current,
+        bot_detected_style: botStyleDetectedRef.current,
+        win_after_bot_adapt: win && adaptiveTriggered,
+        bot_10_matches_same: predictedSameBotMatches >= 10,
       },
     });
+
+    updateTetrobotsProfile({
+      avgHeight:
+        playerStackSamplesRef.current > 0
+          ? playerStackSumRef.current / playerStackSamplesRef.current
+          : playerStackHeightRef.current,
+      holes: playerHoles,
+      comboAvg,
+      tetrisRate:
+        playerLiveLinesRef.current > 0
+          ? tetrisCountRef.current / playerLiveLinesRef.current
+          : 0,
+      linesSent: linesSentRef.current,
+      linesSurvived: playerLiveLinesRef.current,
+      redZoneTime: redZoneRate,
+      leftBias: getLeftBias(playerBoardRef.current),
+      usedHold: holdCountRef.current > 0,
+      botPersonality: botPersonalityId,
+    })
+      .then(({ profile, style }) => {
+        playerProfileRef.current = profile;
+        playerStyleRef.current = style;
+        if (botPersonalityId === "rookie") sameBotMatchesRef.current = profile.matchesVsRookie;
+        else if (botPersonalityId === "balanced")
+          sameBotMatchesRef.current = profile.matchesVsBalanced;
+        else sameBotMatchesRef.current = profile.matchesVsApex;
+      })
+      .catch(() => {
+        // non-bloquant pour la fin de match
+      });
 
     finalizedRef.current = true;
   }, [botPersonalityId, botResult, checkAchievements, matchOver, playerResult, updateStats]);
@@ -853,24 +1033,51 @@ function VersusTetrobots() {
           }}
           onLinesCleared={(linesCleared) => {
             if (linesCleared > 0) {
+              playerAggressionScoreRef.current = Math.max(
+                0,
+                playerAggressionScoreRef.current * 0.82
+              );
               playerLiveLinesRef.current += linesCleared;
               playerChainRef.current += 1;
               comboStreakRef.current += linesCleared;
+              playerAggressionScoreRef.current += linesCleared * 2;
               if (comboStreakRef.current > maxComboRef.current) {
                 maxComboRef.current = comboStreakRef.current;
               }
               if (playerChainRef.current >= 2) {
+                playerAggressionScoreRef.current += playerChainRef.current;
+                comboSampleCountRef.current += 1;
+                comboValueSumRef.current += playerChainRef.current;
                 emitBotEvent({ type: "player_combo", value: playerChainRef.current });
+                if (
+                  playerChainRef.current >= (ADAPTIVE.comboSpam.minChain ?? 0) &&
+                  !comboSpamAnnouncedRef.current
+                ) {
+                  if (
+                    comboStreakRef.current >= ADAPTIVE.comboSpam.minComboStreak &&
+                    playerAggressionScoreRef.current >= ADAPTIVE.comboSpam.minAggression &&
+                    canEmitAdaptiveEvent({
+                      minMatchMs: ADAPTIVE.comboSpam.minMatchMs,
+                      minLines: ADAPTIVE.comboSpam.minLines,
+                    })
+                  ) {
+                    comboSpamAnnouncedRef.current = true;
+                    emitBotEvent({ type: "bot_detect_combo_spam" });
+                  }
+                }
               }
             } else {
+              playerAggressionScoreRef.current *= 0.75;
               playerChainRef.current = 0;
               comboStreakRef.current = 0;
             }
             if (linesCleared === 4) {
               playerB2BRef.current += 1;
               tetrisCountRef.current += 1;
+              playerAggressionScoreRef.current += 4;
               emitBotEvent({ type: "player_tetris" });
               if (playerB2BRef.current >= 2) {
+                playerAggressionScoreRef.current += 2;
                 emitBotEvent({ type: "player_back_to_back" });
               }
             } else if (linesCleared > 0) {
@@ -879,14 +1086,38 @@ function VersusTetrobots() {
           }}
           onBoardUpdate={(board) => {
             playerBoardRef.current = board;
+            const now = Date.now();
+            const previousTs = lastBoardSampleAtRef.current;
+            if (previousTs !== null && inRedZoneRef.current) {
+              redZoneTimeMsRef.current += Math.max(0, now - previousTs);
+            }
+            lastBoardSampleAtRef.current = now;
             const height = getStackHeight(board);
             playerStackHeightRef.current = height;
+            playerStackSumRef.current += height;
+            playerStackSamplesRef.current += 1;
+            inRedZoneRef.current = height >= RED_ZONE_HEIGHT;
             if (height > maxStackHeightRef.current) {
               maxStackHeightRef.current = height;
             }
             if (height >= RED_ZONE_HEIGHT && !playerHighStackAnnouncedRef.current) {
               playerHighStackAnnouncedRef.current = true;
               emitBotEvent({ type: "player_high_stack" });
+              if (!highRiskAnnouncedRef.current) {
+                const bothNearDanger =
+                  playerStackHeightRef.current >= RED_ZONE_HEIGHT &&
+                  botStackHeightRef.current >= RED_ZONE_HEIGHT - ADAPTIVE.highRisk.botDangerBuffer;
+                if (
+                  bothNearDanger &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.highRisk.minMatchMs,
+                    minLines: ADAPTIVE.highRisk.minLines,
+                  })
+                ) {
+                  highRiskAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_detect_high_risk" });
+                }
+              }
             }
             const nearDanger =
               playerStackHeightRef.current >= RED_ZONE_HEIGHT - 1 &&
@@ -899,8 +1130,28 @@ function VersusTetrobots() {
           onScoreChange={(score) => {
             playerLiveScoreRef.current = score;
             maybeEmitComeback();
+            const now = Date.now();
+            if (now - lastTrollAtRef.current >= MEMORY_TIMING.trollCooldownMs) {
+              const troll = getScoreTrollDialogue(
+                botPersonality,
+                playerLiveScoreRef.current,
+                botLiveScoreRef.current
+              );
+              if (troll) {
+                emitCustomBotLine(
+                  troll,
+                  botPersonality.id === "apex" ? "evil" : "thinking"
+                );
+                lastTrollAtRef.current = now;
+              }
+            }
           }}
           onLocalGameOver={(score, lines) => {
+            const now = Date.now();
+            if (lastBoardSampleAtRef.current !== null && inRedZoneRef.current) {
+              redZoneTimeMsRef.current += Math.max(0, now - lastBoardSampleAtRef.current);
+            }
+            lastBoardSampleAtRef.current = now;
             setPlayerResult({ score, lines });
             if (startTimeRef.current) {
               runDurationRef.current = Date.now() - startTimeRef.current;
@@ -956,6 +1207,13 @@ function VersusTetrobots() {
           rng={botRng}
           keyboardControlsEnabled={false}
           tetrobotsPersonalityId={botPersonalityId}
+          tetrobotsAdaptiveContext={{
+            playerAvgStackHeight:
+              playerStackSamplesRef.current > 0
+                ? playerStackSumRef.current / playerStackSamplesRef.current
+                : playerStackHeightRef.current,
+            playerAggressionScore: playerAggressionScoreRef.current,
+          }}
           incomingGarbage={botIncomingGarbage}
           onGarbageConsumed={() => setBotIncomingGarbage(0)}
           onConsumeLines={(lines) => {
@@ -972,10 +1230,119 @@ function VersusTetrobots() {
               }
             }
           }}
-          onTetrobotsPlan={({ isBlunder }) => {
+          onTetrobotsPlan={({ isBlunder, strategy }) => {
             if (isBlunder) {
               botBlunderRef.current = true;
               emitBotEvent({ type: "bot_blunder" });
+              if (botStrategyRef.current !== "neutral") {
+                if (
+                  botStrategyShiftCountRef.current >= ADAPTIVE.failedAdaptation.minStrategyShifts &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.failedAdaptation.minMatchMs,
+                    minLines: ADAPTIVE.failedAdaptation.minLines,
+                  })
+                ) {
+                  botFailedAdaptationRef.current = true;
+                  emitBotEvent({ type: "bot_failed_adaptation" });
+                }
+              }
+            }
+            if (botStrategyRef.current !== strategy) {
+              const previousStrategy = botStrategyRef.current;
+              botStrategyRef.current = strategy;
+              botStrategyShiftCountRef.current += 1;
+              if (strategy === "pressure") {
+                botSawPressureRef.current = true;
+                botExploitPatternCountRef.current += 1;
+              }
+              if (strategy === "defensive") {
+                botSawDefensiveRef.current = true;
+              }
+              if (
+                canEmitAdaptiveEvent({
+                  minMatchMs: ADAPTIVE.strategyShift.minMatchMs,
+                  minLines: ADAPTIVE.strategyShift.minLines,
+                })
+              ) {
+                emitBotEvent({ type: "bot_strategy_shift", from: previousStrategy, to: strategy });
+              }
+              if (strategy === "panic") {
+                botTriggeredPanicRef.current = true;
+                if (
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.panicMode.minMatchMs,
+                    minLines: ADAPTIVE.panicMode.minLines,
+                    minIntervalMs: ADAPTIVE.panicMode.minIntervalMs,
+                  })
+                ) {
+                  emitBotEvent({ type: "bot_panic_mode" });
+                }
+              } else if (previousStrategy === "panic") {
+                if (
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.recovered.minMatchMs,
+                    minLines: ADAPTIVE.recovered.minLines,
+                    minIntervalMs: ADAPTIVE.recovered.minIntervalMs,
+                  })
+                ) {
+                  emitBotEvent({ type: "bot_recovered" });
+                }
+              }
+              if (strategy === "defensive" && !aggressiveDetectAnnouncedRef.current) {
+                if (
+                  playerAggressionScoreRef.current >= ADAPTIVE.detectAggressive.minAggression &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.detectAggressive.minMatchMs,
+                    minLines: ADAPTIVE.detectAggressive.minLines,
+                  })
+                ) {
+                  aggressiveDetectAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_detect_aggressive_player" });
+                }
+              }
+              if (strategy === "aggressive" && !defensiveDetectAnnouncedRef.current) {
+                const avgHeight =
+                  playerStackSamplesRef.current > 0
+                    ? playerStackSumRef.current / playerStackSamplesRef.current
+                    : playerStackHeightRef.current;
+                if (
+                  avgHeight <= ADAPTIVE.detectDefensive.maxAvgHeight &&
+                  playerAggressionScoreRef.current <= ADAPTIVE.detectDefensive.maxAggression &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.detectDefensive.minMatchMs,
+                    minLines: ADAPTIVE.detectDefensive.minLines,
+                  })
+                ) {
+                  defensiveDetectAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_detect_defensive_player" });
+                }
+              }
+              if (strategy === "pressure" && !exploitingPatternAnnouncedRef.current) {
+                if (
+                  botStrategyShiftCountRef.current >= ADAPTIVE.exploitPattern.minStrategyShifts &&
+                  playerStackSamplesRef.current >= ADAPTIVE.exploitPattern.minSamples &&
+                  canEmitAdaptiveEvent({
+                    minMatchMs: ADAPTIVE.exploitPattern.minMatchMs,
+                    minLines: ADAPTIVE.exploitPattern.minLines,
+                  })
+                ) {
+                  exploitingPatternAnnouncedRef.current = true;
+                  emitBotEvent({ type: "bot_exploiting_player_pattern" });
+                }
+              }
+              if (
+                botStrategyShiftCountRef.current >= ADAPTIVE.analysisComplete.minStrategyShifts &&
+                !analysisCompleteAnnouncedRef.current &&
+                canEmitAdaptiveEvent({
+                  minMatchMs: ADAPTIVE.analysisComplete.minMatchMs,
+                  minLines: ADAPTIVE.analysisComplete.minLines,
+                  minIntervalMs: ADAPTIVE.analysisComplete.minIntervalMs,
+                })
+              ) {
+                analysisCompleteAnnouncedRef.current = true;
+                botAnalysisCompleteRef.current = true;
+                emitBotEvent({ type: "bot_analysis_complete" });
+              }
             }
           }}
           onBoardUpdate={(board) => {
@@ -986,6 +1353,21 @@ function VersusTetrobots() {
           onScoreChange={(score) => {
             botLiveScoreRef.current = score;
             maybeEmitComeback();
+            const now = Date.now();
+            if (now - lastTrollAtRef.current >= MEMORY_TIMING.trollCooldownMs) {
+              const troll = getScoreTrollDialogue(
+                botPersonality,
+                playerLiveScoreRef.current,
+                botLiveScoreRef.current
+              );
+              if (troll) {
+                emitCustomBotLine(
+                  troll,
+                  botPersonality.id === "apex" ? "evil" : "thinking"
+                );
+                lastTrollAtRef.current = now;
+              }
+            }
           }}
           onLocalGameOver={(score, lines) => {
             setBotResult({ score, lines });

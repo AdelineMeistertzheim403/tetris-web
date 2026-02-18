@@ -69,6 +69,19 @@ export const brickfallVersusMatchSchema = z.object({
     .length(2),
 });
 
+export const botProfileUpdateSchema = z.object({
+  avgHeight: z.number().min(0).max(40),
+  holes: z.number().min(0).max(60),
+  comboAvg: z.number().min(0).max(20),
+  tetrisRate: z.number().min(0).max(1),
+  linesSent: z.number().min(0).max(500),
+  linesSurvived: z.number().min(0).max(500),
+  redZoneTime: z.number().min(0).max(1),
+  leftBias: z.number().min(0).max(1).optional(),
+  usedHold: z.boolean().optional(),
+  botPersonality: z.enum(["rookie", "balanced", "apex"]).optional(),
+});
+
 export const roguelikeStartSchema = z.object({
   seed: z.string().trim().min(1).max(64),
   state: z.record(z.string(), z.any()).optional(), // valider la structure exacte cote front, borne ici au type et a la taille

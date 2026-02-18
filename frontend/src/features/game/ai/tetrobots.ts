@@ -24,6 +24,19 @@ type HeuristicWeights = {
   linesCleared: number;
 };
 
+export type BotStrategy =
+  | "neutral"
+  | "aggressive"
+  | "defensive"
+  | "pressure"
+  | "panic";
+
+export type TetrobotsAdaptiveContext = {
+  playerAvgStackHeight: number;
+  playerAggressionScore: number;
+};
+type TetrobotsPersonalityId = TetrobotsPersonality["id"];
+
 export type TetrobotsPersonality = {
   id: "rookie" | "balanced" | "apex";
   name: string;
@@ -40,6 +53,7 @@ export type TetrobotsPlan = {
   targetX: number;
   targetShape: number[][];
   isBlunder?: boolean;
+  strategy: BotStrategy;
 };
 
 const PERSONALITIES: TetrobotsPersonality[] = [
@@ -173,6 +187,107 @@ const evaluateBoard = (
   );
 };
 
+const computeBotMaxHeight = (board: number[][]) => {
+  const heights = getColumnHeights(board);
+  return heights.reduce((max, h) => (h > max ? h : max), 0);
+};
+
+type StrategyThresholds = {
+  pressureHeight: number;
+  panicHeight: number;
+  defensiveAggression: number;
+  aggressiveHeight: number;
+  aggressiveAggressionCap: number;
+};
+
+const STRATEGY_THRESHOLDS: Record<TetrobotsPersonalityId, StrategyThresholds> = {
+  rookie: {
+    pressureHeight: 18.3,
+    panicHeight: 17,
+    defensiveAggression: 34,
+    aggressiveHeight: 7,
+    aggressiveAggressionCap: 7,
+  },
+  balanced: {
+    pressureHeight: 17.2,
+    panicHeight: 18,
+    defensiveAggression: 22,
+    aggressiveHeight: 8,
+    aggressiveAggressionCap: 9,
+  },
+  apex: {
+    pressureHeight: 15.8,
+    panicHeight: 19,
+    defensiveAggression: 30,
+    aggressiveHeight: 9.5,
+    aggressiveAggressionCap: 14,
+  },
+};
+
+const STRATEGY_WEIGHT_DELTAS: Record<
+  TetrobotsPersonalityId,
+  Partial<Record<BotStrategy, Partial<HeuristicWeights>>>
+> = {
+  rookie: {
+    aggressive: { linesCleared: 0.25, holes: -0.03 },
+    pressure: { linesCleared: 0.35, maxHeight: -0.03 },
+    defensive: { holes: 0.25, maxHeight: 0.2, totalHeight: 0.05 },
+    panic: { holes: 0.35, maxHeight: 0.35, totalHeight: 0.18, linesCleared: -0.08 },
+  },
+  balanced: {
+    aggressive: { linesCleared: 0.45, bumpiness: -0.02 },
+    pressure: { linesCleared: 0.6, maxHeight: -0.05 },
+    defensive: { holes: 0.3, maxHeight: 0.25, totalHeight: 0.08 },
+    panic: { holes: 0.45, maxHeight: 0.4, totalHeight: 0.2 },
+  },
+  apex: {
+    aggressive: { linesCleared: 0.75, holes: -0.06, totalHeight: -0.03 },
+    pressure: { linesCleared: 0.9, maxHeight: -0.08 },
+    defensive: { holes: 0.2, maxHeight: 0.12 },
+    panic: { holes: 0.32, maxHeight: 0.25, totalHeight: 0.12, linesCleared: 0.15 },
+  },
+};
+
+export function computeStrategy(
+  personalityId: TetrobotsPersonalityId,
+  player: TetrobotsAdaptiveContext,
+  bot: { maxHeight: number }
+): BotStrategy {
+  const thresholds = STRATEGY_THRESHOLDS[personalityId];
+  const aggression = Math.max(0, Math.min(60, player.playerAggressionScore));
+  if (bot.maxHeight >= thresholds.panicHeight) return "panic";
+  if (player.playerAvgStackHeight >= thresholds.pressureHeight) return "pressure";
+  if (aggression >= thresholds.defensiveAggression) return "defensive";
+  if (
+    player.playerAvgStackHeight <= thresholds.aggressiveHeight &&
+    aggression <= thresholds.aggressiveAggressionCap
+  ) {
+    return "aggressive";
+  }
+  return "neutral";
+}
+
+const getStrategyWeights = (
+  personalityId: TetrobotsPersonalityId,
+  baseWeights: HeuristicWeights,
+  strategy: BotStrategy
+): HeuristicWeights => {
+  const weights = { ...baseWeights };
+  const delta = STRATEGY_WEIGHT_DELTAS[personalityId][strategy];
+  if (!delta) return weights;
+  if (delta.totalHeight) weights.totalHeight += delta.totalHeight;
+  if (delta.holes) weights.holes += delta.holes;
+  if (delta.bumpiness) weights.bumpiness += delta.bumpiness;
+  if (delta.maxHeight) weights.maxHeight += delta.maxHeight;
+  if (delta.linesCleared) weights.linesCleared += delta.linesCleared;
+  weights.totalHeight = Math.max(0.05, weights.totalHeight);
+  weights.holes = Math.max(0.05, weights.holes);
+  weights.bumpiness = Math.max(0.02, weights.bumpiness);
+  weights.maxHeight = Math.max(0.05, weights.maxHeight);
+  weights.linesCleared = Math.max(0.2, weights.linesCleared);
+  return weights;
+};
+
 export const TETROBOTS_PERSONALITIES = PERSONALITIES;
 
 export function getTetrobotsPersonality(
@@ -186,6 +301,7 @@ export function computeTetrobotsPlan(
   board: number[][],
   piece: Piece,
   personality: TetrobotsPersonality,
+  adaptiveContext?: TetrobotsAdaptiveContext,
   rng: () => number = Math.random
 ): TetrobotsPlan | null {
   // 1) Génère tous les placements atteignables (x + rotation),
@@ -195,6 +311,10 @@ export function computeTetrobotsPlan(
   const rotations = getUniqueRotations(piece.shape);
   const cols = board[0]?.length ?? 10;
   const candidates: Array<{ score: number; plan: TetrobotsPlan }> = [];
+  const strategy = adaptiveContext
+    ? computeStrategy(personality.id, adaptiveContext, { maxHeight: computeBotMaxHeight(board) })
+    : "neutral";
+  const dynamicWeights = getStrategyWeights(personality.id, personality.weights, strategy);
 
   rotations.forEach((shape) => {
     const shapeWidth = shape[0]?.length ?? 0;
@@ -211,8 +331,8 @@ export function computeTetrobotsPlan(
 
       const merged = mergePiece(board, shape, x, dropY);
       const { newBoard, linesCleared } = clearFullLines(merged);
-      const score = evaluateBoard(newBoard, linesCleared, personality.weights);
-      candidates.push({ score, plan: { targetX: x, targetShape: shape } });
+      const score = evaluateBoard(newBoard, linesCleared, dynamicWeights);
+      candidates.push({ score, plan: { targetX: x, targetShape: shape, strategy } });
     }
   });
 
