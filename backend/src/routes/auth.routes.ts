@@ -1,6 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { register, login, getMe } from "../controllers/auth.controller";
+import { register, login, getMe, getSettings, saveSettings } from "../controllers/auth.controller";
 import { verifyToken } from "../middleware/auth.middleware";
 import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../utils/authCookie";
 
@@ -18,6 +18,8 @@ const authLimiter = rateLimit({
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
 router.get("/me", verifyToken, getMe);
+router.get("/settings", verifyToken, getSettings);
+router.put("/settings", verifyToken, saveSettings);
 
 // Deconnexion (facultative)
 router.post("/logout", (_req, res) => {

@@ -29,6 +29,51 @@ export const loginSchema = z.object({
   password: z.string().min(6).max(100),
 });
 
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+
+const settingsKeyBindingsSchema = z.object({
+  left: z.string().trim().min(1).max(32),
+  right: z.string().trim().min(1).max(32),
+  down: z.string().trim().min(1).max(32),
+  rotate: z.string().trim().min(1).max(32),
+  harddrop: z.string().trim().min(1).max(32),
+  hold: z.string().trim().min(1).max(32),
+  bomb: z.string().trim().min(1).max(32),
+  freeze: z.string().trim().min(1).max(32),
+});
+
+const settingsUiColorsSchema = z.object({
+  accent: hexColorSchema,
+  accentSecondary: hexColorSchema,
+  accentWarm: hexColorSchema,
+  panelBg: hexColorSchema,
+  boardBg: hexColorSchema,
+  boardBorder: hexColorSchema,
+  text: hexColorSchema,
+  muted: hexColorSchema,
+});
+
+const settingsPieceColorsSchema = z.object({
+  I: hexColorSchema,
+  O: hexColorSchema,
+  T: hexColorSchema,
+  S: hexColorSchema,
+  Z: hexColorSchema,
+  L: hexColorSchema,
+  J: hexColorSchema,
+});
+
+export const userSettingsSchema = z.object({
+  keyBindings: settingsKeyBindingsSchema,
+  reducedMotion: z.boolean(),
+  reducedNeon: z.boolean(),
+  uiColors: settingsUiColorsSchema,
+  pieceColors: settingsPieceColorsSchema,
+});
+
 export const scoreSchema = z.object({
   value: z.number().int().min(0).max(9999999),
   level: z.number().int().min(0).max(999),
