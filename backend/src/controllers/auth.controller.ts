@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { Prisma } from "@prisma/client";
 import prisma from "../prisma/client";
-import { registerSchema, loginSchema } from "../utils/validation";
+import { registerSchema, loginSchema, userSettingsSchema } from "../utils/validation";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { env } from "../config";
 import { logger } from "../logger";
@@ -123,5 +124,71 @@ export const getMe = async (req: AuthRequest, res: Response) => {
   } catch (err: any) {
     logger.error({ err }, "Erreur getMe");
     res.status(500).json({ error: "Erreur lors de la recuperation du profil" });
+  }
+};
+
+/**
+ * Retourne les paramètres utilisateur persistés côté serveur.
+ */
+export const getSettings = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const row = await prisma.userSettings.findUnique({
+      where: { userId },
+      select: { settings: true },
+    });
+
+    const parsed = userSettingsSchema.safeParse(row?.settings);
+    if (!parsed.success) {
+      return res.json({ settings: null });
+    }
+
+    return res.json({ settings: parsed.data });
+  } catch (err: any) {
+    logger.error({ err }, "Erreur getSettings");
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la recuperation des parametres" });
+  }
+};
+
+/**
+ * Sauvegarde les paramètres utilisateur côté serveur.
+ */
+export const saveSettings = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const parsed = userSettingsSchema.safeParse(req.body?.settings);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Donnees invalides",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const saved = await prisma.userSettings.upsert({
+      where: { userId },
+      update: { settings: parsed.data as Prisma.InputJsonValue },
+      create: {
+        userId,
+        settings: parsed.data as Prisma.InputJsonValue,
+      },
+      select: { settings: true },
+    });
+
+    return res.json({ settings: saved.settings });
+  } catch (err: any) {
+    logger.error({ err }, "Erreur saveSettings");
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la sauvegarde des parametres" });
   }
 };

@@ -28,10 +28,20 @@ model User {
   puzzleSolutions PuzzleSolution[]
   achievements UserAchievement[]
   achievementStats UserAchievementStats?
+  settings UserSettings?
   brickfallSoloProgress BrickfallSoloProgress?
   brickfallSoloCustomLevels BrickfallSoloCustomLevel[]
   botPlayerProfile BotPlayerProfile?
   createdAt DateTime @default(now())
+}
+
+model UserSettings {
+  userId    Int      @id
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model BotPlayerProfile {
