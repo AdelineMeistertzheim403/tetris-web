@@ -4,12 +4,15 @@
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { COLORS } from "../../game/logic/shapes";
 import { DEFAULT_KEY_BINDINGS, normalizeKey, type KeyBindings } from "../../game/utils/controls";
 import type { Settings, UiColors, PieceColors } from "../types/Settings";
+import { useAuth } from "../../auth/context/AuthContext";
+import { fetchUserSettings, saveUserSettings } from "../services/settingsService";
 
 // Clé de persistance locale pour conserver les préférences utilisateur.
 const STORAGE_KEY = "tetris-user-settings";
@@ -96,6 +99,7 @@ const mergeSettings = (raw: Partial<Settings> | null): Settings => {
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
   const [settings, setSettingsState] = useState<Settings>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -105,6 +109,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       return DEFAULT_SETTINGS;
     }
   });
+  const loadedUserIdRef = useRef<number | null>(null);
+  const canPersistRemoteRef = useRef(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setSettings = useCallback((next: Settings) => {
     setSettingsState(next);
@@ -157,6 +164,65 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       // ignore persistence errors
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const userId = typeof user?.id === "number" ? user.id : null;
+    if (!userId) {
+      loadedUserIdRef.current = null;
+      canPersistRemoteRef.current = false;
+      return;
+    }
+    if (loadedUserIdRef.current === userId && canPersistRemoteRef.current) return;
+
+    let cancelled = false;
+    loadedUserIdRef.current = userId;
+    canPersistRemoteRef.current = false;
+
+    fetchUserSettings()
+      .then((remoteSettings) => {
+        if (cancelled) return;
+        if (remoteSettings) {
+          setSettingsState(mergeSettings(remoteSettings));
+        }
+      })
+      .catch(() => {
+        // fallback localStorage seulement
+      })
+      .finally(() => {
+        if (cancelled) return;
+        canPersistRemoteRef.current = true;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user?.id]);
+
+  useEffect(() => {
+    if (loading) return;
+    const userId = typeof user?.id === "number" ? user.id : null;
+    if (!userId || !canPersistRemoteRef.current) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveUserSettings(settings).catch(() => {
+        // fallback localStorage seulement
+      });
+    }, 300);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
+  }, [loading, settings, user?.id]);
 
   useEffect(() => {
     const root = document.documentElement;
