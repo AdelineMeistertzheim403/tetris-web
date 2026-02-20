@@ -31,6 +31,9 @@ export default function Navbar() {
             <Link to="/achievements" className="neon-link text-pink-400">
               Succès
             </Link>
+            <Link to="/tetrobots" className="neon-link text-pink-400">
+              Tetrobots
+            </Link>
             <Link to="/settings" className="neon-link text-pink-400">
               Paramètres
             </Link>
@@ -45,6 +48,9 @@ export default function Navbar() {
             </Link>
             <Link to="/leaderboard" className="neon-link text-pink-400">
               Classement
+            </Link>
+            <Link to="/tetrobots" className="neon-link text-pink-400">
+              Tetrobots
             </Link>
           </>
         )}
