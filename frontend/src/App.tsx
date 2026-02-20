@@ -22,6 +22,7 @@ import Settings from "./features/settings/pages/Settings";
 import PuzzleSelect from "./features/puzzle/pages/PuzzleSelect";
 import PuzzleRun from "./features/puzzle/pages/PuzzleRun";
 import TetromazePage from "./features/tetromaze/pages/TetromazePage";
+import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
 
@@ -66,6 +67,7 @@ function App() {
       <Route path="/puzzle" element={<PuzzleSelect />} />
       <Route path="/puzzle/:id" element={<PuzzleRun />} />
       <Route path="/tetromaze" element={<TetromazePage />} />
+      <Route path="/tetrobots" element={<TetrobotsPage />} />
       <Route path="/achievements" element={<AchievementsPage />} />
       <Route path="/settings" element={<Settings />} />
       </Routes>
