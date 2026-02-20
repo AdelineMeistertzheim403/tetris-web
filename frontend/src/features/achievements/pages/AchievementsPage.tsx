@@ -4,12 +4,17 @@ import { useAchievements } from "../hooks/useAchievements";
 import "../../../styles/achievements.scss";
 import AchievementCard from "../components/AchievementCard";
 import type { AchievementGroup } from "../data/achievements";
+import type { GameMode } from "../../game/types/GameMode";
 
 type Filter = "all" | "unlocked" | "locked";
+type GroupFilter = "all" | AchievementGroup;
+type ModeFilter = "all" | GameMode | "ALL";
 
 export default function AchievementsPage() {
   const { achievements } = useAchievements();
   const [filter, setFilter] = useState<Filter>("all");
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>("all");
+  const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
   const visibleAchievements = useMemo(
     () => achievements.filter((a) => a.mode !== "BRICKFALL_VERSUS"),
     [achievements]
@@ -28,6 +33,10 @@ export default function AchievementsPage() {
     "EDITOR",
     "BOT",
     "BOT_ADAPTIVE",
+    "TETROMAZE",
+    "TETROMAZE_SKILL",
+    "TETROMAZE_POWER",
+    "TETROBOTS",
     "ROGUELIKE",
     "ROGUELIKE_VERSUS",
     "PUZZLE",
@@ -46,6 +55,10 @@ export default function AchievementsPage() {
     EDITOR: "Brickfall Solo - Editeur",
     BOT: "Mode Tetrobots",
     BOT_ADAPTIVE: "Mode Tetrobots Adaptatif",
+    TETROMAZE: "Tetromaze - Progression",
+    TETROMAZE_SKILL: "Tetromaze - Skill",
+    TETROMAZE_POWER: "Tetromaze - Power Play",
+    TETROBOTS: "Tetromaze - Tetrobots",
     BRICKFALL: "Mode Brickfall Versus",
     ROGUELIKE: "Mode Roguelike",
     ROGUELIKE_VERSUS: "Mode Roguelike Versus",
@@ -53,17 +66,48 @@ export default function AchievementsPage() {
     SECRETS: "Succès secrets",
   };
 
+  const modeOrder: Array<GameMode | "ALL"> = [
+    "ALL",
+    "CLASSIQUE",
+    "SPRINT",
+    "VERSUS",
+    "BRICKFALL_SOLO",
+    "ROGUELIKE",
+    "ROGUELIKE_VERSUS",
+    "PUZZLE",
+    "TETROMAZE",
+  ];
+
+  const modeLabels: Record<GameMode | "ALL", string> = {
+    ALL: "Tous modes",
+    CLASSIQUE: "Classique",
+    SPRINT: "Sprint",
+    VERSUS: "Versus",
+    BRICKFALL_SOLO: "Brickfall Solo",
+    BRICKFALL_VERSUS: "Brickfall Versus",
+    ROGUELIKE: "Roguelike",
+    ROGUELIKE_VERSUS: "Roguelike Versus",
+    PUZZLE: "Puzzle",
+    TETROMAZE: "Tetromaze",
+  };
+
   const filtered = useMemo(() => {
     // Filtrage local en mémoire (pas d'appel réseau).
-    switch (filter) {
-      case "unlocked":
-        return visibleAchievements.filter((a) => a.unlocked);
-      case "locked":
-        return visibleAchievements.filter((a) => !a.unlocked);
-      default:
-        return visibleAchievements;
-    }
-  }, [filter, visibleAchievements]);
+    return visibleAchievements.filter((achievement) => {
+      if (filter === "unlocked" && !achievement.unlocked) return false;
+      if (filter === "locked" && achievement.unlocked) return false;
+
+      if (groupFilter !== "all" && (achievement.group ?? "ROGUELIKE") !== groupFilter) {
+        return false;
+      }
+
+      if (modeFilter !== "all" && achievement.mode !== modeFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [filter, groupFilter, modeFilter, visibleAchievements]);
 
   const grouped = useMemo(() => {
     // Regroupement par catégorie pour un rendu en sections.
@@ -91,6 +135,30 @@ export default function AchievementsPage() {
         <button onClick={() => setFilter("all")}>Tous</button>
         <button onClick={() => setFilter("unlocked")}>Débloqués</button>
         <button onClick={() => setFilter("locked")}>Verrouillés</button>
+        <select
+          aria-label="Filtrer par groupe"
+          value={groupFilter}
+          onChange={(e) => setGroupFilter(e.target.value as GroupFilter)}
+        >
+          <option value="all">Tous les groupes</option>
+          {groupOrder.map((group) => (
+            <option key={group} value={group}>
+              {groupLabels[group]}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filtrer par mode de jeu"
+          value={modeFilter}
+          onChange={(e) => setModeFilter(e.target.value as ModeFilter)}
+        >
+          <option value="all">Tous les modes</option>
+          {modeOrder.map((mode) => (
+            <option key={mode} value={mode}>
+              {modeLabels[mode]}
+            </option>
+          ))}
+        </select>
       </div>
 
       {groupOrder.map((group) => {

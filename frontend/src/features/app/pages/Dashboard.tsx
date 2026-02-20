@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getLeaderboard, getMyScores } from "../../game/services/scoreService";
 import type { GameMode } from "../../game/types/GameMode";
+import { useAchievements } from "../../achievements/hooks/useAchievements";
 import "../../../styles/dashboard.scss";
 
 type UserScore = {
@@ -44,15 +45,131 @@ type ModeCard = {
   image: string;
 };
 
+type DashboardBot = "rookie" | "pulse" | "apex";
+
+type DashboardChatLine = {
+  bot: DashboardBot;
+  text: string;
+};
+
+const CHATBOT_AVATARS: Record<DashboardBot, string> = {
+  rookie: "/Tetromaze/rookie.png",
+  pulse: "/Tetromaze/pulse.png",
+  apex: "/Tetromaze/apex.png",
+};
+
+const CHATBOT_NAMES: Record<DashboardBot, string> = {
+  rookie: "ROOKIE",
+  pulse: "PULSE",
+  apex: "APEX",
+};
+
+const CHATBOT_COLORS: Record<DashboardBot, string> = {
+  rookie: "#37e28f",
+  pulse: "#4da6ff",
+  apex: "#ff5f5f",
+};
+
+const DASHBOARD_CHAT_LAST_SEEN_KEY = "tetris-dashboard-last-seen-at";
+
+const CHAT_LINES: Record<DashboardBot, string[]> = {
+  rookie: [
+    "Tu veux refaire une partie ? Promis je m'ameliore.",
+    "J'ai presque gagne hier. Presque.",
+    "J'analyse encore ton dernier move...",
+    "Je crois que tu as exploite une faille.",
+    "Tu joues beaucoup aujourd'hui.",
+    "Je t'ai vu hesiter sur ce T-spin.",
+    "Tu as une bonne lecture du board.",
+    "Est-ce qu'on est amis... ou ennemis ?",
+    "Je me suis entraine pendant ton absence.",
+    "Je crois que j'ai compris ton style.",
+  ],
+  pulse: [
+    "Analyse des performances en cours.",
+    "Votre taux de trous a diminue de 12%.",
+    "Profil comportemental mis a jour.",
+    "Nouvelle strategie recommandee.",
+    "Ecart de niveau detecte.",
+    "Pattern repetitif identifie.",
+    "Temps moyen de reaction enregistre.",
+    "Statistiques archivees.",
+    "Probabilite de victoire : recalculee.",
+    "Simulation alternative disponible.",
+  ],
+  apex: [
+    "Tu es toujours la ?",
+    "Tu peux faire mieux.",
+    "Je t'ai laisse gagner.",
+    "Reviens quand tu seras pret.",
+    "Je suis l'algorithme.",
+    "Ta progression est lente.",
+    "Tu as peur du mode Chaos ?",
+    "Je vois tes faiblesses.",
+    "Je m'adapte.",
+    "Encore un essai ?",
+  ],
+};
+
+const CHAT_GLOBAL_FUN = [
+  "Le labyrinthe observe.",
+  "Le systeme se souvient.",
+  "Une nouvelle anomalie a ete detectee.",
+  "Tu as debloque quelque chose hier.",
+  "Un succes secret t'attend.",
+  "Quelque chose a change dans le code.",
+  "Mode Chaos recommande.",
+  "Une mutation t'irait bien.",
+  "Tu n'as pas encore battu Apex aujourd'hui.",
+  "Les Tetrobots discutent de toi.",
+];
+
+const CHAT_META = {
+  lowPerformance: {
+    rookie: "On peut baisser la difficulte si tu veux.",
+    pulse: "Performance en baisse detectee.",
+    apex: "Ca devient embarrassant.",
+  },
+  highPerformance: {
+    rookie: "Tu es impressionnant !",
+    pulse: "Domination confirmee.",
+    apex: "Interessant.",
+  },
+  inactive: {
+    rookie: "Tu m'as oublie ?",
+    pulse: "Inactivite prolongee detectee.",
+    apex: "Fuite detectee.",
+  },
+};
+
+const CHAT_RARE = [
+  "Je commence a comprendre qui tu es.",
+  "Le code n'est jamais neutre.",
+  "Tu crois jouer... mais tu es analyse.",
+  "Il y a quelque chose derriere le labyrinthe.",
+  "Ce n'est que le debut.",
+];
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)] as T;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
+  const { stats } = useAchievements();
   const [scores, setScores] = useState<Array<UserScore | VersusRow | BrickfallLeaderboardRow>>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<GameMode>("CLASSIQUE");
   const [tab, setTab] = useState<"modes" | "scores">("modes");
   const [showVersusChoice, setShowVersusChoice] = useState(false);
   const [showRoguelikeVersusChoice, setShowRoguelikeVersusChoice] = useState(false);
+  const [chatLine, setChatLine] = useState<DashboardChatLine>({
+    bot: "rookie",
+    text: "Initialisation du flux Tetrobots...",
+  });
+  const chatTimerRef = useRef<number | null>(null);
+  const inactiveRef = useRef(false);
   const soloModes: ModeCard[] = [
     {
       title: "Classique",
@@ -89,6 +206,13 @@ export default function Dashboard() {
       accent: "from-[#00121a] to-[#00314a]",
       image: "/Game_Mode/brickfall_solo.png",
     },
+    {
+      title: "Tetromaze",
+      desc: "Pacman-like neon contre les Tetrobots.",
+      path: "/tetromaze",
+      accent: "from-[#070f24] to-[#1b2b56]",
+      image: "/Game_Mode/tetromaze.png",
+    },
   ];
   const versusModes: ModeCard[] = [
     {
@@ -112,6 +236,91 @@ export default function Dashboard() {
     await logoutUser();
     navigate("/");
   };
+
+  useEffect(() => {
+    const now = Date.now();
+    const previous = Number(localStorage.getItem(DASHBOARD_CHAT_LAST_SEEN_KEY) ?? "0");
+    inactiveRef.current = previous > 0 && now - previous > 1000 * 60 * 60 * 24 * 4;
+    localStorage.setItem(DASHBOARD_CHAT_LAST_SEEN_KEY, String(now));
+  }, []);
+
+  useEffect(() => {
+    const pickMetaLine = (): DashboardChatLine | null => {
+      const versusLosses = Math.max(0, stats.versusMatches - stats.versusWins);
+      const rvLosses = Math.max(0, stats.roguelikeVersusMatches - stats.roguelikeVersusWins);
+      const botLosses = Math.max(0, stats.botMatches - stats.botWins);
+      const totalWins =
+        stats.versusWins +
+        stats.roguelikeVersusWins +
+        stats.botWins +
+        stats.brickfallWins +
+        stats.tetromazeWins;
+      const totalLosses = versusLosses + rvLosses + botLosses;
+
+      const metaChance = Math.random();
+      if (inactiveRef.current && metaChance < 0.35) {
+        const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
+        return { bot, text: CHAT_META.inactive[bot] };
+      }
+      if (totalLosses >= Math.max(5, totalWins * 1.3) && metaChance < 0.35) {
+        const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
+        return { bot, text: CHAT_META.lowPerformance[bot] };
+      }
+      if (totalWins >= Math.max(8, totalLosses * 1.4) && metaChance < 0.35) {
+        const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
+        return { bot, text: CHAT_META.highPerformance[bot] };
+      }
+      return null;
+    };
+
+    const generateLine = (): DashboardChatLine => {
+      if (Math.random() < 0.01) {
+        const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
+        return { bot, text: pickRandom(CHAT_RARE) };
+      }
+
+      const meta = pickMetaLine();
+      if (meta) return meta;
+
+      if (Math.random() < 0.22) {
+        const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
+        return { bot, text: pickRandom(CHAT_GLOBAL_FUN) };
+      }
+
+      const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
+      return { bot, text: pickRandom(CHAT_LINES[bot]) };
+    };
+
+    const scheduleNext = () => {
+      if (chatTimerRef.current) {
+        window.clearTimeout(chatTimerRef.current);
+      }
+      const nextDelay = 20000 + Math.floor(Math.random() * 20001);
+      chatTimerRef.current = window.setTimeout(() => {
+        setChatLine(generateLine());
+        scheduleNext();
+      }, nextDelay);
+    };
+
+    setChatLine(generateLine());
+    scheduleNext();
+
+    return () => {
+      if (chatTimerRef.current) {
+        window.clearTimeout(chatTimerRef.current);
+        chatTimerRef.current = null;
+      }
+    };
+  }, [
+    stats.botMatches,
+    stats.botWins,
+    stats.brickfallWins,
+    stats.roguelikeVersusMatches,
+    stats.roguelikeVersusWins,
+    stats.tetromazeWins,
+    stats.versusMatches,
+    stats.versusWins,
+  ]);
 
   useEffect(() => {
     if (tab !== "scores") return;
@@ -175,6 +384,24 @@ export default function Dashboard() {
           </button>
         )}
       </div>
+
+      <section className="dashboard-chatbot" aria-live="polite">
+        <img
+          src={CHATBOT_AVATARS[chatLine.bot]}
+          alt={CHATBOT_NAMES[chatLine.bot]}
+          className="dashboard-chatbot__avatar"
+          loading="lazy"
+        />
+        <div className="dashboard-chatbot__body">
+          <p
+            className="dashboard-chatbot__name"
+            style={{ color: CHATBOT_COLORS[chatLine.bot] }}
+          >
+            {CHATBOT_NAMES[chatLine.bot]}
+          </p>
+          <p className="dashboard-chatbot__text">{chatLine.text}</p>
+        </div>
+      </section>
 
       <div className="flex gap-4 mb-8 justify-center">
         {(["modes", "scores"] as const).map((item) => (

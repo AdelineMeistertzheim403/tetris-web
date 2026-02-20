@@ -30,6 +30,7 @@ model User {
   achievementStats UserAchievementStats?
   settings UserSettings?
   brickfallSoloProgress BrickfallSoloProgress?
+  tetromazeProgress TetromazeProgress?
   brickfallSoloCustomLevels BrickfallSoloCustomLevel[]
   botPlayerProfile BotPlayerProfile?
   createdAt DateTime @default(now())
@@ -201,6 +202,17 @@ model UserAchievementStats {
 model BrickfallSoloProgress {
   userId       Int      @id
   highestLevel Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model TetromazeProgress {
+  userId       Int      @id
+  highestLevel Int      @default(1)
+  currentLevel Int      @default(1)
+  levelScores  Json     @default("{}")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
