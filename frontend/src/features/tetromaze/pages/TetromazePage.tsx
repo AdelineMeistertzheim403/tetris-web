@@ -70,7 +70,7 @@ type SpriteStore = {
 const TILE = 40;
 const TICK_MS = 120;
 const SURVIVAL_MS = 120000;
-const HACK_MS = 8500;
+const HACK_MS = 12000;
 const GLITCH_MS = 7500;
 const OVERCLOCK_MS = 9000;
 const START_SAFE_MS = 2800;
@@ -200,6 +200,17 @@ function createInitialState(mode: TetromazeMode, level: TetromazeLevel): GameSta
     toKey(level.playerSpawn.x, level.playerSpawn.y),
     ...level.botSpawns.map((s) => toKey(s.x, s.y)),
   ]);
+
+  // Empêche la génération d'orbs dans la maison des bots
+  // pour éviter des objectifs impossibles à atteindre.
+  if (level.botHome) {
+    const { x, y, width, height } = level.botHome;
+    for (let yy = y; yy < y + height; yy += 1) {
+      for (let xx = x; xx < x + width; xx += 1) {
+        reserved.add(toKey(xx, yy));
+      }
+    }
+  }
 
   for (let y = 0; y < level.grid.length; y += 1) {
     for (let x = 0; x < level.grid[y].length; x += 1) {
@@ -1203,10 +1214,59 @@ export default function TetromazePage() {
 
         <div className="tetromaze-right">
           <ul className="tetromaze-legend">
-            <li>Overclock: vitesse joueur</li>
-            <li>Glitch: bots aleatoires</li>
-            <li>Hack: inversion des roles</li>
-            <li>Loop: teleportation instantanee</li>
+            <li>
+              <span className="tetromaze-legend__item">
+                <span
+                  className="tetromaze-legend__dot"
+                  style={{ backgroundColor: ORB_COLORS.OVERCLOCK }}
+                />
+                Overclock: vitesse joueur
+                <span className="tetromaze-legend__tooltip">
+                  Augmente ta vitesse de deplacement pendant quelques secondes.
+                  Tu peux traverser le labyrinthe plus vite pour collecter les orbs
+                  ou sortir d'un piege.
+                </span>
+              </span>
+            </li>
+            <li>
+              <span className="tetromaze-legend__item">
+                <span
+                  className="tetromaze-legend__dot"
+                  style={{ backgroundColor: ORB_COLORS.GLITCH }}
+                />
+                Glitch: bots aleatoires
+                <span className="tetromaze-legend__tooltip">
+                  Perturbe l'IA des Tetrobots: leurs deplacements deviennent
+                  pseudo-aleatoires et ils suivent moins bien ta trajectoire.
+                </span>
+              </span>
+            </li>
+            <li>
+              <span className="tetromaze-legend__item">
+                <span
+                  className="tetromaze-legend__dot"
+                  style={{ backgroundColor: ORB_COLORS.HACK }}
+                />
+                Hack: inversion des roles
+                <span className="tetromaze-legend__tooltip">
+                  Inverse la chasse: toucher un Tetrobot le stun et te donne un
+                  bonus de score. Profite de la fenetre pour neutraliser plusieurs bots.
+                </span>
+              </span>
+            </li>
+            <li>
+              <span className="tetromaze-legend__item">
+                <span
+                  className="tetromaze-legend__dot"
+                  style={{ backgroundColor: ORB_COLORS.LOOP }}
+                />
+                Loop: teleportation instantanee
+                <span className="tetromaze-legend__tooltip">
+                  Teleporte instantanement vers une autre sortie du reseau Loop.
+                  Ideal pour casser une poursuite ou traverser rapidement la map.
+                </span>
+              </span>
+            </li>
           </ul>
 
           <div className="tetromaze-controls">
