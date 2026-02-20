@@ -74,34 +74,34 @@ const DASHBOARD_CHAT_LAST_SEEN_KEY = "tetris-dashboard-last-seen-at";
 
 const CHAT_LINES: Record<DashboardBot, string[]> = {
   rookie: [
-    "Tu veux refaire une partie ? Promis je m'ameliore.",
-    "J'ai presque gagne hier. Presque.",
-    "J'analyse encore ton dernier move...",
-    "Je crois que tu as exploite une faille.",
-    "Tu joues beaucoup aujourd'hui.",
-    "Je t'ai vu hesiter sur ce T-spin.",
+    "Tu veux refaire une partie ? Promis je m’améliore.",
+    "J’ai presque gagné hier. Presque.",
+    "J’analyse encore ton dernier move...",
+    "Je crois que tu as exploité une faille.",
+    "Tu joues beaucoup aujourd’hui.",
+    "Je t’ai vu hésiter sur ce T-spin.",
     "Tu as une bonne lecture du board.",
-    "Est-ce qu'on est amis... ou ennemis ?",
-    "Je me suis entraine pendant ton absence.",
-    "Je crois que j'ai compris ton style.",
+    "Est-ce qu’on est amis... ou ennemis ?",
+    "Je me suis entraîné pendant ton absence.",
+    "Je crois que j’ai compris ton style.",
   ],
   pulse: [
     "Analyse des performances en cours.",
-    "Votre taux de trous a diminue de 12%.",
-    "Profil comportemental mis a jour.",
-    "Nouvelle strategie recommandee.",
-    "Ecart de niveau detecte.",
-    "Pattern repetitif identifie.",
-    "Temps moyen de reaction enregistre.",
-    "Statistiques archivees.",
-    "Probabilite de victoire : recalculee.",
+    "Votre taux de trous a diminué de 12%.",
+    "Profil comportemental mis à jour.",
+    "Nouvelle stratégie recommandée.",
+    "Écart de niveau détecté.",
+    "Pattern répétitif identifié.",
+    "Temps moyen de réaction enregistré.",
+    "Statistiques archivées.",
+    "Probabilité de victoire : recalculée.",
     "Simulation alternative disponible.",
   ],
   apex: [
-    "Tu es toujours la ?",
+    "Tu es toujours là ?",
     "Tu peux faire mieux.",
-    "Je t'ai laisse gagner.",
-    "Reviens quand tu seras pret.",
+    "Je t’ai laissé gagner.",
+    "Reviens quand tu seras prêt.",
     "Je suis l'algorithme.",
     "Ta progression est lente.",
     "Tu as peur du mode Chaos ?",
@@ -113,41 +113,41 @@ const CHAT_LINES: Record<DashboardBot, string[]> = {
 
 const CHAT_GLOBAL_FUN = [
   "Le labyrinthe observe.",
-  "Le systeme se souvient.",
-  "Une nouvelle anomalie a ete detectee.",
-  "Tu as debloque quelque chose hier.",
-  "Un succes secret t'attend.",
-  "Quelque chose a change dans le code.",
-  "Mode Chaos recommande.",
-  "Une mutation t'irait bien.",
-  "Tu n'as pas encore battu Apex aujourd'hui.",
+  "Le système se souvient.",
+  "Une nouvelle anomalie a été détectée.",
+  "Tu as débloqué quelque chose hier.",
+  "Un succès secret t’attend.",
+  "Quelque chose a changé dans le code.",
+  "Mode Chaos recommandé.",
+  "Une mutation t’irait bien.",
+  "Tu n’as pas encore battu Apex aujourd’hui.",
   "Les Tetrobots discutent de toi.",
 ];
 
 const CHAT_META = {
   lowPerformance: {
-    rookie: "On peut baisser la difficulte si tu veux.",
-    pulse: "Performance en baisse detectee.",
-    apex: "Ca devient embarrassant.",
+    rookie: "On peut baisser la difficulté si tu veux.",
+    pulse: "Performance en baisse détectée.",
+    apex: "Ça devient embarrassant.",
   },
   highPerformance: {
     rookie: "Tu es impressionnant !",
-    pulse: "Domination confirmee.",
-    apex: "Interessant.",
+    pulse: "Domination confirmée.",
+    apex: "Intéressant.",
   },
   inactive: {
-    rookie: "Tu m'as oublie ?",
-    pulse: "Inactivite prolongee detectee.",
-    apex: "Fuite detectee.",
+    rookie: "Tu m’as oublié ?",
+    pulse: "Inactivité prolongée détectée.",
+    apex: "Fuite détectée.",
   },
 };
 
 const CHAT_RARE = [
-  "Je commence a comprendre qui tu es.",
-  "Le code n'est jamais neutre.",
-  "Tu crois jouer... mais tu es analyse.",
-  "Il y a quelque chose derriere le labyrinthe.",
-  "Ce n'est que le debut.",
+  "Je commence à comprendre qui tu es.",
+  "Le code n’est jamais neutre.",
+  "Tu crois jouer... mais tu es analysé.",
+  "Il y a quelque chose derrière le labyrinthe.",
+  "Ce n’est que le début.",
 ];
 
 function pickRandom<T>(arr: T[]): T {
@@ -166,7 +166,7 @@ export default function Dashboard() {
   const [showRoguelikeVersusChoice, setShowRoguelikeVersusChoice] = useState(false);
   const [chatLine, setChatLine] = useState<DashboardChatLine>({
     bot: "rookie",
-    text: "Initialisation du flux Tetrobots...",
+    text: "Initialisation du flux Tétrobots...",
   });
   const chatTimerRef = useRef<number | null>(null);
   const inactiveRef = useRef(false);
