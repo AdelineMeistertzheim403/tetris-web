@@ -81,6 +81,14 @@ type AchievementStats = {
   puzzleLinesTotal: number;
   puzzleWinStreak: number;
   puzzleAttemptsById: Record<string, number>;
+  tetromazeRuns: number;
+  tetromazeWins: number;
+  tetromazeEscapesTotal: number;
+  tetromazeEscapesRookie: number;
+  tetromazeEscapesPulse: number;
+  tetromazeEscapesApex: number;
+  tetromazePowerUses: number;
+  tetromazeCaptures: number;
 };
 
 // Persistance locale des achievements + stats pour éviter un fetch constant.
@@ -101,6 +109,7 @@ const DEFAULT_STATS: AchievementStats = {
     ROGUELIKE: false,
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
+    TETROMAZE: false,
   },
   level10Modes: {
     CLASSIQUE: false,
@@ -111,6 +120,7 @@ const DEFAULT_STATS: AchievementStats = {
     ROGUELIKE: false,
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
+    TETROMAZE: false,
   },
   scoredModes: {
     CLASSIQUE: false,
@@ -121,6 +131,7 @@ const DEFAULT_STATS: AchievementStats = {
     ROGUELIKE: false,
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
+    TETROMAZE: false,
   },
   playtimeMs: 0,
   noHoldRuns: 0,
@@ -156,6 +167,14 @@ const DEFAULT_STATS: AchievementStats = {
   puzzleLinesTotal: 0,
   puzzleWinStreak: 0,
   puzzleAttemptsById: {},
+  tetromazeRuns: 0,
+  tetromazeWins: 0,
+  tetromazeEscapesTotal: 0,
+  tetromazeEscapesRookie: 0,
+  tetromazeEscapesPulse: 0,
+  tetromazeEscapesApex: 0,
+  tetromazePowerUses: 0,
+  tetromazeCaptures: 0,
 };
 
 const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => {
@@ -265,7 +284,15 @@ export function useAchievements() {
       a.puzzleFreeZonesTotal === b.puzzleFreeZonesTotal &&
       a.puzzleLinesTotal === b.puzzleLinesTotal &&
       a.puzzleWinStreak === b.puzzleWinStreak &&
-      areRecordNumbersEqual(a.puzzleAttemptsById, b.puzzleAttemptsById)
+      areRecordNumbersEqual(a.puzzleAttemptsById, b.puzzleAttemptsById) &&
+      a.tetromazeRuns === b.tetromazeRuns &&
+      a.tetromazeWins === b.tetromazeWins &&
+      a.tetromazeEscapesTotal === b.tetromazeEscapesTotal &&
+      a.tetromazeEscapesRookie === b.tetromazeEscapesRookie &&
+      a.tetromazeEscapesPulse === b.tetromazeEscapesPulse &&
+      a.tetromazeEscapesApex === b.tetromazeEscapesApex &&
+      a.tetromazePowerUses === b.tetromazePowerUses &&
+      a.tetromazeCaptures === b.tetromazeCaptures
     );
   };
 

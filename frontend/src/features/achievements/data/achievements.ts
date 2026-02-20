@@ -16,7 +16,11 @@ export type AchievementGroup =
   | "ROGUELIKE_VERSUS"
   | "PUZZLE"
   | "SECRETS"
-  | "BOT_ADAPTIVE";
+  | "BOT_ADAPTIVE"
+  | "TETROMAZE"
+  | "TETROMAZE_SKILL"
+  | "TETROMAZE_POWER"
+  | "TETROBOTS";
 
 export type AchievementCondition =
   | { type: "runs_played"; count: number }
@@ -1372,5 +1376,203 @@ export const ACHIEVEMENTS: Achievement[] = [
     secret: true,
     condition: { type: "custom", key: "bot_10_matches_same" },
   },
+ // ─────────────────────────────
+// TETROMAZE — PROGRESSION
+// ─────────────────────────────
 
+{
+  id: "tm-first-run",
+  name: "Entrée dans la Matrice",
+  description: "Lancer une partie de Tetromaze",
+  icon: "tm_first",
+  mode: "TETROMAZE",
+  group: "TETROMAZE",
+  condition: { type: "custom", key: "tm_play_1" },
+},
+
+{
+  id: "tm-first-win",
+  name: "Évasion Numérique",
+  description: "Gagner un niveau",
+  icon: "tm_win_1",
+  mode: "TETROMAZE",
+  group: "TETROMAZE",
+  condition: { type: "custom", key: "tm_win_1" },
+},
+
+{
+  id: "tm-world-1",
+  name: "Maze Initiate",
+  description: "Terminer le Monde 1",
+  icon: "tm_world1",
+  mode: "TETROMAZE",
+  group: "TETROMAZE",
+  condition: { type: "custom", key: "tm_world1_clear" },
+},
+
+{
+  id: "tm-campaign",
+  name: "Maître du Labyrinthe",
+  description: "Terminer la campagne complète",
+  icon: "tm_campaign",
+  mode: "TETROMAZE",
+  group: "TETROMAZE",
+  condition: { type: "custom", key: "tm_campaign_clear" },
+},
+// ─────────────────────────────
+// TETROMAZE — SKILL
+// ─────────────────────────────
+
+{
+  id: "tm-no-hit",
+  name: "Intouchable",
+  description: "Terminer un niveau sans être touché",
+  icon: "tm_no_hit",
+  mode: "TETROMAZE",
+  group: "TETROMAZE_SKILL",
+  condition: { type: "custom", key: "tm_no_hit" },
+},
+
+{
+  id: "tm-close-call",
+  name: "À Un Pixel Près",
+  description: "Échapper à un Tetrobot avec 1 case d’écart",
+  icon: "tm_close",
+  mode: "TETROMAZE",
+  group: "TETROMAZE_SKILL",
+  condition: { type: "custom", key: "tm_close_escape" },
+},
+
+{
+  id: "tm-escape-10",
+  name: "Fantôme Humain",
+  description: "Échapper 10 fois aux Tetrobots",
+  icon: "tm_escape_10",
+  mode: "TETROMAZE",
+  group: "TETROMAZE_SKILL",
+  condition: { type: "custom", key: "tm_escape_10" },
+},
+
+{
+  id: "tm-speedrun",
+  name: "Overclock Humain",
+  description: "Finir un niveau en moins de 60 secondes",
+  icon: "tm_speed",
+  mode: "TETROMAZE",
+  group: "TETROMAZE_SKILL",
+  condition: { type: "custom", key: "tm_under_60s" },
+},
+// ─────────────────────────────
+// TETROMAZE — POWER
+// ─────────────────────────────
+
+{
+  id: "tm-power-first",
+  name: "Surcharge",
+  description: "Utiliser un power-up",
+  icon: "tm_power",
+  mode: "TETROMAZE",
+  group: "TETROMAZE_POWER",
+  condition: { type: "custom", key: "tm_power_used" },
+},
+
+{
+  id: "tm-stun-all",
+  name: "Court-Circuit Global",
+  description: "Stun les 3 Tetrobots simultanément",
+  icon: "tm_stun_all",
+  mode: "TETROMAZE",
+  group: "TETROMAZE_POWER",
+  condition: { type: "custom", key: "tm_stun_3" },
+},
+
+{
+  id: "tm-chaos",
+  name: "Glitch dans la Matrice",
+  description: "Déclencher 5 effets spéciaux en un niveau",
+  icon: "tm_chaos",
+  mode: "TETROMAZE",
+  group: "TETROMAZE_POWER",
+  condition: { type: "custom", key: "tm_5_effects" },
+},
+// ─────────────────────────────
+// TETROMAZE — TETROBOTS
+// ─────────────────────────────
+
+{
+  id: "tm-rookie-escape",
+  name: "Plus Rapide que Rookie",
+  description: "Échapper 5 fois à Rookie",
+  icon: "tm_rookie_escape",
+  mode: "TETROMAZE",
+  group: "TETROBOTS",
+  condition: { type: "custom", key: "tm_escape_rookie_5" },
+},
+
+{
+  id: "tm-pulse-escape",
+  name: "Bug dans le Système",
+  description: "Échapper 5 fois à Pulse",
+  icon: "tm_pulse_escape",
+  mode: "TETROMAZE",
+  group: "TETROBOTS",
+  condition: { type: "custom", key: "tm_escape_pulse_5" },
+},
+
+{
+  id: "tm-apex-escape",
+  name: "Survivant Apex",
+  description: "Échapper 5 fois à Apex",
+  icon: "tm_apex_escape",
+  mode: "TETROMAZE",
+  group: "TETROBOTS",
+  condition: { type: "custom", key: "tm_escape_apex_5" },
+},
+
+{
+  id: "tm-encircled",
+  name: "Pris au Piège",
+  description: "Être encerclé par les 3 Tetrobots",
+  icon: "tm_encircled",
+  mode: "TETROMAZE",
+  group: "TETROBOTS",
+  condition: { type: "custom", key: "tm_encircled" },
+},
+
+// ─────────────────────────────
+// TETROMAZE — SECRETS
+// ─────────────────────────────
+
+{
+  id: "tm-loop",
+  name: "Boucle Temporelle",
+  description: "Tourner en rond 10 secondes sans se faire toucher",
+  icon: "tm_loop",
+  secret: true,
+  mode: "TETROMAZE",
+  group: "SECRETS",
+  condition: { type: "custom", key: "tm_loop_10s" },
+},
+
+{
+  id: "tm-shadow",
+  name: "Ombre Numérique",
+  description: "Rester invisible pendant 30 secondes",
+  icon: "tm_shadow",
+  secret: true,
+  mode: "TETROMAZE",
+  group: "SECRETS",
+  condition: { type: "custom", key: "tm_30s_undetected" },
+},
+
+{
+  id: "tm-hunter",
+  name: "Chasseur de Bots",
+  description: "Capturer 3 Tetrobots en mode inverse",
+  icon: "tm_hunter",
+  secret: true,
+  mode: "TETROMAZE",
+  group: "SECRETS",
+  condition: { type: "custom", key: "tm_capture_3" },
+},
 ];

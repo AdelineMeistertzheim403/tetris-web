@@ -38,6 +38,7 @@
 
 .filters {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
   margin-bottom: 30px;
@@ -54,6 +55,16 @@
       background: #ff3ad7;
       color: black;
     }
+  }
+
+  select {
+    background: #1a001f;
+    border: 1px solid #ff3ad7;
+    color: #ffbdf5;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    min-width: 180px;
   }
 }
 
