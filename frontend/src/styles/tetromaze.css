@@ -290,6 +290,52 @@
   background: rgba(11, 17, 32, 0.78);
 }
 
+.tetromaze-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tetromaze-legend__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: help;
+}
+
+.tetromaze-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.tetromaze-legend__tooltip {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 250px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #3b6ea8;
+  background: rgba(5, 10, 22, 0.96);
+  color: #dff4ff;
+  font-size: 0.52rem;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 6;
+}
+
+.tetromaze-legend__item:hover .tetromaze-legend__tooltip {
+  opacity: 1;
+}
+
 @media (max-width: 768px) {
   .tetromaze-page {
     padding: 8px 12px 14px;
@@ -331,5 +377,12 @@
 
   .tetromaze-legend {
     margin-top: 10px;
+  }
+
+  .tetromaze-legend__tooltip {
+    left: 0;
+    top: calc(100% + 8px);
+    transform: none;
+    width: min(260px, 72vw);
   }
 }
