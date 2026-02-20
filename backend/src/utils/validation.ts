@@ -218,3 +218,10 @@ export const brickfallSoloLevelSchema = z.object({
 export const brickfallSoloProgressSchema = z.object({
   highestLevel: intWithin(1, 999),
 });
+
+export const tetromazeProgressSchema = z.object({
+  highestLevel: intWithin(1, 999).optional(),
+  currentLevel: intWithin(1, 999).optional(),
+  levelIndex: intWithin(1, 999).optional(),
+  score: intWithin(0, 9_999_999).optional(),
+});

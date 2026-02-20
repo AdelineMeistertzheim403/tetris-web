@@ -7,7 +7,8 @@ export type GameMode =
   | "BRICKFALL_VERSUS"
   | "ROGUELIKE"
   | "ROGUELIKE_VERSUS"
-  | "PUZZLE";
+  | "PUZZLE"
+  | "TETROMAZE";
 
 export const GAME_MODES: GameMode[] = [
   "CLASSIQUE",
@@ -18,12 +19,13 @@ export const GAME_MODES: GameMode[] = [
   "ROGUELIKE",
   "ROGUELIKE_VERSUS",
   "PUZZLE",
+  "TETROMAZE",
 ];
 
 export const TOTAL_GAME_MODES = GAME_MODES.length;
 
 // Tous les modes qui publient un score.
 export const SCORED_GAME_MODES: GameMode[] = GAME_MODES.filter(
-  (mode) => mode !== "PUZZLE"
+  (mode) => mode !== "PUZZLE" && mode !== "TETROMAZE"
 );
 export const TOTAL_SCORED_MODES = SCORED_GAME_MODES.length;
