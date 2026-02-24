@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
 import {
@@ -12,6 +12,7 @@ import {
   saveTetromazeProgress,
   type TetromazeProgress,
 } from "../services/tetromazeService";
+import { findTetromazeCustomLevel } from "../utils/customLevels";
 import {
   canMoveTo,
   chooseRandom,
@@ -500,6 +501,27 @@ function clampLevelIndex(levelIndex: number) {
   return Math.max(1, Math.min(TETROMAZE_TOTAL_LEVELS, levelIndex));
 }
 
+const LOCAL_PROGRESS_KEY = "tetromaze-campaign-progress-v1";
+
+function readLocalProgress(): TetromazeProgress {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROGRESS_KEY);
+    if (!raw) return { highestLevel: 1, currentLevel: 1, levelScores: {} };
+    const parsed = JSON.parse(raw) as TetromazeProgress;
+    return {
+      highestLevel: clampLevelIndex(Number(parsed.highestLevel) || 1),
+      currentLevel: clampLevelIndex(Number(parsed.currentLevel) || 1),
+      levelScores: parsed.levelScores ?? {},
+    };
+  } catch {
+    return { highestLevel: 1, currentLevel: 1, levelScores: {} };
+  }
+}
+
+function writeLocalProgress(progress: TetromazeProgress) {
+  localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(progress));
+}
+
 function oppositeDir(dir: Direction): Direction {
   if (dir === "UP") return "DOWN";
   if (dir === "DOWN") return "UP";
@@ -701,6 +723,7 @@ function drawSprite(
 
 export default function TetromazePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [levelIndex, setLevelIndex] = useState(1);
   const [level, setLevel] = useState<TetromazeLevel>(() => getTetromazeCampaignLevel(1));
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -712,11 +735,8 @@ export default function TetromazePage() {
 
   const [assetsReady, setAssetsReady] = useState(false);
   const [state, setState] = useState<GameState>(() => createInitialState("CLASSIC", level));
-  const [savedProgress, setSavedProgress] = useState<TetromazeProgress>({
-    highestLevel: 1,
-    currentLevel: 1,
-    levelScores: {},
-  });
+  const [savedProgress, setSavedProgress] = useState<TetromazeProgress>(() => readLocalProgress());
+  const [isCustomLevel, setIsCustomLevel] = useState(false);
   const [renderTick, setRenderTick] = useState(0);
   const [chatLines, setChatLines] = useState<ChatState>({
     rookie: null,
@@ -744,6 +764,8 @@ export default function TetromazePage() {
     [level.grid]
   );
   const worldStage = useMemo(() => toWorldStage(levelIndex), [levelIndex]);
+  const customParam = searchParams.get("custom");
+  const levelParam = searchParams.get("level");
   const levelPowerupTypes = useMemo(() => {
     const seen = new Set<TetromazeOrbType>();
     const ordered: TetromazeOrbType[] = [];
@@ -788,29 +810,82 @@ export default function TetromazePage() {
     levelIndex?: number;
     score?: number;
   }) => {
+    const local = readLocalProgress();
+    const nextLocal: TetromazeProgress = {
+      highestLevel: payload.highestLevel ? Math.max(local.highestLevel, payload.highestLevel) : local.highestLevel,
+      currentLevel: payload.currentLevel ? Math.max(local.currentLevel, payload.currentLevel) : local.currentLevel,
+      levelScores: { ...local.levelScores },
+    };
+    if (payload.levelIndex !== undefined && payload.score !== undefined) {
+      const key = String(payload.levelIndex);
+      nextLocal.levelScores[key] = Math.max(nextLocal.levelScores[key] ?? 0, payload.score);
+    }
+    writeLocalProgress(nextLocal);
+    setSavedProgress(nextLocal);
+
     saveTetromazeProgress(payload)
-      .then((next) => setSavedProgress(next))
+      .then((next) => {
+        const merged: TetromazeProgress = {
+          highestLevel: Math.max(next.highestLevel, nextLocal.highestLevel),
+          currentLevel: Math.max(next.currentLevel, nextLocal.currentLevel),
+          levelScores: { ...nextLocal.levelScores, ...next.levelScores },
+        };
+        writeLocalProgress(merged);
+        setSavedProgress(merged);
+      })
       .catch(() => {});
   };
 
   useEffect(() => {
     let cancelled = false;
-    fetchTetromazeProgress()
-      .then((progress) => {
+    const bootstrap = async () => {
+      const localProgress = readLocalProgress();
+      if (customParam) {
+        const customLevel = findTetromazeCustomLevel(customParam);
+        if (!customLevel) {
+          if (!cancelled) navigate("/tetromaze");
+          return;
+        }
         if (cancelled) return;
-        setSavedProgress(progress);
-        const resumeLevel = clampLevelIndex(progress.currentLevel);
-        const resumeData = getTetromazeCampaignLevel(resumeLevel);
-        setLevelIndex(resumeLevel);
-        setLevel(resumeData);
-        setState(createInitialState("CLASSIC", resumeData));
-      })
-      .catch(() => {});
+        setIsCustomLevel(true);
+        setSavedProgress(localProgress);
+        setLevelIndex(1);
+        setLevel(customLevel);
+        setState(createInitialState("CLASSIC", customLevel));
+        return;
+      }
+
+      let merged = localProgress;
+      try {
+        const remote = await fetchTetromazeProgress();
+        merged = {
+          highestLevel: Math.max(localProgress.highestLevel, remote.highestLevel),
+          currentLevel: Math.max(localProgress.currentLevel, remote.currentLevel),
+          levelScores: { ...localProgress.levelScores, ...remote.levelScores },
+        };
+      } catch {
+        // hors ligne: local only
+      }
+
+      if (cancelled) return;
+      writeLocalProgress(merged);
+      setIsCustomLevel(false);
+      setSavedProgress(merged);
+
+      const requestedLevel = levelParam ? clampLevelIndex(Number.parseInt(levelParam, 10) || merged.currentLevel) : merged.currentLevel;
+      const safeLevel = clampLevelIndex(Math.min(requestedLevel, merged.highestLevel));
+      const resumeData = getTetromazeCampaignLevel(safeLevel);
+      setLevelIndex(safeLevel);
+      setLevel(resumeData);
+      setState(createInitialState("CLASSIC", resumeData));
+    };
+
+    bootstrap();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [customParam, levelParam, navigate]);
 
   useEffect(() => {
     // Précharge les sprites pour éviter le clignotement au premier rendu canvas.
@@ -1785,6 +1860,7 @@ export default function TetromazePage() {
   const loadLevel = (nextIndex: number, keepMode: TetromazeMode = state.mode) => {
     const safe = clampLevelIndex(nextIndex);
     const nextLevel = getTetromazeCampaignLevel(safe);
+    setIsCustomLevel(false);
     setLevelIndex(safe);
     setLevel(nextLevel);
     inputDirRef.current = null;
@@ -1807,16 +1883,32 @@ export default function TetromazePage() {
   };
 
   const replayLevel = () => {
+    if (isCustomLevel) {
+      inputDirRef.current = null;
+      movementActiveRef.current = false;
+      outcomeSavedRef.current = null;
+      nearBotRef.current = null;
+      prevLivesRef.current = 3;
+      runEffectsRef.current = 0;
+      runCapturesRef.current = 0;
+      runNoHitRef.current = true;
+      undetectedStartRef.current = null;
+      loopStartRef.current = null;
+      loopPathRef.current = [];
+      setState(createInitialState(state.mode, level));
+      return;
+    }
     loadLevel(levelIndex, state.mode);
   };
 
   const goToNextLevel = () => {
+    if (isCustomLevel) return;
     if (levelIndex >= TETROMAZE_TOTAL_LEVELS) return;
     loadLevel(levelIndex + 1, state.mode);
   };
 
   const quitTetromaze = () => {
-    navigate("/dashboard");
+    navigate("/tetromaze");
   };
 
   useEffect(() => {
@@ -1824,6 +1916,20 @@ export default function TetromazePage() {
     const outcomeKey = `${state.startedAt}-${levelIndex}-${state.status}`;
     if (outcomeSavedRef.current === outcomeKey) return;
     outcomeSavedRef.current = outcomeKey;
+
+    if (isCustomLevel) {
+      if (state.status === "won") {
+        const nextStats = updateStats((old) => ({
+          ...old,
+          tetromazeWins: old.tetromazeWins + 1,
+        }));
+        checkAchievements({
+          mode: "TETROMAZE",
+          custom: { tm_win_1: nextStats.tetromazeWins >= 1 },
+        });
+      }
+      return;
+    }
 
     const nextLevelOnWin =
       state.status === "won" ? clampLevelIndex(levelIndex + 1) : levelIndex;
@@ -1862,7 +1968,7 @@ export default function TetromazePage() {
         },
       });
     }
-  }, [checkAchievements, levelIndex, state.lives, state.score, state.startedAt, state.status, updateStats]);
+  }, [checkAchievements, isCustomLevel, level, levelIndex, state.lives, state.score, state.startedAt, state.status, updateStats]);
 
   const message =
     state.status === "won"
@@ -1886,15 +1992,21 @@ export default function TetromazePage() {
         <div className="tetromaze-left">
           <section className="tetromaze-panel">
             <div className="tetromaze-meta">
-              <div>Campagne: Monde {worldStage.world} - Niveau {worldStage.stage}</div>
-              <div>Progression: {levelIndex}/{TETROMAZE_TOTAL_LEVELS}</div>
+              <div>
+                {isCustomLevel
+                  ? "Mode: Niveau custom"
+                  : `Campagne: Monde ${worldStage.world} - Niveau ${worldStage.stage}`}
+              </div>
+              {!isCustomLevel && <div>Progression: {levelIndex}/{TETROMAZE_TOTAL_LEVELS}</div>}
               <div>{level.name ?? `Tetromaze ${levelIndex}`}</div>
               <div>Mode: {state.mode === "CLASSIC" ? "Classique Maze" : "Survie 120s"}</div>
               <div>Vies: {state.lives}/3</div>
               <div>Score: {state.score}</div>
-              <div>Meilleur score niveau: {bestScoreCurrentLevel}</div>
+              {!isCustomLevel && <div>Meilleur score niveau: {bestScoreCurrentLevel}</div>}
               <div>Data Orbs: {state.dataOrbs.size}</div>
-              <div>Sauvegarde: niveau {savedProgress.currentLevel} (max {savedProgress.highestLevel})</div>
+              {!isCustomLevel && (
+                <div>Sauvegarde: niveau {savedProgress.currentLevel} (max {savedProgress.highestLevel})</div>
+              )}
               {state.mode === "SURVIVAL" && <div>Temps: {timer}s</div>}
               {state.status === "running" && safeLeftMs > 0 && (
                 <div>Synchronisation: {Math.ceil(safeLeftMs / 1000)}s</div>
@@ -2032,18 +2144,20 @@ export default function TetromazePage() {
                 <h2>Niveau termine</h2>
                 <p>Score: {state.score}</p>
                 <div className="tetromaze-end-actions">
-                  <button
-                    type="button"
-                    onClick={goToNextLevel}
-                    disabled={levelIndex >= TETROMAZE_TOTAL_LEVELS}
-                  >
-                    Niveau suivant
-                  </button>
+                  {!isCustomLevel && (
+                    <button
+                      type="button"
+                      onClick={goToNextLevel}
+                      disabled={levelIndex >= TETROMAZE_TOTAL_LEVELS}
+                    >
+                      Niveau suivant
+                    </button>
+                  )}
                   <button type="button" onClick={replayLevel}>
                     Rejouer le niveau
                   </button>
                   <button type="button" onClick={quitTetromaze}>
-                    Quitter
+                    {isCustomLevel ? "Retour hub" : "Quitter"}
                   </button>
                 </div>
               </>

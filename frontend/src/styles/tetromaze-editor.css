@@ -1,0 +1,183 @@
+.tetromaze-editor {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(70, 191, 255, 0.18), transparent 35%), #060b16;
+  color: #d8efff;
+  padding: 1.2rem 0;
+}
+
+.tetromaze-editor-shell {
+  width: 95vw;
+  margin: 0 auto;
+}
+
+.tetromaze-editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.tetromaze-editor-head h1 {
+  font-size: 1.1rem;
+  color: #facc15;
+}
+
+.tetromaze-editor-columns {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap: 0.9rem;
+}
+
+.tetromaze-editor-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tetromaze-editor-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tetromaze-editor-side label {
+  font-size: 0.65rem;
+  color: #8fd7ff;
+}
+
+.tetromaze-editor-side input,
+.tetromaze-editor-side select {
+  width: 100%;
+  border: 1px solid #2e6aa1;
+  border-radius: 8px;
+  background: rgba(2, 13, 31, 0.9);
+  color: #d6f5ff;
+  font-size: 0.72rem;
+  padding: 0.45rem;
+}
+
+.tetromaze-editor-inline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+}
+
+.tetromaze-editor-bot-row {
+  display: grid;
+  grid-template-columns: 1fr 92px;
+  gap: 0.45rem;
+  align-items: center;
+  font-size: 0.65rem;
+  color: #b9e4ff;
+}
+
+.tetromaze-editor-divider {
+  border-top: 1px solid #1f3f60;
+  padding-top: 0.55rem;
+}
+
+.tetromaze-editor-grid-card {
+  overflow: auto;
+}
+
+.tetromaze-editor-toolbar {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 0.65rem;
+}
+
+.tetromaze-editor-toolbtn {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(46, 106, 161, 0.55);
+  border-radius: 10px;
+  background: rgba(5, 18, 39, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tetromaze-editor-toolbtn img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.tetromaze-editor-toolbtn.is-active {
+  border-color: #facc15;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+}
+
+.tetromaze-editor-grid {
+  display: grid;
+  gap: 0;
+  background: transparent;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.tetromaze-editor-cell {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(46, 106, 161, 0.55);
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e7f7ff;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.tetromaze-editor-levels {
+  max-height: 78vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.tetromaze-editor-level-card {
+  border: 1px solid #2b6ea5;
+  border-radius: 8px;
+  padding: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+}
+
+.tetromaze-editor-sub {
+  font-size: 0.62rem;
+  color: #9ec8e4;
+}
+
+.tetromaze-editor-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.tetromaze-editor-empty,
+.tetromaze-editor-error {
+  font-size: 0.68rem;
+}
+
+.tetromaze-editor-error {
+  color: #ffadad;
+}
+
+@media (max-width: 1180px) {
+  .tetromaze-editor-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .tetromaze-editor-shell {
+    width: 96vw;
+  }
+}

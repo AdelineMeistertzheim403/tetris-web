@@ -1,0 +1,95 @@
+.tetromaze-hub {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(67, 141, 255, 0.2), transparent 40%),
+    #060b16;
+  color: #fff;
+  padding: 2rem 0;
+}
+
+.tetromaze-hub-shell {
+  width: 74vw;
+  margin: 0 auto;
+}
+
+.tetromaze-hub-title {
+  text-align: center;
+  color: #facc15;
+  font-size: 1.8rem;
+  margin-bottom: 1.2rem;
+}
+
+.tetromaze-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 1rem;
+}
+
+.tetromaze-hub-card h2 {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.tetromaze-hub-stat {
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  margin-bottom: 0.35rem;
+}
+
+.tetromaze-hub-divider {
+  border-top: 1px solid #273449;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+}
+
+.tetromaze-hub-select {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #2e6aa1;
+  background: rgba(5, 15, 35, 0.9);
+  color: #d5ebff;
+  font-size: 0.72rem;
+}
+
+.tetromaze-hub-btn {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #53b4ff;
+  background: linear-gradient(120deg, rgba(57, 129, 255, 0.28), rgba(79, 197, 255, 0.24));
+  color: #e8f9ff;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.tetromaze-hub-btn:hover {
+  box-shadow: 0 0 12px rgba(83, 180, 255, 0.28);
+}
+
+.tetromaze-hub-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tetromaze-hub-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+@media (max-width: 1024px) {
+  .tetromaze-hub-shell {
+    width: 90vw;
+  }
+}
+
+@media (max-width: 768px) {
+  .tetromaze-hub-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tetromaze-hub-shell {
+    width: 94vw;
+  }
+}
