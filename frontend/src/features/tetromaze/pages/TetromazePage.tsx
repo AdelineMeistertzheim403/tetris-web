@@ -219,12 +219,41 @@ type TetromazeEvent =
   | "player_escape"
   | "bot_stunned"
   | "powerup_taken"
+  | "power_freeze_protocol"
+  | "power_magnet_field"
+  | "power_firewall"
+  | "power_ghost_mode"
+  | "power_desync"
+  | "power_mirror_signal"
+  | "power_pulse_wave"
+  | "power_overheat"
+  | "power_neural_lag"
+  | "power_randomizer"
+  | "power_corruption"
+  | "power_scan"
+  | "power_virus"
   | "player_low_life"
   | "player_win"
   | "player_lose"
   | "long_chase"
   | "cornered"
   | "multi_bot_near";
+
+const POWERUP_EVENT_BY_TYPE: Partial<Record<TetromazeOrbType, TetromazeEvent>> = {
+  FREEZE_PROTOCOL: "power_freeze_protocol",
+  MAGNET_FIELD: "power_magnet_field",
+  FIREWALL: "power_firewall",
+  GHOST_MODE: "power_ghost_mode",
+  DESYNC: "power_desync",
+  MIRROR_SIGNAL: "power_mirror_signal",
+  PULSE_WAVE: "power_pulse_wave",
+  OVERHEAT: "power_overheat",
+  NEURAL_LAG: "power_neural_lag",
+  RANDOMIZER: "power_randomizer",
+  CORRUPTION: "power_corruption",
+  SCAN: "power_scan",
+  VIRUS: "power_virus",
+};
 
 type ChatLine = {
   speaker: TetrobotKind;
@@ -256,6 +285,59 @@ const TETROMAZE_DIALOGUES: Record<TetrobotKind, Partial<Record<TetromazeEvent, s
     player_escape: ["Oh non... encore rate.", "Tu es rapide ! Trop rapide !"],
     bot_stunned: ["Systeme... perturbe...", "Erreur... je... redemarre..."],
     powerup_taken: ["Pourquoi tu brilles comme ca ?!", "Ca ne me plait pas du tout..."],
+    power_freeze_protocol: [
+      "Hein ? Pourquoi je ne bouge plus ?!",
+      "Pause ? On fait une pause ?!",
+      "Je… crois… que… je… bug…",
+    ],
+    power_magnet_field: [
+      "Oh ! Tu es la-bas ! ... Non ?",
+      "Pourquoi tu te teleportes tout le temps ?!",
+      "Je me sens... attire...",
+    ],
+    power_firewall: [
+      "Mais... il y avait un passage ici !",
+      "Qui a deplace le mur ?!",
+      "Je ne comprends plus le plan...",
+    ],
+    power_ghost_mode: [
+      "Tu m'as traverse ?!",
+      "C'est interdit ca !",
+      "Ce n'est pas juste !",
+    ],
+    power_desync: [
+      "Je suis sur que tu etais la !",
+      "Je vois double !",
+      "Mon radar deconne !",
+    ],
+    power_mirror_signal: [
+      "Pourquoi je vais dans l'autre sens ?!",
+      "Mes commandes sont inversees !",
+    ],
+    power_pulse_wave: [
+      "Whoa ! Ca repousse !",
+      "C'etait quoi cette explosion ?!",
+    ],
+    power_overheat: [
+      "Pourquoi je vais si vite ?!",
+      "Je perds le controle !",
+    ],
+    power_randomizer: [
+      "Je... suis ou ?!",
+      "Ca n'a aucun sens !",
+    ],
+    power_corruption: [
+      "Le mur... vient de disparaitre ?!",
+      "Le labyrinthe change !",
+    ],
+    power_scan: [
+      "Tu lis mes mouvements ?!",
+      "Ce n'est pas equitable !",
+    ],
+    power_virus: [
+      "Je ne me sens pas bien...",
+      "Je crois que je suis infecte...",
+    ],
     long_chase: ["Tu me fatigues la...", "Pourquoi tu ne t'arretes jamais ?"],
     player_win: ["Bien joue... je vais m'entrainer.", "Un jour, je te rattraperai."],
     player_lose: ["On peut refaire une partie ?"],
@@ -266,6 +348,60 @@ const TETROMAZE_DIALOGUES: Record<TetrobotKind, Partial<Record<TetromazeEvent, s
     player_near: ["Contact visuel etabli.", "Distance minimale detectee."],
     player_escape: ["Evasion imprevue.", "Recalcul de trajectoire."],
     powerup_taken: ["Amplification detectee.", "Modification du comportement recommandee."],
+    power_freeze_protocol: [
+      "Immobilisation forcee detectee.",
+      "Processus suspendu temporairement.",
+      "Analyse en attente.",
+    ],
+    power_magnet_field: [
+      "Signal fantome detecte.",
+      "Coordonnees incoherentes.",
+      "Simulation perturbee.",
+    ],
+    power_firewall: [
+      "Obstacle imprevu.",
+      "Recalcul du chemin optimal.",
+      "Modification topologique detectee.",
+    ],
+    power_ghost_mode: [
+      "Collision impossible.",
+      "Entite intangible.",
+      "Physique temporairement desactivee.",
+    ],
+    power_desync: [
+      "Latence anormale.",
+      "Decalage temporel mesure.",
+      "Synchronisation compromise.",
+    ],
+    power_mirror_signal: [
+      "Inversion vectorielle detectee.",
+      "Commande contradictoire.",
+      "Correction en cours.",
+    ],
+    power_pulse_wave: [
+      "Onde de choc detectee.",
+      "Distance de securite compromise.",
+    ],
+    power_overheat: [
+      "Acceleration excessive.",
+      "Precision diminuee.",
+    ],
+    power_randomizer: [
+      "Positions aleatoires.",
+      "Chaos structurel.",
+    ],
+    power_corruption: [
+      "Structure instable.",
+      "Carte non fiable.",
+    ],
+    power_scan: [
+      "Prediction interceptee.",
+      "Chemin expose.",
+    ],
+    power_virus: [
+      "Propagation detectee.",
+      "Anomalie interne.",
+    ],
     bot_stunned: ["Interruption du systeme.", "Latence critique."],
     cornered: ["Impasse confirmee.", "Plus d'issues detectees."],
     player_lose: ["Resultat attendu.", "Capture optimisee."],
@@ -278,6 +414,67 @@ const TETROMAZE_DIALOGUES: Record<TetrobotKind, Partial<Record<TetromazeEvent, s
     player_escape: ["Chanceux.", "Je m'adapte."],
     multi_bot_near: ["Nous sommes partout.", "Tu es encercle."],
     bot_stunned: ["Erreur... temporaire.", "Je reviens."],
+    power_freeze_protocol: [
+      "Pathetique.",
+      "Ce n'est qu'un delai.",
+      "Trois secondes ne te sauveront pas.",
+    ],
+    power_magnet_field: [
+      "Illusion.",
+      "Tu crois pouvoir me tromper ?",
+      "Je corrige.",
+    ],
+    power_firewall: [
+      "Tu bloques ma route ?",
+      "Erreur.",
+      "Je trouverai une autre voie.",
+    ],
+    power_ghost_mode: [
+      "Cache-toi derriere des bugs.",
+      "Tu redeviendras solide.",
+      "Je t'attends.",
+    ],
+    power_desync: [
+      "Tu manipules le temps.",
+      "Interessant.",
+      "Je m'adapte.",
+    ],
+    power_mirror_signal: [
+      "Tu joues avec mes directions ?",
+      "Instable...",
+      "Je reprends le controle.",
+    ],
+    power_pulse_wave: [
+      "Force brute.",
+      "Inefficace a long terme.",
+      "Tu paniques.",
+    ],
+    power_overheat: [
+      "Tu veux du chaos ?",
+      "Tres bien.",
+      "Je vais te submerger.",
+    ],
+    power_neural_lag: [
+      "Ralentissement detecte.",
+      "Interference ciblee.",
+      "Tu as peur de moi.",
+    ],
+    power_randomizer: [
+      "Tu relies ton destin au hasard.",
+      "Erreur strategique.",
+    ],
+    power_corruption: [
+      "Tu detruis l'ordre.",
+      "Je reconstruirai.",
+    ],
+    power_scan: [
+      "Tu vois l'avenir ?",
+      "Il n'est pas fige.",
+    ],
+    power_virus: [
+      "Tentative de sabotage.",
+      "Je purge.",
+    ],
     player_low_life: ["Tu vacilles.", "Fin imminente."],
     player_win: ["Anomalie statistique.", "Ce n'est pas fini."],
     player_lose: ["Je suis l'algorithme."],
@@ -1192,7 +1389,14 @@ export default function TetromazePage() {
 
     const tookPowerUp = state.powerOrbs.size < prev.powerOrbs.size;
     if (tookPowerUp) {
-      pushChatLine("powerup_taken", nearest?.bot.kind ?? "balanced");
+      const collectedPowerTypes = Array.from(prev.powerOrbs.entries())
+        .filter(([key]) => !state.powerOrbs.has(key))
+        .map(([, type]) => type);
+      const collectedType = collectedPowerTypes[collectedPowerTypes.length - 1];
+      const powerEvent = collectedType ? POWERUP_EVENT_BY_TYPE[collectedType] : undefined;
+      const preferredSpeaker =
+        collectedType === "NEURAL_LAG" ? "apex" : nearest?.bot.kind ?? "balanced";
+      pushChatLine(powerEvent ?? "powerup_taken", preferredSpeaker);
       runEffectsRef.current += 1;
       const next = updateStats((old) => ({
         ...old,
@@ -1273,11 +1477,19 @@ export default function TetromazePage() {
     if (!ctx) return;
 
     const now = Date.now();
+    const hackActive = now < state.hackUntil;
+    const glitchActive = now < state.glitchUntil;
     const freezeActive = now < state.freezeUntil;
+    const magnetActive = now < state.magnetUntil && !!state.magnetTarget;
     const ghostActive = now < state.ghostUntil;
+    const desyncActive = now < state.desyncUntil;
+    const mirrorActive = now < state.mirrorUntil;
+    const overheatActive = now < state.overheatUntil;
+    const neuralLagActive = now < state.neuralLagUntil;
     const firewallActive = now < state.firewallUntil && !!state.firewallCell;
     const corruptionActive = now < state.corruptionUntil;
     const scanActive = now < state.scanUntil;
+    const virusActive = now < state.virusUntil;
     const safeActive = now < state.safeUntil;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1389,6 +1601,8 @@ export default function TetromazePage() {
       const drawY = bot.prevPos.y + (bot.pos.y - bot.prevPos.y) * t;
       const x = drawX * TILE + (TILE - size) / 2;
       const y = drawY * TILE + (TILE - size) / 2;
+      const cx = x + size / 2;
+      const cy = y + size / 2;
       const sprite = spritesRef.current?.bots[bot.kind];
 
       if (assetsReady && sprite) {
@@ -1396,20 +1610,87 @@ export default function TetromazePage() {
       } else {
         ctx.fillStyle = "#67b2ff";
         ctx.beginPath();
-        ctx.arc(x + size / 2, y + size / 2, TILE * 0.34, 0, Math.PI * 2);
+        ctx.arc(cx, cy, TILE * 0.34, 0, Math.PI * 2);
         ctx.fill();
       }
 
+      if (hackActive) {
+        const pulse = 0.5 + 0.5 * Math.sin(now / 120);
+        ctx.strokeStyle = `rgba(255, 137, 255, ${0.45 + pulse * 0.45})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+      }
       if (freezeActive) {
         ctx.strokeStyle = "#9bd7ff";
         ctx.lineWidth = 2;
         ctx.strokeRect(x + 3, y + 3, size - 6, size - 6);
       }
-      if (state.virusHostBotId === bot.id && now < state.virusUntil) {
+      if (glitchActive) {
+        ctx.strokeStyle = "rgba(142, 255, 245, 0.85)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 5, y + 5);
+        ctx.lineTo(x + size - 5, y + size - 5);
+        ctx.moveTo(x + size - 5, y + 5);
+        ctx.lineTo(x + 5, y + size - 5);
+        ctx.stroke();
+      }
+      if (magnetActive && state.magnetTarget) {
+        ctx.strokeStyle = "rgba(91, 231, 196, 0.7)";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(
+          state.magnetTarget.x * TILE + TILE / 2,
+          state.magnetTarget.y * TILE + TILE / 2
+        );
+        ctx.stroke();
+      }
+      if (desyncActive) {
+        ctx.strokeStyle = "rgba(110, 200, 255, 0.7)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 6, y + 2, size - 10, size - 10);
+      }
+      if (mirrorActive) {
+        ctx.strokeStyle = "rgba(255, 216, 109, 0.85)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - TILE * 0.2, cy);
+        ctx.lineTo(cx + TILE * 0.2, cy);
+        ctx.moveTo(cx, cy - TILE * 0.2);
+        ctx.lineTo(cx, cy + TILE * 0.2);
+        ctx.stroke();
+      }
+      if (overheatActive) {
+        ctx.strokeStyle = "rgba(255, 76, 76, 0.85)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, TILE * 0.31, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (neuralLagActive && bot.kind === "apex") {
+        ctx.strokeStyle = "rgba(138, 166, 255, 0.95)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, TILE * 0.36, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (corruptionActive) {
+        ctx.strokeStyle = "rgba(126, 255, 149, 0.75)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 4, y + 4, size - 8, size - 8);
+      }
+      if (state.virusHostBotId === bot.id && virusActive) {
         ctx.strokeStyle = "#9cff6a";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(x + size / 2, y + size / 2, TILE * 0.3, 0, Math.PI * 2);
+        ctx.arc(cx, cy, TILE * 0.3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (virusActive) {
+        ctx.strokeStyle = "rgba(156, 255, 106, 0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, TILE * 0.28, 0, Math.PI * 2);
         ctx.stroke();
       }
       if (scanActive) {
