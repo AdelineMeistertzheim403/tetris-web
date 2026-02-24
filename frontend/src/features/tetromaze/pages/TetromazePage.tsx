@@ -19,6 +19,7 @@ import {
   getValidMoves,
   manhattan,
   nextPos,
+  parseKey,
   toKey,
   type GridPos,
 } from "../logic/grid";
@@ -55,6 +56,22 @@ type GameState = {
   hackUntil: number;
   glitchUntil: number;
   overclockUntil: number;
+  freezeUntil: number;
+  magnetUntil: number;
+  magnetTarget: GridPos | null;
+  firewallUntil: number;
+  firewallCell: GridPos | null;
+  ghostUntil: number;
+  desyncUntil: number;
+  mirrorUntil: number;
+  overheatUntil: number;
+  neuralLagUntil: number;
+  corruptionUntil: number;
+  corruptionOpenCell: GridPos | null;
+  corruptionClosedCell: GridPos | null;
+  scanUntil: number;
+  virusUntil: number;
+  virusHostBotId: string | null;
   safeUntil: number;
   botWakeUntil: number;
   timeLeftMs: number;
@@ -73,6 +90,17 @@ const SURVIVAL_MS = 120000;
 const HACK_MS = 12000;
 const GLITCH_MS = 7500;
 const OVERCLOCK_MS = 9000;
+const FREEZE_MS = 3000;
+const MAGNET_MS = 5000;
+const FIREWALL_MS = 6500;
+const GHOST_MS = 2000;
+const DESYNC_MS = 6000;
+const MIRROR_MS = 4500;
+const OVERHEAT_MS = 8000;
+const NEURAL_LAG_MS = 7000;
+const CORRUPTION_MS = 7000;
+const SCAN_MS = 5000;
+const VIRUS_MS = 7500;
 const START_SAFE_MS = 2800;
 const BOT_WAKE_MS = 1400;
 const PLAYER_ANIM_MS = 170;
@@ -88,6 +116,90 @@ const ORB_COLORS: Record<TetromazeOrbType, string> = {
   GLITCH: "#8efff5",
   HACK: "#ff89ff",
   LOOP: "#9f8dff",
+  FREEZE_PROTOCOL: "#96d8ff",
+  MAGNET_FIELD: "#5be7c4",
+  FIREWALL: "#ff835a",
+  GHOST_MODE: "#d8cbff",
+  DESYNC: "#6ec8ff",
+  MIRROR_SIGNAL: "#ffd86d",
+  PULSE_WAVE: "#ffc066",
+  OVERHEAT: "#ff4c4c",
+  NEURAL_LAG: "#8aa6ff",
+  RANDOMIZER: "#ff8fd9",
+  CORRUPTION: "#7eff95",
+  SCAN: "#5fd1ff",
+  VIRUS: "#9cff6a",
+};
+
+const POWERUP_UI: Record<TetromazeOrbType, { name: string; description: string }> = {
+  OVERCLOCK: {
+    name: "Overclock",
+    description: "Augmente la vitesse du joueur temporairement.",
+  },
+  GLITCH: {
+    name: "Glitch",
+    description: "Rend les deplacements des bots plus aleatoires.",
+  },
+  HACK: {
+    name: "Hack",
+    description: "Inverse la chasse: toucher un bot le stun et donne du score.",
+  },
+  LOOP: {
+    name: "Loop",
+    description: "Teleportation instantanee via le reseau de loops.",
+  },
+  FREEZE_PROTOCOL: {
+    name: "Freeze Protocol",
+    description: "Gele les Tetrobots pendant 3 secondes.",
+  },
+  MAGNET_FIELD: {
+    name: "Magnet Field",
+    description: "Attire les bots vers un leurre temporaire.",
+  },
+  FIREWALL: {
+    name: "Firewall",
+    description: "Cree une barriere temporaire dans le labyrinthe.",
+  },
+  GHOST_MODE: {
+    name: "Ghost Mode",
+    description: "Rend intangible pendant 2 secondes.",
+  },
+  DESYNC: {
+    name: "Desync",
+    description: "Les bots voient ta position avec un retard de 1 case.",
+  },
+  MIRROR_SIGNAL: {
+    name: "Mirror Signal",
+    description: "Inverse brievement leurs decisions de mouvement.",
+  },
+  PULSE_WAVE: {
+    name: "Pulse Wave",
+    description: "Repousse les bots proches autour de toi.",
+  },
+  OVERHEAT: {
+    name: "Overheat",
+    description: "Bots plus rapides mais moins precis.",
+  },
+  NEURAL_LAG: {
+    name: "Neural Lag",
+    description: "Ralentit uniquement Apex pendant quelques secondes.",
+  },
+  RANDOMIZER: {
+    name: "Randomizer",
+    description: "Melange instantanement les positions des Tetrobots.",
+  },
+  CORRUPTION: {
+    name: "Corruption",
+    description: "Ouvre un mur et ferme temporairement un passage.",
+  },
+  SCAN: {
+    name: "Scan",
+    description: "Affiche une prevision de trajectoire des Tetrobots.",
+  },
+  VIRUS: {
+    name: "Virus",
+    description: "Infecte un Tetrobot et ralentit les autres.",
+  },
 };
 
 const PLAYER_SPRITES = [
@@ -191,6 +303,97 @@ function clampLevelIndex(levelIndex: number) {
   return Math.max(1, Math.min(TETROMAZE_TOTAL_LEVELS, levelIndex));
 }
 
+function oppositeDir(dir: Direction): Direction {
+  if (dir === "UP") return "DOWN";
+  if (dir === "DOWN") return "UP";
+  if (dir === "LEFT") return "RIGHT";
+  return "LEFT";
+}
+
+function canMoveDynamic(
+  grid: string[],
+  x: number,
+  y: number,
+  closedCell: GridPos | null,
+  openCell: GridPos | null
+) {
+  const key = toKey(x, y);
+  if (openCell && toKey(openCell.x, openCell.y) === key) return true;
+  if (closedCell && toKey(closedCell.x, closedCell.y) === key) return false;
+  return canMoveTo(grid, x, y);
+}
+
+function getValidMovesDynamic(
+  grid: string[],
+  x: number,
+  y: number,
+  closedCell: GridPos | null,
+  openCell: GridPos | null
+) {
+  return getValidMoves(grid, x, y).filter((move) =>
+    canMoveDynamic(grid, move.pos.x, move.pos.y, closedCell, openCell)
+  );
+}
+
+function findNextStepDynamic(
+  grid: string[],
+  from: GridPos,
+  target: GridPos,
+  closedCell: GridPos | null,
+  openCell: GridPos | null
+) {
+  if (from.x === target.x && from.y === target.y) return from;
+
+  const q: GridPos[] = [from];
+  const visited = new Set<string>([toKey(from.x, from.y)]);
+  const parent = new Map<string, string>();
+
+  while (q.length > 0) {
+    const cur = q.shift()!;
+    if (cur.x === target.x && cur.y === target.y) break;
+    for (const move of getValidMovesDynamic(grid, cur.x, cur.y, closedCell, openCell)) {
+      const key = toKey(move.pos.x, move.pos.y);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      parent.set(key, toKey(cur.x, cur.y));
+      q.push(move.pos);
+    }
+  }
+
+  const targetKey = toKey(target.x, target.y);
+  if (!visited.has(targetKey)) return null;
+
+  let current = targetKey;
+  let prev = parent.get(current);
+  while (prev && prev !== toKey(from.x, from.y)) {
+    current = prev;
+    prev = parent.get(current);
+  }
+  return parseKey(current);
+}
+
+function nearestWalkableAround(
+  grid: string[],
+  start: GridPos,
+  closedCell: GridPos | null,
+  openCell: GridPos | null
+) {
+  if (canMoveDynamic(grid, start.x, start.y, closedCell, openCell)) return start;
+  const q: GridPos[] = [start];
+  const seen = new Set<string>([toKey(start.x, start.y)]);
+  while (q.length) {
+    const cur = q.shift()!;
+    for (const move of getValidMoves(grid, cur.x, cur.y)) {
+      const key = toKey(move.pos.x, move.pos.y);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (canMoveDynamic(grid, move.pos.x, move.pos.y, closedCell, openCell)) return move.pos;
+      q.push(move.pos);
+    }
+  }
+  return start;
+}
+
 // Construit un état de départ complet à partir du niveau courant.
 // Les data orbs sont dérivées de la grille, en excluant zones de spawn/orbs.
 function createInitialState(mode: TetromazeMode, level: TetromazeLevel): GameState {
@@ -250,6 +453,22 @@ function createInitialState(mode: TetromazeMode, level: TetromazeLevel): GameSta
     hackUntil: 0,
     glitchUntil: 0,
     overclockUntil: 0,
+    freezeUntil: 0,
+    magnetUntil: 0,
+    magnetTarget: null,
+    firewallUntil: 0,
+    firewallCell: null,
+    ghostUntil: 0,
+    desyncUntil: 0,
+    mirrorUntil: 0,
+    overheatUntil: 0,
+    neuralLagUntil: 0,
+    corruptionUntil: 0,
+    corruptionOpenCell: null,
+    corruptionClosedCell: null,
+    scanUntil: 0,
+    virusUntil: 0,
+    virusHostBotId: null,
     safeUntil: 0,
     botWakeUntil: 0,
     timeLeftMs: mode === "SURVIVAL" ? SURVIVAL_MS : 0,
@@ -281,11 +500,6 @@ function drawSprite(
   }
   ctx.drawImage(image, -size / 2, -size / 2, size, size);
   ctx.restore();
-}
-
-// Cadence de décision des bots (plus la valeur est élevée, plus le bot est lent).
-function shouldBotMove(kind: TetrobotKind, tick: number) {
-  return tick % BOT_MOVE_INTERVAL[kind] === 0;
 }
 
 export default function TetromazePage() {
@@ -333,6 +547,16 @@ export default function TetromazePage() {
     [level.grid]
   );
   const worldStage = useMemo(() => toWorldStage(levelIndex), [levelIndex]);
+  const levelPowerupTypes = useMemo(() => {
+    const seen = new Set<TetromazeOrbType>();
+    const ordered: TetromazeOrbType[] = [];
+    for (const orb of level.powerOrbs) {
+      if (seen.has(orb.type)) continue;
+      seen.add(orb.type);
+      ordered.push(orb.type);
+    }
+    return ordered;
+  }, [level.powerOrbs]);
 
   const pushChatLine = (
     event: TetromazeEvent,
@@ -509,7 +733,23 @@ export default function TetromazePage() {
         const hackActive = now < prev.hackUntil;
         const glitchActive = now < prev.glitchUntil;
         const overclockActive = now < prev.overclockUntil;
+        const freezeActive = now < prev.freezeUntil;
+        const magnetActive = now < prev.magnetUntil && !!prev.magnetTarget;
+        const firewallActive = now < prev.firewallUntil && !!prev.firewallCell;
+        const ghostActive = now < prev.ghostUntil;
+        const desyncActive = now < prev.desyncUntil;
+        const mirrorActive = now < prev.mirrorUntil;
+        const overheatActive = now < prev.overheatUntil;
+        const neuralLagActive = now < prev.neuralLagUntil;
+        const corruptionActive = now < prev.corruptionUntil;
+        const virusActive = now < prev.virusUntil && !!prev.virusHostBotId;
         const safeActive = now < prev.safeUntil;
+        const dynamicClosedCell = firewallActive
+          ? prev.firewallCell
+          : corruptionActive
+            ? prev.corruptionClosedCell
+            : null;
+        const dynamicOpenCell = corruptionActive ? prev.corruptionOpenCell : null;
         const playerSteps = overclockActive ? 2 : 1;
 
         let nextState: GameState = {
@@ -532,12 +772,32 @@ export default function TetromazePage() {
             let candidate = nextPos(nextState.playerPos.x, nextState.playerPos.y, desiredDir);
             let chosenDir = desiredDir;
 
-            if (!canMoveTo(level.grid, candidate.x, candidate.y)) {
-              candidate = nextPos(nextState.playerPos.x, nextState.playerPos.y, nextState.playerDir);
+            if (
+              !canMoveDynamic(
+                level.grid,
+                candidate.x,
+                candidate.y,
+                dynamicClosedCell,
+                dynamicOpenCell
+              )
+            ) {
+              candidate = nextPos(
+                nextState.playerPos.x,
+                nextState.playerPos.y,
+                nextState.playerDir
+              );
               chosenDir = nextState.playerDir;
             }
 
-            if (canMoveTo(level.grid, candidate.x, candidate.y)) {
+            if (
+              canMoveDynamic(
+                level.grid,
+                candidate.x,
+                candidate.y,
+                dynamicClosedCell,
+                dynamicOpenCell
+              )
+            ) {
               nextState.playerPos = candidate;
               nextState.playerDir = chosenDir;
             }
@@ -559,30 +819,131 @@ export default function TetromazePage() {
             }
 
             const power = nextState.powerOrbs.get(orbKey);
-            if (power) {
-              nextState.powerOrbs.delete(orbKey);
-              nextState.score += 50;
-              if (power === "OVERCLOCK") nextState.overclockUntil = now + OVERCLOCK_MS;
-              if (power === "GLITCH") nextState.glitchUntil = now + GLITCH_MS;
-              if (power === "HACK") nextState.hackUntil = now + HACK_MS;
-              if (power === "LOOP" && level.loopPairs?.length) {
-                const pair = level.loopPairs[0];
-                const aDist = manhattan(nextState.playerPos, pair.a);
-                const bDist = manhattan(nextState.playerPos, pair.b);
-                nextState.playerPos = aDist <= bDist ? { ...pair.b } : { ...pair.a };
-              }
+            if (!power) continue;
+
+            nextState.powerOrbs.delete(orbKey);
+            nextState.score += 50;
+
+            if (power === "OVERCLOCK") nextState.overclockUntil = now + OVERCLOCK_MS;
+            if (power === "GLITCH") nextState.glitchUntil = now + GLITCH_MS;
+            if (power === "HACK") nextState.hackUntil = now + HACK_MS;
+            if (power === "LOOP" && level.loopPairs?.length) {
+              const pair = level.loopPairs[0];
+              const aDist = manhattan(nextState.playerPos, pair.a);
+              const bDist = manhattan(nextState.playerPos, pair.b);
+              nextState.playerPos = aDist <= bDist ? { ...pair.b } : { ...pair.a };
+            }
+            if (power === "FREEZE_PROTOCOL") nextState.freezeUntil = now + FREEZE_MS;
+            if (power === "MAGNET_FIELD") {
+              nextState.magnetUntil = now + MAGNET_MS;
+              nextState.magnetTarget = nearestWalkableAround(
+                level.grid,
+                {
+                  x: nextState.playerPos.x + (nextState.playerDir === "LEFT" ? 5 : nextState.playerDir === "RIGHT" ? -5 : 0),
+                  y: nextState.playerPos.y + (nextState.playerDir === "UP" ? 5 : nextState.playerDir === "DOWN" ? -5 : 0),
+                },
+                dynamicClosedCell,
+                dynamicOpenCell
+              );
+            }
+            if (power === "FIREWALL") {
+              nextState.firewallUntil = now + FIREWALL_MS;
+              nextState.firewallCell = nearestWalkableAround(
+                level.grid,
+                nextPos(nextState.playerPos.x, nextState.playerPos.y, nextState.playerDir),
+                null,
+                null
+              );
+            }
+            if (power === "GHOST_MODE") nextState.ghostUntil = now + GHOST_MS;
+            if (power === "DESYNC") nextState.desyncUntil = now + DESYNC_MS;
+            if (power === "MIRROR_SIGNAL") nextState.mirrorUntil = now + MIRROR_MS;
+            if (power === "OVERHEAT") nextState.overheatUntil = now + OVERHEAT_MS;
+            if (power === "NEURAL_LAG") nextState.neuralLagUntil = now + NEURAL_LAG_MS;
+            if (power === "SCAN") nextState.scanUntil = now + SCAN_MS;
+
+            if (power === "PULSE_WAVE") {
+              nextState.bots = nextState.bots.map((bot) => {
+                const distance = manhattan(bot.pos, nextState.playerPos);
+                if (distance > 3) return bot;
+                const valid = getValidMovesDynamic(
+                  level.grid,
+                  bot.pos.x,
+                  bot.pos.y,
+                  dynamicClosedCell,
+                  dynamicOpenCell
+                );
+                const away = valid
+                  .map((move) => move.pos)
+                  .sort(
+                    (a, b) =>
+                      manhattan(b, nextState.playerPos) - manhattan(a, nextState.playerPos)
+                  )[0];
+                if (!away) return bot;
+                return { ...bot, prevPos: { ...bot.pos }, pos: away, lastMoveAt: now };
+              });
+            }
+
+            if (power === "RANDOMIZER") {
+              const active = nextState.bots.filter((bot) => bot.respawnAt <= now);
+              const shuffled = [...active.map((bot) => ({ ...bot.pos }))].sort(
+                () => Math.random() - 0.5
+              );
+              let idx = 0;
+              nextState.bots = nextState.bots.map((bot) => {
+                if (bot.respawnAt > now) return bot;
+                const pos = shuffled[idx] ?? bot.pos;
+                idx += 1;
+                return { ...bot, prevPos: { ...bot.pos }, pos: { ...pos }, lastMoveAt: now };
+              });
+            }
+
+            if (power === "CORRUPTION") {
+              nextState.corruptionUntil = now + CORRUPTION_MS;
+              const nearbyWall = nearestWalkableAround(
+                level.grid,
+                nextState.playerPos,
+                null,
+                { ...nextState.playerPos }
+              );
+              const nearbyOpen = nearestWalkableAround(
+                level.grid,
+                nextPos(nextState.playerPos.x, nextState.playerPos.y, nextState.playerDir),
+                null,
+                null
+              );
+              nextState.corruptionOpenCell = nearbyWall;
+              nextState.corruptionClosedCell = nearbyOpen;
+            }
+
+            if (power === "VIRUS") {
+              const host = chooseRandom(nextState.bots);
+              nextState.virusUntil = now + VIRUS_MS;
+              nextState.virusHostBotId = host?.id ?? null;
             }
           }
         }
 
         const player = nextState.playerPos;
+        const trackingPlayer = desyncActive ? prev.playerPos : player;
+        const botTarget = magnetActive && prev.magnetTarget ? prev.magnetTarget : trackingPlayer;
 
-        if (now >= nextState.botWakeUntil) {
+        if (!freezeActive && now >= nextState.botWakeUntil) {
           nextState.bots = nextState.bots.map((bot) => {
             if (bot.respawnAt > now) return bot;
-            if (!shouldBotMove(bot.kind, nextState.tick)) return bot;
+            let interval = BOT_MOVE_INTERVAL[bot.kind];
+            if (overheatActive) interval = Math.max(2, interval - 1);
+            if (neuralLagActive && bot.kind === "apex") interval += 2;
+            if (virusActive && bot.id !== prev.virusHostBotId) interval += 2;
+            if (nextState.tick % interval !== 0) return bot;
 
-            const moves = getValidMoves(level.grid, bot.pos.x, bot.pos.y);
+            const moves = getValidMovesDynamic(
+              level.grid,
+              bot.pos.x,
+              bot.pos.y,
+              dynamicClosedCell,
+              dynamicOpenCell
+            );
             if (!moves.length) return bot;
 
             const steps = 1;
@@ -590,14 +951,19 @@ export default function TetromazePage() {
             let pos = { ...bot.pos };
             const from = { ...bot.pos };
             for (let i = 0; i < steps; i += 1) {
-              const valid = getValidMoves(level.grid, pos.x, pos.y);
+              const valid = getValidMovesDynamic(
+                level.grid,
+                pos.x,
+                pos.y,
+                dynamicClosedCell,
+                dynamicOpenCell
+              );
               if (!valid.length) break;
 
               let targetStep: GridPos | null = null;
 
               if (glitchActive) {
-                const randomMove = chooseRandom(valid);
-                targetStep = randomMove?.pos ?? null;
+                targetStep = chooseRandom(valid)?.pos ?? null;
               } else if (hackActive) {
                 targetStep = valid
                   .map((m) => m.pos)
@@ -606,34 +972,65 @@ export default function TetromazePage() {
                 if (Math.random() < 0.3) {
                   targetStep = chooseRandom(valid)?.pos ?? null;
                 } else {
-                  targetStep = findNextStepBfs(level.grid, pos, player);
+                  targetStep = findNextStepDynamic(
+                    level.grid,
+                    pos,
+                    botTarget,
+                    dynamicClosedCell,
+                    dynamicOpenCell
+                  );
                 }
               } else if (bot.kind === "balanced") {
                 const chase = Math.floor(now / 4500) % 2 === 0;
                 const predicted = {
-                  x:
-                    player.x +
-                    (nextState.playerDir === "LEFT" ? -2 : nextState.playerDir === "RIGHT" ? 2 : 0),
-                  y:
-                    player.y +
-                    (nextState.playerDir === "UP" ? -2 : nextState.playerDir === "DOWN" ? 2 : 0),
+                  x: botTarget.x + (nextState.playerDir === "LEFT" ? -2 : nextState.playerDir === "RIGHT" ? 2 : 0),
+                  y: botTarget.y + (nextState.playerDir === "UP" ? -2 : nextState.playerDir === "DOWN" ? 2 : 0),
                 };
-                const target = chase ? clampTarget(level.grid, predicted, player) : bot.spawn;
-                targetStep = findNextStepBfs(level.grid, pos, target);
+                const target = chase ? clampTarget(level.grid, predicted, botTarget) : bot.spawn;
+                targetStep = findNextStepDynamic(
+                  level.grid,
+                  pos,
+                  target,
+                  dynamicClosedCell,
+                  dynamicOpenCell
+                );
               } else {
                 const cut = {
-                  x:
-                    player.x +
-                    (nextState.playerDir === "LEFT" ? -3 : nextState.playerDir === "RIGHT" ? 3 : 0),
-                  y:
-                    player.y +
-                    (nextState.playerDir === "UP" ? -3 : nextState.playerDir === "DOWN" ? 3 : 0),
+                  x: botTarget.x + (nextState.playerDir === "LEFT" ? -3 : nextState.playerDir === "RIGHT" ? 3 : 0),
+                  y: botTarget.y + (nextState.playerDir === "UP" ? -3 : nextState.playerDir === "DOWN" ? 3 : 0),
                 };
-                const target = clampTarget(level.grid, cut, player);
-                targetStep = findNextStepBfs(level.grid, pos, target);
+                const target = clampTarget(level.grid, cut, botTarget);
+                targetStep = findNextStepDynamic(
+                  level.grid,
+                  pos,
+                  target,
+                  dynamicClosedCell,
+                  dynamicOpenCell
+                );
               }
 
-              if (!targetStep || !canMoveTo(level.grid, targetStep.x, targetStep.y)) {
+              if (overheatActive && Math.random() < 0.35) {
+                targetStep = chooseRandom(valid)?.pos ?? targetStep;
+              }
+
+              if (mirrorActive && targetStep) {
+                const dir = targetStep.x > pos.x ? "RIGHT" : targetStep.x < pos.x ? "LEFT" : targetStep.y > pos.y ? "DOWN" : "UP";
+                const mirrored = nextPos(pos.x, pos.y, oppositeDir(dir));
+                if (canMoveDynamic(level.grid, mirrored.x, mirrored.y, dynamicClosedCell, dynamicOpenCell)) {
+                  targetStep = mirrored;
+                }
+              }
+
+              if (
+                !targetStep ||
+                !canMoveDynamic(
+                  level.grid,
+                  targetStep.x,
+                  targetStep.y,
+                  dynamicClosedCell,
+                  dynamicOpenCell
+                )
+              ) {
                 targetStep = chooseRandom(valid)?.pos ?? pos;
               }
               pos = targetStep;
@@ -648,13 +1045,13 @@ export default function TetromazePage() {
         for (const bot of nextState.bots) {
           if (bot.respawnAt > now) continue;
           if (bot.pos.x === player.x && bot.pos.y === player.y) {
-            if (hackActive) {
+            if (freezeActive || hackActive) {
               bot.pos = { ...bot.spawn };
               bot.prevPos = { ...bot.spawn };
               bot.lastMoveAt = now;
               bot.respawnAt = now + 3000;
               nextState.score += CAPTURE_BONUS;
-            } else if (!safeActive) {
+            } else if (!safeActive && !ghostActive) {
               if (nextState.lives > 1) {
                 nextState.lives -= 1;
                 nextState.playerPos = { ...level.playerSpawn };
@@ -793,10 +1190,7 @@ export default function TetromazePage() {
       pushChatLine("player_low_life", "apex");
     }
 
-    const tookPowerUp =
-      state.overclockUntil > prev.overclockUntil ||
-      state.glitchUntil > prev.glitchUntil ||
-      state.hackUntil > prev.hackUntil;
+    const tookPowerUp = state.powerOrbs.size < prev.powerOrbs.size;
     if (tookPowerUp) {
       pushChatLine("powerup_taken", nearest?.bot.kind ?? "balanced");
       runEffectsRef.current += 1;
@@ -879,7 +1273,11 @@ export default function TetromazePage() {
     if (!ctx) return;
 
     const now = Date.now();
-    const hackActive = now < state.hackUntil;
+    const freezeActive = now < state.freezeUntil;
+    const ghostActive = now < state.ghostUntil;
+    const firewallActive = now < state.firewallUntil && !!state.firewallCell;
+    const corruptionActive = now < state.corruptionUntil;
+    const scanActive = now < state.scanUntil;
     const safeActive = now < state.safeUntil;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -922,6 +1320,37 @@ export default function TetromazePage() {
       ctx.lineWidth = 1;
       ctx.stroke();
     });
+
+    if (firewallActive && state.firewallCell) {
+      ctx.fillStyle = "rgba(255, 112, 82, 0.45)";
+      ctx.fillRect(
+        state.firewallCell.x * TILE + TILE * 0.1,
+        state.firewallCell.y * TILE + TILE * 0.1,
+        TILE * 0.8,
+        TILE * 0.8
+      );
+    }
+
+    if (corruptionActive) {
+      if (state.corruptionOpenCell) {
+        ctx.fillStyle = "rgba(126, 255, 149, 0.35)";
+        ctx.fillRect(
+          state.corruptionOpenCell.x * TILE + TILE * 0.15,
+          state.corruptionOpenCell.y * TILE + TILE * 0.15,
+          TILE * 0.7,
+          TILE * 0.7
+        );
+      }
+      if (state.corruptionClosedCell) {
+        ctx.fillStyle = "rgba(255, 76, 76, 0.35)";
+        ctx.fillRect(
+          state.corruptionClosedCell.x * TILE + TILE * 0.15,
+          state.corruptionClosedCell.y * TILE + TILE * 0.15,
+          TILE * 0.7,
+          TILE * 0.7
+        );
+      }
+    }
 
     if (level.loopPairs?.length) {
       ctx.fillStyle = "#4b3a9f";
@@ -971,7 +1400,31 @@ export default function TetromazePage() {
         ctx.fill();
       }
 
-      if (hackActive) {
+      if (freezeActive) {
+        ctx.strokeStyle = "#9bd7ff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 3, y + 3, size - 6, size - 6);
+      }
+      if (state.virusHostBotId === bot.id && now < state.virusUntil) {
+        ctx.strokeStyle = "#9cff6a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + size / 2, y + size / 2, TILE * 0.3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (scanActive) {
+        const next = findNextStepBfs(level.grid, bot.pos, state.playerPos);
+        if (next) {
+          ctx.strokeStyle = "rgba(95, 209, 255, 0.8)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + size / 2, y + size / 2);
+          ctx.lineTo(next.x * TILE + TILE / 2, next.y * TILE + TILE / 2);
+          ctx.stroke();
+        }
+      }
+
+      if (ghostActive) {
         ctx.strokeStyle = "#f7a6ff";
         ctx.lineWidth = 2;
         ctx.strokeRect(x + 3, y + 3, size - 6, size - 6);
@@ -987,7 +1440,7 @@ export default function TetromazePage() {
       ctx.beginPath();
       ctx.arc(playerX + playerSize / 2, playerY + playerSize / 2, TILE * 0.6, 0, Math.PI * 2);
       ctx.fill();
-    } else if (hackActive) {
+    } else if (ghostActive) {
       ctx.fillStyle = "rgba(255, 110, 248, 0.25)";
       ctx.beginPath();
       ctx.arc(playerX + playerSize / 2, playerY + playerSize / 2, TILE * 0.55, 0, Math.PI * 2);
@@ -1214,59 +1667,25 @@ export default function TetromazePage() {
 
         <div className="tetromaze-right">
           <ul className="tetromaze-legend">
-            <li>
-              <span className="tetromaze-legend__item">
-                <span
-                  className="tetromaze-legend__dot"
-                  style={{ backgroundColor: ORB_COLORS.OVERCLOCK }}
-                />
-                Overclock: vitesse joueur
-                <span className="tetromaze-legend__tooltip">
-                  Augmente ta vitesse de deplacement pendant quelques secondes.
-                  Tu peux traverser le labyrinthe plus vite pour collecter les orbs
-                  ou sortir d'un piege.
+            {levelPowerupTypes.map((type) => (
+              <li key={type}>
+                <span className="tetromaze-legend__item">
+                  <span
+                    className="tetromaze-legend__dot"
+                    style={{ backgroundColor: ORB_COLORS[type] }}
+                  />
+                  {POWERUP_UI[type].name}
+                  <span className="tetromaze-legend__tooltip">
+                    {POWERUP_UI[type].description}
+                  </span>
                 </span>
-              </span>
-            </li>
-            <li>
-              <span className="tetromaze-legend__item">
-                <span
-                  className="tetromaze-legend__dot"
-                  style={{ backgroundColor: ORB_COLORS.GLITCH }}
-                />
-                Glitch: bots aleatoires
-                <span className="tetromaze-legend__tooltip">
-                  Perturbe l'IA des Tetrobots: leurs deplacements deviennent
-                  pseudo-aleatoires et ils suivent moins bien ta trajectoire.
-                </span>
-              </span>
-            </li>
-            <li>
-              <span className="tetromaze-legend__item">
-                <span
-                  className="tetromaze-legend__dot"
-                  style={{ backgroundColor: ORB_COLORS.HACK }}
-                />
-                Hack: inversion des roles
-                <span className="tetromaze-legend__tooltip">
-                  Inverse la chasse: toucher un Tetrobot le stun et te donne un
-                  bonus de score. Profite de la fenetre pour neutraliser plusieurs bots.
-                </span>
-              </span>
-            </li>
-            <li>
-              <span className="tetromaze-legend__item">
-                <span
-                  className="tetromaze-legend__dot"
-                  style={{ backgroundColor: ORB_COLORS.LOOP }}
-                />
-                Loop: teleportation instantanee
-                <span className="tetromaze-legend__tooltip">
-                  Teleporte instantanement vers une autre sortie du reseau Loop.
-                  Ideal pour casser une poursuite ou traverser rapidement la map.
-                </span>
-              </span>
-            </li>
+              </li>
+            ))}
+            {levelPowerupTypes.length === 0 && (
+              <li>
+                <span className="tetromaze-legend__item">Aucun power-up sur ce niveau.</span>
+              </li>
+            )}
           </ul>
 
           <div className="tetromaze-controls">

@@ -128,13 +128,129 @@ const LAYOUTS: Record<"A" | "B" | "C" | "D" | "E", string[]> = {
 
 const DEFAULT_ORBS = defaultTetromazeLevel.powerOrbs;
 const DEFAULT_LOOPS = defaultTetromazeLevel.loopPairs ?? [];
+const MAX_POWERUPS_PER_LEVEL = 6;
+
+const POWERUP_SLOTS: Pos[] = [
+  { x: 1, y: 1 },
+  { x: 17, y: 1 },
+  { x: 1, y: 19 },
+  { x: 17, y: 19 },
+  { x: 9, y: 7 },
+  { x: 9, y: 15 },
+];
+
+const POWERUP_COUNTS_BY_WORLD: Record<number, number[]> = {
+  1: [3, 3, 4, 4, 4, 5, 5, 6],
+  2: [3, 4, 4, 4, 5, 5, 6, 6],
+  3: [4, 4, 5, 5, 5, 6, 6, 6],
+  4: [4, 5, 5, 5, 6, 6, 6, 6],
+  5: [5, 5, 6, 6, 6, 6, 6, 6],
+};
+
+const POWERUP_POOLS_BY_WORLD: Record<number, TetromazeOrbType[]> = {
+  1: [
+    "OVERCLOCK",
+    "GLITCH",
+    "FREEZE_PROTOCOL",
+    "MAGNET_FIELD",
+    "FIREWALL",
+    "GHOST_MODE",
+    "DESYNC",
+    "MIRROR_SIGNAL",
+  ],
+  2: [
+    "OVERCLOCK",
+    "GLITCH",
+    "LOOP",
+    "FREEZE_PROTOCOL",
+    "MAGNET_FIELD",
+    "FIREWALL",
+    "GHOST_MODE",
+    "DESYNC",
+    "MIRROR_SIGNAL",
+    "PULSE_WAVE",
+    "OVERHEAT",
+  ],
+  3: [
+    "OVERCLOCK",
+    "GLITCH",
+    "LOOP",
+    "FREEZE_PROTOCOL",
+    "MAGNET_FIELD",
+    "FIREWALL",
+    "GHOST_MODE",
+    "DESYNC",
+    "MIRROR_SIGNAL",
+    "PULSE_WAVE",
+    "OVERHEAT",
+    "NEURAL_LAG",
+    "RANDOMIZER",
+    "SCAN",
+  ],
+  4: [
+    "OVERCLOCK",
+    "GLITCH",
+    "LOOP",
+    "FREEZE_PROTOCOL",
+    "MAGNET_FIELD",
+    "FIREWALL",
+    "GHOST_MODE",
+    "DESYNC",
+    "MIRROR_SIGNAL",
+    "PULSE_WAVE",
+    "OVERHEAT",
+    "NEURAL_LAG",
+    "RANDOMIZER",
+    "CORRUPTION",
+    "SCAN",
+  ],
+  5: [
+    "OVERCLOCK",
+    "GLITCH",
+    "LOOP",
+    "FREEZE_PROTOCOL",
+    "MAGNET_FIELD",
+    "FIREWALL",
+    "GHOST_MODE",
+    "DESYNC",
+    "MIRROR_SIGNAL",
+    "PULSE_WAVE",
+    "OVERHEAT",
+    "NEURAL_LAG",
+    "RANDOMIZER",
+    "CORRUPTION",
+    "SCAN",
+    "VIRUS",
+  ],
+};
+
+function buildPowerOrbsForDifficulty(world: number, stage: number) {
+  const slots = POWERUP_SLOTS;
+  const counts = POWERUP_COUNTS_BY_WORLD[world] ?? POWERUP_COUNTS_BY_WORLD[1];
+  const pool = POWERUP_POOLS_BY_WORLD[world] ?? POWERUP_POOLS_BY_WORLD[1];
+  const count = Math.min(MAX_POWERUPS_PER_LEVEL, counts[stage - 1] ?? 4, slots.length);
+  const levelOffset = (world - 1) * TETROMAZE_LEVELS_PER_WORLD + (stage - 1);
+  const result: Array<Pos & { type: TetromazeOrbType }> = [];
+
+  if (count >= 1) {
+    result.push({ ...slots[0], type: "HACK" });
+  }
+
+  for (let i = 1; i < count; i += 1) {
+    const type = pool[(levelOffset + i - 1) % pool.length];
+    const pos = slots[i % slots.length];
+    result.push({ ...pos, type });
+  }
+
+  return result;
+}
 
 const WORLD_CONFIGS: Record<number, CampaignLevelConfig[]> = {
   1: [
     { layout: "A", botKinds: ["rookie", "rookie", "balanced"] },
     { layout: "A", botKinds: ["rookie", "balanced", "rookie"] },
     { layout: "B", botKinds: ["rookie", "balanced", "balanced"] },
-    { layout: "B", botKinds: ["rookie", "balanced", "balanced"], powerOrbs: [...DEFAULT_ORBS, { x: 3, y: 10, type: "GLITCH" }] },
+    { layout: "B", botKinds: ["rookie", "balanced", "balanced"] },
     { layout: "C", botKinds: ["rookie", "balanced", "balanced"] },
     { layout: "C", botKinds: ["rookie", "balanced", "balanced", "rookie"] },
     { layout: "B", botKinds: ["rookie", "balanced", "balanced", "balanced"] },
@@ -143,7 +259,7 @@ const WORLD_CONFIGS: Record<number, CampaignLevelConfig[]> = {
   2: [
     { layout: "B", botKinds: ["balanced", "rookie", "balanced", "rookie"] },
     { layout: "C", botKinds: ["balanced", "balanced", "rookie", "balanced"] },
-    { layout: "C", botKinds: ["balanced", "balanced", "balanced", "rookie"], powerOrbs: [...DEFAULT_ORBS, { x: 15, y: 10, type: "OVERCLOCK" }] },
+    { layout: "C", botKinds: ["balanced", "balanced", "balanced", "rookie"] },
     { layout: "D", botKinds: ["balanced", "balanced", "rookie", "balanced"], loopPairs: [...DEFAULT_LOOPS, { a: { x: 3, y: 5 }, b: { x: 15, y: 15 } }] },
     { layout: "D", botKinds: ["balanced", "balanced", "balanced", "rookie", "balanced"] },
     { layout: "C", botKinds: ["balanced", "balanced", "balanced", "balanced", "rookie"] },
@@ -152,7 +268,7 @@ const WORLD_CONFIGS: Record<number, CampaignLevelConfig[]> = {
   ],
   3: [
     { layout: "C", botKinds: ["balanced", "apex", "rookie", "balanced", "balanced"] },
-    { layout: "D", botKinds: ["balanced", "apex", "balanced", "rookie", "balanced"], powerOrbs: [...DEFAULT_ORBS, { x: 9, y: 7, type: "HACK" }] },
+    { layout: "D", botKinds: ["balanced", "apex", "balanced", "rookie", "balanced"] },
     { layout: "D", botKinds: ["balanced", "apex", "balanced", "balanced", "rookie"] },
     { layout: "E", botKinds: ["balanced", "apex", "balanced", "balanced", "balanced"] },
     { layout: "E", botKinds: ["apex", "balanced", "balanced", "balanced", "rookie", "balanced"] },
@@ -163,7 +279,7 @@ const WORLD_CONFIGS: Record<number, CampaignLevelConfig[]> = {
   4: [
     { layout: "D", botKinds: ["apex", "balanced", "balanced", "balanced", "balanced", "rookie"] },
     { layout: "E", botKinds: ["apex", "balanced", "balanced", "apex", "balanced", "balanced"] },
-    { layout: "E", botKinds: ["apex", "balanced", "apex", "balanced", "balanced", "balanced"], powerOrbs: [...DEFAULT_ORBS, { x: 9, y: 15, type: "LOOP" }] },
+    { layout: "E", botKinds: ["apex", "balanced", "apex", "balanced", "balanced", "balanced"] },
     { layout: "D", botKinds: ["apex", "balanced", "apex", "balanced", "balanced", "balanced"], loopPairs: [...DEFAULT_LOOPS, { a: { x: 3, y: 5 }, b: { x: 15, y: 15 } }] },
     { layout: "E", botKinds: ["apex", "apex", "balanced", "balanced", "balanced", "balanced"] },
     { layout: "E", botKinds: ["apex", "apex", "balanced", "balanced", "apex", "balanced"] },
@@ -181,7 +297,6 @@ const WORLD_CONFIGS: Record<number, CampaignLevelConfig[]> = {
     {
       layout: "E",
       botKinds: ["apex", "apex", "apex", "apex", "apex", "balanced", "apex"],
-      powerOrbs: [...DEFAULT_ORBS, { x: 9, y: 7, type: "HACK" }, { x: 9, y: 15, type: "LOOP" }],
       loopPairs: [...DEFAULT_LOOPS, { a: { x: 3, y: 5 }, b: { x: 15, y: 15 } }, { a: { x: 3, y: 15 }, b: { x: 15, y: 5 } }],
     },
   ],
@@ -299,7 +414,8 @@ export function getTetromazeCampaignLevel(index: number): TetromazeLevel {
 
   const rawSpawns = buildBotSpawns(base, config.botKinds.length);
   const safeSpawns = sanitizeSpawns(layout, rawSpawns);
-  const safePowerOrbs = sanitizePowerOrbs(layout, config.powerOrbs ?? DEFAULT_ORBS);
+  const generatedOrbs = buildPowerOrbsForDifficulty(world, stage);
+  const safePowerOrbs = sanitizePowerOrbs(layout, config.powerOrbs ?? generatedOrbs ?? DEFAULT_ORBS);
   const safeLoopPairs = sanitizeLoopPairs(layout, config.loopPairs ?? DEFAULT_LOOPS);
 
   return {

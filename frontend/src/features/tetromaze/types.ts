@@ -1,5 +1,22 @@
 // Types de power orbs disponibles dans Tetromaze.
-export type TetromazeOrbType = "OVERCLOCK" | "GLITCH" | "HACK" | "LOOP";
+export type TetromazeOrbType =
+  | "OVERCLOCK"
+  | "GLITCH"
+  | "HACK"
+  | "LOOP"
+  | "FREEZE_PROTOCOL"
+  | "MAGNET_FIELD"
+  | "FIREWALL"
+  | "GHOST_MODE"
+  | "DESYNC"
+  | "MIRROR_SIGNAL"
+  | "PULSE_WAVE"
+  | "OVERHEAT"
+  | "NEURAL_LAG"
+  | "RANDOMIZER"
+  | "CORRUPTION"
+  | "SCAN"
+  | "VIRUS";
 
 // Contrat d'un niveau Tetromaze:
 // - `grid` encode les murs/couloirs

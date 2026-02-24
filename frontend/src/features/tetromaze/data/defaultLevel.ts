@@ -48,6 +48,8 @@ export const defaultTetromazeLevel: TetromazeLevel = {
     { x: 17, y: 1, type: "GLITCH" },
     { x: 1, y: 19, type: "HACK" },
     { x: 17, y: 19, type: "LOOP" },
+    { x: 9, y: 7, type: "FREEZE_PROTOCOL" },
+    { x: 9, y: 15, type: "MAGNET_FIELD" },
   ],
   loopPairs: [{ a: { x: 1, y: 10 }, b: { x: 17, y: 10 } }],
 };
