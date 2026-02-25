@@ -219,6 +219,69 @@ export const brickfallSoloProgressSchema = z.object({
   highestLevel: intWithin(1, 999),
 });
 
+const tetromazePosSchema = z.object({
+  x: intWithin(0, 99),
+  y: intWithin(0, 99),
+});
+
+const tetromazeOrbTypeSchema = z.enum([
+  "OVERCLOCK",
+  "GLITCH",
+  "HACK",
+  "LOOP",
+  "FREEZE_PROTOCOL",
+  "MAGNET_FIELD",
+  "FIREWALL",
+  "GHOST_MODE",
+  "DESYNC",
+  "MIRROR_SIGNAL",
+  "PULSE_WAVE",
+  "OVERHEAT",
+  "NEURAL_LAG",
+  "RANDOMIZER",
+  "CORRUPTION",
+  "SCAN",
+  "VIRUS",
+]);
+
+const tetromazeLoopPairSchema = z.object({
+  a: tetromazePosSchema,
+  b: tetromazePosSchema,
+});
+
+const tetromazePowerOrbSchema = tetromazePosSchema.extend({
+  type: tetromazeOrbTypeSchema,
+});
+
+const tetromazeBotHomeSchema = z.object({
+  x: intWithin(0, 99),
+  y: intWithin(0, 99),
+  width: intWithin(1, 20),
+  height: intWithin(1, 20),
+  gate: z
+    .object({
+      x: intWithin(0, 99),
+      y: intWithin(0, 99),
+      width: intWithin(1, 20),
+    })
+    .optional(),
+});
+
+export const tetromazeLevelSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(120).optional(),
+  grid: z
+    .array(z.string().trim().min(5).max(120).regex(/^[.#]+$/))
+    .min(5)
+    .max(120),
+  playerSpawn: tetromazePosSchema,
+  botSpawns: z.array(tetromazePosSchema).max(64),
+  botKinds: z.array(z.enum(["rookie", "balanced", "apex"])).max(12).optional(),
+  botHome: tetromazeBotHomeSchema.optional(),
+  powerOrbs: z.array(tetromazePowerOrbSchema).max(128),
+  loopPairs: z.array(tetromazeLoopPairSchema).max(8).optional(),
+});
+
 export const tetromazeProgressSchema = z.object({
   highestLevel: intWithin(1, 999).optional(),
   currentLevel: intWithin(1, 999).optional(),

@@ -23,7 +23,7 @@ const ALL_POWERUPS: TetromazeOrbType[] = [
 ];
 
 const BOT_KINDS: TetrobotKind[] = ["rookie", "balanced", "apex"];
-const MAX_CUSTOM_BOTS = 90;
+const MAX_CUSTOM_BOTS = 12;
 
 type Pos = { x: number; y: number };
 
@@ -186,6 +186,27 @@ export function listTetromazeCustomLevels(): TetromazeLevel[] {
 
 function persist(levels: TetromazeLevel[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(levels));
+}
+
+export function replaceTetromazeCustomLevels(levels: TetromazeLevel[]): TetromazeLevel[] {
+  const normalized = levels
+    .map((lvl) => normalizeTetromazeLevel(lvl))
+    .filter((lvl): lvl is TetromazeLevel => Boolean(lvl));
+  persist(normalized);
+  return normalized;
+}
+
+export function mergeTetromazeCustomLevels(levels: TetromazeLevel[]): TetromazeLevel[] {
+  const merged = [...listTetromazeCustomLevels()];
+  for (const level of levels) {
+    const normalized = normalizeTetromazeLevel(level);
+    if (!normalized) continue;
+    const idx = merged.findIndex((l) => l.id === normalized.id);
+    if (idx >= 0) merged[idx] = normalized;
+    else merged.unshift(normalized);
+  }
+  persist(merged);
+  return merged;
 }
 
 export function upsertTetromazeCustomLevel(level: TetromazeLevel): TetromazeLevel[] {

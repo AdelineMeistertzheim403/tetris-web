@@ -8,11 +8,12 @@ import {
   toWorldStage,
 } from "../data/campaignLevels";
 import {
+  fetchTetromazeCustomLevels,
   fetchTetromazeProgress,
   saveTetromazeProgress,
   type TetromazeProgress,
 } from "../services/tetromazeService";
-import { findTetromazeCustomLevel } from "../utils/customLevels";
+import { findTetromazeCustomLevel, mergeTetromazeCustomLevels } from "../utils/customLevels";
 import {
   canMoveTo,
   chooseRandom,
@@ -841,7 +842,16 @@ export default function TetromazePage() {
     const bootstrap = async () => {
       const localProgress = readLocalProgress();
       if (customParam) {
-        const customLevel = findTetromazeCustomLevel(customParam);
+        let customLevel = findTetromazeCustomLevel(customParam);
+        if (!customLevel) {
+          try {
+            const remoteCustomLevels = await fetchTetromazeCustomLevels();
+            mergeTetromazeCustomLevels(remoteCustomLevels);
+            customLevel = findTetromazeCustomLevel(customParam);
+          } catch {
+            // hors ligne: local only
+          }
+        }
         if (!customLevel) {
           if (!cancelled) navigate("/tetromaze");
           return;

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultTetromazeLevel } from "../data/defaultLevel";
@@ -6,10 +6,16 @@ import type { TetromazeLevel, TetromazeOrbType } from "../types";
 import {
   exportTetromazeLevelJson,
   listTetromazeCustomLevels,
+  mergeTetromazeCustomLevels,
   parseTetromazeLevelsFromJson,
   removeTetromazeCustomLevel,
   upsertTetromazeCustomLevel,
 } from "../utils/customLevels";
+import {
+  deleteTetromazeCustomLevel,
+  fetchTetromazeCustomLevels,
+  saveTetromazeCustomLevel,
+} from "../services/tetromazeService";
 import "../../../styles/tetromaze-editor.css";
 
 type Tool = "tetromino" | "erase" | "player" | "powerup" | "home" | "loop";
@@ -18,7 +24,7 @@ type LoopEndpoint = "a" | "b";
 
 type Pos = { x: number; y: number };
 const CELL_SIZE = 40;
-const MAX_BOTS_PER_KIND = 30;
+const MAX_TOTAL_BOTS = 12;
 
 const TOOLBAR_ITEMS: Array<{ tool: Tool; label: string; icon: string }> = [
   { tool: "tetromino", label: "Tetromino murs", icon: "/Tetromaze-Editor/tetromino_murs.png" },
@@ -144,6 +150,26 @@ export default function TetromazeEditor() {
   const [balancedCount, setBalancedCount] = useState(1);
   const [apexCount, setApexCount] = useState(1);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      try {
+        const remote = await fetchTetromazeCustomLevels();
+        const merged = mergeTetromazeCustomLevels(remote);
+        if (cancelled) return;
+        setLevels(merged);
+      } catch {
+        // Non bloquant: l'editeur reste utilisable avec localStorage.
+      }
+    };
+
+    bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const width = active.grid[0].length;
   const height = active.grid.length;
 
@@ -208,6 +234,10 @@ export default function TetromazeEditor() {
     for (let i = 0; i < apexCount; i += 1) kinds.push("apex");
     return kinds;
   }, [apexCount, balancedCount, rookieCount]);
+
+  const maxRookie = Math.max(0, MAX_TOTAL_BOTS - balancedCount - apexCount);
+  const maxPulse = Math.max(0, MAX_TOTAL_BOTS - rookieCount - apexCount);
+  const maxApex = Math.max(0, MAX_TOTAL_BOTS - rookieCount - balancedCount);
 
   const applyKinds = () => {
     setActive((prev) => {
@@ -310,7 +340,7 @@ export default function TetromazeEditor() {
     }
   };
 
-  const saveLevel = () => {
+  const saveLevel = async () => {
     const levelToSave: TetromazeLevel = {
       ...active,
       botKinds,
@@ -319,7 +349,12 @@ export default function TetromazeEditor() {
     const next = upsertTetromazeCustomLevel(levelToSave);
     setLevels(next);
     setActive(levelToSave);
-    setError(null);
+    try {
+      await saveTetromazeCustomLevel(levelToSave);
+      setError(null);
+    } catch {
+      setError("Sauvegarde locale OK, mais echec de synchro BDD.");
+    }
   };
 
   const loadLevel = (level: TetromazeLevel) => {
@@ -330,9 +365,15 @@ export default function TetromazeEditor() {
     setApexCount(kinds.filter((k) => k === "apex").length);
   };
 
-  const removeLevel = (id: string) => {
+  const removeLevel = async (id: string) => {
     const next = removeTetromazeCustomLevel(id);
     setLevels(next);
+    try {
+      await deleteTetromazeCustomLevel(id);
+      setError(null);
+    } catch {
+      setError("Suppression locale OK, mais echec de synchro BDD.");
+    }
     if (active.id === id) setActive(next[0] ?? makeNewLevel());
   };
 
@@ -346,12 +387,10 @@ export default function TetromazeEditor() {
         setError("JSON invalide");
         return;
       }
-      let next = listTetromazeCustomLevels();
-      for (const lvl of imported) {
-        next = upsertTetromazeCustomLevel(lvl);
-      }
+      const next = mergeTetromazeCustomLevels(imported);
       setLevels(next);
       setActive(imported[0]);
+      await Promise.allSettled(imported.map((lvl) => saveTetromazeCustomLevel(lvl)));
       setError(null);
     } catch {
       setError("Import impossible");
@@ -436,10 +475,10 @@ export default function TetromazeEditor() {
                 <input
                   type="number"
                   min={0}
-                  max={MAX_BOTS_PER_KIND}
+                  max={maxRookie}
                   value={rookieCount}
                   onChange={(e) =>
-                    setRookieCount(clamp(Number(e.target.value) || 0, 0, MAX_BOTS_PER_KIND))
+                    setRookieCount(clamp(Number(e.target.value) || 0, 0, maxRookie))
                   }
                 />
               </div>
@@ -448,10 +487,10 @@ export default function TetromazeEditor() {
                 <input
                   type="number"
                   min={0}
-                  max={MAX_BOTS_PER_KIND}
+                  max={maxPulse}
                   value={balancedCount}
                   onChange={(e) =>
-                    setBalancedCount(clamp(Number(e.target.value) || 0, 0, MAX_BOTS_PER_KIND))
+                    setBalancedCount(clamp(Number(e.target.value) || 0, 0, maxPulse))
                   }
                 />
               </div>
@@ -460,22 +499,67 @@ export default function TetromazeEditor() {
                 <input
                   type="number"
                   min={0}
-                  max={MAX_BOTS_PER_KIND}
+                  max={maxApex}
                   value={apexCount}
                   onChange={(e) =>
-                    setApexCount(clamp(Number(e.target.value) || 0, 0, MAX_BOTS_PER_KIND))
+                    setApexCount(clamp(Number(e.target.value) || 0, 0, maxApex))
                   }
                 />
+              </div>
+              <div className="tetromaze-editor-sub">
+                Total: {rookieCount + balancedCount + apexCount}/{MAX_TOTAL_BOTS}
               </div>
               <button className="retro-btn" onClick={applyKinds}>Appliquer tetrobots</button>
             </div>
 
             <div className="tetromaze-editor-stack tetromaze-editor-divider">
-              <button className="retro-btn" onClick={saveLevel}>Sauver</button>
-              <button className="retro-btn" onClick={() => setActive(makeNewLevel())}>Nouveau</button>
-              <button className="retro-btn" onClick={exportActive}>Export JSON</button>
-              <button className="retro-btn" onClick={() => fileInputRef.current?.click()}>Import JSON</button>
-              <button className="retro-btn" onClick={() => navigate(`/tetromaze/play?custom=${encodeURIComponent(active.id)}`)}>Jouer ce niveau</button>
+              <div className="tetromaze-editor-main-actions">
+                <button
+                  className="tetromaze-editor-icon-btn tetromaze-editor-icon-btn--lg"
+                  type="button"
+                  title="Sauver"
+                  aria-label="Sauver le niveau"
+                  onClick={saveLevel}
+                >
+                  <i className="fa-solid fa-floppy-disk" />
+                </button>
+                <button
+                  className="tetromaze-editor-icon-btn tetromaze-editor-icon-btn--lg"
+                  type="button"
+                  title="Nouveau"
+                  aria-label="Nouveau niveau"
+                  onClick={() => setActive(makeNewLevel())}
+                >
+                  <i className="fa-solid fa-file-circle-plus" />
+                </button>
+                <button
+                  className="tetromaze-editor-icon-btn tetromaze-editor-icon-btn--lg"
+                  type="button"
+                  title="Export JSON"
+                  aria-label="Exporter en JSON"
+                  onClick={exportActive}
+                >
+                  <i className="fa-solid fa-file-export" />
+                </button>
+                <button
+                  className="tetromaze-editor-icon-btn tetromaze-editor-icon-btn--lg"
+                  type="button"
+                  title="Import JSON"
+                  aria-label="Importer un JSON"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <i className="fa-solid fa-file-import" />
+                </button>
+                <button
+                  className="tetromaze-editor-icon-btn tetromaze-editor-icon-btn--lg tetromaze-editor-icon-btn--rowfull"
+                  type="button"
+                  title="Jouer ce niveau"
+                  aria-label="Jouer ce niveau"
+                  onClick={() => navigate(`/tetromaze/play?custom=${encodeURIComponent(active.id)}`)}
+                >
+                  <i className="fa-solid fa-play" />
+                </button>
+              </div>
               {error && <div className="tetromaze-editor-error">{error}</div>}
             </div>
           </div>
@@ -538,9 +622,20 @@ export default function TetromazeEditor() {
           </div>
 
           <div className="panel tetromaze-editor-side">
-            <button className="retro-btn" onClick={() => navigate("/tetromaze")}>
-              Retour Hub
-            </button>
+            <div className="tetromaze-editor-top-actions">
+              <button className="retro-btn" onClick={() => navigate("/tetromaze")}>
+                Retour Hub
+              </button>
+              <button
+                className="tetromaze-editor-icon-btn"
+                type="button"
+                title="Aide editeur"
+                aria-label="Aide editeur"
+                onClick={() => navigate("/tetromaze/help/editor")}
+              >
+                <i className="fa-solid fa-circle-question" />
+              </button>
+            </div>
             <h2>Niveaux custom</h2>
             <div className="tetromaze-editor-levels">
               {levels.length === 0 && <div className="tetromaze-editor-empty">Aucun niveau.</div>}
@@ -551,8 +646,24 @@ export default function TetromazeEditor() {
                   <div className="tetromaze-editor-sub">Power-ups: {lvl.powerOrbs.length}</div>
                   <div className="tetromaze-editor-sub">Bots: {(lvl.botKinds ?? []).length}</div>
                   <div className="tetromaze-editor-actions">
-                    <button className="retro-btn" onClick={() => loadLevel(lvl)}>Charger</button>
-                    <button className="retro-btn" onClick={() => removeLevel(lvl.id)}>Supprimer</button>
+                    <button
+                      className="tetromaze-editor-icon-btn"
+                      type="button"
+                      title="Charger"
+                      aria-label={`Charger ${lvl.name ?? lvl.id}`}
+                      onClick={() => loadLevel(lvl)}
+                    >
+                      <i className="fa-solid fa-folder-open" />
+                    </button>
+                    <button
+                      className="tetromaze-editor-icon-btn tetromaze-editor-icon-btn--danger"
+                      type="button"
+                      title="Supprimer"
+                      aria-label={`Supprimer ${lvl.name ?? lvl.id}`}
+                      onClick={() => removeLevel(lvl.id)}
+                    >
+                      <i className="fa-solid fa-trash" />
+                    </button>
                   </div>
                 </div>
               ))}

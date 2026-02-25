@@ -1,4 +1,6 @@
 import { getAuthHeader } from "../../auth/services/authService";
+import type { TetromazeLevel } from "../types";
+import { normalizeTetromazeLevel } from "../utils/customLevels";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -88,4 +90,58 @@ export async function saveTetromazeProgress(
 
   const data = (await res.json()) as TetromazeProgressResponse;
   return normalizeProgress(data);
+}
+
+export async function fetchTetromazeCustomLevels(): Promise<TetromazeLevel[]> {
+  const res = await fetch(`${API_URL}/tetromaze/custom-levels`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur chargement niveaux custom Tetromaze"));
+  }
+
+  const data = (await res.json()) as { levels?: unknown[] };
+  const arr = Array.isArray(data.levels) ? data.levels : [];
+  return arr
+    .map((item) => normalizeTetromazeLevel(item))
+    .filter((item): item is TetromazeLevel => Boolean(item));
+}
+
+export async function saveTetromazeCustomLevel(level: TetromazeLevel): Promise<void> {
+  const normalized = normalizeTetromazeLevel(level);
+  if (!normalized) {
+    throw new Error("Niveau Tetromaze invalide");
+  }
+
+  const res = await fetch(`${API_URL}/tetromaze/custom-levels`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+    body: JSON.stringify({ level: normalized }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur sauvegarde niveau custom Tetromaze"));
+  }
+}
+
+export async function deleteTetromazeCustomLevel(levelId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/tetromaze/custom-levels/${encodeURIComponent(levelId)}`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur suppression niveau custom Tetromaze"));
+  }
 }

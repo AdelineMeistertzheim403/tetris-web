@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  fetchTetromazeCustomLevels,
   fetchTetromazeProgress,
   type TetromazeProgress,
 } from "../services/tetromazeService";
-import { listTetromazeCustomLevels } from "../utils/customLevels";
+import { listTetromazeCustomLevels, mergeTetromazeCustomLevels } from "../utils/customLevels";
 import { TETROMAZE_TOTAL_LEVELS, toWorldStage } from "../data/campaignLevels";
 import "../../../styles/tetromaze-hub.css";
 
@@ -55,15 +56,19 @@ export default function TetromazeHub() {
       }
 
       try {
-        const remote = await fetchTetromazeProgress();
+        const [remoteProgress, remoteCustomLevels] = await Promise.all([
+          fetchTetromazeProgress(),
+          fetchTetromazeCustomLevels(),
+        ]);
         const merged: TetromazeProgress = {
-          highestLevel: Math.max(local.highestLevel, remote.highestLevel),
-          currentLevel: Math.max(local.currentLevel, remote.currentLevel),
-          levelScores: { ...local.levelScores, ...remote.levelScores },
+          highestLevel: Math.max(local.highestLevel, remoteProgress.highestLevel),
+          currentLevel: Math.max(local.currentLevel, remoteProgress.currentLevel),
+          levelScores: { ...local.levelScores, ...remoteProgress.levelScores },
         };
         if (cancelled) return;
         setProgress(merged);
         setSelectedUnlocked(clamp(merged.currentLevel, 1, merged.highestLevel));
+        setCustomLevels(mergeTetromazeCustomLevels(remoteCustomLevels));
         writeLocalProgress(merged);
       } catch {
         if (!cancelled) setSyncError("Mode hors ligne: progression locale utilisee.");
@@ -79,12 +84,10 @@ export default function TetromazeHub() {
   }, []);
 
   useEffect(() => {
-    const custom = listTetromazeCustomLevels();
-    setCustomLevels(custom);
-    if (custom.length && !selectedCustomId) {
-      setSelectedCustomId(custom[0].id);
+    if (customLevels.length && !selectedCustomId) {
+      setSelectedCustomId(customLevels[0].id);
     }
-  }, [selectedCustomId]);
+  }, [customLevels, selectedCustomId]);
 
   const worldStage = useMemo(() => toWorldStage(progress.currentLevel), [progress.currentLevel]);
 
@@ -134,6 +137,9 @@ export default function TetromazeHub() {
             <div className="tetromaze-hub-divider tetromaze-hub-stack">
               <button className="tetromaze-hub-btn" onClick={() => navigate("/tetromaze/editor")}>
                 Ouvrir editeur de niveau
+              </button>
+              <button className="tetromaze-hub-btn" onClick={() => navigate("/tetromaze/help/editor")}>
+                Aide editeur
               </button>
               <div className="text-cyan-200">Jouer niveau cree</div>
               <select
