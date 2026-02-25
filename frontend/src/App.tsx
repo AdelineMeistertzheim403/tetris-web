@@ -17,11 +17,15 @@ import BrickfallVersus from "./features/brickfallVersus/pages/BrickfallVersus";
 import BrickfallSolo from "./features/brickfallSolo/pages/BrickfallSolo";
 import BrickfallSoloPlay from "./features/brickfallSolo/pages/BrickfallSoloPlay";
 import BrickfallEditor from "./features/brickfallSolo/pages/BrickfallEditor";
+import BrickfallEditorHelp from "./features/brickfallSolo/pages/BrickfallEditorHelp";
 import AchievementsPage from "./features/achievements/pages/AchievementsPage";
 import Settings from "./features/settings/pages/Settings";
 import PuzzleSelect from "./features/puzzle/pages/PuzzleSelect";
 import PuzzleRun from "./features/puzzle/pages/PuzzleRun";
 import TetromazePage from "./features/tetromaze/pages/TetromazePage";
+import TetromazeHub from "./features/tetromaze/pages/TetromazeHub";
+import TetromazeEditor from "./features/tetromaze/pages/TetromazeEditor";
+import TetromazeEditorHelp from "./features/tetromaze/pages/TetromazeEditorHelp";
 import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
@@ -60,13 +64,17 @@ function App() {
       <Route path="/brickfall-solo" element={<BrickfallSolo />} />
       <Route path="/brickfall-solo/play" element={<BrickfallSoloPlay />} />
       <Route path="/brickfall-editor" element={<BrickfallEditor />} />
+      <Route path="/brickfall/help/editor" element={<BrickfallEditorHelp />} />
       <Route path="/brickfall-versus" element={<BrickfallVersus />} />
       <Route path="/roguelike" element={<RoguelikePage />} />
       <Route path="/roguelike-versus" element={<RoguelikeVersus />} />
       <Route path="/roguelike/lexique" element={<RoguelikeLexicon />} />
       <Route path="/puzzle" element={<PuzzleSelect />} />
       <Route path="/puzzle/:id" element={<PuzzleRun />} />
-      <Route path="/tetromaze" element={<TetromazePage />} />
+      <Route path="/tetromaze" element={<TetromazeHub />} />
+      <Route path="/tetromaze/play" element={<TetromazePage />} />
+      <Route path="/tetromaze/editor" element={<TetromazeEditor />} />
+      <Route path="/tetromaze/help/editor" element={<TetromazeEditorHelp />} />
       <Route path="/tetrobots" element={<TetrobotsPage />} />
       <Route path="/achievements" element={<AchievementsPage />} />
       <Route path="/settings" element={<Settings />} />

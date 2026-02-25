@@ -2,7 +2,7 @@ import { Router, Response } from "express";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
 import prisma from "../prisma/client";
 import { logger } from "../logger";
-import { tetromazeProgressSchema } from "../utils/validation";
+import { tetromazeLevelSchema, tetromazeProgressSchema } from "../utils/validation";
 
 const router = Router();
 
@@ -127,6 +127,88 @@ router.put("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
     });
   } catch (err) {
     logger.error({ err }, "Erreur sauvegarde progression tetromaze");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.get("/custom-levels", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const rows = await prisma.tetromazeCustomLevel.findMany({
+      where: { userId },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      select: { definition: true },
+    });
+
+    return res.json({ levels: rows.map((row) => row.definition) });
+  } catch (err) {
+    logger.error({ err }, "Erreur chargement niveaux custom tetromaze");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.post("/custom-levels", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const parsed = tetromazeLevelSchema.safeParse(req.body?.level);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Donnees invalides", details: parsed.error.flatten() });
+    }
+
+    const level = parsed.data;
+
+    const saved = await prisma.tetromazeCustomLevel.upsert({
+      where: {
+        userId_levelId: {
+          userId,
+          levelId: level.id,
+        },
+      },
+      update: {
+        definition: level,
+      },
+      create: {
+        userId,
+        levelId: level.id,
+        definition: level,
+      },
+      select: { definition: true, updatedAt: true },
+    });
+
+    return res.json({ level: saved.definition, updatedAt: saved.updatedAt });
+  } catch (err) {
+    logger.error({ err }, "Erreur sauvegarde niveau custom tetromaze");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.delete("/custom-levels/:levelId", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const levelId = (req.params.levelId ?? "").trim();
+    if (!levelId) {
+      return res.status(400).json({ error: "Identifiant de niveau manquant" });
+    }
+
+    await prisma.tetromazeCustomLevel.deleteMany({
+      where: { userId, levelId },
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    logger.error({ err }, "Erreur suppression niveau custom tetromaze");
     return res.status(500).json({ error: "Erreur serveur" });
   }
 });

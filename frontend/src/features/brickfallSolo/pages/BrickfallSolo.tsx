@@ -111,6 +111,9 @@ export default function BrickfallSolo() {
             <button className="brickfall-solo-btn" onClick={() => navigate("/brickfall-editor")}>
               Ouvrir editeur
             </button>
+            <button className="brickfall-solo-btn" onClick={() => navigate("/brickfall/help/editor")}>
+              Aide editeur
+            </button>
             </div>
 
             <div className="brickfall-solo-divider brickfall-solo-stack">
