@@ -190,9 +190,14 @@ export default function BrickfallEditor() {
       />
       <div className="brickfall-editor-head">
         <h1 className="text-2xl text-yellow-300">Brickfall - Editeur de niveaux</h1>
-        <button className="retro-btn" onClick={() => navigate("/brickfall-solo")}>
-          Retour Solo
-        </button>
+        <div className="flex gap-2">
+          <button className="retro-btn" onClick={() => navigate("/brickfall/help/editor")}>
+            Aide
+          </button>
+          <button className="retro-btn" onClick={() => navigate("/brickfall-solo")}>
+            Retour Solo
+          </button>
+        </div>
       </div>
 
       <div className="brickfall-editor-columns">
@@ -232,32 +237,56 @@ export default function BrickfallEditor() {
             ))}
           </div>
 
-          <div className="flex gap-2">
-            <button className="retro-btn flex-1" onClick={save}>
-              Sauver
+          <div className="brickfall-editor-main-actions">
+            <button
+              className="brickfall-editor-icon-btn brickfall-editor-icon-btn--lg"
+              type="button"
+              title="Sauver"
+              aria-label="Sauver le niveau"
+              onClick={save}
+            >
+              <i className="fa-solid fa-floppy-disk" />
             </button>
             <button
-              className="retro-btn flex-1"
-                onClick={() => {
-                  const empty = makeEmptyLevel();
-                  setActive(empty);
-                }}
-              >
-                Nouveau
+              className="brickfall-editor-icon-btn brickfall-editor-icon-btn--lg"
+              type="button"
+              title="Nouveau"
+              aria-label="Nouveau niveau"
+              onClick={() => {
+                const empty = makeEmptyLevel();
+                setActive(empty);
+              }}
+            >
+              <i className="fa-solid fa-file-circle-plus" />
+            </button>
+            <button
+              className="brickfall-editor-icon-btn brickfall-editor-icon-btn--lg"
+              type="button"
+              title="Export JSON"
+              aria-label="Exporter en JSON"
+              onClick={exportActive}
+            >
+              <i className="fa-solid fa-file-export" />
+            </button>
+            <button
+              className="brickfall-editor-icon-btn brickfall-editor-icon-btn--lg"
+              type="button"
+              title="Import JSON"
+              aria-label="Importer un JSON"
+              onClick={openImportFileDialog}
+            >
+              <i className="fa-solid fa-file-import" />
+            </button>
+            <button
+              className="brickfall-editor-icon-btn brickfall-editor-icon-btn--lg brickfall-editor-icon-btn--rowfull"
+              type="button"
+              title="Jouer ce niveau"
+              aria-label="Jouer ce niveau"
+              onClick={() => navigate(`/brickfall-solo/play?custom=${encodeURIComponent(active.id)}`)}
+            >
+              <i className="fa-solid fa-play" />
             </button>
           </div>
-          <button className="retro-btn w-full" onClick={exportActive}>
-            Export JSON
-          </button>
-          <button className="retro-btn w-full" onClick={openImportFileDialog}>
-            Import JSON
-          </button>
-          <button
-            className="retro-btn w-full"
-            onClick={() => navigate(`/brickfall-solo/play?custom=${encodeURIComponent(active.id)}`)}
-          >
-            Jouer ce niveau
-          </button>
 
           {error && <div className="text-red-300 text-xs">{error}</div>}
         </div>
@@ -299,11 +328,23 @@ export default function BrickfallEditor() {
                 <div className="text-gray-300">id: {lvl.id}</div>
                 <div className="text-gray-300">blocs: {lvl.bricks.length}</div>
                 <div className="flex gap-2 mt-2">
-                  <button className="retro-btn flex-1" onClick={() => loadLevel(lvl)}>
-                    Charger
+                  <button
+                    className="brickfall-editor-icon-btn brickfall-editor-icon-btn--full"
+                    type="button"
+                    title="Charger"
+                    aria-label={`Charger ${lvl.name}`}
+                    onClick={() => loadLevel(lvl)}
+                  >
+                    <i className="fa-solid fa-folder-open" />
                   </button>
-                  <button className="retro-btn flex-1" onClick={() => del(lvl.id)}>
-                    Supprimer
+                  <button
+                    className="brickfall-editor-icon-btn brickfall-editor-icon-btn--danger brickfall-editor-icon-btn--full"
+                    type="button"
+                    title="Supprimer"
+                    aria-label={`Supprimer ${lvl.name}`}
+                    onClick={() => del(lvl.id)}
+                  >
+                    <i className="fa-solid fa-trash" />
                   </button>
                 </div>
               </div>
