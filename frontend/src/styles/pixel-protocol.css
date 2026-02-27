@@ -1,0 +1,154 @@
+.pp-shell {
+  min-height: calc(100vh - 80px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #d8f6ff;
+  font-family: "Press Start 2P", monospace;
+  background:
+    radial-gradient(1200px 480px at 10% 0%, #0a2a3f 0%, transparent 60%),
+    radial-gradient(1000px 420px at 90% 30%, #3a1c48 0%, transparent 65%),
+    linear-gradient(180deg, #070c1c 0%, #03050f 100%);
+}
+
+.pp-header {
+  width: min(980px, 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.pp-header h1 {
+  margin: 0;
+  font-size: 20px;
+  color: #7de8ff;
+  text-shadow: 0 0 10px #36a7ff;
+}
+
+.pp-header p {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #9ad2e7;
+}
+
+.pp-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 10px;
+  background: #0a1224cc;
+  border: 1px solid #28e0ff55;
+  padding: 10px;
+}
+
+.pp-game {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #39daff77;
+  background:
+    linear-gradient(180deg, #0b152f 0%, #08111f 100%),
+    repeating-linear-gradient(90deg, transparent, transparent 31px, #5be8ff11 32px),
+    repeating-linear-gradient(0deg, transparent, transparent 31px, #5be8ff11 32px);
+  box-shadow: 0 0 22px #21a8ff66;
+}
+
+.pp-platform {
+  position: absolute;
+  border: 1px solid #0f1016;
+}
+
+.pp-platform--stable { background: #40d6ff; }
+.pp-platform--unstable { background: #ff7a66; animation: pp-blink 0.9s steps(1) infinite; }
+.pp-platform--rotating { background: #9c7fff; }
+.pp-platform--glitch { background: #ff47c6; filter: hue-rotate(40deg); }
+.pp-platform--bounce { background: #6bff9e; }
+.pp-platform--armored { background: #8a95a1; }
+.pp-platform--hackable { background: #ffd252; }
+.pp-platform--off { opacity: 0.15; }
+
+.pp-orb {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #8af3ff 45%, #00a6ff 100%);
+  box-shadow: 0 0 14px #67f3ff;
+}
+
+.pp-portal {
+  position: absolute;
+  width: 34px;
+  height: 44px;
+  border: 2px solid #7f95c2;
+  background: #39486a44;
+}
+
+.pp-portal--open {
+  border-color: #8affbf;
+  background: #62ffa844;
+  box-shadow: 0 0 14px #62ffa8;
+}
+
+.pp-enemy,
+.pp-player {
+  position: absolute;
+}
+
+.pp-enemy {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #06080e;
+}
+
+.pp-enemy--rookie { background: #33d982; }
+.pp-enemy--pulse { background: #4ea4ff; }
+.pp-enemy--apex { background: #ff6363; }
+.pp-enemy--stunned { opacity: 0.45; }
+
+.pp-player {
+  background: linear-gradient(180deg, #f7fbff 0%, #58e9ff 100%);
+  border: 1px solid #12233f;
+  box-shadow: 0 0 12px #7ce9ff;
+}
+
+.pp-player--invuln {
+  animation: pp-blink 0.2s steps(1) infinite;
+}
+
+.pp-footer {
+  width: min(980px, 100%);
+  display: grid;
+  gap: 10px;
+  font-size: 10px;
+  color: #bddaf2;
+}
+
+.pp-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@keyframes pp-blink {
+  50% { opacity: 0.45; }
+}
+
+@media (max-width: 1100px) {
+  .pp-shell {
+    padding: 14px;
+  }
+
+  .pp-game {
+    width: min(960px, 100%);
+    height: auto;
+    aspect-ratio: 30 / 18;
+  }
+
+  .pp-header {
+    flex-direction: column;
+  }
+}

@@ -604,6 +604,11 @@ export default function TetromazeEditor() {
                     type="button"
                     className="tetromaze-editor-cell"
                     onClick={() => onCellClick(x, y)}
+                    onMouseEnter={() => setHoverCell({ x, y })}
+                    onMouseMove={() => setHoverCell({ x, y })}
+                    onMouseLeave={() =>
+                      setHoverCell((prev) => (prev?.x === x && prev?.y === y ? null : prev))
+                    }
                     onPointerEnter={() => setHoverCell({ x, y })}
                     onPointerMove={() => setHoverCell({ x, y })}
                     onPointerLeave={() =>
