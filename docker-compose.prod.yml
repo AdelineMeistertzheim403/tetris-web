@@ -4,7 +4,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "https://api.tetris.adelinemeistertzheim.fr/api"
+        VITE_API_URL: "https://tetroworld.fr/api"
     container_name: tetris-frontend
     restart: always
     ports:
