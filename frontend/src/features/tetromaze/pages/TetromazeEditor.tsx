@@ -615,7 +615,15 @@ export default function TetromazeEditor() {
                     onTouchEnd={() => setHoverCell(null)}
                     onTouchCancel={() => setHoverCell(null)}
                     style={{
-                      background: cell === "#" ? "#203a64" : "#0b111f",
+                      background: isPreview
+                        ? cell === "#"
+                          ? "#2b4c80"
+                          : "#15243d"
+                        : cell === "#"
+                          ? "#203a64"
+                          : "#0b111f",
+                      outline: isPreview ? "2px solid rgba(250, 204, 21, 0.92)" : undefined,
+                      outlineOffset: isPreview ? "-2px" : undefined,
                       boxShadow: isPreview
                         ? "inset 0 0 0 2px rgba(250, 204, 21, 0.92), inset 0 0 16px rgba(250, 204, 21, 0.25)"
                         : undefined,
