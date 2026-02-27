@@ -15,6 +15,7 @@ import {
 
 const JWT_SECRET = env.jwtSecret;
 const JWT_EXPIRES_IN = "24h";
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 /**
  * Crée un utilisateur après validation et hash du mot de passe.
@@ -30,8 +31,11 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const { pseudo, email, password } = parsed.data;
+    const normalizedEmail = normalizeEmail(email);
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+    });
     if (existing) {
       return res.status(409).json({ error: "Email deja utilise" });
     }
@@ -39,7 +43,7 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { pseudo, email, password: hashedPassword },
+      data: { pseudo, email: normalizedEmail, password: hashedPassword },
     });
 
     const { password: _ignored, ...safeUser } = user;
@@ -70,9 +74,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const { email, password } = parsed.data;
+    const normalizedEmail = normalizeEmail(email);
     const invalidMessage = "Identifiants invalides";
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+    });
     if (!user) {
       return res.status(400).json({ error: invalidMessage });
     }
