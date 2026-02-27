@@ -213,6 +213,13 @@ export default function Dashboard() {
       accent: "from-[#070f24] to-[#1b2b56]",
       image: "/Game_Mode/tetromaze.png",
     },
+    {
+      title: "Pixel Protocol",
+      desc: "Platformer Tetroverse: saute, hack et collecte des Data-Orbs.",
+      path: "/pixel-protocol",
+      accent: "from-[#061429] to-[#153f5d]",
+      image: "/Game_Mode/tetromaze.png",
+    },
   ];
   const versusModes: ModeCard[] = [
     {
