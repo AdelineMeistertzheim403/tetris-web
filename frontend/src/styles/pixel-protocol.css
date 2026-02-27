@@ -47,12 +47,27 @@
 .pp-game {
   position: relative;
   overflow: hidden;
+  width: min(960px, 100%);
   border: 2px solid #39daff77;
   background:
     linear-gradient(180deg, #0b152f 0%, #08111f 100%),
     repeating-linear-gradient(90deg, transparent, transparent 31px, #5be8ff11 32px),
     repeating-linear-gradient(0deg, transparent, transparent 31px, #5be8ff11 32px);
   box-shadow: 0 0 22px #21a8ff66;
+}
+
+.pp-world {
+  position: absolute;
+  inset: 0 auto 0 0;
+  will-change: transform;
+}
+
+.pp-ground {
+  position: absolute;
+  left: 0;
+  height: 32px;
+  background: linear-gradient(180deg, #29435d 0%, #182a3a 100%);
+  border-top: 2px solid #58ddff66;
 }
 
 .pp-platform {
@@ -76,6 +91,35 @@
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #ffffff 0%, #8af3ff 45%, #00a6ff 100%);
   box-shadow: 0 0 14px #67f3ff;
+}
+
+.pp-checkpoint {
+  position: absolute;
+  width: 12px;
+  height: 42px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #9fb3d6 0%, #5d7096 100%);
+  box-shadow: 0 0 8px #4f699333;
+}
+
+.pp-checkpoint::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 2px;
+  width: 14px;
+  height: 10px;
+  background: #7b8fb6;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.pp-checkpoint--active {
+  background: linear-gradient(180deg, #7cffbf 0%, #2ac080 100%);
+  box-shadow: 0 0 12px #67ffb8;
+}
+
+.pp-checkpoint--active::after {
+  background: #82ffd0;
 }
 
 .pp-portal {
@@ -143,9 +187,7 @@
   }
 
   .pp-game {
-    width: min(960px, 100%);
-    height: auto;
-    aspect-ratio: 30 / 18;
+    width: 100%;
   }
 
   .pp-header {
