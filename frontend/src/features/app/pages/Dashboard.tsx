@@ -213,6 +213,13 @@ export default function Dashboard() {
       accent: "from-[#070f24] to-[#1b2b56]",
       image: "/Game_Mode/tetromaze.png",
     },
+    {
+      title: "Pixel Protocol",
+      desc: "Platformer Tetroverse: saute, hack et collecte des Data-Orbs.",
+      path: "/pixel-protocol",
+      accent: "from-[#061429] to-[#153f5d]",
+      image: "/Game_Mode/pixel_protocole.png",
+    },
   ];
   const versusModes: ModeCard[] = [
     {
@@ -408,11 +415,10 @@ export default function Dashboard() {
           <button
             key={item}
             onClick={() => setTab(item)}
-            className={`px-4 py-2 rounded-lg border-2 text-sm ${
-              tab === item
+            className={`px-4 py-2 rounded-lg border-2 text-sm ${tab === item
                 ? "bg-pink-600 border-pink-300 text-white"
                 : "bg-black/40 border-pink-700 text-pink-300"
-            }`}
+              }`}
           >
             {item === "modes" ? "Modes de jeux" : "Meilleurs scores"}
           </button>

@@ -27,6 +27,7 @@ import TetromazeHub from "./features/tetromaze/pages/TetromazeHub";
 import TetromazeEditor from "./features/tetromaze/pages/TetromazeEditor";
 import TetromazeEditorHelp from "./features/tetromaze/pages/TetromazeEditorHelp";
 import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
+import PixelProtocolPage from "./features/pixelProtocol/pages/PixelProtocolPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
 
@@ -75,6 +76,7 @@ function App() {
       <Route path="/tetromaze/play" element={<TetromazePage />} />
       <Route path="/tetromaze/editor" element={<TetromazeEditor />} />
       <Route path="/tetromaze/help/editor" element={<TetromazeEditorHelp />} />
+      <Route path="/pixel-protocol" element={<PixelProtocolPage />} />
       <Route path="/tetrobots" element={<TetrobotsPage />} />
       <Route path="/achievements" element={<AchievementsPage />} />
       <Route path="/settings" element={<Settings />} />
