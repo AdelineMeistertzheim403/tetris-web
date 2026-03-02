@@ -218,7 +218,7 @@ export default function Dashboard() {
       desc: "Platformer Tetroverse: saute, hack et collecte des Data-Orbs.",
       path: "/pixel-protocol",
       accent: "from-[#061429] to-[#153f5d]",
-      image: "/Game_Mode/tetromaze.png",
+      image: "/Game_Mode/pixel_protocole.png",
     },
   ];
   const versusModes: ModeCard[] = [
@@ -415,11 +415,10 @@ export default function Dashboard() {
           <button
             key={item}
             onClick={() => setTab(item)}
-            className={`px-4 py-2 rounded-lg border-2 text-sm ${
-              tab === item
+            className={`px-4 py-2 rounded-lg border-2 text-sm ${tab === item
                 ? "bg-pink-600 border-pink-300 text-white"
                 : "bg-black/40 border-pink-700 text-pink-300"
-            }`}
+              }`}
           >
             {item === "modes" ? "Modes de jeux" : "Meilleurs scores"}
           </button>
