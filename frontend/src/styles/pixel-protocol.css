@@ -1,0 +1,341 @@
+.pp-shell {
+  min-height: calc(100vh - 80px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #d8f6ff;
+  font-family: "Press Start 2P", monospace;
+  background:
+    radial-gradient(1200px 480px at 10% 0%, #0a2a3f 0%, transparent 60%),
+    radial-gradient(1000px 420px at 90% 30%, #3a1c48 0%, transparent 65%),
+    linear-gradient(180deg, #070c1c 0%, #03050f 100%);
+}
+
+.pp-layout {
+  width: min(1480px, 100%);
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 240px;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.pp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pp-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: #08111fcc;
+  border: 1px solid #2fdcff44;
+  box-shadow: inset 0 0 18px #0ca7ff1f;
+}
+
+.pp-header h1 {
+  margin: 0;
+  font-size: 20px;
+  color: #7de8ff;
+  text-shadow: 0 0 10px #36a7ff;
+}
+
+.pp-header p {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #9ad2e7;
+}
+
+.pp-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 10px;
+  background: #0a1224cc;
+  border: 1px solid #28e0ff55;
+  padding: 14px;
+}
+
+.pp-game {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  height: clamp(640px, 78vh, 760px);
+  border: 2px solid #39daff77;
+  background:
+    linear-gradient(180deg, #0b152f 0%, #08111f 100%),
+    repeating-linear-gradient(90deg, transparent, transparent 31px, #5be8ff11 32px),
+    repeating-linear-gradient(0deg, transparent, transparent 31px, #5be8ff11 32px);
+  box-shadow: 0 0 22px #21a8ff66;
+}
+
+.pp-world {
+  position: absolute;
+  inset: 0 auto 0 0;
+  will-change: transform;
+}
+
+.pp-ground {
+  position: absolute;
+  left: 0;
+  height: 32px;
+  background: linear-gradient(180deg, #29435d 0%, #182a3a 100%);
+  border-top: 2px solid #58ddff66;
+}
+
+.pp-platform {
+  position: absolute;
+  border: 1px solid #0f1016;
+  box-sizing: border-box;
+}
+
+.pp-platform--stable { background: #40d6ff; }
+.pp-platform--unstable { background: #ff7a66; animation: pp-blink 0.9s steps(1) infinite; }
+.pp-platform--rotating { background: #9c7fff; }
+.pp-platform--glitch { background: #ff47c6; filter: hue-rotate(40deg); }
+.pp-platform--bounce { background: #6bff9e; }
+.pp-platform--armored { background: #8a95a1; }
+.pp-platform--hackable { background: #ffd252; }
+.pp-platform--off { opacity: 0.15; }
+
+.pp-orb {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #8af3ff 45%, #00a6ff 100%);
+  box-shadow: 0 0 14px #67f3ff;
+}
+
+.pp-checkpoint {
+  position: absolute;
+  width: 12px;
+  height: 42px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #9fb3d6 0%, #5d7096 100%);
+  box-shadow: 0 0 8px #4f699333;
+}
+
+.pp-checkpoint::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 2px;
+  width: 14px;
+  height: 10px;
+  background: #7b8fb6;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.pp-checkpoint--active {
+  background: linear-gradient(180deg, #7cffbf 0%, #2ac080 100%);
+  box-shadow: 0 0 12px #67ffb8;
+}
+
+.pp-checkpoint--active::after {
+  background: #82ffd0;
+}
+
+.pp-portal {
+  position: absolute;
+  width: 34px;
+  height: 44px;
+  border: 2px solid #6f86b8;
+  border-radius: 10px 10px 7px 7px;
+  background:
+    linear-gradient(180deg, rgb(17 26 46 / 0.98) 0%, rgb(8 13 25 / 0.98) 100%);
+  box-shadow:
+    inset 0 0 10px rgb(123 160 255 / 0.18),
+    0 0 10px rgb(76 118 201 / 0.25);
+  overflow: hidden;
+}
+
+.pp-portal::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 7px;
+  background:
+    radial-gradient(circle at 50% 42%, rgb(116 198 255 / 0.3) 0%, rgb(57 96 184 / 0.18) 40%, rgb(10 18 38 / 0.1) 68%, transparent 100%);
+  box-shadow: inset 0 0 10px rgb(102 214 255 / 0.18);
+}
+
+.pp-portal::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 7px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgb(144 224 255 / 0.12) 0 2px,
+      transparent 2px 6px
+    );
+  opacity: 0.5;
+  animation: pp-portal-scan 2.4s linear infinite;
+}
+
+.pp-portal--open {
+  border-color: #8affbf;
+  box-shadow: 0 0 14px #62ffa8;
+}
+
+.pp-portal--open::before {
+  background:
+    radial-gradient(circle at 50% 42%, rgb(144 255 210 / 0.92) 0%, rgb(86 229 255 / 0.62) 42%, rgb(33 96 172 / 0.22) 70%, transparent 100%);
+  box-shadow:
+    inset 0 0 12px rgb(170 255 217 / 0.5),
+    0 0 14px rgb(98 255 168 / 0.38);
+  animation: pp-portal-pulse 1.15s ease-in-out infinite;
+}
+
+.pp-portal--open::after {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgb(198 255 227 / 0.22) 0 2px,
+      transparent 2px 5px
+    );
+  opacity: 0.8;
+}
+
+.pp-enemy,
+.pp-player {
+  position: absolute;
+}
+
+.pp-enemy {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #06080e;
+  transform-origin: center bottom;
+}
+
+.pp-enemy--sprite {
+  background-color: transparent;
+  background-position: center 85%;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+  overflow: visible;
+  filter:
+    contrast(1.2)
+    saturate(1.1)
+    drop-shadow(0 0 1px #020805)
+    drop-shadow(1px 0 0 #04110a)
+    drop-shadow(-1px 0 0 #04110a)
+    drop-shadow(0 1px 0 #04110a)
+    drop-shadow(0 -1px 0 #04110a)
+    drop-shadow(0 0 6px #66ffb3aa);
+  border-color: transparent;
+}
+
+.pp-enemy--rookie { background: #33d982; }
+.pp-enemy--pulse { background: #4ea4ff; }
+.pp-enemy--apex { background: #ff6363; }
+.pp-enemy--stunned { opacity: 0.45; }
+
+.pp-player {
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+  transform-origin: center bottom;
+  filter:
+    contrast(1.18)
+    saturate(1.08)
+    drop-shadow(0 0 1px #040c14)
+    drop-shadow(1px 0 0 #06111d)
+    drop-shadow(-1px 0 0 #06111d)
+    drop-shadow(0 1px 0 #06111d)
+    drop-shadow(0 -1px 0 #06111d)
+    drop-shadow(0 0 8px #7ce9ff88);
+  overflow: visible;
+}
+
+.pp-player--invuln {
+  animation: pp-blink 0.2s steps(1) infinite;
+}
+
+.pp-infoCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  font-size: 10px;
+  color: #bddaf2;
+  background: #08111fcc;
+  border: 1px solid #2fdcff44;
+}
+
+.pp-infoCard p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.pp-panelTitle {
+  margin: 0;
+  color: #7de8ff;
+  text-shadow: 0 0 8px #36a7ff;
+}
+
+.pp-actions {
+  display: grid;
+  gap: 10px;
+}
+
+@keyframes pp-blink {
+  50% { opacity: 0.45; }
+}
+
+@keyframes pp-portal-pulse {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes pp-portal-scan {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 0 18px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .pp-layout {
+    grid-template-columns: 220px minmax(0, 1fr) 220px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pp-shell {
+    padding: 14px;
+  }
+
+  .pp-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-game {
+    width: 100%;
+    height: 70vh;
+  }
+
+  .pp-header {
+    gap: 10px;
+  }
+}
