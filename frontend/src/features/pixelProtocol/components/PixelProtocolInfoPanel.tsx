@@ -19,7 +19,8 @@ export function PixelProtocolInfoPanel({
   collected,
   hp,
 }: PixelProtocolInfoPanelProps) {
-  const levelNumber = level.id.split("-")[1];
+  const parts = level.id.split("-");
+  const levelNumber = parts[1] ?? level.id;
 
   return (
     <aside className="pp-panel">

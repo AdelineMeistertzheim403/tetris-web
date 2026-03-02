@@ -13,6 +13,7 @@ model User {
   pseudo    String   @unique
   email     String   @unique
   password  String
+  role      UserRole @default(USER)
   scores    Score[]
   versusAsPlayer1 VersusMatch[] @relation("VersusPlayer1")
   versusAsPlayer2 VersusMatch[] @relation("VersusPlayer2")
@@ -35,6 +36,20 @@ model User {
   tetromazeCustomLevels TetromazeCustomLevel[]
   botPlayerProfile BotPlayerProfile?
   createdAt DateTime @default(now())
+}
+
+model PixelProtocolLevel {
+  id         String   @id
+  name       String
+  world      Int
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  definition Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([world, sortOrder])
+  @@index([active])
 }
 
 model UserSettings {
@@ -265,6 +280,11 @@ enum GameMode {
 enum BrickfallRole {
   ARCHITECT
   DEMOLISHER
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }
 
 model Puzzle {
