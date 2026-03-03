@@ -8,6 +8,7 @@ import {
   loadPuzzles,
   normalizeBoard,
 } from "./puzzleData";
+import { normalizePixelProtocolLevelDefinition } from "../src/utils/pixelProtocol";
 
 const prisma = new PrismaClient();
 
@@ -152,20 +153,21 @@ async function seedPixelProtocolLevels() {
   }
 
   for (const level of pixelProtocolLevels) {
-    const sortOrder = computePixelSortOrder(level);
-    const definition = level as Prisma.InputJsonValue;
+    const normalizedLevel = normalizePixelProtocolLevelDefinition(level);
+    const sortOrder = computePixelSortOrder(normalizedLevel);
+    const definition = normalizedLevel as Prisma.InputJsonValue;
     await prisma.pixelProtocolLevel.upsert({
-      where: { id: level.id },
+      where: { id: normalizedLevel.id },
       update: {
-        name: level.name,
-        world: level.world,
+        name: normalizedLevel.name,
+        world: normalizedLevel.world,
         sortOrder,
         definition,
       },
       create: {
-        id: level.id,
-        name: level.name,
-        world: level.world,
+        id: normalizedLevel.id,
+        name: normalizedLevel.name,
+        world: normalizedLevel.world,
         sortOrder,
         definition,
         active: pixelLevelsDefaultActive,

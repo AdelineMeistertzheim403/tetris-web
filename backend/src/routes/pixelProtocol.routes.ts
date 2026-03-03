@@ -4,6 +4,7 @@ import prisma from "../prisma/client";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
 import { requireAdmin } from "../middleware/admin.middleware";
 import { pixelProtocolLevelSchema } from "../utils/validation";
+import { normalizePixelProtocolLevelDefinition } from "../utils/pixelProtocol";
 import { logger } from "../logger";
 
 const router = Router();
@@ -27,12 +28,12 @@ function getJsonObject(
 
 function serializeLevel(row: PixelProtocolRow, includeAdminMeta = false) {
   const def = getJsonObject(row.definition) ?? {};
-  const merged = {
+  const merged = normalizePixelProtocolLevelDefinition({
     ...def,
     id: row.id,
     name: row.name,
     world: row.world,
-  };
+  });
 
   if (!includeAdminMeta) return merged;
 
@@ -114,7 +115,7 @@ router.post(
       }
 
       const active = typeof req.body?.active === "boolean" ? req.body.active : true;
-      const level = parsed.data;
+      const level = normalizePixelProtocolLevelDefinition(parsed.data);
       const sortOrder = computeSortOrder(level.id, level.world);
       const definition = level as Prisma.InputJsonValue;
 
