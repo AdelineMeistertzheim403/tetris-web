@@ -1,0 +1,5035 @@
+[
+  {
+    "id": "w1-1",
+    "world": 1,
+    "name": "Bloc Stable",
+    "worldWidth": 3072,
+    "requiredOrbs": 7,
+    "spawn": {
+      "x": 96,
+      "y": 450
+    },
+    "portal": {
+      "x": 2460,
+      "y": 260
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 5,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 9,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 10,
+        "y": 14,
+        "type": "stable"
+      },
+      {
+        "id": "p3",
+        "tetromino": "I",
+        "x": 15,
+        "y": 14,
+        "type": "stable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "L",
+        "x": 20,
+        "y": 13,
+        "type": "bounce"
+      },
+      {
+        "id": "p5",
+        "tetromino": "O",
+        "x": 25,
+        "y": 13,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "I",
+        "x": 31,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p6b",
+        "tetromino": "I",
+        "x": 35,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p7",
+        "tetromino": "T",
+        "x": 37,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "L",
+        "x": 43,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 49,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "O",
+        "x": 56,
+        "y": 10,
+        "type": "stable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "I",
+        "x": 63,
+        "y": 10,
+        "type": "stable"
+      },
+      {
+        "id": "p12",
+        "tetromino": "T",
+        "x": 71,
+        "y": 9,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 522,
+        "y": 406,
+        "spawnX": 516,
+        "spawnY": 418
+      },
+      {
+        "id": "c2",
+        "x": 1418,
+        "y": 310,
+        "spawnX": 1412,
+        "spawnY": 322
+      },
+      {
+        "id": "c3",
+        "x": 2026,
+        "y": 278,
+        "spawnX": 2020,
+        "spawnY": 290
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 199,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 359,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 679,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1031,
+        "y": 364
+      },
+      {
+        "id": "o5",
+        "x": 1415,
+        "y": 332
+      },
+      {
+        "id": "o6",
+        "x": 1831,
+        "y": 300
+      },
+      {
+        "id": "o7",
+        "x": 2311,
+        "y": 268
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 160,
+        "y": 454,
+        "vx": 70,
+        "minX": 128,
+        "maxX": 358,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "rookie",
+        "x": 992,
+        "y": 358,
+        "vx": -75,
+        "minX": 960,
+        "maxX": 1190,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w1-2",
+    "world": 1,
+    "name": "Twin Ladders",
+    "worldWidth": 3456,
+    "requiredOrbs": 8,
+    "spawn": {
+      "x": 96,
+      "y": 450
+    },
+    "portal": {
+      "x": 2750,
+      "y": 210
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 5,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 11,
+        "y": 14,
+        "type": "stable"
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 18,
+        "y": 13,
+        "type": "bounce"
+      },
+      {
+        "id": "p4",
+        "tetromino": "I",
+        "x": 24,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p4b",
+        "tetromino": "I",
+        "x": 28,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "O",
+        "x": 35,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "T",
+        "x": 41,
+        "y": 10,
+        "type": "stable"
+      },
+      {
+        "id": "p7",
+        "tetromino": "L",
+        "x": 47,
+        "y": 9,
+        "type": "bounce"
+      },
+      {
+        "id": "p8",
+        "tetromino": "I",
+        "x": 54,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "p8b",
+        "tetromino": "I",
+        "x": 58,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "O",
+        "x": 61,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "O",
+        "x": 68,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "I",
+        "x": 75,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p12",
+        "tetromino": "T",
+        "x": 82,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "p13",
+        "tetromino": "I",
+        "x": 89,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "p13b",
+        "tetromino": "I",
+        "x": 93,
+        "y": 8,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 778,
+        "y": 342,
+        "spawnX": 772,
+        "spawnY": 354
+      },
+      {
+        "id": "c2",
+        "x": 1514,
+        "y": 246,
+        "spawnX": 1508,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 2826,
+        "y": 150,
+        "spawnX": 2820,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 199,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 391,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1159,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1319,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1511,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 1959,
+        "y": 204
+      },
+      {
+        "id": "o8",
+        "x": 2183,
+        "y": 204
+      },
+      {
+        "id": "o7b",
+        "x": 2439,
+        "y": 204
+      },
+      {
+        "id": "o8",
+        "x": 2887,
+        "y": 236
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 160,
+        "y": 454,
+        "vx": 72,
+        "minX": 128,
+        "maxX": 230,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "rookie",
+        "x": 768,
+        "y": 358,
+        "vx": -78,
+        "minX": 736,
+        "maxX": 966,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "rookie",
+        "x": 1728,
+        "y": 230,
+        "vx": 82,
+        "minX": 1696,
+        "maxX": 1926,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "rookie",
+        "x": 2400,
+        "y": 198,
+        "vx": -84,
+        "minX": 2368,
+        "maxX": 2470,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w1-3",
+    "world": 1,
+    "name": "Bounce Relay",
+    "worldWidth": 3712,
+    "requiredOrbs": 9,
+    "spawn": {
+      "x": 96,
+      "y": 450
+    },
+    "portal": {
+      "x": 3230,
+      "y": 176
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "S",
+        "x": 10,
+        "y": 14,
+        "type": "bounce"
+      },
+      {
+        "id": "p3",
+        "tetromino": "O",
+        "x": 18,
+        "y": 13,
+        "type": "stable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "L",
+        "x": 25,
+        "y": 12,
+        "type": "bounce"
+      },
+      {
+        "id": "p5",
+        "tetromino": "I",
+        "x": 29,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p5b",
+        "tetromino": "I",
+        "x": 33,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "T",
+        "x": 36,
+        "y": 10,
+        "type": "stable"
+      },
+      {
+        "id": "p7",
+        "tetromino": "L",
+        "x": 43,
+        "y": 9,
+        "type": "bounce"
+      },
+      {
+        "id": "p8",
+        "tetromino": "O",
+        "x": 50,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 56,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p9b",
+        "tetromino": "I",
+        "x": 60,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "T",
+        "x": 65,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "I",
+        "x": 72,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p11b",
+        "tetromino": "I",
+        "x": 76,
+        "y": 7,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 810,
+        "y": 342,
+        "spawnX": 804,
+        "spawnY": 354
+      },
+      {
+        "id": "c2",
+        "x": 1386,
+        "y": 246,
+        "spawnX": 1380,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 2090,
+        "y": 150,
+        "spawnX": 2084,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 359,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 839,
+        "y": 364
+      },
+      {
+        "id": "o5",
+        "x": 967,
+        "y": 332
+      },
+      {
+        "id": "o6",
+        "x": 1415,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 1639,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 1831,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 2343,
+        "y": 204
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 76,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "rookie",
+        "x": 928,
+        "y": 326,
+        "vx": -82,
+        "minX": 896,
+        "maxX": 1126,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "rookie",
+        "x": 1792,
+        "y": 198,
+        "vx": 88,
+        "minX": 1760,
+        "maxX": 1990,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w1-4",
+    "world": 1,
+    "name": "Overhang Array",
+    "worldWidth": 3968,
+    "requiredOrbs": 10,
+    "spawn": {
+      "x": 96,
+      "y": 450
+    },
+    "portal": {
+      "x": 3520,
+      "y": 146
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 5,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 9,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 14,
+        "y": 14,
+        "type": "stable"
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 21,
+        "y": 13,
+        "type": "bounce"
+      },
+      {
+        "id": "p4",
+        "tetromino": "O",
+        "x": 28,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "I",
+        "x": 35,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p5b",
+        "tetromino": "I",
+        "x": 39,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "S",
+        "x": 45,
+        "y": 10,
+        "type": "bounce"
+      },
+      {
+        "id": "p7",
+        "tetromino": "T",
+        "x": 53,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "L",
+        "x": 62,
+        "y": 8,
+        "type": "bounce"
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 70,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p9b",
+        "tetromino": "I",
+        "x": 74,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "O",
+        "x": 81,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "T",
+        "x": 90,
+        "y": 5,
+        "type": "stable"
+      },
+      {
+        "id": "p12",
+        "tetromino": "I",
+        "x": 98,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "p12b",
+        "tetromino": "I",
+        "x": 102,
+        "y": 6,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 906,
+        "y": 342,
+        "spawnX": 900,
+        "spawnY": 354
+      },
+      {
+        "id": "c2",
+        "x": 1706,
+        "y": 246,
+        "spawnX": 1700,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 2602,
+        "y": 150,
+        "spawnX": 2596,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 199,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 487,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 711,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 935,
+        "y": 364
+      },
+      {
+        "id": "o5",
+        "x": 1159,
+        "y": 332
+      },
+      {
+        "id": "o6",
+        "x": 1479,
+        "y": 300
+      },
+      {
+        "id": "o7",
+        "x": 2023,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2279,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 2631,
+        "y": 172
+      },
+      {
+        "id": "o10",
+        "x": 3175,
+        "y": 172
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 160,
+        "y": 454,
+        "vx": 80,
+        "minX": 128,
+        "maxX": 358,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "rookie",
+        "x": 1120,
+        "y": 326,
+        "vx": -86,
+        "minX": 1088,
+        "maxX": 1318,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "rookie",
+        "x": 2240,
+        "y": 198,
+        "vx": 90,
+        "minX": 2208,
+        "maxX": 2438,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "rookie",
+        "x": 3136,
+        "y": 166,
+        "vx": -92,
+        "minX": 3104,
+        "maxX": 3334,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w1-5",
+    "world": 1,
+    "name": "Skyline Stack",
+    "worldWidth": 4224,
+    "requiredOrbs": 11,
+    "spawn": {
+      "x": 96,
+      "y": 450
+    },
+    "portal": {
+      "x": 3790,
+      "y": 112
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 10,
+        "y": 14,
+        "type": "stable"
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 17,
+        "y": 13,
+        "type": "bounce"
+      },
+      {
+        "id": "p4",
+        "tetromino": "O",
+        "x": 24,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "I",
+        "x": 31,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p5b",
+        "tetromino": "I",
+        "x": 35,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "L",
+        "x": 41,
+        "y": 10,
+        "type": "bounce"
+      },
+      {
+        "id": "p7",
+        "tetromino": "T",
+        "x": 49,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "O",
+        "x": 57,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 65,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p9b",
+        "tetromino": "I",
+        "x": 69,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "L",
+        "x": 76,
+        "y": 6,
+        "type": "bounce"
+      },
+      {
+        "id": "p11",
+        "tetromino": "T",
+        "x": 84,
+        "y": 5,
+        "type": "stable"
+      },
+      {
+        "id": "p12",
+        "tetromino": "O",
+        "x": 92,
+        "y": 4,
+        "type": "stable"
+      },
+      {
+        "id": "p13",
+        "tetromino": "I",
+        "x": 99,
+        "y": 5,
+        "type": "stable"
+      },
+      {
+        "id": "p13b",
+        "tetromino": "I",
+        "x": 103,
+        "y": 5,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 778,
+        "y": 342,
+        "spawnX": 772,
+        "spawnY": 354
+      },
+      {
+        "id": "c2",
+        "x": 1834,
+        "y": 214,
+        "spawnX": 1828,
+        "spawnY": 226
+      },
+      {
+        "id": "c3",
+        "x": 2698,
+        "y": 118,
+        "spawnX": 2692,
+        "spawnY": 130
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 359,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 583,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 807,
+        "y": 364
+      },
+      {
+        "id": "o5",
+        "x": 1031,
+        "y": 332
+      },
+      {
+        "id": "o6",
+        "x": 1351,
+        "y": 300
+      },
+      {
+        "id": "o7",
+        "x": 1863,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2119,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 2471,
+        "y": 172
+      },
+      {
+        "id": "o10",
+        "x": 2983,
+        "y": 108
+      },
+      {
+        "id": "o11",
+        "x": 3207,
+        "y": 140
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 82,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "rookie",
+        "x": 992,
+        "y": 326,
+        "vx": -88,
+        "minX": 960,
+        "maxX": 1190,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "rookie",
+        "x": 2080,
+        "y": 198,
+        "vx": 94,
+        "minX": 2048,
+        "maxX": 2278,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "rookie",
+        "x": 3168,
+        "y": 134,
+        "vx": -96,
+        "minX": 3136,
+        "maxX": 3366,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w2-1",
+    "world": 2,
+    "name": "Glitch Sector",
+    "worldWidth": 3328,
+    "requiredOrbs": 8,
+    "spawn": {
+      "x": 120,
+      "y": 450
+    },
+    "portal": {
+      "x": 3160,
+      "y": 286
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "S",
+        "x": 11,
+        "y": 14,
+        "type": "glitch"
+      },
+      {
+        "id": "p3",
+        "tetromino": "T",
+        "x": 18,
+        "y": 13,
+        "type": "rotating",
+        "rotateEveryMs": 2300
+      },
+      {
+        "id": "p4",
+        "tetromino": "Z",
+        "x": 25,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "O",
+        "x": 32,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "I",
+        "x": 39,
+        "y": 10,
+        "type": "unstable"
+      },
+      {
+        "id": "p7",
+        "tetromino": "T",
+        "x": 47,
+        "y": 9,
+        "type": "rotating",
+        "rotateEveryMs": 2200
+      },
+      {
+        "id": "p8",
+        "tetromino": "L",
+        "x": 55,
+        "y": 10,
+        "type": "glitch"
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 63,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "p9b",
+        "tetromino": "I",
+        "x": 67,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "S",
+        "x": 71,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "O",
+        "x": 79,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "p12",
+        "tetromino": "T",
+        "x": 87,
+        "y": 10,
+        "type": "rotating",
+        "rotateEveryMs": 2000
+      },
+      {
+        "id": "p13",
+        "tetromino": "I",
+        "x": 95,
+        "y": 10,
+        "type": "stable"
+      },
+      {
+        "id": "p13b",
+        "tetromino": "I",
+        "x": 99,
+        "y": 10,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 586,
+        "y": 374,
+        "spawnX": 580,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1546,
+        "y": 246,
+        "spawnX": 1540,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 2570,
+        "y": 246,
+        "spawnX": 2564,
+        "spawnY": 258
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 391,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1063,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1543,
+        "y": 268
+      },
+      {
+        "id": "o6",
+        "x": 2055,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 2567,
+        "y": 268
+      },
+      {
+        "id": "o8",
+        "x": 3079,
+        "y": 300
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 80,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 2016,
+        "y": 262,
+        "vx": -95,
+        "minX": 1984,
+        "maxX": 2214,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "pulse",
+        "x": 3040,
+        "y": 294,
+        "vx": 100,
+        "minX": 3008,
+        "maxX": 3238,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w2-2",
+    "world": 2,
+    "name": "Static Drift",
+    "worldWidth": 3776,
+    "requiredOrbs": 9,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3340,
+      "y": 180
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "S",
+        "x": 10,
+        "y": 14,
+        "type": "glitch"
+      },
+      {
+        "id": "p3",
+        "tetromino": "T",
+        "x": 17,
+        "y": 13,
+        "type": "rotating",
+        "rotateEveryMs": 2200
+      },
+      {
+        "id": "p4",
+        "tetromino": "Z",
+        "x": 24,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "O",
+        "x": 31,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "I",
+        "x": 38,
+        "y": 10,
+        "type": "unstable"
+      },
+      {
+        "id": "p6b",
+        "tetromino": "I",
+        "x": 42,
+        "y": 10,
+        "type": "unstable"
+      },
+      {
+        "id": "p7",
+        "tetromino": "T",
+        "x": 49,
+        "y": 9,
+        "type": "rotating",
+        "rotateEveryMs": 2050
+      },
+      {
+        "id": "p8",
+        "tetromino": "L",
+        "x": 57,
+        "y": 8,
+        "type": "glitch"
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 65,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p9b",
+        "tetromino": "I",
+        "x": 69,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "S",
+        "x": 75,
+        "y": 6,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "T",
+        "x": 84,
+        "y": 5,
+        "type": "rotating",
+        "rotateEveryMs": 1900
+      },
+      {
+        "id": "p12",
+        "tetromino": "I",
+        "x": 92,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "p12b",
+        "tetromino": "I",
+        "x": 96,
+        "y": 6,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 586,
+        "y": 374,
+        "spawnX": 580,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1802,
+        "y": 246,
+        "spawnX": 1796,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 2858,
+        "y": 150,
+        "spawnX": 2852,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 359,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1127,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1383,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 2151,
+        "y": 236
+      },
+      {
+        "id": "o7",
+        "x": 2471,
+        "y": 204
+      },
+      {
+        "id": "o8",
+        "x": 2887,
+        "y": 172
+      },
+      {
+        "id": "o9",
+        "x": 3527,
+        "y": 172
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 86,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1344,
+        "y": 294,
+        "vx": -102,
+        "minX": 1312,
+        "maxX": 1542,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "pulse",
+        "x": 2432,
+        "y": 198,
+        "vx": 108,
+        "minX": 2400,
+        "maxX": 2630,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "pulse",
+        "x": 3488,
+        "y": 166,
+        "vx": -112,
+        "minX": 3456,
+        "maxX": 3686,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w2-3",
+    "world": 2,
+    "name": "Shattered Switchback",
+    "worldWidth": 4032,
+    "requiredOrbs": 10,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3620,
+      "y": 146
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "S",
+        "x": 12,
+        "y": 14,
+        "type": "glitch"
+      },
+      {
+        "id": "p3",
+        "tetromino": "T",
+        "x": 19,
+        "y": 13,
+        "type": "rotating",
+        "rotateEveryMs": 2100
+      },
+      {
+        "id": "p4",
+        "tetromino": "Z",
+        "x": 26,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "O",
+        "x": 33,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "I",
+        "x": 41,
+        "y": 10,
+        "type": "unstable"
+      },
+      {
+        "id": "p6b",
+        "tetromino": "I",
+        "x": 45,
+        "y": 10,
+        "type": "unstable"
+      },
+      {
+        "id": "p7",
+        "tetromino": "L",
+        "x": 52,
+        "y": 9,
+        "type": "glitch"
+      },
+      {
+        "id": "p8",
+        "tetromino": "T",
+        "x": 60,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1980
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 69,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p9b",
+        "tetromino": "I",
+        "x": 73,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "S",
+        "x": 80,
+        "y": 6,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "T",
+        "x": 89,
+        "y": 5,
+        "type": "rotating",
+        "rotateEveryMs": 1820
+      },
+      {
+        "id": "p12",
+        "tetromino": "L",
+        "x": 97,
+        "y": 4,
+        "type": "glitch"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 682,
+        "y": 374,
+        "spawnX": 676,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1930,
+        "y": 246,
+        "spawnX": 1924,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 3050,
+        "y": 150,
+        "spawnX": 3044,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 455,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 711,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1223,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1511,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1959,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 2279,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2631,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3079,
+        "y": 172
+      },
+      {
+        "id": "o10",
+        "x": 3751,
+        "y": 108
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 88,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1472,
+        "y": 294,
+        "vx": -106,
+        "minX": 1440,
+        "maxX": 1670,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "pulse",
+        "x": 2592,
+        "y": 198,
+        "vx": 112,
+        "minX": 2560,
+        "maxX": 2790,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w2-4",
+    "world": 2,
+    "name": "Rotor Spine",
+    "worldWidth": 4352,
+    "requiredOrbs": 11,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3940,
+      "y": 112
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 5,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 12,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 2200
+      },
+      {
+        "id": "p3",
+        "tetromino": "Z",
+        "x": 19,
+        "y": 13,
+        "type": "unstable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "O",
+        "x": 26,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 33,
+        "y": 11,
+        "type": "glitch"
+      },
+      {
+        "id": "p6",
+        "tetromino": "I",
+        "x": 41,
+        "y": 10,
+        "type": "unstable"
+      },
+      {
+        "id": "p6b",
+        "tetromino": "I",
+        "x": 45,
+        "y": 10,
+        "type": "unstable"
+      },
+      {
+        "id": "p7",
+        "tetromino": "T",
+        "x": 52,
+        "y": 9,
+        "type": "rotating",
+        "rotateEveryMs": 1950
+      },
+      {
+        "id": "p8",
+        "tetromino": "L",
+        "x": 61,
+        "y": 8,
+        "type": "glitch"
+      },
+      {
+        "id": "p9",
+        "tetromino": "I",
+        "x": 70,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p9b",
+        "tetromino": "I",
+        "x": 74,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "p10",
+        "tetromino": "Z",
+        "x": 82,
+        "y": 6,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "T",
+        "x": 91,
+        "y": 5,
+        "type": "rotating",
+        "rotateEveryMs": 1700
+      },
+      {
+        "id": "p12",
+        "tetromino": "L",
+        "x": 100,
+        "y": 4,
+        "type": "glitch"
+      },
+      {
+        "id": "p13",
+        "tetromino": "I",
+        "x": 108,
+        "y": 5,
+        "type": "stable"
+      },
+      {
+        "id": "p13b",
+        "tetromino": "I",
+        "x": 112,
+        "y": 5,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 906,
+        "y": 342,
+        "spawnX": 900,
+        "spawnY": 354
+      },
+      {
+        "id": "c2",
+        "x": 1898,
+        "y": 246,
+        "spawnX": 1892,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 3082,
+        "y": 150,
+        "spawnX": 3076,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 199,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 423,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 679,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 935,
+        "y": 364
+      },
+      {
+        "id": "o5",
+        "x": 1191,
+        "y": 332
+      },
+      {
+        "id": "o6",
+        "x": 1479,
+        "y": 300
+      },
+      {
+        "id": "o7",
+        "x": 2279,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2631,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3111,
+        "y": 172
+      },
+      {
+        "id": "o10",
+        "x": 3815,
+        "y": 108
+      },
+      {
+        "id": "o11",
+        "x": 4103,
+        "y": 140
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 160,
+        "y": 454,
+        "vx": 90,
+        "minX": 128,
+        "maxX": 230,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1440,
+        "y": 294,
+        "vx": -110,
+        "minX": 1408,
+        "maxX": 1638,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "pulse",
+        "x": 2592,
+        "y": 198,
+        "vx": 118,
+        "minX": 2560,
+        "maxX": 2790,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "pulse",
+        "x": 4064,
+        "y": 134,
+        "vx": -122,
+        "minX": 4032,
+        "maxX": 4262,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w2-5",
+    "world": 2,
+    "name": "Ghost Lattice",
+    "worldWidth": 4608,
+    "requiredOrbs": 12,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 4200,
+      "y": 80
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "S",
+        "x": 10,
+        "y": 14,
+        "type": "glitch"
+      },
+      {
+        "id": "p3",
+        "tetromino": "T",
+        "x": 17,
+        "y": 13,
+        "type": "rotating",
+        "rotateEveryMs": 2100
+      },
+      {
+        "id": "p4",
+        "tetromino": "Z",
+        "x": 24,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "O",
+        "x": 31,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "p6",
+        "tetromino": "L",
+        "x": 39,
+        "y": 10,
+        "type": "glitch"
+      },
+      {
+        "id": "p7",
+        "tetromino": "I",
+        "x": 47,
+        "y": 9,
+        "type": "unstable"
+      },
+      {
+        "id": "p7b",
+        "tetromino": "I",
+        "x": 51,
+        "y": 9,
+        "type": "unstable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "T",
+        "x": 58,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1880
+      },
+      {
+        "id": "p9",
+        "tetromino": "L",
+        "x": 67,
+        "y": 7,
+        "type": "glitch"
+      },
+      {
+        "id": "p10",
+        "tetromino": "I",
+        "x": 76,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "p10b",
+        "tetromino": "I",
+        "x": 80,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "S",
+        "x": 88,
+        "y": 5,
+        "type": "unstable"
+      },
+      {
+        "id": "p12",
+        "tetromino": "T",
+        "x": 97,
+        "y": 4,
+        "type": "rotating",
+        "rotateEveryMs": 1700
+      },
+      {
+        "id": "p13",
+        "tetromino": "L",
+        "x": 106,
+        "y": 3,
+        "type": "glitch"
+      },
+      {
+        "id": "p14",
+        "tetromino": "I",
+        "x": 114,
+        "y": 4,
+        "type": "stable"
+      },
+      {
+        "id": "p14b",
+        "tetromino": "I",
+        "x": 118,
+        "y": 4,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 1098,
+        "y": 310,
+        "spawnX": 1092,
+        "spawnY": 322
+      },
+      {
+        "id": "c2",
+        "x": 2186,
+        "y": 214,
+        "spawnX": 2180,
+        "spawnY": 226
+      },
+      {
+        "id": "c3",
+        "x": 3370,
+        "y": 118,
+        "spawnX": 3364,
+        "spawnY": 130
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 359,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1127,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1415,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1735,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 2215,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2567,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 2919,
+        "y": 172
+      },
+      {
+        "id": "o10",
+        "x": 3399,
+        "y": 140
+      },
+      {
+        "id": "o11",
+        "x": 4103,
+        "y": 76
+      },
+      {
+        "id": "o12",
+        "x": 4391,
+        "y": 108
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 92,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1696,
+        "y": 262,
+        "vx": -112,
+        "minX": 1664,
+        "maxX": 1894,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "pulse",
+        "x": 2880,
+        "y": 166,
+        "vx": 120,
+        "minX": 2848,
+        "maxX": 3078,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "pulse",
+        "x": 4352,
+        "y": 102,
+        "vx": -126,
+        "minX": 4320,
+        "maxX": 4550,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w3-1",
+    "world": 3,
+    "name": "Corrupted Grid",
+    "worldWidth": 3584,
+    "requiredOrbs": 9,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3406,
+      "y": 212
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "J",
+        "x": 11,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1800
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 18,
+        "y": 13,
+        "type": "glitch"
+      },
+      {
+        "id": "p4",
+        "tetromino": "T",
+        "x": 25,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 32,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "O",
+        "x": 39,
+        "y": 10,
+        "type": "armored"
+      },
+      {
+        "id": "p7",
+        "tetromino": "I",
+        "x": 46,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p7b",
+        "tetromino": "I",
+        "x": 50,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "T",
+        "x": 53,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1700
+      },
+      {
+        "id": "p9",
+        "tetromino": "L",
+        "x": 60,
+        "y": 9,
+        "type": "glitch"
+      },
+      {
+        "id": "p10",
+        "tetromino": "Z",
+        "x": 67,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "O",
+        "x": 74,
+        "y": 9,
+        "type": "armored"
+      },
+      {
+        "id": "p12",
+        "tetromino": "I",
+        "x": 81,
+        "y": 10,
+        "type": "hackable"
+      },
+      {
+        "id": "p12b",
+        "tetromino": "I",
+        "x": 85,
+        "y": 10,
+        "type": "hackable"
+      },
+      {
+        "id": "p13",
+        "tetromino": "T",
+        "x": 89,
+        "y": 9,
+        "type": "bounce"
+      },
+      {
+        "id": "p14",
+        "tetromino": "O",
+        "x": 96,
+        "y": 8,
+        "type": "armored"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 618,
+        "y": 374,
+        "spawnX": 612,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1642,
+        "y": 246,
+        "spawnX": 1636,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 2922,
+        "y": 278,
+        "spawnX": 2916,
+        "spawnY": 290
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 391,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1127,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1639,
+        "y": 268
+      },
+      {
+        "id": "o6",
+        "x": 1895,
+        "y": 236
+      },
+      {
+        "id": "o7",
+        "x": 2407,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2919,
+        "y": 300
+      },
+      {
+        "id": "o9",
+        "x": 3431,
+        "y": 236
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "pulse",
+        "x": 128,
+        "y": 454,
+        "vx": 110,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1600,
+        "y": 262,
+        "vx": -115,
+        "minX": 1568,
+        "maxX": 1798,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 2880,
+        "y": 294,
+        "vx": 140,
+        "minX": 2848,
+        "maxX": 3078,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w3-2",
+    "world": 3,
+    "name": "Hackline Rise",
+    "worldWidth": 3968,
+    "requiredOrbs": 10,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3550,
+      "y": 146
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "J",
+        "x": 12,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1760
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 19,
+        "y": 13,
+        "type": "glitch"
+      },
+      {
+        "id": "p4",
+        "tetromino": "T",
+        "x": 26,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 34,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "O",
+        "x": 42,
+        "y": 10,
+        "type": "armored"
+      },
+      {
+        "id": "p7",
+        "tetromino": "I",
+        "x": 50,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p7b",
+        "tetromino": "I",
+        "x": 54,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "T",
+        "x": 62,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1650
+      },
+      {
+        "id": "p9",
+        "tetromino": "L",
+        "x": 70,
+        "y": 7,
+        "type": "glitch"
+      },
+      {
+        "id": "p10",
+        "tetromino": "Z",
+        "x": 78,
+        "y": 6,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "O",
+        "x": 86,
+        "y": 5,
+        "type": "armored"
+      },
+      {
+        "id": "p12",
+        "tetromino": "I",
+        "x": 94,
+        "y": 6,
+        "type": "hackable"
+      },
+      {
+        "id": "p12b",
+        "tetromino": "I",
+        "x": 98,
+        "y": 6,
+        "type": "hackable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 682,
+        "y": 374,
+        "spawnX": 676,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1834,
+        "y": 246,
+        "spawnX": 1828,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 2954,
+        "y": 150,
+        "spawnX": 2948,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 455,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 711,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1255,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1543,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1863,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 2343,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2663,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3303,
+        "y": 140
+      },
+      {
+        "id": "o10",
+        "x": 3591,
+        "y": 172
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "pulse",
+        "x": 128,
+        "y": 454,
+        "vx": 112,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1824,
+        "y": 262,
+        "vx": -118,
+        "minX": 1792,
+        "maxX": 2022,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3552,
+        "y": 166,
+        "vx": 145,
+        "minX": 3520,
+        "maxX": 3750,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w3-3",
+    "world": 3,
+    "name": "Cipher Ramparts",
+    "worldWidth": 4288,
+    "requiredOrbs": 11,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3870,
+      "y": 112
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "J",
+        "x": 11,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1750
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 18,
+        "y": 13,
+        "type": "glitch"
+      },
+      {
+        "id": "p4",
+        "tetromino": "T",
+        "x": 25,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 33,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "O",
+        "x": 41,
+        "y": 10,
+        "type": "armored"
+      },
+      {
+        "id": "p7",
+        "tetromino": "I",
+        "x": 49,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p7b",
+        "tetromino": "I",
+        "x": 53,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "T",
+        "x": 61,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1620
+      },
+      {
+        "id": "p9",
+        "tetromino": "L",
+        "x": 69,
+        "y": 7,
+        "type": "glitch"
+      },
+      {
+        "id": "p10",
+        "tetromino": "Z",
+        "x": 77,
+        "y": 6,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "O",
+        "x": 85,
+        "y": 5,
+        "type": "armored"
+      },
+      {
+        "id": "p12",
+        "tetromino": "I",
+        "x": 93,
+        "y": 4,
+        "type": "hackable"
+      },
+      {
+        "id": "p12b",
+        "tetromino": "I",
+        "x": 97,
+        "y": 4,
+        "type": "hackable"
+      },
+      {
+        "id": "p13",
+        "tetromino": "T",
+        "x": 103,
+        "y": 5,
+        "type": "bounce"
+      },
+      {
+        "id": "p14",
+        "tetromino": "O",
+        "x": 110,
+        "y": 4,
+        "type": "armored"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 618,
+        "y": 374,
+        "spawnX": 612,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1770,
+        "y": 246,
+        "spawnX": 1764,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 3210,
+        "y": 118,
+        "spawnX": 3204,
+        "spawnY": 130
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 391,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 647,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1191,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1479,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1799,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 2279,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2599,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3239,
+        "y": 140
+      },
+      {
+        "id": "o10",
+        "x": 3527,
+        "y": 108
+      },
+      {
+        "id": "o11",
+        "x": 4167,
+        "y": 108
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "pulse",
+        "x": 128,
+        "y": 454,
+        "vx": 114,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1760,
+        "y": 262,
+        "vx": -121,
+        "minX": 1728,
+        "maxX": 1958,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3488,
+        "y": 102,
+        "vx": 150,
+        "minX": 3456,
+        "maxX": 3686,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w3-4",
+    "world": 3,
+    "name": "Glitch Bastion",
+    "worldWidth": 4608,
+    "requiredOrbs": 12,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 4180,
+      "y": 80
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "J",
+        "x": 12,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1720
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 19,
+        "y": 13,
+        "type": "glitch"
+      },
+      {
+        "id": "p4",
+        "tetromino": "T",
+        "x": 26,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 34,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "O",
+        "x": 42,
+        "y": 10,
+        "type": "armored"
+      },
+      {
+        "id": "p7",
+        "tetromino": "I",
+        "x": 50,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p7b",
+        "tetromino": "I",
+        "x": 54,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "T",
+        "x": 62,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1600
+      },
+      {
+        "id": "p9",
+        "tetromino": "L",
+        "x": 70,
+        "y": 7,
+        "type": "glitch"
+      },
+      {
+        "id": "p10",
+        "tetromino": "Z",
+        "x": 78,
+        "y": 6,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "O",
+        "x": 86,
+        "y": 5,
+        "type": "armored"
+      },
+      {
+        "id": "p12",
+        "tetromino": "I",
+        "x": 94,
+        "y": 4,
+        "type": "hackable"
+      },
+      {
+        "id": "p12b",
+        "tetromino": "I",
+        "x": 98,
+        "y": 4,
+        "type": "hackable"
+      },
+      {
+        "id": "p13",
+        "tetromino": "T",
+        "x": 105,
+        "y": 3,
+        "type": "rotating",
+        "rotateEveryMs": 1500
+      },
+      {
+        "id": "p14",
+        "tetromino": "O",
+        "x": 113,
+        "y": 4,
+        "type": "armored"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 714,
+        "y": 374,
+        "spawnX": 708,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1866,
+        "y": 246,
+        "spawnX": 1860,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 3306,
+        "y": 118,
+        "spawnX": 3300,
+        "spawnY": 130
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 487,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 743,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1287,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1575,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1895,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 2375,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2695,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3335,
+        "y": 140
+      },
+      {
+        "id": "o10",
+        "x": 3623,
+        "y": 108
+      },
+      {
+        "id": "o11",
+        "x": 4071,
+        "y": 76
+      },
+      {
+        "id": "o12",
+        "x": 4391,
+        "y": 108
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "pulse",
+        "x": 128,
+        "y": 454,
+        "vx": 116,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1856,
+        "y": 262,
+        "vx": -123,
+        "minX": 1824,
+        "maxX": 2054,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3584,
+        "y": 102,
+        "vx": 152,
+        "minX": 3552,
+        "maxX": 3782,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "apex",
+        "x": 4352,
+        "y": 102,
+        "vx": -160,
+        "minX": 4320,
+        "maxX": 4422,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w3-5",
+    "world": 3,
+    "name": "Kernel Vault",
+    "worldWidth": 4864,
+    "requiredOrbs": 13,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 4420,
+      "y": 50
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "hackable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "J",
+        "x": 10,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1700
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 17,
+        "y": 13,
+        "type": "glitch"
+      },
+      {
+        "id": "p4",
+        "tetromino": "T",
+        "x": 24,
+        "y": 12,
+        "type": "unstable"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 32,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "O",
+        "x": 40,
+        "y": 10,
+        "type": "armored"
+      },
+      {
+        "id": "p7",
+        "tetromino": "I",
+        "x": 48,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p7b",
+        "tetromino": "I",
+        "x": 52,
+        "y": 9,
+        "type": "hackable"
+      },
+      {
+        "id": "p8",
+        "tetromino": "T",
+        "x": 60,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1580
+      },
+      {
+        "id": "p9",
+        "tetromino": "L",
+        "x": 68,
+        "y": 7,
+        "type": "glitch"
+      },
+      {
+        "id": "p10",
+        "tetromino": "Z",
+        "x": 76,
+        "y": 6,
+        "type": "unstable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "O",
+        "x": 84,
+        "y": 5,
+        "type": "armored"
+      },
+      {
+        "id": "p12",
+        "tetromino": "I",
+        "x": 92,
+        "y": 4,
+        "type": "hackable"
+      },
+      {
+        "id": "p12b",
+        "tetromino": "I",
+        "x": 96,
+        "y": 4,
+        "type": "hackable"
+      },
+      {
+        "id": "p13",
+        "tetromino": "T",
+        "x": 103,
+        "y": 3,
+        "type": "rotating",
+        "rotateEveryMs": 1480
+      },
+      {
+        "id": "p14",
+        "tetromino": "O",
+        "x": 111,
+        "y": 2,
+        "type": "armored"
+      },
+      {
+        "id": "p15",
+        "tetromino": "I",
+        "x": 119,
+        "y": 3,
+        "type": "hackable"
+      },
+      {
+        "id": "p15b",
+        "tetromino": "I",
+        "x": 123,
+        "y": 3,
+        "type": "hackable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 586,
+        "y": 374,
+        "spawnX": 580,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1738,
+        "y": 246,
+        "spawnX": 1732,
+        "spawnY": 258
+      },
+      {
+        "id": "c3",
+        "x": 3178,
+        "y": 118,
+        "spawnX": 3172,
+        "spawnY": 130
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 359,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1159,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1447,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1767,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 2247,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2567,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 2887,
+        "y": 172
+      },
+      {
+        "id": "o10",
+        "x": 3207,
+        "y": 140
+      },
+      {
+        "id": "o11",
+        "x": 3495,
+        "y": 108
+      },
+      {
+        "id": "o12",
+        "x": 4263,
+        "y": 44
+      },
+      {
+        "id": "o13",
+        "x": 4679,
+        "y": 76
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "pulse",
+        "x": 128,
+        "y": 454,
+        "vx": 118,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1728,
+        "y": 262,
+        "vx": -124,
+        "minX": 1696,
+        "maxX": 1926,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3456,
+        "y": 102,
+        "vx": 156,
+        "minX": 3424,
+        "maxX": 3654,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "apex",
+        "x": 4512,
+        "y": 70,
+        "vx": -164,
+        "minX": 4480,
+        "maxX": 4710,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w4-1",
+    "world": 4,
+    "name": "Apex Core",
+    "worldWidth": 3840,
+    "requiredOrbs": 10,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3640,
+      "y": 240
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 11,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1600
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 18,
+        "y": 13,
+        "type": "hackable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "J",
+        "x": 25,
+        "y": 12,
+        "type": "glitch"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 32,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "Z",
+        "x": 39,
+        "y": 10,
+        "type": "rotating",
+        "rotateEveryMs": 1450
+      },
+      {
+        "id": "p7",
+        "tetromino": "O",
+        "x": 46,
+        "y": 9,
+        "type": "armored"
+      },
+      {
+        "id": "p8",
+        "tetromino": "I",
+        "x": 54,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "T",
+        "x": 62,
+        "y": 7,
+        "type": "rotating",
+        "rotateEveryMs": 1400
+      },
+      {
+        "id": "p10",
+        "tetromino": "L",
+        "x": 70,
+        "y": 8,
+        "type": "hackable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "S",
+        "x": 78,
+        "y": 7,
+        "type": "glitch"
+      },
+      {
+        "id": "p12",
+        "tetromino": "O",
+        "x": 86,
+        "y": 8,
+        "type": "armored"
+      },
+      {
+        "id": "p13",
+        "tetromino": "I",
+        "x": 94,
+        "y": 9,
+        "type": "bounce"
+      },
+      {
+        "id": "p13b",
+        "tetromino": "I",
+        "x": 98,
+        "y": 9,
+        "type": "bounce"
+      },
+      {
+        "id": "p14",
+        "tetromino": "T",
+        "x": 102,
+        "y": 8,
+        "type": "rotating",
+        "rotateEveryMs": 1350
+      },
+      {
+        "id": "p15",
+        "tetromino": "O",
+        "x": 110,
+        "y": 7,
+        "type": "armored"
+      },
+      {
+        "id": "p16",
+        "tetromino": "I",
+        "x": 112,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "p16b",
+        "tetromino": "I",
+        "x": 116,
+        "y": 8,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 618,
+        "y": 374,
+        "spawnX": 612,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1770,
+        "y": 214,
+        "spawnX": 1764,
+        "spawnY": 226
+      },
+      {
+        "id": "c3",
+        "x": 3050,
+        "y": 246,
+        "spawnX": 3044,
+        "spawnY": 258
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 391,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1063,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1511,
+        "y": 268
+      },
+      {
+        "id": "o6",
+        "x": 1767,
+        "y": 236
+      },
+      {
+        "id": "o7",
+        "x": 2023,
+        "y": 204
+      },
+      {
+        "id": "o8",
+        "x": 2535,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3047,
+        "y": 268
+      },
+      {
+        "id": "o10",
+        "x": 3559,
+        "y": 204
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 100,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 3008,
+        "y": 262,
+        "vx": -130,
+        "minX": 2976,
+        "maxX": 3206,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3584,
+        "y": 230,
+        "vx": 170,
+        "minX": 3552,
+        "maxX": 3782,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w4-2",
+    "world": 4,
+    "name": "Apex Relay",
+    "worldWidth": 4224,
+    "requiredOrbs": 11,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 3780,
+      "y": 112
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 12,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1550
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 19,
+        "y": 13,
+        "type": "hackable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "J",
+        "x": 26,
+        "y": 12,
+        "type": "glitch"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 33,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "Z",
+        "x": 40,
+        "y": 10,
+        "type": "rotating",
+        "rotateEveryMs": 1450
+      },
+      {
+        "id": "p7",
+        "tetromino": "O",
+        "x": 47,
+        "y": 9,
+        "type": "armored"
+      },
+      {
+        "id": "p8",
+        "tetromino": "I",
+        "x": 55,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p8b",
+        "tetromino": "I",
+        "x": 59,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "T",
+        "x": 66,
+        "y": 7,
+        "type": "rotating",
+        "rotateEveryMs": 1380
+      },
+      {
+        "id": "p10",
+        "tetromino": "L",
+        "x": 74,
+        "y": 8,
+        "type": "hackable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "S",
+        "x": 82,
+        "y": 7,
+        "type": "glitch"
+      },
+      {
+        "id": "p12",
+        "tetromino": "O",
+        "x": 90,
+        "y": 6,
+        "type": "armored"
+      },
+      {
+        "id": "p13",
+        "tetromino": "I",
+        "x": 98,
+        "y": 5,
+        "type": "bounce"
+      },
+      {
+        "id": "p13b",
+        "tetromino": "I",
+        "x": 102,
+        "y": 5,
+        "type": "bounce"
+      },
+      {
+        "id": "p14",
+        "tetromino": "T",
+        "x": 108,
+        "y": 4,
+        "type": "rotating",
+        "rotateEveryMs": 1320
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 618,
+        "y": 374,
+        "spawnX": 612,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1930,
+        "y": 214,
+        "spawnX": 1924,
+        "spawnY": 226
+      },
+      {
+        "id": "c3",
+        "x": 3274,
+        "y": 150,
+        "spawnX": 3268,
+        "spawnY": 162
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 423,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 647,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1159,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1415,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1671,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 1959,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2407,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3015,
+        "y": 204
+      },
+      {
+        "id": "o10",
+        "x": 3303,
+        "y": 172
+      },
+      {
+        "id": "o11",
+        "x": 3975,
+        "y": 108
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 102,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1920,
+        "y": 230,
+        "vx": -132,
+        "minX": 1888,
+        "maxX": 2118,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3552,
+        "y": 134,
+        "vx": 172,
+        "minX": 3520,
+        "maxX": 3750,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w4-3",
+    "world": 4,
+    "name": "Prism Furnace",
+    "worldWidth": 4544,
+    "requiredOrbs": 12,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 4100,
+      "y": 80
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 11,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1520
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 18,
+        "y": 13,
+        "type": "hackable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "J",
+        "x": 25,
+        "y": 12,
+        "type": "glitch"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 32,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "Z",
+        "x": 39,
+        "y": 10,
+        "type": "rotating",
+        "rotateEveryMs": 1430
+      },
+      {
+        "id": "p7",
+        "tetromino": "O",
+        "x": 46,
+        "y": 9,
+        "type": "armored"
+      },
+      {
+        "id": "p8",
+        "tetromino": "I",
+        "x": 54,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p8b",
+        "tetromino": "I",
+        "x": 58,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "T",
+        "x": 65,
+        "y": 7,
+        "type": "rotating",
+        "rotateEveryMs": 1370
+      },
+      {
+        "id": "p10",
+        "tetromino": "L",
+        "x": 73,
+        "y": 6,
+        "type": "hackable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "S",
+        "x": 81,
+        "y": 5,
+        "type": "glitch"
+      },
+      {
+        "id": "p12",
+        "tetromino": "O",
+        "x": 89,
+        "y": 4,
+        "type": "armored"
+      },
+      {
+        "id": "p13",
+        "tetromino": "I",
+        "x": 97,
+        "y": 3,
+        "type": "bounce"
+      },
+      {
+        "id": "p13b",
+        "tetromino": "I",
+        "x": 101,
+        "y": 3,
+        "type": "bounce"
+      },
+      {
+        "id": "p14",
+        "tetromino": "T",
+        "x": 107,
+        "y": 4,
+        "type": "rotating",
+        "rotateEveryMs": 1290
+      },
+      {
+        "id": "p15",
+        "tetromino": "O",
+        "x": 115,
+        "y": 3,
+        "type": "armored"
+      },
+      {
+        "id": "p16",
+        "tetromino": "I",
+        "x": 120,
+        "y": 4,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 586,
+        "y": 374,
+        "spawnX": 580,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1898,
+        "y": 214,
+        "spawnX": 1892,
+        "spawnY": 226
+      },
+      {
+        "id": "c3",
+        "x": 3242,
+        "y": 86,
+        "spawnX": 3236,
+        "spawnY": 98
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 391,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1127,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1383,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1639,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 1927,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2375,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 2983,
+        "y": 140
+      },
+      {
+        "id": "o10",
+        "x": 3271,
+        "y": 108
+      },
+      {
+        "id": "o11",
+        "x": 3559,
+        "y": 76
+      },
+      {
+        "id": "o12",
+        "x": 4423,
+        "y": 108
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 104,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1888,
+        "y": 230,
+        "vx": -136,
+        "minX": 1856,
+        "maxX": 2086,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3520,
+        "y": 70,
+        "vx": 176,
+        "minX": 3488,
+        "maxX": 3718,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "apex",
+        "x": 4384,
+        "y": 102,
+        "vx": -182,
+        "minX": 4352,
+        "maxX": 4454,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w4-4",
+    "world": 4,
+    "name": "Singularity Steps",
+    "worldWidth": 4864,
+    "requiredOrbs": 13,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 4410,
+      "y": 50
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p1b",
+        "tetromino": "I",
+        "x": 8,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 11,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1500
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 18,
+        "y": 13,
+        "type": "hackable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "J",
+        "x": 25,
+        "y": 12,
+        "type": "glitch"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 32,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "Z",
+        "x": 39,
+        "y": 10,
+        "type": "rotating",
+        "rotateEveryMs": 1410
+      },
+      {
+        "id": "p7",
+        "tetromino": "O",
+        "x": 46,
+        "y": 9,
+        "type": "armored"
+      },
+      {
+        "id": "p8",
+        "tetromino": "I",
+        "x": 54,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p8b",
+        "tetromino": "I",
+        "x": 58,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "T",
+        "x": 65,
+        "y": 7,
+        "type": "rotating",
+        "rotateEveryMs": 1360
+      },
+      {
+        "id": "p10",
+        "tetromino": "L",
+        "x": 73,
+        "y": 6,
+        "type": "hackable"
+      },
+      {
+        "id": "gb1",
+        "tetromino": "S",
+        "x": 94,
+        "y": 5,
+        "type": "glitch"
+      },
+      {
+        "id": "gb2",
+        "tetromino": "O",
+        "x": 103,
+        "y": 4,
+        "type": "armored"
+      },
+      {
+        "id": "gb3",
+        "tetromino": "I",
+        "x": 112,
+        "y": 3,
+        "type": "bounce"
+      },
+      {
+        "id": "gb3b",
+        "tetromino": "I",
+        "x": 116,
+        "y": 3,
+        "type": "bounce"
+      },
+      {
+        "id": "ac1",
+        "tetromino": "T",
+        "x": 125,
+        "y": 2,
+        "type": "rotating",
+        "rotateEveryMs": 1280
+      },
+      {
+        "id": "ac2",
+        "tetromino": "O",
+        "x": 134,
+        "y": 1,
+        "type": "armored"
+      },
+      {
+        "id": "ac3",
+        "tetromino": "I",
+        "x": 142,
+        "y": 2,
+        "type": "stable"
+      },
+      {
+        "id": "ac3b",
+        "tetromino": "I",
+        "x": 146,
+        "y": 2,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 650,
+        "y": 374,
+        "spawnX": 644,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1962,
+        "y": 214,
+        "spawnX": 1956,
+        "spawnY": 226
+      },
+      {
+        "id": "c3",
+        "x": 3306,
+        "y": 86,
+        "spawnX": 3300,
+        "spawnY": 98
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 423,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 679,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1191,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1447,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1703,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 1991,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2439,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 3047,
+        "y": 140
+      },
+      {
+        "id": "o10",
+        "x": 3335,
+        "y": 108
+      },
+      {
+        "id": "o11",
+        "x": 3623,
+        "y": 76
+      },
+      {
+        "id": "o12",
+        "x": 4327,
+        "y": 12
+      },
+      {
+        "id": "o13",
+        "x": 4711,
+        "y": 44
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 106,
+        "minX": 96,
+        "maxX": 326,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1952,
+        "y": 230,
+        "vx": -138,
+        "minX": 1920,
+        "maxX": 2150,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3584,
+        "y": 70,
+        "vx": 178,
+        "minX": 3552,
+        "maxX": 3782,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "apex",
+        "x": 4544,
+        "y": 38,
+        "vx": -186,
+        "minX": 4512,
+        "maxX": 4742,
+        "stunnedUntil": 0
+      }
+    ]
+  },
+  {
+    "id": "w4-5",
+    "world": 4,
+    "name": "Core Crown",
+    "worldWidth": 5120,
+    "requiredOrbs": 14,
+    "spawn": {
+      "x": 110,
+      "y": 450
+    },
+    "portal": {
+      "x": 4680,
+      "y": 20
+    },
+    "platforms": [
+      {
+        "id": "p1",
+        "tetromino": "I",
+        "x": 4,
+        "y": 15,
+        "type": "stable"
+      },
+      {
+        "id": "p2",
+        "tetromino": "T",
+        "x": 10,
+        "y": 14,
+        "type": "rotating",
+        "rotateEveryMs": 1480
+      },
+      {
+        "id": "p3",
+        "tetromino": "L",
+        "x": 17,
+        "y": 13,
+        "type": "hackable"
+      },
+      {
+        "id": "p4",
+        "tetromino": "J",
+        "x": 24,
+        "y": 12,
+        "type": "glitch"
+      },
+      {
+        "id": "p5",
+        "tetromino": "S",
+        "x": 31,
+        "y": 11,
+        "type": "bounce"
+      },
+      {
+        "id": "p6",
+        "tetromino": "Z",
+        "x": 38,
+        "y": 10,
+        "type": "rotating",
+        "rotateEveryMs": 1390
+      },
+      {
+        "id": "p7",
+        "tetromino": "O",
+        "x": 45,
+        "y": 9,
+        "type": "armored"
+      },
+      {
+        "id": "p8",
+        "tetromino": "I",
+        "x": 53,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p8b",
+        "tetromino": "I",
+        "x": 57,
+        "y": 8,
+        "type": "unstable"
+      },
+      {
+        "id": "p9",
+        "tetromino": "T",
+        "x": 64,
+        "y": 7,
+        "type": "rotating",
+        "rotateEveryMs": 1340
+      },
+      {
+        "id": "p10",
+        "tetromino": "L",
+        "x": 72,
+        "y": 6,
+        "type": "hackable"
+      },
+      {
+        "id": "p11",
+        "tetromino": "S",
+        "x": 79,
+        "y": 5,
+        "type": "glitch"
+      },
+      {
+        "id": "p12",
+        "tetromino": "O",
+        "x": 86,
+        "y": 4,
+        "type": "armored"
+      },
+      {
+        "id": "gb1",
+        "tetromino": "S",
+        "x": 92,
+        "y": 5,
+        "type": "glitch"
+      },
+      {
+        "id": "gb2",
+        "tetromino": "O",
+        "x": 101,
+        "y": 4,
+        "type": "armored"
+      },
+      {
+        "id": "gb3",
+        "tetromino": "I",
+        "x": 110,
+        "y": 3,
+        "type": "bounce"
+      },
+      {
+        "id": "gb3b",
+        "tetromino": "I",
+        "x": 114,
+        "y": 3,
+        "type": "bounce"
+      },
+      {
+        "id": "ac1",
+        "tetromino": "T",
+        "x": 123,
+        "y": 2,
+        "type": "rotating",
+        "rotateEveryMs": 1270
+      },
+      {
+        "id": "ac2",
+        "tetromino": "O",
+        "x": 132,
+        "y": 1,
+        "type": "armored"
+      },
+      {
+        "id": "ac3",
+        "tetromino": "I",
+        "x": 139,
+        "y": 0,
+        "type": "stable"
+      },
+      {
+        "id": "ac3b",
+        "tetromino": "I",
+        "x": 143,
+        "y": 0,
+        "type": "stable"
+      },
+      {
+        "id": "crown1",
+        "tetromino": "T",
+        "x": 152,
+        "y": 1,
+        "type": "rotating",
+        "rotateEveryMs": 1220
+      },
+      {
+        "id": "crown2",
+        "tetromino": "O",
+        "x": 156,
+        "y": 0,
+        "type": "armored"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "c1",
+        "x": 586,
+        "y": 374,
+        "spawnX": 580,
+        "spawnY": 386
+      },
+      {
+        "id": "c2",
+        "x": 1898,
+        "y": 214,
+        "spawnX": 1892,
+        "spawnY": 226
+      },
+      {
+        "id": "c3",
+        "x": 3242,
+        "y": 86,
+        "spawnX": 3236,
+        "spawnY": 98
+      }
+    ],
+    "orbs": [
+      {
+        "id": "o1",
+        "x": 167,
+        "y": 460
+      },
+      {
+        "id": "o2",
+        "x": 359,
+        "y": 428
+      },
+      {
+        "id": "o3",
+        "x": 615,
+        "y": 396
+      },
+      {
+        "id": "o4",
+        "x": 1127,
+        "y": 332
+      },
+      {
+        "id": "o5",
+        "x": 1383,
+        "y": 300
+      },
+      {
+        "id": "o6",
+        "x": 1639,
+        "y": 268
+      },
+      {
+        "id": "o7",
+        "x": 1927,
+        "y": 236
+      },
+      {
+        "id": "o8",
+        "x": 2375,
+        "y": 204
+      },
+      {
+        "id": "o9",
+        "x": 2983,
+        "y": 140
+      },
+      {
+        "id": "o10",
+        "x": 3271,
+        "y": 108
+      },
+      {
+        "id": "o11",
+        "x": 3559,
+        "y": 76
+      },
+      {
+        "id": "o12",
+        "x": 4263,
+        "y": 12
+      },
+      {
+        "id": "o13",
+        "x": 4679,
+        "y": -20
+      },
+      {
+        "id": "o14",
+        "x": 5031,
+        "y": -20
+      }
+    ],
+    "enemies": [
+      {
+        "id": "e1",
+        "kind": "rookie",
+        "x": 128,
+        "y": 454,
+        "vx": 108,
+        "minX": 96,
+        "maxX": 198,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e2",
+        "kind": "pulse",
+        "x": 1888,
+        "y": 230,
+        "vx": -140,
+        "minX": 1856,
+        "maxX": 2086,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e3",
+        "kind": "apex",
+        "x": 3520,
+        "y": 70,
+        "vx": 180,
+        "minX": 3488,
+        "maxX": 3718,
+        "stunnedUntil": 0
+      },
+      {
+        "id": "e4",
+        "kind": "apex",
+        "x": 4512,
+        "y": -26,
+        "vx": -188,
+        "minX": 4480,
+        "maxX": 4710,
+        "stunnedUntil": 0
+      }
+    ]
+  }
+]

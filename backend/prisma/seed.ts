@@ -1,29 +1,53 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { access, readFile } from "node:fs/promises";
+import path from "node:path";
 import {
   generateBatch,
   generatedPuzzles,
   loadPuzzles,
   normalizeBoard,
 } from "./puzzleData";
-import { LEVELS as PIXEL_PROTOCOL_LEVELS } from "../../frontend/src/features/pixelProtocol/levels";
-import type { LevelDef } from "../../frontend/src/features/pixelProtocol/types";
 
 const prisma = new PrismaClient();
+
+type SeedPixelLevelDef = {
+  id: string;
+  name: string;
+  world: number;
+};
 
 const seedIfEmpty =
   process.env.SEED_IF_EMPTY === "1" || process.env.SEED_IF_EMPTY === "true";
 const seedPixelLevels =
   process.env.SEED_PIXEL_LEVELS === "1" ||
   process.env.SEED_PIXEL_LEVELS === "true";
+const pixelLevelsDefaultActive =
+  process.env.PIXEL_LEVELS_DEFAULT_ACTIVE === "1" ||
+  process.env.PIXEL_LEVELS_DEFAULT_ACTIVE === "true";
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-function computePixelSortOrder(level: LevelDef) {
+function computePixelSortOrder(level: SeedPixelLevelDef) {
   const match = level.id.match(/w(\d+)-(\d+)/i);
   const world = match ? Number(match[1]) : level.world;
   const stage = match ? Number(match[2]) : 0;
   return world * 100 + stage;
+}
+
+async function loadPixelProtocolLevels(): Promise<SeedPixelLevelDef[] | null> {
+  try {
+    const levelsPath = path.resolve(process.cwd(), "prisma/pixelProtocolLevels.json");
+    await access(levelsPath);
+    const raw = await readFile(levelsPath, "utf8");
+    const parsed = JSON.parse(raw) as SeedPixelLevelDef[];
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (err) {
+    console.warn(
+      "[seed] Pixel Protocol levels skipped: prisma/pixelProtocolLevels.json unavailable."
+    );
+    return null;
+  }
 }
 
 async function seedAdminUser() {
@@ -114,6 +138,11 @@ async function seedPuzzles() {
 }
 
 async function seedPixelProtocolLevels() {
+  const pixelProtocolLevels = await loadPixelProtocolLevels();
+  if (!pixelProtocolLevels) {
+    return;
+  }
+
   const existingCount = await prisma.pixelProtocolLevel.count();
   if (!seedPixelLevels && existingCount > 0) {
     console.log(
@@ -122,7 +151,7 @@ async function seedPixelProtocolLevels() {
     return;
   }
 
-  for (const level of PIXEL_PROTOCOL_LEVELS) {
+  for (const level of pixelProtocolLevels) {
     const sortOrder = computePixelSortOrder(level);
     const definition = level as Prisma.InputJsonValue;
     await prisma.pixelProtocolLevel.upsert({
@@ -132,7 +161,6 @@ async function seedPixelProtocolLevels() {
         world: level.world,
         sortOrder,
         definition,
-        active: true,
       },
       create: {
         id: level.id,
@@ -140,11 +168,11 @@ async function seedPixelProtocolLevels() {
         world: level.world,
         sortOrder,
         definition,
-        active: true,
+        active: pixelLevelsDefaultActive,
       },
     });
   }
-  console.log(`[seed] Pixel Protocol levels upserted (${PIXEL_PROTOCOL_LEVELS.length}).`);
+  console.log(`[seed] Pixel Protocol levels upserted (${pixelProtocolLevels.length}).`);
 }
 
 async function main() {
