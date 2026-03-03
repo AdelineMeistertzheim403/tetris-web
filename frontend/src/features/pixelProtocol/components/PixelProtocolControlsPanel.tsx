@@ -1,11 +1,15 @@
 type PixelProtocolControlsPanelProps = {
   onExit: () => void;
   onReset: () => void;
+  onEditor?: () => void;
+  statusMessage?: string | null;
 };
 
 export function PixelProtocolControlsPanel({
   onExit,
   onReset,
+  onEditor,
+  statusMessage,
 }: PixelProtocolControlsPanelProps) {
   return (
     <aside className="pp-panel">
@@ -29,10 +33,21 @@ export function PixelProtocolControlsPanel({
         <button type="button" onClick={onReset}>
           Recommencer le niveau
         </button>
+        {onEditor && (
+          <button type="button" onClick={onEditor}>
+            Editeur de niveaux
+          </button>
+        )}
         <button type="button" onClick={onExit}>
           Quitter
         </button>
       </div>
+      {statusMessage && (
+        <div className="pp-infoCard">
+          <p className="pp-panelTitle">Statut</p>
+          <p>{statusMessage}</p>
+        </div>
+      )}
     </aside>
   );
 }

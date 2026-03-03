@@ -14,14 +14,17 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
+      context: .
+      dockerfile: backend/Dockerfile.prod
     container_name: tetris-backend
     restart: always
     ports:
       - "${BACKEND_PORT}:${BACKEND_INTERNAL_PORT}"
     env_file:
       - ./backend/.env
+      - ./.env
+    command: >
+      sh -c "until npx prisma migrate deploy; do echo 'waiting for db'; sleep 2; done; npx prisma db seed; npm run start"
     depends_on:
       - db
 

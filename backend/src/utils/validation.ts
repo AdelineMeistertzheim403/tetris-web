@@ -288,3 +288,69 @@ export const tetromazeProgressSchema = z.object({
   levelIndex: intWithin(1, 999).optional(),
   score: intWithin(0, 9_999_999).optional(),
 });
+
+const pixelCoordSchema = intWithin(-50_000, 50_000);
+const tileCoordSchema = intWithin(-2_000, 2_000);
+
+const pixelProtocolPlatformSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  tetromino: z.enum(["I", "O", "T", "L", "J", "S", "Z"]),
+  x: tileCoordSchema,
+  y: tileCoordSchema,
+  rotation: z.number().int().min(0).max(3).optional(),
+  type: z.enum([
+    "stable",
+    "unstable",
+    "rotating",
+    "glitch",
+    "bounce",
+    "armored",
+    "hackable",
+  ]),
+  rotateEveryMs: intWithin(0, 60_000).optional(),
+});
+
+const pixelProtocolCheckpointSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  x: pixelCoordSchema,
+  y: pixelCoordSchema,
+  spawnX: pixelCoordSchema,
+  spawnY: pixelCoordSchema,
+});
+
+const pixelProtocolOrbSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  x: pixelCoordSchema,
+  y: pixelCoordSchema,
+});
+
+const pixelProtocolEnemySchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  kind: z.enum(["rookie", "pulse", "apex"]),
+  x: pixelCoordSchema,
+  y: pixelCoordSchema,
+  vx: z.number().finite().min(-10_000).max(10_000),
+  minX: pixelCoordSchema,
+  maxX: pixelCoordSchema,
+  stunnedUntil: z.number().finite().min(0).max(1_000_000_000),
+});
+
+export const pixelProtocolLevelSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  world: intWithin(1, 99),
+  name: z.string().trim().min(1).max(120),
+  worldWidth: intWithin(1, 200_000),
+  requiredOrbs: intWithin(0, 999),
+  spawn: z.object({
+    x: pixelCoordSchema,
+    y: pixelCoordSchema,
+  }),
+  portal: z.object({
+    x: pixelCoordSchema,
+    y: pixelCoordSchema,
+  }),
+  platforms: z.array(pixelProtocolPlatformSchema).max(5_000),
+  checkpoints: z.array(pixelProtocolCheckpointSchema).max(5_000),
+  orbs: z.array(pixelProtocolOrbSchema).max(5_000),
+  enemies: z.array(pixelProtocolEnemySchema).max(2_000),
+});

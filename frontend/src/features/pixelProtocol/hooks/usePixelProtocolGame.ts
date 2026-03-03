@@ -8,22 +8,27 @@ import {
 import { updateRuntime } from "../game/updateRuntime";
 import { usePixelProtocolControls } from "./usePixelProtocolControls";
 import { usePixelProtocolViewport } from "./usePixelProtocolViewport";
-import { LEVELS } from "../levels";
+import { LEVELS as DEFAULT_LEVELS } from "../levels";
 import { abilityFlags, cloneLevel } from "../logic";
-import type { GameRuntime } from "../types";
+import type { GameRuntime, LevelDef } from "../types";
 
-export function usePixelProtocolGame() {
+export function usePixelProtocolGame(levels: LevelDef[]) {
   const [, setRenderTick] = useState(0);
   const [levelIndex, setLevelIndex] = useState(0);
-  const runtimeRef = useRef<GameRuntime>(cloneLevel(LEVELS[0]));
+  const safeLevels = levels.length > 0 ? levels : DEFAULT_LEVELS;
+  const runtimeRef = useRef<GameRuntime>(cloneLevel(safeLevels[0]));
   const frameRef = useRef<number | null>(null);
   const lastTsRef = useRef<number>(performance.now());
   const { clearJustPressed, readInput } = usePixelProtocolControls();
   const { gameViewportRef, viewportHeight, viewportWidth } =
     usePixelProtocolViewport();
 
-  const level = LEVELS[levelIndex];
+  const level = safeLevels[levelIndex] ?? safeLevels[0];
   const ability = useMemo(() => abilityFlags(level.world), [level.world]);
+
+  useEffect(() => {
+    setLevelIndex(0);
+  }, [levels]);
 
   useEffect(() => {
     runtimeRef.current = cloneLevel(level);
@@ -46,7 +51,7 @@ export function usePixelProtocolGame() {
           level,
           now,
           onAdvanceLevel: () => {
-            if (levelIndex < LEVELS.length - 1) {
+            if (levelIndex < safeLevels.length - 1) {
               game.message = "Portail actif: transfert vers le secteur suivant...";
               setLevelIndex((current) => current + 1);
             } else {
@@ -77,6 +82,7 @@ export function usePixelProtocolGame() {
     level,
     levelIndex,
     readInput,
+    safeLevels.length,
     viewportHeight,
     viewportWidth,
   ]);
