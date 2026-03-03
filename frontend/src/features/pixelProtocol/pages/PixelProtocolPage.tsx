@@ -43,6 +43,11 @@ export default function PixelProtocolPage() {
               <button type="button" onClick={() => navigate("/dashboard")}>
                 Retour dashboard
               </button>
+              {isAdmin && (
+                <button type="button" onClick={() => navigate("/pixel-protocol/editor")}>
+                  Editeur de niveaux
+                </button>
+              )}
             </div>
           </div>
         </div>
