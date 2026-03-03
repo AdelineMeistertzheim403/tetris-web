@@ -38,6 +38,7 @@ const PLATFORM_TYPES: PlatformType[] = [
   "armored",
   "hackable",
 ];
+const DEFAULT_ROTATE_EVERY_MS = 1800;
 
 const TEMPLATE_BASE: LevelDef = {
   id: "w1-1",
@@ -587,7 +588,19 @@ export default function PixelProtocolEditor() {
 
   const handleSelectedPlatformChange = (updater: (platform: PlatformDef) => PlatformDef) => {
     if (!selectedPlatform) return;
-    applyDraftLevel(updatePlatform(draftLevel, selectedPlatform.id, updater), selection);
+    applyDraftLevel(
+      updatePlatform(draftLevel, selectedPlatform.id, (platform) => {
+        const nextPlatform = updater(platform);
+        if (nextPlatform.type === "rotating" && !nextPlatform.rotateEveryMs) {
+          return {
+            ...nextPlatform,
+            rotateEveryMs: DEFAULT_ROTATE_EVERY_MS,
+          };
+        }
+        return nextPlatform;
+      }),
+      selection
+    );
   };
 
   const handleSelectedCheckpointChange = (updater: (checkpoint: Checkpoint) => Checkpoint) => {
@@ -1045,7 +1058,16 @@ export default function PixelProtocolEditor() {
                           key={type}
                           type="button"
                           className={selectedPlatform.type === type ? "is-active" : ""}
-                          onClick={() => handleSelectedPlatformChange((platform) => ({ ...platform, type }))}
+                          onClick={() =>
+                            handleSelectedPlatformChange((platform) => ({
+                              ...platform,
+                              type,
+                              rotateEveryMs:
+                                type === "rotating"
+                                  ? platform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS
+                                  : platform.rotateEveryMs,
+                            }))
+                          }
                         >
                           {type}
                         </button>
@@ -1090,6 +1112,26 @@ export default function PixelProtocolEditor() {
                         />
                       </label>
                     </div>
+                    {selectedPlatform.type === "rotating" && (
+                      <div className="pp-editor-inline-fields">
+                        <label>
+                          <span>Rotation ms</span>
+                          <input
+                            type="number"
+                            min={100}
+                            step={10}
+                            value={selectedPlatform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS}
+                            onChange={(event) =>
+                              handleSelectedPlatformChange((platform) => ({
+                                ...platform,
+                                rotateEveryMs:
+                                  Math.max(100, Number(event.target.value) || DEFAULT_ROTATE_EVERY_MS),
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
+                    )}
                   </>
                 )}
 
