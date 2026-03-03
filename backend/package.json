@@ -12,6 +12,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "puzzle:validate": "tsx scripts/validate-puzzles.ts",
     "puzzle:sync": "tsx scripts/sync-puzzles.ts",
+    "pixel-protocol:sync": "node --import ./node_modules/tsx/dist/loader.mjs ./scripts/sync-pixel-protocol-levels.mjs",
     "test": "cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub prisma generate --schema prisma/schema.prisma && cross-env NODE_ENV=test PORT=3001 ALLOWED_ORIGINS=http://localhost:5173 JWT_SECRET=super_secret_tetris_key_dev DATABASE_URL=postgresql://stub vitest run"
   },
   "keywords": [],
