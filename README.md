@@ -1,6 +1,6 @@
 # Tetris Web
 
-Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : classique, sprint 40 lignes, versus en temps réel (WebSocket), roguelike à perks et Brickfall (solo + versus). Authentification JWT, succès et classements persistés en base PostgreSQL.
+Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : classique, sprint 40 lignes, versus en temps réel (WebSocket), roguelike à perks, Brickfall (solo + versus), Tetromaze et Pixel Protocol. Authentification JWT, succès, progression et classements persistés en base PostgreSQL.
 
 ## Stack
 - Front : React 19 + TypeScript, Vite, Tailwind classes.
@@ -16,7 +16,7 @@ Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : clas
 ## Architecture frontend (feature-first)
 Le front est organisé par domaine fonctionnel, chaque feature regroupe ses pages, composants et logique métier.
 
-- `frontend/src/features/` : un dossier par feature (`app`, `auth`, `achievements`, `game`, `versus`, `roguelike`, `brickfallSolo`, `brickfallVersus`, `settings`).
+- `frontend/src/features/` : un dossier par feature (`app`, `auth`, `achievements`, `game`, `versus`, `roguelike`, `brickfallSolo`, `brickfallVersus`, `tetromaze`, `pixelProtocol`, `settings`).
 - `frontend/src/features/<feature>/pages/` : pages/écrans liés à la feature.
 - `frontend/src/features/<feature>/components/` : UI spécifique à la feature (sous-dossiers par sous-système si besoin).
 - `frontend/src/features/<feature>/hooks/` : hooks React spécifiques à la feature.
@@ -42,7 +42,25 @@ Entrée de l’app :
 - Brickfall Solo : campagne + niveaux custom, blocs spéciaux (`armored`, `bomb`, `cursed`, `mirror`), power-ups et progression.
 - Brickfall Versus : duel architecte/démolisseur avec envoi d’événements temps réel (spawn spéciaux, bombes, debuffs).
 - Brickfall vs Tetrobots : variante solo locale contre bot, rôles architecte/démolisseur.
+- Tetromaze : mode arcade/labyrinthe avec campagne, progression et éditeur de niveaux custom.
+- Pixel Protocol : platformer 2D avec campagne, progression, mondes à capacités (`double jump`, `dash`, `hack`, `shield`) et éditeur de niveaux.
 - Contrôles : flèches (gauche/droite/bas), `ArrowUp` rotation, `Espace` hard drop, `Shift` ou `C` hold, `B` bombe (roguelike).
+
+## Pixel Protocol
+- Hub dédié accessible depuis le dashboard : reprise de campagne, nouvelle campagne, lancement d’un niveau custom et accès à l’éditeur.
+- Campagne serveur : les niveaux officiels publiés sont chargés depuis `/api/pixel-protocol/levels`.
+- Progression persistée en base pour l’utilisateur authentifié via `/api/pixel-protocol/progress`, avec fallback local.
+- Mode custom : chaque utilisateur peut créer, modifier, supprimer et jouer ses propres niveaux privés.
+- Éditeur bi-mode :
+  - Admin : création/édition/publication des niveaux officiels.
+  - Utilisateur : création/édition/suppression de niveaux custom personnels, sans publication.
+- Éléments éditables : plateformes tetromino, spawn, portail, checkpoints, orbs et ennemis.
+- Validation intégrée : détection des plateformes atteignables, liens de parcours visualisés et preview jouable du draft courant.
+
+## Tetromaze
+- Hub dédié avec reprise de campagne, sélection d’un niveau débloqué, accès à l’éditeur et lancement de niveaux custom.
+- Progression persistée en base pour l’utilisateur authentifié via `/api/tetromaze/progress`, avec fallback local.
+- Niveaux custom synchronisés via `/api/tetromaze/custom-levels`.
 
 ## Tetrobots (IA)
 - Personnalités IA disponibles : `Tetrobots Rookie` (facile), `Tetrobots Pulse` (normal), `Tetrobots Apex` (difficile).
@@ -63,6 +81,17 @@ Entrée de l’app :
 - Import : bouton `Import JSON` avec sélection de fichier `.json` (niveau unique ou tableau de niveaux).
 - Sauvegarde locale + tentative de synchronisation serveur (`/api/brickfall-solo/custom-levels`).
 
+## Pixel Protocol : éditeur de niveaux
+- Accès depuis le hub `Pixel Protocol`.
+- Deux usages :
+  - Admin : gestion des niveaux officiels avec état brouillon/publié.
+  - Utilisateur : gestion de niveaux custom privés sauvegardés séparément.
+- Drag and drop disponible pour les plateformes, le spawn joueur, le portail, les checkpoints, les orbs et les ennemis.
+- Les plateformes sont affichées en couleur simple par type dans l’éditeur pour garder un drag fluide.
+- Validation de layout avec mise en évidence des plateformes atteignables/non atteignables.
+- Aide dédiée disponible via la page `Pixel Protocol / Aide éditeur`.
+- Sauvegarde custom locale + tentative de synchronisation serveur (`/api/pixel-protocol/custom-levels`).
+
 ## Assets frontend
 - Les icônes de synergies utilisent les fichiers dans `frontend/public/Synergies/`.
 - Les sprites de blocs Brickfall utilisent les fichiers dans `frontend/public/blocs/`.
@@ -80,6 +109,7 @@ DATABASE_URL=postgresql://tetris_user:tetris_pass@localhost:5432/tetris_db?schem
 JWT_SECRET=super_secret_tetris_key
 PORT=8080
 ALLOWED_ORIGINS=http://localhost:5173
+SEED_PIXEL_LEVELS=false
 # (prod docker-compose) BACKEND_PORT=8080, BACKEND_INTERNAL_PORT=8080
 ```
 
@@ -115,15 +145,33 @@ npm run dev -- --host                # VITE_API_URL doit pointer vers l'API
 Backend : `npm run dev` (tsx + prisma generate), `npm run build`, `npm start`, `npm test` (Vitest, Prisma mock), `npm run prisma:generate`.
 Frontend : `npm run dev`, `npm run build`, `npm run preview`, `npm run lint`.
 
+Script backend additionnel :
+- `npm run pixel-protocol:sync` : exporte les niveaux Pixel Protocol du front vers `backend/prisma/pixelProtocolLevels.json`.
+
 ## Succès & progression
 - Déblocage côté client + synchronisation serveur des succès.
 - Stats persistées en base pour la progression globale (ex: jours de connexion) via `UserAchievementStats`.
+- Progression de campagne persistée pour :
+  - `Brickfall Solo`
+  - `Tetromaze`
+  - `Pixel Protocol`
+- Niveaux custom persistés par utilisateur pour :
+  - `Brickfall Solo`
+  - `Tetromaze`
+  - `Pixel Protocol`
 
 ## API (résumé)
 - Auth : `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`.
 - Scores : `POST /api/scores` (JWT), `GET /api/scores/me/:mode` (JWT), `GET /api/scores/leaderboard/:mode`, `POST /api/scores/versus-match` (résultat de duel).
 - Succès : `GET /api/achievements` (débloqués), `POST /api/achievements/unlock`.
 - Stats succès : `GET /api/achievements/stats`, `POST /api/achievements/stats` (jours de connexion).
+- Brickfall Solo : `/api/brickfall-solo/progress`, `/api/brickfall-solo/custom-levels`.
+- Tetromaze : `/api/tetromaze/progress`, `/api/tetromaze/custom-levels`.
+- Pixel Protocol :
+  - Public : `GET /api/pixel-protocol/levels`
+  - Progression : `GET/PUT /api/pixel-protocol/progress`
+  - Niveaux custom utilisateur : `GET/POST/DELETE /api/pixel-protocol/custom-levels`
+  - Niveaux admin officiels : `GET /api/pixel-protocol/levels/admin`, `POST /api/pixel-protocol/levels`, `DELETE /api/pixel-protocol/levels/:levelId`
 - WebSocket Versus : `/ws`
   - Entrant : `join_match`, `lines_cleared`, `state` (grille), `game_over`.
   - Sortant : `match_joined`, `start` (sac initial + slot), `bag_refill`, `garbage`, `opponent_state`, `opponent_finished`, `match_over`, `players_sync`, `opponent_left`.
@@ -134,6 +182,7 @@ Frontend : `npm run dev`, `npm run build`, `npm run preview`, `npm run lint`.
 - Compose prod : `docker-compose -f docker-compose.prod.yml up --build` (utilise `backend/.env` et expose 5173 + BACKEND_PORT).
 - Sécuriser `JWT_SECRET` et `DATABASE_URL`, ajuster `ALLOWED_ORIGINS`.
 - Appliquer les migrations Prisma (`npx prisma migrate deploy`).
+- Si les niveaux Pixel Protocol officiels existent déjà en base et ne doivent pas être re-seedés, garder `SEED_PIXEL_LEVELS=false`.
 
 ## Tests
 - Backend : `npm test` (Vitest, supertest, Prisma mock).
