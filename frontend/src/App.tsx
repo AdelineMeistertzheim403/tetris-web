@@ -7,7 +7,6 @@ import Dashboard from "./features/app/pages/Dashboard";
 import Game from "./features/game/pages/Game";
 import Leaderboard from "./features/game/pages/Leaderboard";
 import ProtectedRoute from "./features/auth/components/ProtectedRoute";
-import AdminRoute from "./features/auth/components/AdminRoute";
 import Home from "./features/app/pages/Home";
 import Sprint from "./features/game/pages/Sprint";
 import Versus from "./features/versus/pages/Versus";
@@ -28,6 +27,7 @@ import TetromazeHub from "./features/tetromaze/pages/TetromazeHub";
 import TetromazeEditor from "./features/tetromaze/pages/TetromazeEditor";
 import TetromazeEditorHelp from "./features/tetromaze/pages/TetromazeEditorHelp";
 import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
+import PixelProtocolHub from "./features/pixelProtocol/pages/PixelProtocolHub";
 import PixelProtocolPage from "./features/pixelProtocol/pages/PixelProtocolPage";
 import PixelProtocolEditor from "./features/pixelProtocol/pages/PixelProtocolEditor";
 import { useAuth } from "./features/auth/context/AuthContext";
@@ -78,13 +78,14 @@ function App() {
       <Route path="/tetromaze/play" element={<TetromazePage />} />
       <Route path="/tetromaze/editor" element={<TetromazeEditor />} />
       <Route path="/tetromaze/help/editor" element={<TetromazeEditorHelp />} />
-      <Route path="/pixel-protocol" element={<PixelProtocolPage />} />
+      <Route path="/pixel-protocol" element={<PixelProtocolHub />} />
+      <Route path="/pixel-protocol/play" element={<PixelProtocolPage />} />
       <Route
         path="/pixel-protocol/editor"
         element={
-          <AdminRoute>
+          <ProtectedRoute>
             <PixelProtocolEditor />
-          </AdminRoute>
+          </ProtectedRoute>
         }
       />
       <Route path="/tetrobots" element={<TetrobotsPage />} />

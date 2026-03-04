@@ -1,0 +1,93 @@
+.pp-hub {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(61, 205, 255, 0.18), transparent 38%),
+    radial-gradient(circle at 85% 15%, rgba(255, 210, 82, 0.12), transparent 30%),
+    #050b16;
+  color: #fff;
+  padding: 2rem 0;
+}
+
+.pp-hub-shell {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+}
+
+.pp-hub-title {
+  text-align: center;
+  color: #7de8ff;
+  font-size: 1.8rem;
+  margin-bottom: 1.2rem;
+  text-shadow: 0 0 14px rgba(61, 205, 255, 0.22);
+}
+
+.pp-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 1rem;
+}
+
+.pp-hub-card h2 {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.pp-hub-stat {
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  margin-bottom: 0.35rem;
+}
+
+.pp-hub-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pp-hub-divider {
+  border-top: 1px solid #273449;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+}
+
+.pp-hub-select {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #2e6aa1;
+  background: rgba(5, 15, 35, 0.9);
+  color: #d5ebff;
+  font-size: 0.72rem;
+}
+
+.pp-hub-btn {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #53b4ff;
+  background: linear-gradient(120deg, rgba(24, 113, 182, 0.32), rgba(57, 207, 255, 0.22));
+  color: #e8f9ff;
+  padding: 0.7rem 0.75rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.pp-hub-btn:hover {
+  box-shadow: 0 0 12px rgba(83, 180, 255, 0.28);
+}
+
+.pp-hub-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pp-hub-btn--secondary {
+  border-color: #ffd252;
+  background: linear-gradient(120deg, rgba(255, 210, 82, 0.22), rgba(255, 169, 64, 0.18));
+  color: #fff4c7;
+}
+
+@media (max-width: 768px) {
+  .pp-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}

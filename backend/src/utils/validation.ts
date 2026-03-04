@@ -354,3 +354,8 @@ export const pixelProtocolLevelSchema = z.object({
   orbs: z.array(pixelProtocolOrbSchema).max(5_000),
   enemies: z.array(pixelProtocolEnemySchema).max(2_000),
 });
+
+export const pixelProtocolProgressSchema = z.object({
+  highestLevel: intWithin(1, 999).optional(),
+  currentLevel: intWithin(1, 999).optional(),
+});
