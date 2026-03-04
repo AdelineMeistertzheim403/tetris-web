@@ -12,10 +12,16 @@ import { LEVELS as DEFAULT_LEVELS } from "../levels";
 import { abilityFlags, cloneLevel } from "../logic";
 import type { GameRuntime, LevelDef } from "../types";
 
-export function usePixelProtocolGame(levels: LevelDef[]) {
+export function usePixelProtocolGame(
+  levels: LevelDef[],
+  options?: { initialLevelIndex?: number }
+) {
   const [, setRenderTick] = useState(0);
-  const [levelIndex, setLevelIndex] = useState(0);
   const safeLevels = levels.length > 0 ? levels : DEFAULT_LEVELS;
+  const [levelIndex, setLevelIndex] = useState(() => {
+    const requested = options?.initialLevelIndex ?? 0;
+    return Math.max(0, Math.min(requested, safeLevels.length - 1));
+  });
   const runtimeRef = useRef<GameRuntime>(cloneLevel(safeLevels[0]));
   const frameRef = useRef<number | null>(null);
   const lastTsRef = useRef<number>(performance.now());
@@ -27,8 +33,9 @@ export function usePixelProtocolGame(levels: LevelDef[]) {
   const ability = useMemo(() => abilityFlags(level.world), [level.world]);
 
   useEffect(() => {
-    setLevelIndex(0);
-  }, [levels]);
+    const requested = options?.initialLevelIndex ?? 0;
+    setLevelIndex(Math.max(0, Math.min(requested, safeLevels.length - 1)));
+  }, [options?.initialLevelIndex, safeLevels.length]);
 
   useEffect(() => {
     runtimeRef.current = cloneLevel(level);
@@ -109,6 +116,7 @@ export function usePixelProtocolGame(levels: LevelDef[]) {
     ability,
     gameViewportRef,
     level,
+    levelIndex,
     playerRunFrame,
     playerSprite,
     portalOpen,

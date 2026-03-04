@@ -32,8 +32,10 @@ model User {
   settings UserSettings?
   brickfallSoloProgress BrickfallSoloProgress?
   tetromazeProgress TetromazeProgress?
+  pixelProtocolProgress PixelProtocolProgress?
   brickfallSoloCustomLevels BrickfallSoloCustomLevel[]
   tetromazeCustomLevels TetromazeCustomLevel[]
+  pixelProtocolCustomLevels PixelProtocolCustomLevel[]
   botPlayerProfile BotPlayerProfile?
   createdAt DateTime @default(now())
 }
@@ -235,6 +237,16 @@ model TetromazeProgress {
   user         User     @relation(fields: [userId], references: [id])
 }
 
+model PixelProtocolProgress {
+  userId       Int      @id
+  highestLevel Int      @default(1)
+  currentLevel Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id])
+}
+
 model BrickfallSoloCustomLevel {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -250,6 +262,20 @@ model BrickfallSoloCustomLevel {
 }
 
 model TetromazeCustomLevel {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  levelId    String
+  definition Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, levelId])
+  @@index([userId, updatedAt])
+}
+
+model PixelProtocolCustomLevel {
   id         Int      @id @default(autoincrement())
   userId     Int
   levelId    String

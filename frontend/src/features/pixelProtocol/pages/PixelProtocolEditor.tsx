@@ -17,11 +17,20 @@ import type {
   Tetromino,
 } from "../types";
 import {
+  deletePixelProtocolCustomLevel,
   deletePixelProtocolLevel,
+  fetchPixelProtocolCustomLevels,
   fetchPixelProtocolAdminLevels,
+  savePixelProtocolCustomLevel,
   savePixelProtocolLevel,
   type PixelProtocolAdminLevel,
 } from "../services/pixelProtocolService";
+import {
+  listPixelProtocolCustomLevels,
+  mergePixelProtocolCustomLevels,
+  removePixelProtocolCustomLevel,
+  upsertPixelProtocolCustomLevel,
+} from "../utils/customLevels";
 import { useAuth } from "../../auth/context/AuthContext";
 import "../../../styles/pixel-protocol.css";
 import "../../../styles/pixel-protocol-editor.css";
@@ -54,7 +63,15 @@ const TEMPLATE_BASE: LevelDef = {
   enemies: [],
 };
 
+type EditorStoredLevel = LevelDef & {
+  active?: boolean;
+  sortOrder?: number;
+  updatedAt?: string | null;
+};
+
 type Selection =
+  | { kind: "spawn" }
+  | { kind: "portal" }
   | { kind: "platform"; id: string }
   | { kind: "checkpoint"; id: string }
   | { kind: "orb"; id: string }
@@ -62,6 +79,20 @@ type Selection =
   | null;
 
 type DragState =
+  | {
+      kind: "spawn";
+      candidateTileX: number;
+      candidateTileY: number;
+      offsetX: number;
+      offsetY: number;
+    }
+  | {
+      kind: "portal";
+      candidateTileX: number;
+      candidateTileY: number;
+      offsetX: number;
+      offsetY: number;
+    }
   | {
       kind: "platform";
       id: string;
@@ -94,26 +125,38 @@ function parseStage(id: string) {
   return match ? Number(match[1]) : 0;
 }
 
-function sortAdminLevels(levels: PixelProtocolAdminLevel[]) {
+function sortAdminLevels(levels: EditorStoredLevel[]) {
   return [...levels].sort((a, b) => {
     if (a.world !== b.world) return a.world - b.world;
     return parseStage(a.id) - parseStage(b.id);
   });
 }
 
-function makeNewLevel(levels: PixelProtocolAdminLevel[]): LevelDef {
-  const world = 1;
-  const existingStages = levels
-    .filter((lvl) => lvl.world === world)
-    .map((lvl) => parseStage(lvl.id))
-    .filter(Number.isFinite);
-  const nextStage = (existingStages.length ? Math.max(...existingStages) : 0) + 1;
+function makeNewLevel(levels: EditorStoredLevel[], isAdmin: boolean): LevelDef {
+  if (isAdmin) {
+    const world = 1;
+    const existingStages = levels
+      .filter((lvl) => lvl.world === world)
+      .map((lvl) => parseStage(lvl.id))
+      .filter(Number.isFinite);
+    const nextStage = (existingStages.length ? Math.max(...existingStages) : 0) + 1;
 
+    return {
+      ...TEMPLATE_BASE,
+      id: `w${world}-${nextStage}`,
+      world,
+      name: `Nouveau niveau ${nextStage}`,
+    };
+  }
+
+  let index = levels.length + 1;
+  while (levels.some((level) => level.id === `pp-custom-${index}`)) {
+    index += 1;
+  }
   return {
     ...TEMPLATE_BASE,
-    id: `w${world}-${nextStage}`,
-    world,
-    name: `Nouveau niveau ${nextStage}`,
+    id: `pp-custom-${index}`,
+    name: `Niveau custom ${index}`,
   };
 }
 
@@ -197,8 +240,32 @@ function enemyFromTile(id: string, tileX: number, tileY: number): Enemy {
   };
 }
 
+function normalizeTileOffset(value: number) {
+  return ((value % TILE) + TILE) % TILE;
+}
+
 function applyDragPreview(level: LevelDef, dragState: DragState | null): LevelDef {
   if (!dragState) return level;
+
+  if (dragState.kind === "spawn") {
+    return {
+      ...level,
+      spawn: {
+        x: dragState.candidateTileX * TILE + dragState.offsetX,
+        y: dragState.candidateTileY * TILE + dragState.offsetY,
+      },
+    };
+  }
+
+  if (dragState.kind === "portal") {
+    return {
+      ...level,
+      portal: {
+        x: dragState.candidateTileX * TILE + dragState.offsetX,
+        y: dragState.candidateTileY * TILE + dragState.offsetY,
+      },
+    };
+  }
 
   if (dragState.kind === "platform") {
     return updatePlatform(level, dragState.id, (platform) => ({
@@ -299,7 +366,7 @@ export default function PixelProtocolEditor() {
   const draftLevelRef = useRef<LevelDef>(TEMPLATE_BASE);
   const dragStateRef = useRef<DragState | null>(null);
 
-  const [levels, setLevels] = useState<PixelProtocolAdminLevel[]>([]);
+  const [levels, setLevels] = useState<EditorStoredLevel[]>([]);
   const [draftLevel, setDraftLevel] = useState<LevelDef>(TEMPLATE_BASE);
   const [published, setPublished] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -310,6 +377,7 @@ export default function PixelProtocolEditor() {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [previewLevel, setPreviewLevel] = useState<LevelDef | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
+  const isAdmin = user?.role === "ADMIN";
 
   draftLevelRef.current = draftLevel;
   dragStateRef.current = dragState;
@@ -339,6 +407,8 @@ export default function PixelProtocolEditor() {
     selection?.kind === "platform"
       ? draftLevel.platforms.find((platform) => platform.id === selection.id) ?? null
       : null;
+  const selectedSpawn = selection?.kind === "spawn";
+  const selectedPortal = selection?.kind === "portal";
   const selectedCheckpoint =
     selection?.kind === "checkpoint"
       ? draftLevel.checkpoints.find((checkpoint) => checkpoint.id === selection.id) ?? null
@@ -355,6 +425,11 @@ export default function PixelProtocolEditor() {
   const worldTiles = Math.max(12, Math.round(draftLevel.worldWidth / TILE));
   const abilities = abilityFlags(displayedLevel.world);
   const readonlyJson = useMemo(() => JSON.stringify(draftLevel, null, 2), [draftLevel]);
+  const canDeleteSelection =
+    selection?.kind === "platform" ||
+    selection?.kind === "checkpoint" ||
+    selection?.kind === "orb" ||
+    selection?.kind === "enemy";
 
   const resetMessages = () => {
     setStatus(null);
@@ -370,10 +445,10 @@ export default function PixelProtocolEditor() {
     return nextValidation.isValid;
   };
 
-  const selectLevel = (level: PixelProtocolAdminLevel) => {
-    const cleanLevel = stripAdminFields(level);
+  const selectLevel = (level: EditorStoredLevel) => {
+    const cleanLevel = isAdmin ? stripAdminFields(level as PixelProtocolAdminLevel) : level;
     setSelectedId(level.id);
-    setPublished(level.active);
+    setPublished(level.active ?? false);
     setDraftLevel(cleanLevel);
     setSelection(cleanLevel.platforms[0] ? { kind: "platform", id: cleanLevel.platforms[0].id } : null);
     setPreviewLevel(null);
@@ -383,19 +458,33 @@ export default function PixelProtocolEditor() {
   const refreshLevels = async () => {
     setLoading(true);
     try {
-      const sorted = sortAdminLevels(await fetchPixelProtocolAdminLevels());
+      const sorted = isAdmin
+        ? sortAdminLevels(await fetchPixelProtocolAdminLevels())
+        : mergePixelProtocolCustomLevels(await fetchPixelProtocolCustomLevels());
       setLevels(sorted);
       if (sorted.length > 0) {
         selectLevel(sorted[0]);
       } else {
-        const fresh = makeNewLevel([]);
+        const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
-        setPublished(true);
+        setPublished(isAdmin);
         setDraftLevel(fresh);
         setSelection(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur chargement niveaux admin");
+      if (isAdmin) {
+        setError(err instanceof Error ? err.message : "Erreur chargement niveaux admin");
+      } else {
+        const local = listPixelProtocolCustomLevels();
+        setLevels(local);
+        if (local.length > 0) {
+          selectLevel(local[0]);
+        } else {
+          setDraftLevel(makeNewLevel([], false));
+          setSelection(null);
+        }
+        setError("Mode hors ligne: niveaux custom locaux utilises.");
+      }
     } finally {
       setLoading(false);
     }
@@ -403,7 +492,7 @@ export default function PixelProtocolEditor() {
 
   useEffect(() => {
     refreshLevels();
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!dragState) return;
@@ -445,7 +534,10 @@ export default function PixelProtocolEditor() {
       const currentDrag = dragStateRef.current;
       if (!currentDrag) return;
       const nextLevel = applyDragPreview(draftLevelRef.current, currentDrag);
-      const nextSelection: Selection = { kind: currentDrag.kind, id: currentDrag.id };
+      const nextSelection: Selection =
+        currentDrag.kind === "spawn" || currentDrag.kind === "portal"
+          ? { kind: currentDrag.kind }
+          : { kind: currentDrag.kind, id: currentDrag.id };
       applyDraftLevel(nextLevel, nextSelection);
       setDragState(null);
     };
@@ -469,13 +561,34 @@ export default function PixelProtocolEditor() {
 
     const active = forceActive ?? published;
     try {
-      const saved = await savePixelProtocolLevel(draftLevel, active);
-      setLevels((prev) => sortAdminLevels([saved, ...prev.filter((lvl) => lvl.id !== saved.id)]));
-      setSelectedId(saved.id);
-      setPublished(saved.active);
-      setDraftLevel(stripAdminFields(saved));
-      setSelection(saved.platforms[0] ? { kind: "platform", id: saved.platforms[0].id } : null);
-      setStatus(active ? "Niveau publie." : "Niveau sauvegarde en brouillon.");
+      let savedLevel: LevelDef;
+      if (isAdmin) {
+        const saved = await savePixelProtocolLevel(draftLevel, active);
+        setLevels((prev) => sortAdminLevels([saved, ...prev.filter((lvl) => lvl.id !== saved.id)]));
+        setSelectedId(saved.id);
+        setPublished(saved.active);
+        setDraftLevel(stripAdminFields(saved));
+        setStatus(active ? "Niveau publie." : "Niveau sauvegarde en brouillon.");
+        savedLevel = stripAdminFields(saved);
+      } else {
+        const merged = upsertPixelProtocolCustomLevel(draftLevel);
+        setLevels(merged);
+        setSelectedId(draftLevel.id);
+        setPublished(false);
+        setDraftLevel(draftLevel);
+        savedLevel = draftLevel;
+        try {
+          const remoteSaved = await savePixelProtocolCustomLevel(draftLevel);
+          const synced = upsertPixelProtocolCustomLevel(remoteSaved);
+          setLevels(synced);
+          setDraftLevel(remoteSaved);
+          savedLevel = remoteSaved;
+          setStatus("Niveau custom sauvegarde.");
+        } catch {
+          setStatus("Niveau custom sauvegarde localement.");
+        }
+      }
+      setSelection(savedLevel.platforms[0] ? { kind: "platform", id: savedLevel.platforms[0].id } : null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur sauvegarde niveau");
@@ -485,17 +598,28 @@ export default function PixelProtocolEditor() {
   const removeLevel = async (levelId: string) => {
     if (!window.confirm(`Supprimer definitivement ${levelId} ?`)) return;
     try {
-      await deletePixelProtocolLevel(levelId);
-      const remaining = sortAdminLevels(levels.filter((lvl) => lvl.id !== levelId));
+      if (isAdmin) {
+        await deletePixelProtocolLevel(levelId);
+      } else {
+        removePixelProtocolCustomLevel(levelId);
+        try {
+          await deletePixelProtocolCustomLevel(levelId);
+        } catch {
+          setStatus("Niveau supprime localement.");
+        }
+      }
+      const remaining = isAdmin
+        ? sortAdminLevels(levels.filter((lvl) => lvl.id !== levelId))
+        : listPixelProtocolCustomLevels();
       setLevels(remaining);
       setStatus("Niveau supprime.");
       if (selectedId !== levelId) return;
       if (remaining.length > 0) {
         selectLevel(remaining[0]);
       } else {
-        const fresh = makeNewLevel([]);
+        const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
-        setPublished(true);
+        setPublished(isAdmin);
         setDraftLevel(fresh);
         setSelection(null);
       }
@@ -505,7 +629,7 @@ export default function PixelProtocolEditor() {
   };
 
   const startNewLevel = () => {
-    const fresh = makeNewLevel(levels);
+    const fresh = makeNewLevel(levels, isAdmin);
     setSelectedId(null);
     setPublished(false);
     setDraftLevel(fresh);
@@ -567,6 +691,7 @@ export default function PixelProtocolEditor() {
 
   const handleDeleteSelection = () => {
     if (!selection) return;
+    if (selection.kind === "spawn" || selection.kind === "portal") return;
     if (selection.kind === "platform") {
       const nextPlatforms = draftLevel.platforms.filter((item) => item.id !== selection.id);
       applyDraftLevel({ ...draftLevel, platforms: nextPlatforms }, nextPlatforms[0] ? { kind: "platform", id: nextPlatforms[0].id } : null);
@@ -669,6 +794,30 @@ export default function PixelProtocolEditor() {
     });
   };
 
+  const startSpawnDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setSelection({ kind: "spawn" });
+    setDragState({
+      kind: "spawn",
+      candidateTileX: Math.floor(draftLevel.spawn.x / TILE),
+      candidateTileY: Math.floor(draftLevel.spawn.y / TILE),
+      offsetX: normalizeTileOffset(draftLevel.spawn.x),
+      offsetY: normalizeTileOffset(draftLevel.spawn.y),
+    });
+  };
+
+  const startPortalDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setSelection({ kind: "portal" });
+    setDragState({
+      kind: "portal",
+      candidateTileX: Math.floor(draftLevel.portal.x / TILE),
+      candidateTileY: Math.floor(draftLevel.portal.y / TILE),
+      offsetX: normalizeTileOffset(draftLevel.portal.x),
+      offsetY: normalizeTileOffset(draftLevel.portal.y),
+    });
+  };
+
   const openPreview = () => {
     const layoutValidation = validatePlatformLayout(draftLevel);
     if (!layoutValidation.isValid) {
@@ -680,26 +829,16 @@ export default function PixelProtocolEditor() {
     setError(null);
   };
 
-  if (user && user.role !== "ADMIN") {
-    return (
-      <div className="pp-editor-shell">
-        <div className="pp-editor-panel">
-          <h1>Acces interdit</h1>
-          <p>Ce panneau est reserve aux administrateurs.</p>
-          <button type="button" onClick={() => navigate("/pixel-protocol")}>
-            Retour
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="pp-editor-shell">
       <div className="pp-editor-head">
         <div>
-          <h1>Pixel Protocol - Editeur admin</h1>
-          <p>Edition visuelle des plateformes, objets et ennemis avec validation de parcours.</p>
+          <h1>Pixel Protocol - {isAdmin ? "Editeur admin" : "Editeur custom"}</h1>
+          <p>
+            {isAdmin
+              ? "Edition visuelle des niveaux officiels avec publication et validation de parcours."
+              : "Cree, modifie et supprime tes propres niveaux. Les niveaux officiels restent en lecture seule."}
+          </p>
         </div>
         <div className="pp-editor-head-actions">
           <button type="button" className="retro-btn" onClick={startNewLevel}>
@@ -716,11 +855,13 @@ export default function PixelProtocolEditor() {
 
       <div className="pp-editor-layout">
         <aside className="pp-editor-panel pp-editor-list">
-          <h2>Niveaux disponibles</h2>
+          <h2>{isAdmin ? "Niveaux disponibles" : "Tes niveaux custom"}</h2>
           {loading ? (
             <p className="pp-editor-muted">Chargement...</p>
           ) : levels.length === 0 ? (
-            <p className="pp-editor-muted">Aucun niveau en base.</p>
+            <p className="pp-editor-muted">
+              {isAdmin ? "Aucun niveau en base." : "Aucun niveau custom pour le moment."}
+            </p>
           ) : (
             <div className="pp-editor-list-scroll">
               {levels.map((lvl) => (
@@ -730,9 +871,13 @@ export default function PixelProtocolEditor() {
                 >
                   <div className="pp-editor-level-head">
                     <span>{lvl.name}</span>
-                    <span className={lvl.active ? "tag tag-live" : "tag tag-draft"}>
-                      {lvl.active ? "Publie" : "Brouillon"}
-                    </span>
+                    {isAdmin ? (
+                      <span className={lvl.active ? "tag tag-live" : "tag tag-draft"}>
+                        {lvl.active ? "Publie" : "Brouillon"}
+                      </span>
+                    ) : (
+                      <span className="tag tag-draft">Prive</span>
+                    )}
                   </div>
                   <div className="pp-editor-level-meta">
                     <span>ID: {lvl.id}</span>
@@ -760,14 +905,18 @@ export default function PixelProtocolEditor() {
                 Les plateformes invalides sont signalees et les liens atteignables sont traces.
               </p>
             </div>
-            <label className="pp-editor-toggle">
-              <input
-                type="checkbox"
-                checked={published}
-                onChange={(event) => setPublished(event.target.checked)}
-              />
-              Publie
-            </label>
+            {isAdmin ? (
+              <label className="pp-editor-toggle">
+                <input
+                  type="checkbox"
+                  checked={published}
+                  onChange={(event) => setPublished(event.target.checked)}
+                />
+                Publie
+              </label>
+            ) : (
+              <div className="pp-editor-muted">Visibilite: privee</div>
+            )}
           </div>
 
           <div className="pp-editor-form-grid">
@@ -862,7 +1011,7 @@ export default function PixelProtocolEditor() {
                   <button type="button" onClick={handleAddCheckpoint}>Ajouter checkpoint</button>
                   <button type="button" onClick={handleAddOrb}>Ajouter orb</button>
                   <button type="button" onClick={handleAddEnemy}>Ajouter ennemi</button>
-                  <button type="button" onClick={handleDeleteSelection} disabled={!selection}>
+                  <button type="button" onClick={handleDeleteSelection} disabled={!canDeleteSelection}>
                     Supprimer selection
                   </button>
                 </div>
@@ -907,24 +1056,34 @@ export default function PixelProtocolEditor() {
                     style={{ top: (WORLD_ROWS - 1) * EDITOR_TILE, height: EDITOR_TILE }}
                   />
 
-                  <div
-                    className="pp-editor-spawn"
+                  <button
+                    type="button"
+                    className={`pp-editor-spawn ${
+                      selectedSpawn ? "is-selected" : ""
+                    } ${dragState?.kind === "spawn" ? "is-dragging" : ""}`}
                     style={{
                       left: (displayedLevel.spawn.x / TILE) * EDITOR_TILE,
                       top: (displayedLevel.spawn.y / TILE) * EDITOR_TILE,
                     }}
+                    onPointerDown={startSpawnDrag}
+                    onClick={() => setSelection({ kind: "spawn" })}
                   >
                     Spawn
-                  </div>
-                  <div
-                    className="pp-editor-portal"
+                  </button>
+                  <button
+                    type="button"
+                    className={`pp-editor-portal ${
+                      selectedPortal ? "is-selected" : ""
+                    } ${dragState?.kind === "portal" ? "is-dragging" : ""}`}
                     style={{
                       left: (displayedLevel.portal.x / TILE) * EDITOR_TILE,
                       top: (displayedLevel.portal.y / TILE) * EDITOR_TILE,
                     }}
+                    onPointerDown={startPortalDrag}
+                    onClick={() => setSelection({ kind: "portal" })}
                   >
                     Exit
-                  </div>
+                  </button>
 
                   {renderPlatforms.map(({ platform, blocks, bounds }) => (
                     <button
@@ -1132,6 +1291,24 @@ export default function PixelProtocolEditor() {
                         </label>
                       </div>
                     )}
+                  </>
+                )}
+
+                {selectedSpawn && (
+                  <>
+                    <div className="pp-editor-code">spawn</div>
+                    <p className="pp-editor-muted">
+                      Point de depart du joueur. Deplace-le sur la grille ou via les champs globaux.
+                    </p>
+                  </>
+                )}
+
+                {selectedPortal && (
+                  <>
+                    <div className="pp-editor-code">portal</div>
+                    <p className="pp-editor-muted">
+                      Portail de fin de niveau. Deplace-le sur la grille ou via les champs globaux.
+                    </p>
                   </>
                 )}
 
@@ -1379,9 +1556,19 @@ export default function PixelProtocolEditor() {
           </div>
 
           <div className="pp-editor-actions">
-            <button type="button" onClick={() => save(false)}>Sauver brouillon</button>
-            <button type="button" onClick={() => save(true)}>Publier</button>
+            <button type="button" onClick={() => save(false)}>
+              {isAdmin ? "Sauver brouillon" : "Sauvegarder"}
+            </button>
+            {isAdmin && <button type="button" onClick={() => save(true)}>Publier</button>}
             <button type="button" onClick={openPreview}>Tester le niveau</button>
+            {!isAdmin && selectedId && (
+              <button
+                type="button"
+                onClick={() => navigate(`/pixel-protocol/play?custom=${encodeURIComponent(selectedId)}`)}
+              >
+                Jouer ce niveau
+              </button>
+            )}
           </div>
 
           {previewLevel && (
