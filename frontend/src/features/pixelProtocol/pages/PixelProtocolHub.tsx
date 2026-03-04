@@ -133,6 +133,12 @@ export default function PixelProtocolHub() {
               >
                 {user?.role === "ADMIN" ? "Ouvrir editeur admin" : "Ouvrir editeur custom"}
               </button>
+              <button
+                className="pp-hub-btn"
+                onClick={() => navigate("/pixel-protocol/help/editor")}
+              >
+                Aide editeur
+              </button>
             </div>
 
             <div className="pp-hub-divider pp-hub-stack">

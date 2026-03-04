@@ -30,6 +30,7 @@ import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
 import PixelProtocolHub from "./features/pixelProtocol/pages/PixelProtocolHub";
 import PixelProtocolPage from "./features/pixelProtocol/pages/PixelProtocolPage";
 import PixelProtocolEditor from "./features/pixelProtocol/pages/PixelProtocolEditor";
+import PixelProtocolEditorHelp from "./features/pixelProtocol/pages/PixelProtocolEditorHelp";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
 
@@ -88,6 +89,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/pixel-protocol/help/editor" element={<PixelProtocolEditorHelp />} />
       <Route path="/tetrobots" element={<TetrobotsPage />} />
       <Route path="/achievements" element={<AchievementsPage />} />
       <Route path="/settings" element={<Settings />} />

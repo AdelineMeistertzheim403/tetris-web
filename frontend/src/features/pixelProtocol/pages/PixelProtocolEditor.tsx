@@ -847,6 +847,13 @@ export default function PixelProtocolEditor() {
           <button type="button" className="retro-btn" onClick={refreshLevels}>
             Actualiser
           </button>
+          <button
+            type="button"
+            className="retro-btn"
+            onClick={() => navigate("/pixel-protocol/help/editor")}
+          >
+            Aide
+          </button>
           <button type="button" className="retro-btn" onClick={() => navigate("/pixel-protocol")}>
             Retour
           </button>
