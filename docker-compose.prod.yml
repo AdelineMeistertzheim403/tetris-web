@@ -1,16 +1,28 @@
 services:
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "https://tetroworld.fr/api"
+        VITE_API_URL: "https://api.tetroworld.fr"
     container_name: tetris-frontend
     restart: always
-    ports:
-      - "5173:5173"
     depends_on:
       - backend
+
+    networks:
+      - web
+
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.tetris.rule=Host(`tetroworld.fr`) || Host(`www.tetroworld.fr`)"
+      - "traefik.http.routers.tetris.entrypoints=websecure"
+      - "traefik.http.routers.tetris.tls.certresolver=letsencrypt"
+
+      - "traefik.http.services.tetris.loadbalancer.server.port=5173"
+
 
   backend:
     build:
@@ -18,8 +30,7 @@ services:
       dockerfile: backend/Dockerfile.prod
     container_name: tetris-backend
     restart: always
-    ports:
-      - "${BACKEND_PORT}:${BACKEND_INTERNAL_PORT}"
+
     env_file:
       - ./backend/.env
       - ./.env
@@ -28,27 +39,53 @@ services:
     depends_on:
       - db
 
+    networks:
+      - web
+
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.tetris-api.rule=Host(`api.tetroworld.fr`)"
+      - "traefik.http.routers.tetris-api.entrypoints=websecure"
+      - "traefik.http.routers.tetris-api.tls.certresolver=letsencrypt"
+
+      - "traefik.http.services.tetris-api.loadbalancer.server.port=8080"
+
+
   db:
     image: postgres:16
     container_name: tetris-db
     restart: always
+
     environment:
       POSTGRES_USER: tetris_user
       POSTGRES_PASSWORD: tetris_pass
       POSTGRES_DB: tetris_db
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - internal
+
 
   adminer:
     image: adminer:4
     container_name: tetris-adminer
     restart: always
-    ports:
-      - "127.0.0.1:${ADMINER_PORT:-18081}:8080" # exposition locale uniquement, à atteindre via tunnel SSH
+
     environment:
       ADMINER_DEFAULT_SERVER: db
-    depends_on:
-      - db
+
+    networks:
+      - internal
+
 
 volumes:
   postgres_data:
+
+networks:
+  web:
+    external: true
+
+  internal:
