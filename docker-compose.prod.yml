@@ -33,13 +33,9 @@ services:
 
     env_file:
       - ./backend/.env
-<<<<<<< Updated upstream
       - ./.env
     command: >
       sh -c "until npx prisma migrate deploy; do echo 'waiting for db'; sleep 2; done; npx prisma db seed; npm run start"
-=======
-
->>>>>>> Stashed changes
     depends_on:
       - db
 
