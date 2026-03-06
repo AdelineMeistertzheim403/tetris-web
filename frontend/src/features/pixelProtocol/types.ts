@@ -89,6 +89,7 @@ export type RuntimePlatform = PlatformDef & {
 };
 
 export type GameRuntime = {
+  startedAt: number;
   player: Player;
   platforms: RuntimePlatform[];
   checkpoints: Checkpoint[];
