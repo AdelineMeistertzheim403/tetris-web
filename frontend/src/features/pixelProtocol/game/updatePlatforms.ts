@@ -1,6 +1,10 @@
 import type { GameRuntime } from "../types";
 
 export function updatePlatforms(game: GameRuntime, now: number) {
+  game.platforms = game.platforms.filter(
+    (platform) => platform.expiresAt === null || platform.expiresAt > now
+  );
+
   for (const platform of game.platforms) {
     if (platform.type === "unstable" && !platform.active && now >= platform.unstableWakeAt) {
       platform.active = true;

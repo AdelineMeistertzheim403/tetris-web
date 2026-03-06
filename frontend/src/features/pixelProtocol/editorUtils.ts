@@ -71,6 +71,8 @@ function runtimePlatform(platform: PlatformDef): RuntimePlatform {
     nextRotateAt: Number.POSITIVE_INFINITY,
     unstableDropAt: 0,
     unstableWakeAt: 0,
+    expiresAt: null,
+    temporary: false,
   };
 }
 
@@ -192,7 +194,7 @@ function canReachPlatform(
       game.player.vx = 0;
       game.player.vy = 0;
       game.player.grounded = start.grounded;
-      game.player.jumpsLeft = ability.doubleJump ? 1 : 0;
+      game.player.jumpsLeft = ability.extraAirJumps;
 
       let dashUsed = false;
       let doubleJumpUsed = false;
@@ -226,6 +228,12 @@ function canReachPlatform(
             wantDash: wantsDash,
             wantHack: false,
             wantJump: wantsJump,
+            wantPhaseShift: false,
+            wantPulseShock: false,
+            wantOverclock: false,
+            wantTimeBuffer: false,
+            wantPlatformSpawn: false,
+            wantGrapple: false,
             wantRespawn: false,
           },
           level,

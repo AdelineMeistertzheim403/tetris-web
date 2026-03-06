@@ -34,6 +34,12 @@ export function usePixelProtocolControls() {
         justPressedRef.current.has("ShiftLeft") ||
         justPressedRef.current.has("ShiftRight"),
       wantHack: justPressedRef.current.has("KeyE"),
+      wantGrapple: justPressedRef.current.has("KeyG"),
+      wantPhaseShift: justPressedRef.current.has("KeyF"),
+      wantPulseShock: justPressedRef.current.has("KeyQ"),
+      wantOverclock: justPressedRef.current.has("KeyC"),
+      wantTimeBuffer: justPressedRef.current.has("KeyX"),
+      wantPlatformSpawn: justPressedRef.current.has("KeyV"),
       wantRespawn: justPressedRef.current.has("KeyR"),
     }),
     []

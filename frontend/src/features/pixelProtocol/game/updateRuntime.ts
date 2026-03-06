@@ -7,7 +7,12 @@ import type {
 } from "../types";
 import { updateEnemies } from "./updateEnemies";
 import { collectCheckpoints, collectOrbs, handlePortal } from "./updateObjectives";
-import { applyHackPulse, handleFloorAndRespawn, updatePlayer } from "./updatePlayer";
+import {
+  applyHackPulse,
+  applyUnlockedSkills,
+  handleFloorAndRespawn,
+  updatePlayer,
+} from "./updatePlayer";
 import { updatePlatforms } from "./updatePlatforms";
 
 type UpdateRuntimeParams = {
@@ -33,11 +38,25 @@ export function updateRuntime({
   viewportHeight,
   viewportWidth,
 }: UpdateRuntimeParams) {
+  game.history.push({
+    at: now,
+    x: game.player.x,
+    y: game.player.y,
+    vx: game.player.vx,
+    vy: game.player.vy,
+    facing: game.player.facing,
+    grounded: game.player.grounded,
+    jumpsLeft: game.player.jumpsLeft,
+    hp: game.player.hp,
+  });
+  game.history = game.history.filter((entry) => now - entry.at <= 2600);
+
   // Une frame s'execute toujours dans le meme ordre pour garder une physique et des interactions deterministes.
   updatePlatforms(game, now);
 
   const blocks = allCollisionBlocks(game.platforms, level.worldWidth);
 
+  applyUnlockedSkills({ ability, game, input, now });
   applyHackPulse({ ability, game, input, now });
   updatePlayer({
     ability,
