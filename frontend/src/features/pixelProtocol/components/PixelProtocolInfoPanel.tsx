@@ -1,4 +1,5 @@
 import type { LevelDef } from "../types";
+import type { PixelProtocolChatLine } from "../dialogue";
 
 type PixelProtocolInfoPanelProps = {
   ability: {
@@ -6,6 +7,7 @@ type PixelProtocolInfoPanelProps = {
     doubleJump: boolean;
     hackWave: boolean;
   };
+  chatLine: PixelProtocolChatLine | null;
   level: LevelDef;
   message: string;
   collected: number;
@@ -14,6 +16,7 @@ type PixelProtocolInfoPanelProps = {
 
 export function PixelProtocolInfoPanel({
   ability,
+  chatLine,
   level,
   message,
   collected,
@@ -52,6 +55,16 @@ export function PixelProtocolInfoPanel({
         <p className="pp-panelTitle">Mission</p>
         <p>{message}</p>
       </div>
+
+      {chatLine && (
+        <div className="pp-botCard">
+          <p className="pp-panelTitle">Signal Tetrobots</p>
+          <p className="pp-botCard__speaker" style={{ color: chatLine.color }}>
+            {chatLine.name}
+          </p>
+          <p className="pp-botCard__text">{chatLine.text}</p>
+        </div>
+      )}
     </aside>
   );
 }
