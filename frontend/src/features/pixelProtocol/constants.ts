@@ -49,6 +49,7 @@ export const PLATFORM_CLASS: Record<PlatformType, string> = {
   rotating: "pp-platform--rotating",
   glitch: "pp-platform--glitch",
   bounce: "pp-platform--bounce",
+  grapplable: "pp-platform--grapplable",
   armored: "pp-platform--armored",
   hackable: "pp-platform--hackable",
 };

@@ -10,8 +10,10 @@ import { abilityFlags } from "../logic";
 import type {
   Checkpoint,
   DataOrb,
+  DataOrbAffinity,
   Enemy,
   LevelDef,
+  PixelSkill,
   PlatformDef,
   PlatformType,
   Tetromino,
@@ -44,10 +46,21 @@ const PLATFORM_TYPES: PlatformType[] = [
   "unstable",
   "rotating",
   "glitch",
+  "grapplable",
   "armored",
   "hackable",
 ];
 const DEFAULT_ROTATE_EVERY_MS = 1800;
+const ORB_AFFINITIES: DataOrbAffinity[] = ["standard", "blue", "red", "green", "purple"];
+const PIXEL_SKILLS: PixelSkill[] = [
+  "DATA_GRAPPLE",
+  "OVERJUMP",
+  "PHASE_SHIFT",
+  "PULSE_SHOCK",
+  "OVERCLOCK_MODE",
+  "TIME_BUFFER",
+  "PLATFORM_SPAWN",
+];
 
 const TEMPLATE_BASE: LevelDef = {
   id: "w1-1",
@@ -224,6 +237,8 @@ function orbFromTile(id: string, tileX: number, tileY: number): DataOrb {
     id,
     x: tileX * TILE + 7,
     y: tileY * TILE - 20,
+    affinity: "standard",
+    grantsSkill: null,
   };
 }
 
@@ -342,6 +357,7 @@ function PixelProtocolDraftPreview({
           message={runtime.message}
           collected={runtime.collected}
           hp={runtime.player.hp}
+          unlockedSkills={[]}
         />
         <PixelProtocolWorld
           gameViewportRef={gameViewportRef}
@@ -352,6 +368,7 @@ function PixelProtocolDraftPreview({
           runtime={runtime}
         />
         <PixelProtocolControlsPanel
+          ability={ability}
           onReset={resetLevel}
           onExit={onClose}
           statusMessage="Test local du draft courant."
@@ -379,6 +396,7 @@ export default function PixelProtocolEditor() {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [previewLevel, setPreviewLevel] = useState<LevelDef | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
+  const [editorExpanded, setEditorExpanded] = useState(true);
   const isAdmin = user?.role === "ADMIN";
 
   draftLevelRef.current = draftLevel;
@@ -843,27 +861,79 @@ export default function PixelProtocolEditor() {
           </p>
         </div>
         <div className="pp-editor-head-actions">
-          <button type="button" className="retro-btn" onClick={startNewLevel}>
-            Nouveau niveau
-          </button>
-          <button type="button" className="retro-btn" onClick={refreshLevels}>
-            Actualiser
+          <button
+            type="button"
+            className="pp-editor-icon-btn"
+            title="Nouveau niveau"
+            aria-label="Nouveau niveau"
+            onClick={startNewLevel}
+          >
+            <i className="fa-solid fa-file-circle-plus" />
           </button>
           <button
             type="button"
-            className="retro-btn"
+            className="pp-editor-icon-btn"
+            title="Actualiser"
+            aria-label="Actualiser"
+            onClick={refreshLevels}
+          >
+            <i className="fa-solid fa-rotate-right" />
+          </button>
+          <button
+            type="button"
+            className="pp-editor-icon-btn"
+            title="Aide"
+            aria-label="Aide"
             onClick={() => navigate("/pixel-protocol/help/editor")}
           >
-            Aide
+            <i className="fa-solid fa-circle-question" />
           </button>
-          <button type="button" className="retro-btn" onClick={() => navigate("/pixel-protocol")}>
-            Retour
+          <button
+            type="button"
+            className="pp-editor-icon-btn"
+            title="Retour"
+            aria-label="Retour"
+            onClick={() => navigate("/pixel-protocol")}
+          >
+            <i className="fa-solid fa-arrow-left" />
           </button>
         </div>
       </div>
 
       <div className="pp-editor-layout">
         <aside className="pp-editor-panel pp-editor-list">
+          {!isAdmin && (
+            <div className="pp-editor-list-actions" aria-label="Actions niveau custom">
+              <button
+                type="button"
+                className="pp-editor-icon-btn"
+                title="Sauvegarder"
+                aria-label="Sauvegarder"
+                onClick={() => save(false)}
+              >
+                <i className="fa-solid fa-floppy-disk" />
+              </button>
+              <button
+                type="button"
+                className="pp-editor-icon-btn"
+                title="Tester le niveau"
+                aria-label="Tester le niveau"
+                onClick={openPreview}
+              >
+                <i className="fa-solid fa-vial-circle-check" />
+              </button>
+              <button
+                type="button"
+                className="pp-editor-icon-btn"
+                title="Jouer ce niveau"
+                aria-label="Jouer ce niveau"
+                onClick={() => navigate(`/pixel-protocol/play?custom=${encodeURIComponent(selectedId ?? draftLevel.id)}`)}
+                disabled={!selectedId}
+              >
+                <i className="fa-solid fa-play" />
+              </button>
+            </div>
+          )}
           <h2>{isAdmin ? "Niveaux disponibles" : "Tes niveaux custom"}</h2>
           {loading ? (
             <p className="pp-editor-muted">Chargement...</p>
@@ -893,11 +963,23 @@ export default function PixelProtocolEditor() {
                     <span>Monde {lvl.world}</span>
                   </div>
                   <div className="pp-editor-level-actions">
-                    <button type="button" onClick={() => selectLevel(lvl)}>
-                      Charger
+                    <button
+                      type="button"
+                      className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                      title="Charger"
+                      aria-label="Charger"
+                      onClick={() => selectLevel(lvl)}
+                    >
+                      <i className="fa-solid fa-folder-open" aria-hidden="true" />
                     </button>
-                    <button type="button" className="danger" onClick={() => removeLevel(lvl.id)}>
-                      Supprimer
+                    <button
+                      type="button"
+                      className="pp-editor-icon-btn pp-editor-icon-btn--danger"
+                      title="Supprimer"
+                      aria-label="Supprimer"
+                      onClick={() => removeLevel(lvl.id)}
+                    >
+                      <i className="fa-solid fa-trash" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -914,21 +996,36 @@ export default function PixelProtocolEditor() {
                 Les plateformes invalides sont signalees et les liens atteignables sont traces.
               </p>
             </div>
-            {isAdmin ? (
-              <label className="pp-editor-toggle">
-                <input
-                  type="checkbox"
-                  checked={published}
-                  onChange={(event) => setPublished(event.target.checked)}
+            <div className="pp-editor-main-actions">
+              <button
+                type="button"
+                className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                title={editorExpanded ? "Reduire l'edition" : "Agrandir l'edition"}
+                aria-label={editorExpanded ? "Reduire l'edition" : "Agrandir l'edition"}
+                onClick={() => setEditorExpanded((current) => !current)}
+              >
+                <i
+                  className={`fa-solid ${editorExpanded ? "fa-compress" : "fa-expand"}`}
+                  aria-hidden="true"
                 />
-                Publie
-              </label>
-            ) : (
-              <div className="pp-editor-muted">Visibilite: privee</div>
-            )}
+              </button>
+              {isAdmin ? (
+                <label className="pp-editor-toggle">
+                  <input
+                    type="checkbox"
+                    checked={published}
+                    onChange={(event) => setPublished(event.target.checked)}
+                  />
+                  Publie
+                </label>
+              ) : (
+                <div className="pp-editor-muted">Visibilite: privee</div>
+              )}
+            </div>
           </div>
 
-          <div className="pp-editor-form-grid">
+          {editorExpanded && (
+            <div className="pp-editor-form-grid">
             <label>
               <span>ID</span>
               <input value={draftLevel.id} onChange={(event) => setLevelField("id", event.target.value)} />
@@ -1011,17 +1108,57 @@ export default function PixelProtocolEditor() {
               />
             </label>
           </div>
+          )}
 
           <div className="pp-editor-workbench">
             <div className="pp-editor-canvas-card">
               <div className="pp-editor-toolbar">
                 <div className="pp-editor-toolbar-group">
-                  <button type="button" onClick={handleAddPlatform}>Ajouter plateforme</button>
-                  <button type="button" onClick={handleAddCheckpoint}>Ajouter checkpoint</button>
-                  <button type="button" onClick={handleAddOrb}>Ajouter orb</button>
-                  <button type="button" onClick={handleAddEnemy}>Ajouter ennemi</button>
-                  <button type="button" onClick={handleDeleteSelection} disabled={!canDeleteSelection}>
-                    Supprimer selection
+                  <button
+                    type="button"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--build"
+                    title="Ajouter plateforme"
+                    aria-label="Ajouter plateforme"
+                    onClick={handleAddPlatform}
+                  >
+                    <i className="fa-solid fa-cubes" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                    title="Ajouter checkpoint"
+                    aria-label="Ajouter checkpoint"
+                    onClick={handleAddCheckpoint}
+                  >
+                    <i className="fa-solid fa-flag" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--build"
+                    title="Ajouter orb"
+                    aria-label="Ajouter orb"
+                    onClick={handleAddOrb}
+                  >
+                    <i className="fa-solid fa-circle-nodes" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--combat"
+                    title="Ajouter ennemi"
+                    aria-label="Ajouter ennemi"
+                    onClick={handleAddEnemy}
+                  >
+                    <i className="fa-solid fa-robot" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--danger"
+                    title="Supprimer selection"
+                    aria-label="Supprimer selection"
+                    onClick={handleDeleteSelection}
+                    disabled={!canDeleteSelection}
+                  >
+                    <i className="fa-solid fa-trash-can" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="pp-editor-toolbar-hint">
@@ -1099,6 +1236,8 @@ export default function PixelProtocolEditor() {
                       key={platform.id}
                       type="button"
                       className={`pp-editor-platform-layer ${
+                        platform.type === "grapplable" ? "pp-editor-platform-layer--grapplable" : ""
+                      } ${
                         selection?.kind === "platform" && selection.id === platform.id ? "is-selected" : ""
                       } ${dragState?.kind === "platform" && dragState.id === platform.id ? "is-dragging" : ""}`}
                       onPointerDown={(event) => startPlatformDrag(event, platform)}
@@ -1118,6 +1257,8 @@ export default function PixelProtocolEditor() {
                         <span
                           key={`${platform.id}-${index}`}
                           className={`pp-platform ${PLATFORM_CLASS[platform.type]} pp-editor-platform-block ${
+                            platform.type === "grapplable" ? "pp-editor-platform-block--grapplable" : ""
+                          } ${
                             validation.reachablePlatformIds.includes(platform.id) ? "is-reachable" : "is-unreachable"
                           }`}
                           style={{
@@ -1128,6 +1269,9 @@ export default function PixelProtocolEditor() {
                           }}
                         />
                       ))}
+                      {platform.type === "grapplable" && (
+                        <span className="pp-editor-grappleAnchor" aria-hidden="true" />
+                      )}
                       <span className="pp-editor-platform-badge">{platform.id}</span>
                     </button>
                   ))}
@@ -1200,6 +1344,114 @@ export default function PixelProtocolEditor() {
                   <div>Liens: {validation.links.length}</div>
                 </div>
               </div>
+              <div className="pp-editor-panel pp-editor-subpanel">
+                <h2>Validation</h2>
+                {validation.isValid ? (
+                  <div className="pp-editor-status success">
+                    Layout valide: toutes les plateformes sont atteignables.
+                  </div>
+                ) : (
+                  <div className="pp-editor-issues">
+                    {validation.issues.map((issue, index) => (
+                      <button
+                        key={`${issue.platformId ?? "global"}-${index}`}
+                        type="button"
+                        className="pp-editor-issue"
+                        onClick={() => {
+                          if (issue.platformId) setSelection({ kind: "platform", id: issue.platformId });
+                        }}
+                      >
+                        {issue.message}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="pp-editor-panel pp-editor-subpanel">
+                <h2>Elements du niveau</h2>
+                <div className="pp-editor-platform-list">
+                  {draftLevel.platforms.map((platform) => (
+                    <button
+                      key={platform.id}
+                      type="button"
+                      className={`pp-editor-platform-row ${
+                        selection?.kind === "platform" && selection.id === platform.id ? "is-active" : ""
+                      }`}
+                      onClick={() => setSelection({ kind: "platform", id: platform.id })}
+                    >
+                      <span>{platform.id}</span>
+                      <span className="pp-editor-inline-tags">
+                        <span className="pp-editor-mini-tag pp-editor-mini-tag--shape">{platform.tetromino}</span>
+                        <span className={`pp-editor-mini-tag pp-editor-mini-tag--${platform.type}`}>
+                          {platform.type}
+                        </span>
+                      </span>
+                      <span>({platform.x}, {platform.y})</span>
+                    </button>
+                  ))}
+                  {draftLevel.checkpoints.map((checkpoint) => (
+                    <button
+                      key={checkpoint.id}
+                      type="button"
+                      className={`pp-editor-platform-row ${
+                        selection?.kind === "checkpoint" && selection.id === checkpoint.id ? "is-active" : ""
+                      }`}
+                      onClick={() => setSelection({ kind: "checkpoint", id: checkpoint.id })}
+                    >
+                      <span>{checkpoint.id}</span>
+                      <span className="pp-editor-inline-tags">
+                        <span className="pp-editor-mini-tag pp-editor-mini-tag--checkpoint">checkpoint</span>
+                      </span>
+                      <span>({checkpoint.x}, {checkpoint.y})</span>
+                    </button>
+                  ))}
+                  {draftLevel.orbs.map((orb) => (
+                    <button
+                      key={orb.id}
+                      type="button"
+                      className={`pp-editor-platform-row ${
+                        selection?.kind === "orb" && selection.id === orb.id ? "is-active" : ""
+                      }`}
+                      onClick={() => setSelection({ kind: "orb", id: orb.id })}
+                    >
+                      <span>{orb.id}</span>
+                      <span className="pp-editor-inline-tags">
+                        <span className="pp-editor-mini-tag pp-editor-mini-tag--orb">orb</span>
+                        {orb.affinity && orb.affinity !== "standard" && (
+                          <span className={`pp-editor-mini-tag pp-editor-mini-tag--affinity-${orb.affinity}`}>
+                            {orb.affinity}
+                          </span>
+                        )}
+                        {orb.grantsSkill && (
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--skill">
+                            {orb.grantsSkill}
+                          </span>
+                        )}
+                      </span>
+                      <span>({orb.x}, {orb.y})</span>
+                    </button>
+                  ))}
+                  {draftLevel.enemies.map((enemy) => (
+                    <button
+                      key={enemy.id}
+                      type="button"
+                      className={`pp-editor-platform-row ${
+                        selection?.kind === "enemy" && selection.id === enemy.id ? "is-active" : ""
+                      }`}
+                      onClick={() => setSelection({ kind: "enemy", id: enemy.id })}
+                    >
+                      <span>{enemy.id}</span>
+                      <span className="pp-editor-inline-tags">
+                        <span className={`pp-editor-mini-tag pp-editor-mini-tag--enemy-${enemy.kind}`}>
+                          {enemy.kind}
+                        </span>
+                      </span>
+                      <span>({enemy.x}, {enemy.y})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <aside className="pp-editor-inspector">
@@ -1208,7 +1460,7 @@ export default function PixelProtocolEditor() {
                 {selectedPlatform && (
                   <>
                     <div className="pp-editor-code">{selectedPlatform.id}</div>
-                    <div className="pp-editor-chip-grid">
+                    <div className="pp-editor-chip-grid pp-editor-chip-grid--tetrominos">
                       {TETROMINOS.map((tetromino) => (
                         <button
                           key={tetromino}
@@ -1220,12 +1472,14 @@ export default function PixelProtocolEditor() {
                         </button>
                       ))}
                     </div>
-                    <div className="pp-editor-chip-grid">
+                    <div className="pp-editor-chip-grid pp-editor-chip-grid--platform-types">
                       {PLATFORM_TYPES.map((type) => (
                         <button
                           key={type}
                           type="button"
-                          className={selectedPlatform.type === type ? "is-active" : ""}
+                          className={`pp-editor-chip-grid__button ${
+                            selectedPlatform.type === type ? "is-active" : ""
+                          }`}
                           onClick={() =>
                             handleSelectedPlatformChange((platform) => ({
                               ...platform,
@@ -1408,6 +1662,47 @@ export default function PixelProtocolEditor() {
                         />
                       </label>
                     </div>
+                    <div className="pp-editor-inline-fields">
+                      <label>
+                        <span>Affinite</span>
+                        <select
+                          value={selectedOrb.affinity ?? "standard"}
+                          onChange={(event) =>
+                            handleSelectedOrbChange((orb) => ({
+                              ...orb,
+                              affinity: event.target.value as DataOrbAffinity,
+                              grantsSkill:
+                                event.target.value === "standard" ? null : orb.grantsSkill ?? "OVERJUMP",
+                            }))
+                          }
+                        >
+                          {ORB_AFFINITIES.map((affinity) => (
+                            <option key={affinity} value={affinity}>
+                              {affinity}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Skill</span>
+                        <select
+                          value={selectedOrb.grantsSkill ?? ""}
+                          onChange={(event) =>
+                            handleSelectedOrbChange((orb) => ({
+                              ...orb,
+                              grantsSkill: event.target.value ? (event.target.value as PixelSkill) : null,
+                            }))
+                          }
+                        >
+                          <option value="">aucune</option>
+                          {PIXEL_SKILLS.map((skill) => (
+                            <option key={skill} value={skill}>
+                              {skill}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
                   </>
                 )}
 
@@ -1475,107 +1770,30 @@ export default function PixelProtocolEditor() {
 
                 {!selection && <p className="pp-editor-muted">Selectionne un element sur la grille.</p>}
               </div>
-
-              <div className="pp-editor-panel pp-editor-subpanel">
-                <h2>Elements du niveau</h2>
-                <div className="pp-editor-platform-list">
-                  {draftLevel.platforms.map((platform) => (
-                    <button
-                      key={platform.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "platform" && selection.id === platform.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "platform", id: platform.id })}
-                    >
-                      <span>{platform.id}</span>
-                      <span>{platform.tetromino} / {platform.type}</span>
-                      <span>({platform.x}, {platform.y})</span>
-                    </button>
-                  ))}
-                  {draftLevel.checkpoints.map((checkpoint) => (
-                    <button
-                      key={checkpoint.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "checkpoint" && selection.id === checkpoint.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "checkpoint", id: checkpoint.id })}
-                    >
-                      <span>{checkpoint.id}</span>
-                      <span>checkpoint</span>
-                      <span>({checkpoint.x}, {checkpoint.y})</span>
-                    </button>
-                  ))}
-                  {draftLevel.orbs.map((orb) => (
-                    <button
-                      key={orb.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "orb" && selection.id === orb.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "orb", id: orb.id })}
-                    >
-                      <span>{orb.id}</span>
-                      <span>orb</span>
-                      <span>({orb.x}, {orb.y})</span>
-                    </button>
-                  ))}
-                  {draftLevel.enemies.map((enemy) => (
-                    <button
-                      key={enemy.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "enemy" && selection.id === enemy.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "enemy", id: enemy.id })}
-                    >
-                      <span>{enemy.id}</span>
-                      <span>{enemy.kind}</span>
-                      <span>({enemy.x}, {enemy.y})</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pp-editor-panel pp-editor-subpanel">
-                <h2>Validation</h2>
-                {validation.isValid ? (
-                  <div className="pp-editor-status success">
-                    Layout valide: toutes les plateformes sont atteignables.
-                  </div>
-                ) : (
-                  <div className="pp-editor-issues">
-                    {validation.issues.map((issue, index) => (
-                      <button
-                        key={`${issue.platformId ?? "global"}-${index}`}
-                        type="button"
-                        className="pp-editor-issue"
-                        onClick={() => {
-                          if (issue.platformId) setSelection({ kind: "platform", id: issue.platformId });
-                        }}
-                      >
-                        {issue.message}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             </aside>
           </div>
 
           <div className="pp-editor-actions">
-            <button type="button" onClick={() => save(false)}>
-              {isAdmin ? "Sauver brouillon" : "Sauvegarder"}
-            </button>
-            {isAdmin && <button type="button" onClick={() => save(true)}>Publier</button>}
-            <button type="button" onClick={openPreview}>Tester le niveau</button>
-            {!isAdmin && selectedId && (
+            {isAdmin && (
               <button
                 type="button"
-                onClick={() => navigate(`/pixel-protocol/play?custom=${encodeURIComponent(selectedId)}`)}
+                className="pp-editor-icon-btn pp-editor-icon-btn--save"
+                title="Sauver brouillon"
+                aria-label="Sauver brouillon"
+                onClick={() => save(false)}
               >
-                Jouer ce niveau
+                <i className="fa-solid fa-floppy-disk" aria-hidden="true" />
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                className="pp-editor-icon-btn pp-editor-icon-btn--publish"
+                title="Publier"
+                aria-label="Publier"
+                onClick={() => save(true)}
+              >
+                <i className="fa-solid fa-upload" aria-hidden="true" />
               </button>
             )}
           </div>

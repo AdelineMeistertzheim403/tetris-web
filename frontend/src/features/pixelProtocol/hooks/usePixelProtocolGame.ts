@@ -15,11 +15,15 @@ import { usePixelProtocolControls } from "./usePixelProtocolControls";
 import { usePixelProtocolViewport } from "./usePixelProtocolViewport";
 import { LEVELS as DEFAULT_LEVELS } from "../levels";
 import { abilityFlags, cloneLevel } from "../logic";
-import type { EnemyKind, GameRuntime, LevelDef } from "../types";
+import type { EnemyKind, GameRuntime, LevelDef, PixelSkill } from "../types";
 
 export function usePixelProtocolGame(
   levels: LevelDef[],
-  options?: { initialLevelIndex?: number }
+  options?: {
+    initialLevelIndex?: number;
+    initialUnlockedSkills?: PixelSkill[];
+    onUnlockSkills?: (skills: PixelSkill[]) => void;
+  }
 ) {
   const [, setRenderTick] = useState(0);
   const safeLevels = levels.length > 0 ? levels : DEFAULT_LEVELS;
@@ -38,9 +42,15 @@ export function usePixelProtocolGame(
   const { gameViewportRef, viewportHeight, viewportWidth } =
     usePixelProtocolViewport();
   const [chatLine, setChatLine] = useState<PixelProtocolChatLine | null>(null);
+  const [unlockedSkills, setUnlockedSkills] = useState<PixelSkill[]>(
+    () => options?.initialUnlockedSkills ?? []
+  );
 
   const level = safeLevels[levelIndex] ?? safeLevels[0];
-  const ability = useMemo(() => abilityFlags(level.world), [level.world]);
+  const ability = useMemo(
+    () => abilityFlags(level.world, unlockedSkills),
+    [level.world, unlockedSkills]
+  );
   const availableSpeakers = useMemo(
     () => Array.from(new Set(level.enemies.map((enemy) => enemy.kind))) as EnemyKind[],
     [level.enemies]
@@ -81,6 +91,10 @@ export function usePixelProtocolGame(
   }, [options?.initialLevelIndex, safeLevels.length]);
 
   useEffect(() => {
+    setUnlockedSkills(options?.initialUnlockedSkills ?? []);
+  }, [options?.initialUnlockedSkills]);
+
+  useEffect(() => {
     runtimeRef.current = cloneLevel(level);
     idleSinceRef.current = null;
     jumpChainRef.current = 0;
@@ -101,6 +115,9 @@ export function usePixelProtocolGame(
         const prevCollected = game.collected;
         const prevHp = game.player.hp;
         const prevGrounded = game.player.grounded;
+        const prevTakenOrbs = new Set(
+          game.orbs.filter((orb) => orb.taken).map((orb) => orb.id)
+        );
         const prevStuns = new Map(
           game.enemies.map((enemy) => [enemy.id, enemy.stunnedUntil] as const)
         );
@@ -136,6 +153,20 @@ export function usePixelProtocolGame(
           if (prevCollected < manyOrbThreshold && game.collected >= manyOrbThreshold) {
             pushDialogue("player_collect_many_orbs", getNearestSpeaker(game));
           }
+        }
+
+        const newlyUnlocked = game.orbs
+          .filter((orb) => orb.taken && !prevTakenOrbs.has(orb.id) && orb.grantsSkill)
+          .map((orb) => orb.grantsSkill as PixelSkill);
+
+        if (newlyUnlocked.length > 0) {
+          setUnlockedSkills((current) => {
+            const next = Array.from(new Set([...current, ...newlyUnlocked]));
+            options?.onUnlockSkills?.(next);
+            return next;
+          });
+          game.message = `Module debloque: ${newlyUnlocked[0].replaceAll("_", " ")}`;
+          pushDialogue("player_secret_found", getNearestSpeaker(game));
         }
 
         if (game.player.hp < prevHp) {
@@ -236,6 +267,7 @@ export function usePixelProtocolGame(
 
   return {
     ability,
+    unlockedSkills,
     gameViewportRef,
     level,
     levelIndex,

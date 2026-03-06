@@ -99,8 +99,22 @@
 .pp-platform--rotating { background: #9c7fff; }
 .pp-platform--glitch { background: #ff47c6; filter: hue-rotate(40deg); }
 .pp-platform--bounce { background: #6bff9e; }
+.pp-platform--grapplable {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #57f6ff 0 8px,
+      #9af8ff 8px 16px
+    );
+  box-shadow: 0 0 14px #57f6ff88;
+}
 .pp-platform--armored { background: #8a95a1; }
 .pp-platform--hackable { background: #ffd252; }
+.pp-platform--temporary {
+  background:
+    linear-gradient(180deg, #d9f4ff 0%, #74d7ff 100%);
+  box-shadow: 0 0 12px #74d7ff;
+}
 .pp-platform--off { opacity: 0.15; }
 
 .pp-orb {
@@ -139,6 +153,40 @@
 
 .pp-checkpoint--active::after {
   background: #82ffd0;
+}
+
+.pp-grappleCable {
+  position: absolute;
+  height: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, #effdff 0%, #7ceeff 38%, #32d0ff 100%);
+  box-shadow: 0 0 12px #59e2ffcc;
+  transform-origin: 0 50%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.pp-grappleAnchor {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #95f6ff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  box-shadow: 0 0 14px #69e4ffcc;
+  background: radial-gradient(circle, #effdff 0 28%, #47dfff 29% 58%, transparent 59%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.pp-grappleAnchor::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid #d9ffff;
+  border-radius: 50%;
+  opacity: 0.9;
 }
 
 .pp-portal {
@@ -261,6 +309,22 @@
 
 .pp-player--invuln {
   animation: pp-blink 0.2s steps(1) infinite;
+}
+
+.pp-player--phase {
+  opacity: 0.6;
+  filter:
+    hue-rotate(38deg)
+    saturate(1.4)
+    drop-shadow(0 0 10px #d67cffaa);
+}
+
+.pp-player--overclock {
+  filter:
+    saturate(1.4)
+    brightness(1.08)
+    drop-shadow(0 0 10px #7ce9ffcc)
+    drop-shadow(0 0 18px #52c7ff88);
 }
 
 .pp-infoCard {
