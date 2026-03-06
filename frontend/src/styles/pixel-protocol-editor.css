@@ -43,8 +43,8 @@
   gap: 10px;
 }
 
-.pp-editor-head-actions .retro-btn {
-  margin: 0;
+.pp-editor-head-actions .pp-editor-icon-btn {
+  min-width: 46px;
 }
 
 .pp-editor-layout {
@@ -85,6 +85,165 @@
   padding-right: 4px;
 }
 
+.pp-editor-list-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.pp-editor-icon-btn {
+  position: relative;
+  min-width: 46px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #2fdcff66;
+  background: rgba(5, 12, 24, 0.88);
+  color: #d8f6ff;
+  font-size: 16px;
+  box-shadow: inset 0 0 14px #0ca7ff12;
+}
+
+.pp-editor-icon-btn::after {
+  content: attr(aria-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 8px;
+  border: 1px solid #2fdcff66;
+  background: rgba(3, 7, 18, 0.96);
+  color: #d8f6ff;
+  font-size: 8px;
+  line-height: 1.3;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  box-shadow: 0 0 14px rgba(47, 220, 255, 0.18);
+  z-index: 20;
+}
+
+.pp-editor-icon-btn::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid #2fdcff66;
+  border-bottom: 1px solid #2fdcff66;
+  background: rgba(3, 7, 18, 0.96);
+  transform: translateX(-50%) rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  z-index: 19;
+}
+
+.pp-editor-icon-btn:hover:not(:disabled) {
+  border-color: #8affbf;
+  color: #8affbf;
+  box-shadow:
+    inset 0 0 14px #0ca7ff18,
+    0 0 12px rgba(98, 255, 168, 0.18);
+}
+
+.pp-editor-icon-btn:hover:not(:disabled)::after,
+.pp-editor-icon-btn:hover:not(:disabled)::before,
+.pp-editor-icon-btn:focus-visible::after,
+.pp-editor-icon-btn:focus-visible::before {
+  opacity: 1;
+}
+
+.pp-editor-icon-btn:hover:not(:disabled)::after,
+.pp-editor-icon-btn:focus-visible::after {
+  transform: translateX(-50%) translateY(0);
+}
+
+.pp-editor-icon-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.pp-editor-toolbar-group .pp-editor-icon-btn {
+  min-width: 76px;
+  min-height: 76px;
+  font-size: 32px;
+}
+
+.pp-editor-toolbar-group .pp-editor-icon-btn i {
+  font-size: 32px;
+}
+
+.pp-editor-icon-btn--save,
+.pp-editor-icon-btn--publish {
+  border-color: #58ddff88;
+  color: #7de8ff;
+}
+
+.pp-editor-icon-btn--save:hover:not(:disabled),
+.pp-editor-icon-btn--publish:hover:not(:disabled) {
+  border-color: #8affbf;
+  color: #8affbf;
+}
+
+.pp-editor-icon-btn--build {
+  border-color: #63f3a088;
+  color: #8effc0;
+}
+
+.pp-editor-icon-btn--build:hover:not(:disabled) {
+  border-color: #b1ffd0;
+  color: #caffdf;
+  box-shadow:
+    inset 0 0 14px rgba(99, 243, 160, 0.16),
+    0 0 12px rgba(99, 243, 160, 0.22);
+}
+
+.pp-editor-icon-btn--combat {
+  border-color: #ff786988;
+  color: #ffb2a6;
+}
+
+.pp-editor-icon-btn--combat:hover:not(:disabled) {
+  border-color: #ffc1b8;
+  color: #ffd8d2;
+  box-shadow:
+    inset 0 0 14px rgba(255, 120, 105, 0.14),
+    0 0 12px rgba(255, 120, 105, 0.22);
+}
+
+.pp-editor-icon-btn--danger {
+  border-color: #ff7a6688;
+  color: #ffb2a6;
+}
+
+.pp-editor-icon-btn--danger:hover:not(:disabled) {
+  border-color: #ffb8ad;
+  color: #ffe1db;
+  box-shadow:
+    inset 0 0 14px rgba(255, 122, 102, 0.14),
+    0 0 12px rgba(255, 122, 102, 0.22);
+}
+
+.pp-editor-icon-btn--info {
+  border-color: #9c7fff88;
+  color: #cdb8ff;
+}
+
+.pp-editor-icon-btn--info:hover:not(:disabled) {
+  border-color: #d7c8ff;
+  color: #eee7ff;
+  box-shadow:
+    inset 0 0 14px rgba(156, 127, 255, 0.14),
+    0 0 12px rgba(156, 127, 255, 0.2);
+}
+
 .pp-editor-level {
   border: 1px solid #2fdcff44;
   background: rgba(6, 12, 24, 0.7);
@@ -96,7 +255,20 @@
 
 .pp-editor-level.is-active {
   border-color: #8affbf;
-  box-shadow: 0 0 14px rgba(98, 255, 168, 0.3);
+  background:
+    linear-gradient(180deg, rgba(10, 26, 28, 0.9) 0%, rgba(8, 20, 24, 0.84) 100%);
+  box-shadow:
+    0 0 0 1px rgba(138, 255, 191, 0.28),
+    0 0 18px rgba(98, 255, 168, 0.28),
+    inset 0 0 18px rgba(98, 255, 168, 0.08);
+}
+
+.pp-editor-level.is-active .pp-editor-level-head span:first-child {
+  color: #bfffd8;
+}
+
+.pp-editor-level.is-active .pp-editor-level-meta {
+  color: #c9f7dc;
 }
 
 .pp-editor-level-head {
@@ -120,10 +292,50 @@
 }
 
 .pp-editor-level-actions button {
-  font-size: 9px;
-  padding: 6px 8px;
+  padding: 0;
   margin: 0;
 }
+
+.pp-editor-inline-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pp-editor-mini-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border: 1px solid #2fdcff55;
+  background: rgba(5, 12, 24, 0.9);
+  font-size: 8px;
+  line-height: 1.2;
+}
+
+.pp-editor-mini-tag--shape {
+  border-color: #7de8ff66;
+  color: #d8f6ff;
+}
+
+.pp-editor-mini-tag--stable { border-color: #40d6ff88; color: #9eecff; }
+.pp-editor-mini-tag--unstable { border-color: #ff7a6688; color: #ffc2b8; }
+.pp-editor-mini-tag--rotating { border-color: #9c7fff88; color: #d7c8ff; }
+.pp-editor-mini-tag--glitch { border-color: #ff47c688; color: #ffb8eb; }
+.pp-editor-mini-tag--bounce { border-color: #6bff9e88; color: #c5ffd8; }
+.pp-editor-mini-tag--grapplable { border-color: #57f6ff88; color: #c9fcff; }
+.pp-editor-mini-tag--armored { border-color: #8a95a188; color: #d5dde4; }
+.pp-editor-mini-tag--hackable { border-color: #ffd25288; color: #fff0b3; }
+.pp-editor-mini-tag--checkpoint { border-color: #7cffbf88; color: #cbffdf; }
+.pp-editor-mini-tag--orb { border-color: #52c7ff88; color: #cbefff; }
+.pp-editor-mini-tag--skill { border-color: #d66fff88; color: #efd1ff; }
+.pp-editor-mini-tag--affinity-blue { border-color: #52c7ff88; color: #cbefff; }
+.pp-editor-mini-tag--affinity-red { border-color: #ff786988; color: #ffd0c9; }
+.pp-editor-mini-tag--affinity-green { border-color: #63f3a088; color: #d0ffe0; }
+.pp-editor-mini-tag--affinity-purple { border-color: #d66fff88; color: #efd1ff; }
+.pp-editor-mini-tag--enemy-rookie { border-color: #6bff9e88; color: #d0ffe0; }
+.pp-editor-mini-tag--enemy-pulse { border-color: #52c7ff88; color: #cbefff; }
+.pp-editor-mini-tag--enemy-apex { border-color: #ff786988; color: #ffd0c9; }
 
 .pp-editor-level-actions .danger {
   border-color: #ff7a66;
@@ -144,6 +356,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.pp-editor-main-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .pp-editor-form-grid {
@@ -216,6 +434,39 @@
   font-family: "Press Start 2P", monospace;
   font-size: 9px;
   padding: 8px 10px;
+}
+
+.pp-editor-platform-layer--grapplable::after {
+  content: "GRAPPLE";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 2px 4px;
+  font-size: 7px;
+  line-height: 1;
+  color: #04131d;
+  background: #86f6ff;
+  box-shadow: 0 0 10px rgba(134, 246, 255, 0.45);
+}
+
+.pp-editor-platform-block--grapplable {
+  box-shadow:
+    inset 0 0 0 1px #d8ffff,
+    0 0 8px rgba(95, 239, 255, 0.55);
+}
+
+.pp-editor-grappleAnchor {
+  position: absolute;
+  top: -8px;
+  left: calc(50% - 8px);
+  width: 16px;
+  height: 16px;
+  border: 2px solid #9bf6ff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: radial-gradient(circle, #ffffff 0 25%, #55e6ff 26% 58%, transparent 59%);
+  box-shadow: 0 0 10px rgba(85, 230, 255, 0.65);
+  pointer-events: none;
 }
 
 .pp-editor-toolbar-group button:disabled {
@@ -404,8 +655,35 @@
   gap: 8px;
 }
 
+.pp-editor-chip-grid--tetrominos {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pp-editor-chip-grid--platform-types {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .pp-editor-chip-grid--small {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pp-editor-chip-grid__button {
+  min-height: 44px;
+  padding: 10px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 1100px) {
+  .pp-editor-chip-grid--platform-types {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pp-editor-chip-grid button.is-active,

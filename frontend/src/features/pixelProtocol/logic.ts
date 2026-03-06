@@ -8,8 +8,10 @@ import {
   WORLD_RENDER_SCALE,
 } from "./constants";
 import type {
+  GrappleAnchor,
   GameRuntime,
   LevelDef,
+  PixelSkill,
   PlatformType,
   Rect,
   RuntimePlatform,
@@ -153,6 +155,18 @@ export function cloneLevel(level: LevelDef): GameRuntime {
       dashUntil: 0,
       dashCooldownUntil: 0,
       invulnUntil: 0,
+      grappleUntil: 0,
+      grappleCooldownUntil: 0,
+      grappleTargetX: null,
+      grappleTargetY: null,
+      grappleLandY: null,
+      phaseShiftUntil: 0,
+      phaseShiftCooldownUntil: 0,
+      overclockUntil: 0,
+      overclockCooldownUntil: 0,
+      pulseShockCooldownUntil: 0,
+      timeBufferCooldownUntil: 0,
+      platformSpawnCooldownUntil: 0,
     },
     platforms: level.platforms.map((p) => ({
       ...p,
@@ -164,6 +178,8 @@ export function cloneLevel(level: LevelDef): GameRuntime {
       nextRotateAt: p.rotateEveryMs
         ? performance.now() + p.rotateEveryMs
         : Number.POSITIVE_INFINITY,
+      expiresAt: null,
+      temporary: false,
     })),
     checkpoints: level.checkpoints.map((c) => ({ ...c, activated: false })),
     respawn: { ...level.spawn },
@@ -172,19 +188,48 @@ export function cloneLevel(level: LevelDef): GameRuntime {
     cameraX: 0,
     cameraY: 0,
     collected: 0,
+    history: [],
     status: "running",
     message: "Collecte les Data-Orbs puis atteins le portail.",
   };
 }
 
-export function abilityFlags(world: number) {
-  // Les capacites se debloquent par monde, pas par niveau, pour garder une progression lisible.
+export function abilityFlags(world: number, unlockedSkills: PixelSkill[] = []) {
+  const has = (skill: PixelSkill) => unlockedSkills.includes(skill);
   return {
-    doubleJump: world >= 2,
+    doubleJump: world >= 2 || has("OVERJUMP"),
+    extraAirJumps: has("OVERJUMP") ? 2 : world >= 2 ? 1 : 0,
     airDash: world >= 3,
     hackWave: world >= 3,
     shield: world >= 4,
+    overjump: has("OVERJUMP"),
+    dataGrapple: has("DATA_GRAPPLE"),
+    phaseShift: has("PHASE_SHIFT"),
+    pulseShock: has("PULSE_SHOCK"),
+    overclockMode: has("OVERCLOCK_MODE"),
+    timeBuffer: has("TIME_BUFFER"),
+    platformSpawn: has("PLATFORM_SPAWN"),
   };
+}
+
+export function grappleAnchors(platforms: RuntimePlatform[]): GrappleAnchor[] {
+  const anchors: GrappleAnchor[] = [];
+  for (const platform of platforms) {
+    if (!platform.active) continue;
+    if (platform.type !== "grapplable") continue;
+    const blocks = platformBlocks(platform);
+    if (blocks.length === 0) continue;
+    const left = Math.min(...blocks.map((block) => block.x));
+    const right = Math.max(...blocks.map((block) => block.x + block.w));
+    const top = Math.min(...blocks.map((block) => block.y));
+    anchors.push({
+      x: left + (right - left) / 2,
+      y: top - 18,
+      landY: top,
+      platformId: platform.id,
+    });
+  }
+  return anchors;
 }
 
 export function updateCameraY(

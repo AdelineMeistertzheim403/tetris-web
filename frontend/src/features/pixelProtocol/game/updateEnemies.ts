@@ -18,6 +18,7 @@ export function updateEnemies({
 }) {
   const player = game.player;
   const playerRect: Rect = { x: player.x, y: player.y, w: player.w, h: player.h };
+  const phaseShiftActive = now < player.phaseShiftUntil;
 
   for (const enemy of game.enemies) {
     const enemySpeed = enemy.kind === "apex" ? 170 : enemy.kind === "pulse" ? 120 : 90;
@@ -41,7 +42,7 @@ export function updateEnemies({
     }
 
     const enemyRect: Rect = { x: enemy.x, y: enemy.y, w: 26, h: 26 };
-    if (rectIntersects(playerRect, enemyRect) && now > player.invulnUntil) {
+    if (rectIntersects(playerRect, enemyRect) && now > player.invulnUntil && !phaseShiftActive) {
       const stomp = player.vy > 80 && player.y + player.h - 6 < enemy.y;
       if (stomp) {
         enemy.stunnedUntil = now + 1400;

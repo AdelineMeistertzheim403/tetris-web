@@ -2,9 +2,11 @@ import { TILE } from "./constants";
 import type {
   Checkpoint,
   DataOrb,
+  DataOrbAffinity,
   Enemy,
   EnemyKind,
   LevelDef,
+  PixelSkill,
   PlatformDef,
   PlatformType,
   Tetromino,
@@ -71,7 +73,23 @@ function indexedId(prefix: string, index: number) {
 }
 
 export function orbOnTile(id: string, tileX: number, tileY: number): DataOrb {
-  return { id, x: tileX * TILE + 7, y: tileY * TILE - 20 };
+  return { id, x: tileX * TILE + 7, y: tileY * TILE - 20, affinity: "standard" };
+}
+
+export function skillOrbOnTile(
+  id: string,
+  tileX: number,
+  tileY: number,
+  skill: PixelSkill,
+  affinity: DataOrbAffinity
+): DataOrb {
+  return {
+    id,
+    x: tileX * TILE + 7,
+    y: tileY * TILE - 20,
+    affinity,
+    grantsSkill: skill,
+  };
 }
 
 export function checkpointOnTile(

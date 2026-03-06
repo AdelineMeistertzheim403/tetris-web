@@ -5,14 +5,34 @@ export type PlatformType =
   | "rotating"
   | "glitch"
   | "bounce"
+  | "grapplable"
   | "armored"
   | "hackable";
 export type EnemyKind = "rookie" | "pulse" | "apex";
+export type PixelSkill =
+  | "DATA_GRAPPLE"
+  | "OVERJUMP"
+  | "PHASE_SHIFT"
+  | "PULSE_SHOCK"
+  | "OVERCLOCK_MODE"
+  | "TIME_BUFFER"
+  | "PLATFORM_SPAWN";
+
+export type DataOrbAffinity = "standard" | "blue" | "red" | "green" | "purple";
+
 export type AbilityFlags = {
   doubleJump: boolean;
+  extraAirJumps: number;
   airDash: boolean;
   hackWave: boolean;
   shield: boolean;
+  overjump: boolean;
+  dataGrapple: boolean;
+  phaseShift: boolean;
+  pulseShock: boolean;
+  overclockMode: boolean;
+  timeBuffer: boolean;
+  platformSpawn: boolean;
 };
 
 export type PlatformDef = {
@@ -25,7 +45,14 @@ export type PlatformDef = {
   rotateEveryMs?: number;
 };
 
-export type DataOrb = { id: string; x: number; y: number; taken?: boolean };
+export type DataOrb = {
+  id: string;
+  x: number;
+  y: number;
+  affinity?: DataOrbAffinity;
+  grantsSkill?: PixelSkill | null;
+  taken?: boolean;
+};
 
 // Un checkpoint stocke a la fois le marqueur visible et la position de respawn.
 export type Checkpoint = {
@@ -76,6 +103,18 @@ export type Player = {
   dashUntil: number;
   dashCooldownUntil: number;
   invulnUntil: number;
+  phaseShiftUntil: number;
+  phaseShiftCooldownUntil: number;
+  overclockUntil: number;
+  overclockCooldownUntil: number;
+  pulseShockCooldownUntil: number;
+  timeBufferCooldownUntil: number;
+  platformSpawnCooldownUntil: number;
+  grappleUntil: number;
+  grappleCooldownUntil: number;
+  grappleTargetX: number | null;
+  grappleTargetY: number | null;
+  grappleLandY: number | null;
 };
 
 // Les plateformes runtime portent un etat temporaire qui ne doit jamais revenir dans les donnees de niveau.
@@ -86,6 +125,27 @@ export type RuntimePlatform = PlatformDef & {
   unstableDropAt: number;
   hackedUntil: number;
   nextRotateAt: number;
+  expiresAt: number | null;
+  temporary: boolean;
+};
+
+export type GrappleAnchor = {
+  x: number;
+  y: number;
+  landY: number;
+  platformId: string;
+};
+
+export type PlayerHistoryEntry = {
+  at: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  facing: 1 | -1;
+  grounded: boolean;
+  jumpsLeft: number;
+  hp: number;
 };
 
 export type GameRuntime = {
@@ -99,6 +159,7 @@ export type GameRuntime = {
   cameraX: number;
   cameraY: number;
   collected: number;
+  history: PlayerHistoryEntry[];
   status: "running" | "won" | "lost";
   message: string;
 };
@@ -119,5 +180,11 @@ export type InputSnapshot = {
   wantJump: boolean;
   wantDash: boolean;
   wantHack: boolean;
+  wantGrapple: boolean;
+  wantPhaseShift: boolean;
+  wantPulseShock: boolean;
+  wantOverclock: boolean;
+  wantTimeBuffer: boolean;
+  wantPlatformSpawn: boolean;
   wantRespawn: boolean;
 };

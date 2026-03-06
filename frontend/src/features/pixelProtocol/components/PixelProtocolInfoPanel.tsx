@@ -1,4 +1,4 @@
-import type { LevelDef } from "../types";
+import type { LevelDef, PixelSkill } from "../types";
 import type { PixelProtocolChatLine } from "../dialogue";
 
 type PixelProtocolInfoPanelProps = {
@@ -6,12 +6,19 @@ type PixelProtocolInfoPanelProps = {
     airDash: boolean;
     doubleJump: boolean;
     hackWave: boolean;
+    dataGrapple: boolean;
+    overclockMode: boolean;
+    phaseShift: boolean;
+    pulseShock: boolean;
+    timeBuffer: boolean;
+    platformSpawn: boolean;
   };
   chatLine: PixelProtocolChatLine | null;
   level: LevelDef;
   message: string;
   collected: number;
   hp: number;
+  unlockedSkills: PixelSkill[];
 };
 
 export function PixelProtocolInfoPanel({
@@ -21,9 +28,21 @@ export function PixelProtocolInfoPanel({
   message,
   collected,
   hp,
+  unlockedSkills,
 }: PixelProtocolInfoPanelProps) {
   const parts = level.id.split("-");
   const levelNumber = parts[1] ?? level.id;
+  const activeAbilities = [
+    ability.doubleJump ? "DJ" : null,
+    ability.airDash ? "Dash" : null,
+    ability.hackWave ? "Hack" : null,
+    ability.dataGrapple ? "Grapple" : null,
+    ability.phaseShift ? "Phase" : null,
+    ability.pulseShock ? "Shock" : null,
+    ability.overclockMode ? "OC" : null,
+    ability.timeBuffer ? "Rewind" : null,
+    ability.platformSpawn ? "Spawn" : null,
+  ].filter(Boolean);
 
   return (
     <aside className="pp-panel">
@@ -44,12 +63,15 @@ export function PixelProtocolInfoPanel({
         <span>
           Data-Orbs: {collected}/{level.requiredOrbs}
         </span>
-        <span>
-          Capacites: {ability.doubleJump ? "DJ" : "-"}{" "}
-          {ability.airDash ? "Dash" : "-"}{" "}
-          {ability.hackWave ? "Hack" : "-"}
-        </span>
+        <span>Capacites: {activeAbilities.length > 0 ? activeAbilities.join(" / ") : "Aucune"}</span>
       </div>
+
+      {unlockedSkills.length > 0 && (
+        <div className="pp-infoCard">
+          <p className="pp-panelTitle">Modules Pixel</p>
+          <p>{unlockedSkills.join(", ").replaceAll("_", " ")}</p>
+        </div>
+      )}
 
       <div className="pp-infoCard">
         <p className="pp-panelTitle">Mission</p>

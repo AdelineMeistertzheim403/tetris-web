@@ -11,6 +11,7 @@ import {
   mergePixelProtocolCustomLevels,
 } from "../utils/customLevels";
 import { readLocalPixelProtocolProgress } from "../utils/progress";
+import { readLocalPixelProtocolSkills } from "../utils/skills";
 import type { LevelDef } from "../types";
 import "../../../styles/pixel-protocol-hub.css";
 
@@ -31,6 +32,7 @@ export default function PixelProtocolHub() {
     listPixelProtocolCustomLevels()
   );
   const [selectedCustomId, setSelectedCustomId] = useState("");
+  const [unlockedSkills] = useState(() => readLocalPixelProtocolSkills());
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
 
@@ -105,6 +107,9 @@ export default function PixelProtocolHub() {
             <div className="pp-hub-stat">Plus haut niveau: {progress.highestLevel}</div>
             <div className="pp-hub-stat">Monde: {stage.world}</div>
             <div className="pp-hub-stat">Stage: {stage.stage}</div>
+            <div className="pp-hub-stat">
+              Modules: {unlockedSkills.length ? unlockedSkills.join(", ").replaceAll("_", " ") : "aucun"}
+            </div>
             <div className="pp-hub-stat">
               Role editeur: {user?.role === "ADMIN" ? "admin" : "custom prive"}
             </div>

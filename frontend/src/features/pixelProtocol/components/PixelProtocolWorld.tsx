@@ -7,7 +7,7 @@ import {
   WORLD_H,
   WORLD_RENDER_SCALE,
 } from "../constants";
-import { platformBlocks } from "../logic";
+import { grappleAnchors, platformBlocks } from "../logic";
 import type { GameRuntime, LevelDef } from "../types";
 
 type PixelProtocolWorldProps = {
@@ -28,6 +28,38 @@ export function PixelProtocolWorld({
   runtime,
 }: PixelProtocolWorldProps) {
   const now = performance.now();
+  const grappling =
+    runtime.player.grappleTargetX !== null &&
+    runtime.player.grappleTargetY !== null &&
+    now < runtime.player.grappleUntil;
+  const playerGrappleOrigin = {
+    x: runtime.player.x + runtime.player.w / 2,
+    y: runtime.player.y + runtime.player.h * 0.28,
+  };
+  const grappleCable = grappling
+    ? {
+        dx: runtime.player.grappleTargetX! - playerGrappleOrigin.x,
+        dy: runtime.player.grappleTargetY! - playerGrappleOrigin.y,
+      }
+    : null;
+  const anchors = grappleAnchors(runtime.platforms);
+  const orbStyle = (orb: GameRuntime["orbs"][number]) => {
+    if (orb.grantsSkill) {
+      const color =
+        orb.affinity === "blue"
+          ? "#52c7ff"
+          : orb.affinity === "red"
+            ? "#ff7869"
+            : orb.affinity === "green"
+              ? "#63f3a0"
+              : "#d66fff";
+      return {
+        border: `1px solid ${color}`,
+        boxShadow: `0 0 14px ${color}`,
+      };
+    }
+    return undefined;
+  };
 
   return (
     <section ref={gameViewportRef} className="pp-game">
@@ -45,11 +77,33 @@ export function PixelProtocolWorld({
           style={{ top: GROUND_Y, width: level.worldWidth }}
         />
 
+        {grappleCable && (
+          <div
+            className="pp-grappleCable"
+            style={{
+              left: playerGrappleOrigin.x,
+              top: playerGrappleOrigin.y,
+              width: Math.hypot(grappleCable.dx, grappleCable.dy),
+              transform: `rotate(${Math.atan2(grappleCable.dy, grappleCable.dx)}rad)`,
+            }}
+          />
+        )}
+
+        {anchors.map((anchor) => (
+          <div
+            key={`anchor-${anchor.platformId}`}
+            className="pp-grappleAnchor"
+            style={{ left: anchor.x - 8, top: anchor.y - 8 }}
+          />
+        ))}
+
         {runtime.platforms.flatMap((platform) =>
           platformBlocks(platform).map((block, index) => (
             <div
               key={`${platform.id}-${index}-${platform.currentRotation}-${platform.active ? 1 : 0}`}
               className={`pp-platform ${PLATFORM_CLASS[platform.type]} ${
+                platform.temporary ? "pp-platform--temporary" : ""
+              } ${
                 platform.active ? "" : "pp-platform--off"
               }`}
               style={{
@@ -68,7 +122,7 @@ export function PixelProtocolWorld({
             <div
               key={orb.id}
               className="pp-orb"
-              style={{ left: orb.x, top: orb.y }}
+              style={{ left: orb.x, top: orb.y, ...orbStyle(orb) }}
             />
           ))}
 
@@ -119,6 +173,8 @@ export function PixelProtocolWorld({
         <div
           className={`pp-player ${
             runtime.player.invulnUntil > now ? "pp-player--invuln" : ""
+          } ${runtime.player.phaseShiftUntil > now ? "pp-player--phase" : ""} ${
+            runtime.player.overclockUntil > now ? "pp-player--overclock" : ""
           }`}
           style={{
             left: runtime.player.x - (runtime.player.w * (PLAYER_VISUAL_SCALE - 1)) / 2,

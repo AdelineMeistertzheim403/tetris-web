@@ -1,4 +1,18 @@
+import type { AbilityFlags } from "../types";
+
 type PixelProtocolControlsPanelProps = {
+  ability: Pick<
+    AbilityFlags,
+    | "doubleJump"
+    | "airDash"
+    | "hackWave"
+    | "dataGrapple"
+    | "phaseShift"
+    | "pulseShock"
+    | "overclockMode"
+    | "timeBuffer"
+    | "platformSpawn"
+  >;
   onExit: () => void;
   onReset: () => void;
   onEditor?: () => void;
@@ -6,6 +20,7 @@ type PixelProtocolControlsPanelProps = {
 };
 
 export function PixelProtocolControlsPanel({
+  ability,
   onExit,
   onReset,
   onEditor,
@@ -17,9 +32,15 @@ export function PixelProtocolControlsPanel({
         <p className="pp-panelTitle">Controles</p>
         <p>Deplacement: Fleches ou WASD</p>
         <p>Saut: Espace, Haut ou W</p>
-        <p>Double saut: Monde 2+</p>
-        <p>Dash: Shift, Monde 3+</p>
-        <p>Hack: E, Monde 3+</p>
+        {ability.doubleJump && <p>Double saut: actif</p>}
+        {ability.airDash && <p>Dash: Shift</p>}
+        {ability.hackWave && <p>Hack: E</p>}
+        {ability.dataGrapple && <p>Data Grapple: G</p>}
+        {ability.phaseShift && <p>Phase Shift: F</p>}
+        {ability.pulseShock && <p>Pulse Shock: Q</p>}
+        {ability.overclockMode && <p>Overclock: C</p>}
+        {ability.timeBuffer && <p>Time Buffer: X</p>}
+        {ability.platformSpawn && <p>Platform Spawn: V</p>}
         <p>Respawn checkpoint: R</p>
       </div>
 

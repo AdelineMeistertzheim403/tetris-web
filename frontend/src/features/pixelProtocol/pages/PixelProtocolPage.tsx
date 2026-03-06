@@ -21,6 +21,10 @@ import {
   readLocalPixelProtocolProgress,
   writeLocalPixelProtocolProgress,
 } from "../utils/progress";
+import {
+  readLocalPixelProtocolSkills,
+  writeLocalPixelProtocolSkills,
+} from "../utils/skills";
 import "../../../styles/pixel-protocol.css";
 import { useAuth } from "../../auth/context/AuthContext";
 import type { LevelDef } from "../types";
@@ -39,6 +43,9 @@ export default function PixelProtocolPage() {
 
   const [progress, setProgress] = useState<PixelProtocolProgress>(() =>
     readLocalPixelProtocolProgress()
+  );
+  const [unlockedSkills, setUnlockedSkills] = useState(() =>
+    readLocalPixelProtocolSkills()
   );
   const [customLevels, setCustomLevels] = useState<LevelDef[]>(() =>
     listPixelProtocolCustomLevels()
@@ -113,7 +120,15 @@ export default function PixelProtocolPage() {
     portalOpen,
     resetLevel,
     runtime,
-  } = usePixelProtocolGame(gameLevels, { initialLevelIndex });
+    unlockedSkills: activeSkills,
+  } = usePixelProtocolGame(gameLevels, {
+    initialLevelIndex,
+    initialUnlockedSkills: unlockedSkills,
+    onUnlockSkills: (skills) => {
+      setUnlockedSkills(skills);
+      writeLocalPixelProtocolSkills(skills);
+    },
+  });
 
   useEffect(() => {
     writeLocalPixelProtocolProgress(progress);
@@ -240,6 +255,7 @@ export default function PixelProtocolPage() {
       <div className="pp-layout">
         <PixelProtocolInfoPanel
           ability={ability}
+          unlockedSkills={activeSkills}
           chatLine={chatLine}
           level={level}
           message={runtime.message}
@@ -257,6 +273,7 @@ export default function PixelProtocolPage() {
         />
 
         <PixelProtocolControlsPanel
+          ability={ability}
           onReset={resetLevel}
           onExit={() => navigate("/pixel-protocol")}
           onEditor={user ? () => navigate("/pixel-protocol/editor") : undefined}
