@@ -16,6 +16,7 @@ services:
 
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
 
       - "traefik.http.routers.tetris.rule=Host(`tetroworld.fr`) || Host(`www.tetroworld.fr`)"
       - "traefik.http.routers.tetris.entrypoints=websecure"
@@ -43,9 +44,11 @@ services:
 
     networks:
       - web
+      - internal
 
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
 
       - "traefik.http.routers.tetris-api.rule=Host(`api.tetroworld.fr`)"
       - "traefik.http.routers.tetris-api.entrypoints=websecure"
