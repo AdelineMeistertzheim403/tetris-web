@@ -77,6 +77,9 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: db
 
+    ports:
+      - "127.0.0.1:18081:8080"
+
     networks:
       - internal
 
