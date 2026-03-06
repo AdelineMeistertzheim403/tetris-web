@@ -310,6 +310,7 @@ function PixelProtocolDraftPreview({
 }) {
   const {
     ability,
+    chatLine,
     gameViewportRef,
     level: previewLevel,
     playerRunFrame,
@@ -336,6 +337,7 @@ function PixelProtocolDraftPreview({
       <div className="pp-layout pp-editor-preview-layout">
         <PixelProtocolInfoPanel
           ability={ability}
+          chatLine={chatLine}
           level={previewLevel}
           message={runtime.message}
           collected={runtime.collected}

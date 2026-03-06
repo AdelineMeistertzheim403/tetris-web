@@ -278,6 +278,34 @@
   line-height: 1.6;
 }
 
+.pp-botCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgb(10 19 33 / 0.96) 0%, rgb(6 12 22 / 0.96) 100%);
+  border: 1px solid #ff7a7a33;
+  box-shadow:
+    inset 0 0 20px #59d9ff14,
+    0 0 16px #07111f;
+}
+
+.pp-botCard__speaker,
+.pp-botCard__text {
+  margin: 0;
+}
+
+.pp-botCard__speaker {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.pp-botCard__text {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #dfefff;
+}
+
 .pp-panelTitle {
   margin: 0;
   color: #7de8ff;

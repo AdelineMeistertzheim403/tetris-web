@@ -138,6 +138,7 @@ export function allCollisionBlocks(
 
 export function cloneLevel(level: LevelDef): GameRuntime {
   return {
+    startedAt: performance.now(),
     player: {
       x: level.spawn.x,
       y: level.spawn.y,

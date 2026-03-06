@@ -104,6 +104,7 @@ export default function PixelProtocolPage() {
 
   const {
     ability,
+    chatLine,
     gameViewportRef,
     level,
     levelIndex,
@@ -239,6 +240,7 @@ export default function PixelProtocolPage() {
       <div className="pp-layout">
         <PixelProtocolInfoPanel
           ability={ability}
+          chatLine={chatLine}
           level={level}
           message={runtime.message}
           collected={runtime.collected}
