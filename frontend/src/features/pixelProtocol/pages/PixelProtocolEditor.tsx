@@ -12,13 +12,23 @@ import {
   TILE,
   WORLD_H,
 } from "../constants";
+import {
+  DECORATION_PRESETS,
+  PixelProtocolDecoration,
+  decorationLayerOrder,
+  getDecorationPreset,
+} from "../decorations";
 import { platformRenderData, validatePlatformLayout } from "../editorUtils";
 import { usePixelProtocolGame } from "../hooks/usePixelProtocolGame";
 import { abilityFlags } from "../logic";
 import type {
   Checkpoint,
+  DecorationAnimation,
+  DecorationDef,
+  DecorationLayer,
   DataOrb,
   DataOrbAffinity,
+  DecorationType,
   Enemy,
   LevelDef,
   PixelSkill,
@@ -71,6 +81,8 @@ const PLATFORM_TYPES: PlatformType[] = [
 const DEFAULT_ROTATE_EVERY_MS = 1800;
 const MOVING_AXES = ["x", "y"] as const;
 const MOVING_PATTERNS = ["pingpong", "loop"] as const;
+const DECORATION_LAYERS: DecorationLayer[] = ["far", "mid", "near"];
+const DECORATION_ANIMATIONS: DecorationAnimation[] = ["none", "pulse", "flow", "glitch"];
 const ORB_AFFINITIES: DataOrbAffinity[] = ["standard", "blue", "red", "green", "purple"];
 const PIXEL_SKILLS: PixelSkill[] = [
   "DATA_GRAPPLE",
@@ -95,6 +107,7 @@ const TEMPLATE_BASE: LevelDef = {
   checkpoints: [],
   orbs: [],
   enemies: [],
+  decorations: [],
 };
 
 type EditorStoredLevel = LevelDef & {
@@ -110,6 +123,7 @@ type Selection =
   | { kind: "checkpoint"; id: string }
   | { kind: "orb"; id: string }
   | { kind: "enemy"; id: string }
+  | { kind: "decoration"; id: string }
   | null;
 
 type DragState =
@@ -152,7 +166,17 @@ type DragState =
       id: string;
       candidateTileX: number;
       candidateTileY: number;
+    }
+  | {
+      kind: "decoration";
+      id: string;
+      candidateTileX: number;
+      candidateTileY: number;
+      offsetX: number;
+      offsetY: number;
     };
+
+type EditorMode = "level" | "world";
 
 function getLevelWorldHeight(level: Pick<LevelDef, "worldHeight">) {
   if (
@@ -177,6 +201,9 @@ function computeAutoWorldWidth(level: LevelDef) {
   for (const enemy of level.enemies) {
     rightMostX = Math.max(rightMostX, enemy.maxX + 26);
   }
+  for (const decoration of level.decorations ?? []) {
+    rightMostX = Math.max(rightMostX, decoration.x + decoration.width);
+  }
 
   const rendered = platformRenderData(level);
   for (const { bounds } of rendered) {
@@ -195,6 +222,15 @@ function withAutoWorldWidth(level: LevelDef): LevelDef {
   const nextWidth = computeAutoWorldWidth(level);
   if (nextWidth === level.worldWidth) return level;
   return { ...level, worldWidth: nextWidth };
+}
+
+function withDecorationDefaults(level: LevelDef): LevelDef {
+  if (Array.isArray(level.decorations)) return level;
+  return { ...level, decorations: [] };
+}
+
+function normalizeLevelDraft(level: LevelDef): LevelDef {
+  return withAutoWorldWidth(withDecorationDefaults(level));
 }
 
 function parseStage(id: string) {
@@ -286,6 +322,19 @@ function updateEnemy(level: LevelDef, enemyId: string, updater: (enemy: Enemy) =
   };
 }
 
+function updateDecoration(
+  level: LevelDef,
+  decorationId: string,
+  updater: (decoration: DecorationDef) => DecorationDef
+) {
+  return {
+    ...level,
+    decorations: (level.decorations ?? []).map((decoration) =>
+      decoration.id === decorationId ? updater(decoration) : decoration
+    ),
+  };
+}
+
 function checkpointFromTile(id: string, tileX: number, tileY: number): Checkpoint {
   return {
     id,
@@ -316,6 +365,31 @@ function enemyFromTile(id: string, tileX: number, tileY: number): Enemy {
     minX: Math.max(0, tileX * TILE - TILE * 2),
     maxX: tileX * TILE + TILE * 3,
     stunnedUntil: 0,
+  };
+}
+
+function decorationFromTile(
+  id: string,
+  tileX: number,
+  tileY: number,
+  type: DecorationType = "pixel_glitch"
+): DecorationDef {
+  const preset = getDecorationPreset(type);
+  return {
+    id,
+    type,
+    x: tileX * TILE,
+    y: tileY * TILE,
+    width: preset.defaultWidth,
+    height: preset.defaultHeight,
+    rotation: 0,
+    opacity: 0.9,
+    color: preset.color,
+    colorSecondary: preset.colorSecondary,
+    layer: "mid",
+    animation: "none",
+    flipX: false,
+    flipY: false,
   };
 }
 
@@ -386,6 +460,14 @@ function applyDragPreview(level: LevelDef, dragState: DragState | null): LevelDe
     return updateOrb(level, dragState.id, () =>
       orbFromTile(dragState.id, dragState.candidateTileX, dragState.candidateTileY)
     );
+  }
+
+  if (dragState.kind === "decoration") {
+    return updateDecoration(level, dragState.id, (decoration) => ({
+      ...decoration,
+      x: dragState.candidateTileX * TILE + dragState.offsetX,
+      y: dragState.candidateTileY * TILE + dragState.offsetY,
+    }));
   }
 
   return updateEnemy(level, dragState.id, (enemy) => {
@@ -468,12 +550,12 @@ export default function PixelProtocolEditor() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
-  const draftLevelRef = useRef<LevelDef>(withAutoWorldWidth(TEMPLATE_BASE));
+  const draftLevelRef = useRef<LevelDef>(normalizeLevelDraft(TEMPLATE_BASE));
   const dragStateRef = useRef<DragState | null>(null);
 
   const [levels, setLevels] = useState<EditorStoredLevel[]>([]);
   const [draftLevel, setDraftLevel] = useState<LevelDef>(() =>
-    withAutoWorldWidth(TEMPLATE_BASE)
+    normalizeLevelDraft(TEMPLATE_BASE)
   );
   const [published, setPublished] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -485,6 +567,7 @@ export default function PixelProtocolEditor() {
   const [previewLevel, setPreviewLevel] = useState<LevelDef | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
   const [editorExpanded, setEditorExpanded] = useState(true);
+  const [editorMode, setEditorMode] = useState<EditorMode>("level");
   const isAdmin = user?.role === "ADMIN";
 
   draftLevelRef.current = draftLevel;
@@ -529,6 +612,17 @@ export default function PixelProtocolEditor() {
     selection?.kind === "enemy"
       ? draftLevel.enemies.find((enemy) => enemy.id === selection.id) ?? null
       : null;
+  const selectedDecoration =
+    selection?.kind === "decoration"
+      ? (draftLevel.decorations ?? []).find((decoration) => decoration.id === selection.id) ?? null
+      : null;
+  const renderDecorations = useMemo(
+    () =>
+      [...(displayedLevel.decorations ?? [])].sort(
+        (a, b) => decorationLayerOrder(a.layer) - decorationLayerOrder(b.layer)
+      ),
+    [displayedLevel]
+  );
 
   const worldTiles = Math.max(MIN_WORLD_TILES, Math.round(displayedLevel.worldWidth / TILE));
   const worldRows = Math.max(MIN_WORLD_ROWS, Math.round(getLevelWorldHeight(displayedLevel) / TILE));
@@ -538,7 +632,8 @@ export default function PixelProtocolEditor() {
     selection?.kind === "platform" ||
     selection?.kind === "checkpoint" ||
     selection?.kind === "orb" ||
-    selection?.kind === "enemy";
+    selection?.kind === "enemy" ||
+    selection?.kind === "decoration";
 
   const resetMessages = () => {
     setStatus(null);
@@ -546,8 +641,9 @@ export default function PixelProtocolEditor() {
   };
 
   const applyDraftLevel = (nextLevel: LevelDef, nextSelection: Selection = selection) => {
-    const nextValidation = validatePlatformLayout(nextLevel);
-    setDraftLevel(nextLevel);
+    const normalized = normalizeLevelDraft(nextLevel);
+    const nextValidation = validatePlatformLayout(normalized);
+    setDraftLevel(normalized);
     setSelection(nextSelection);
     setStatus(null);
     setError(nextValidation.isValid ? null : nextValidation.issues[0]?.message ?? null);
@@ -555,7 +651,7 @@ export default function PixelProtocolEditor() {
   };
 
   const selectLevel = (level: EditorStoredLevel) => {
-    const cleanLevel = withAutoWorldWidth(
+    const cleanLevel = normalizeLevelDraft(
       isAdmin ? stripAdminFields(level as PixelProtocolAdminLevel) : level
     );
     setSelectedId(level.id);
@@ -579,7 +675,7 @@ export default function PixelProtocolEditor() {
         const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
         setPublished(isAdmin);
-        setDraftLevel(withAutoWorldWidth(fresh));
+        setDraftLevel(normalizeLevelDraft(fresh));
         setSelection(null);
       }
     } catch (err) {
@@ -591,7 +687,7 @@ export default function PixelProtocolEditor() {
         if (local.length > 0) {
           selectLevel(local[0]);
         } else {
-          setDraftLevel(withAutoWorldWidth(makeNewLevel([], false)));
+          setDraftLevel(normalizeLevelDraft(makeNewLevel([], false)));
           setSelection(null);
         }
         setError("Mode hors ligne: niveaux custom locaux utilises.");
@@ -731,7 +827,7 @@ export default function PixelProtocolEditor() {
         const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
         setPublished(isAdmin);
-        setDraftLevel(withAutoWorldWidth(fresh));
+        setDraftLevel(normalizeLevelDraft(fresh));
         setSelection(null);
       }
     } catch (err) {
@@ -743,7 +839,7 @@ export default function PixelProtocolEditor() {
     const fresh = makeNewLevel(levels, isAdmin);
     setSelectedId(null);
     setPublished(false);
-    setDraftLevel(withAutoWorldWidth(fresh));
+    setDraftLevel(normalizeLevelDraft(fresh));
     setSelection(null);
     setPreviewLevel(null);
     resetMessages();
@@ -752,7 +848,7 @@ export default function PixelProtocolEditor() {
   const setLevelField = <K extends keyof LevelDef>(field: K, value: LevelDef[K]) => {
     const next = { ...draftLevel, [field]: value };
     if (field === "portal") {
-      applyDraftLevel(withAutoWorldWidth(next));
+      applyDraftLevel(normalizeLevelDraft(next));
       return;
     }
     applyDraftLevel(next);
@@ -806,6 +902,20 @@ export default function PixelProtocolEditor() {
     );
   };
 
+  const handleAddDecoration = () => {
+    const id = nextId(draftLevel.decorations ?? [], "d");
+    const preset = DECORATION_PRESETS[0];
+    const decoration = decorationFromTile(id, 8, 8, preset.type);
+    applyDraftLevel(
+      {
+        ...draftLevel,
+        decorations: [...(draftLevel.decorations ?? []), decoration],
+      },
+      { kind: "decoration", id }
+    );
+    setEditorMode("world");
+  };
+
   const handleDeleteSelection = () => {
     if (!selection) return;
     if (selection.kind === "spawn" || selection.kind === "portal") return;
@@ -822,6 +932,14 @@ export default function PixelProtocolEditor() {
     if (selection.kind === "orb") {
       const next = draftLevel.orbs.filter((item) => item.id !== selection.id);
       applyDraftLevel({ ...draftLevel, orbs: next }, next[0] ? { kind: "orb", id: next[0].id } : null);
+      return;
+    }
+    if (selection.kind === "decoration") {
+      const next = (draftLevel.decorations ?? []).filter((item) => item.id !== selection.id);
+      applyDraftLevel(
+        { ...draftLevel, decorations: next },
+        next[0] ? { kind: "decoration", id: next[0].id } : null
+      );
       return;
     }
     const next = draftLevel.enemies.filter((item) => item.id !== selection.id);
@@ -852,6 +970,25 @@ export default function PixelProtocolEditor() {
   const handleSelectedEnemyChange = (updater: (enemy: Enemy) => Enemy) => {
     if (!selectedEnemy) return;
     applyDraftLevel(updateEnemy(draftLevel, selectedEnemy.id, updater), selection);
+  };
+
+  const handleSelectedDecorationChange = (updater: (decoration: DecorationDef) => DecorationDef) => {
+    if (!selectedDecoration) return;
+    applyDraftLevel(
+      updateDecoration(draftLevel, selectedDecoration.id, (decoration) => {
+        const next = updater(decoration);
+        const preset = getDecorationPreset(next.type);
+        return {
+          ...next,
+          width: Math.max(4, next.width || preset.defaultWidth),
+          height: Math.max(4, next.height || preset.defaultHeight),
+          opacity: Math.min(1, Math.max(0, next.opacity ?? 0.9)),
+          layer: next.layer ?? "mid",
+          animation: next.animation ?? "none",
+        };
+      }),
+      selection
+    );
   };
 
   const startPlatformDrag = (event: React.PointerEvent<HTMLButtonElement>, platform: PlatformDef) => {
@@ -902,6 +1039,22 @@ export default function PixelProtocolEditor() {
       id: enemy.id,
       candidateTileX: Math.round(enemy.x / TILE),
       candidateTileY: Math.round((enemy.y + 26) / TILE),
+    });
+  };
+
+  const startDecorationDrag = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    decoration: DecorationDef
+  ) => {
+    event.preventDefault();
+    setSelection({ kind: "decoration", id: decoration.id });
+    setDragState({
+      kind: "decoration",
+      id: decoration.id,
+      offsetX: normalizeTileOffset(decoration.x),
+      offsetY: normalizeTileOffset(decoration.y),
+      candidateTileX: Math.floor(decoration.x / TILE),
+      candidateTileY: Math.floor(decoration.y / TILE),
     });
   };
 
@@ -1217,43 +1370,73 @@ export default function PixelProtocolEditor() {
           <div className="pp-editor-workbench">
             <div className="pp-editor-canvas-card">
               <div className="pp-editor-toolbar">
+                <div className="pp-editor-mode-switch">
+                  <button
+                    type="button"
+                    className={editorMode === "level" ? "is-active" : ""}
+                    onClick={() => setEditorMode("level")}
+                  >
+                    Mode Niveau
+                  </button>
+                  <button
+                    type="button"
+                    className={editorMode === "world" ? "is-active" : ""}
+                    onClick={() => setEditorMode("world")}
+                  >
+                    Mode Monde
+                  </button>
+                </div>
                 <div className="pp-editor-toolbar-group">
-                  <button
-                    type="button"
-                    className="pp-editor-icon-btn pp-editor-icon-btn--build"
-                    title="Ajouter plateforme"
-                    aria-label="Ajouter plateforme"
-                    onClick={handleAddPlatform}
-                  >
-                    <i className="fa-solid fa-cubes" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="pp-editor-icon-btn pp-editor-icon-btn--info"
-                    title="Ajouter checkpoint"
-                    aria-label="Ajouter checkpoint"
-                    onClick={handleAddCheckpoint}
-                  >
-                    <i className="fa-solid fa-flag" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="pp-editor-icon-btn pp-editor-icon-btn--build"
-                    title="Ajouter orb"
-                    aria-label="Ajouter orb"
-                    onClick={handleAddOrb}
-                  >
-                    <i className="fa-solid fa-circle-nodes" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="pp-editor-icon-btn pp-editor-icon-btn--combat"
-                    title="Ajouter ennemi"
-                    aria-label="Ajouter ennemi"
-                    onClick={handleAddEnemy}
-                  >
-                    <i className="fa-solid fa-robot" aria-hidden="true" />
-                  </button>
+                  {editorMode === "level" ? (
+                    <>
+                      <button
+                        type="button"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--build"
+                        title="Ajouter plateforme"
+                        aria-label="Ajouter plateforme"
+                        onClick={handleAddPlatform}
+                      >
+                        <i className="fa-solid fa-cubes" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                        title="Ajouter checkpoint"
+                        aria-label="Ajouter checkpoint"
+                        onClick={handleAddCheckpoint}
+                      >
+                        <i className="fa-solid fa-flag" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--build"
+                        title="Ajouter orb"
+                        aria-label="Ajouter orb"
+                        onClick={handleAddOrb}
+                      >
+                        <i className="fa-solid fa-circle-nodes" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--combat"
+                        title="Ajouter ennemi"
+                        aria-label="Ajouter ennemi"
+                        onClick={handleAddEnemy}
+                      >
+                        <i className="fa-solid fa-robot" aria-hidden="true" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                      title="Ajouter decoration"
+                      aria-label="Ajouter decoration"
+                      onClick={handleAddDecoration}
+                    >
+                      <i className="fa-solid fa-shapes" aria-hidden="true" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="pp-editor-icon-btn pp-editor-icon-btn--danger"
@@ -1266,7 +1449,9 @@ export default function PixelProtocolEditor() {
                   </button>
                 </div>
                 <div className="pp-editor-toolbar-hint">
-                  Capacites actives: {abilities.doubleJump ? "double jump" : "saut simple"} / {abilities.airDash ? "dash" : "pas de dash"}
+                  {editorMode === "level"
+                    ? `Capacites actives: ${abilities.doubleJump ? "double jump" : "saut simple"} / ${abilities.airDash ? "dash" : "pas de dash"}`
+                    : "Mode Monde: edition de la couche decorative (sans collision)."}
                 </div>
               </div>
 
@@ -1306,6 +1491,48 @@ export default function PixelProtocolEditor() {
                     style={{ top: (worldRows - 1) * EDITOR_TILE, height: EDITOR_TILE }}
                   />
 
+                  {renderDecorations.map((decoration) => {
+                    const scaledX = (decoration.x / TILE) * EDITOR_TILE;
+                    const scaledY = (decoration.y / TILE) * EDITOR_TILE;
+                    const scaledW = (decoration.width / TILE) * EDITOR_TILE;
+                    const scaledH = (decoration.height / TILE) * EDITOR_TILE;
+                    const isSelected =
+                      selection?.kind === "decoration" && selection.id === decoration.id;
+                    return (
+                      <button
+                        key={decoration.id}
+                        type="button"
+                        className={`pp-editor-decoration-layer ${isSelected ? "is-selected" : ""} ${
+                          dragState?.kind === "decoration" && dragState.id === decoration.id
+                            ? "is-dragging"
+                            : ""
+                        } ${editorMode === "world" ? "" : "is-readonly"}`}
+                        style={{
+                          left: scaledX,
+                          top: scaledY,
+                          width: scaledW,
+                          height: scaledH,
+                          pointerEvents: editorMode === "world" ? "auto" : "none",
+                        }}
+                        onPointerDown={(event) => startDecorationDrag(event, decoration)}
+                        onClick={() => setSelection({ kind: "decoration", id: decoration.id })}
+                      >
+                        <PixelProtocolDecoration
+                          decoration={{
+                            ...decoration,
+                            x: 0,
+                            y: 0,
+                            width: scaledW,
+                            height: scaledH,
+                          }}
+                          className="pp-editor-decoration-preview"
+                          selected={isSelected}
+                        />
+                        <span className="pp-editor-decoration-badge">{decoration.id}</span>
+                      </button>
+                    );
+                  })}
+
                   <button
                     type="button"
                     className={`pp-editor-spawn ${
@@ -1314,6 +1541,7 @@ export default function PixelProtocolEditor() {
                     style={{
                       left: (displayedLevel.spawn.x / TILE) * EDITOR_TILE,
                       top: (displayedLevel.spawn.y / TILE) * EDITOR_TILE,
+                      pointerEvents: editorMode === "level" ? "auto" : "none",
                     }}
                     onPointerDown={startSpawnDrag}
                     onClick={() => setSelection({ kind: "spawn" })}
@@ -1328,6 +1556,7 @@ export default function PixelProtocolEditor() {
                     style={{
                       left: (displayedLevel.portal.x / TILE) * EDITOR_TILE,
                       top: (displayedLevel.portal.y / TILE) * EDITOR_TILE,
+                      pointerEvents: editorMode === "level" ? "auto" : "none",
                     }}
                     onPointerDown={startPortalDrag}
                     onClick={() => setSelection({ kind: "portal" })}
@@ -1353,6 +1582,7 @@ export default function PixelProtocolEditor() {
                               top: (bounds.top / TILE) * EDITOR_TILE,
                               width: (bounds.width / TILE) * EDITOR_TILE,
                               height: (bounds.height / TILE) * EDITOR_TILE,
+                              pointerEvents: editorMode === "level" ? "auto" : "none",
                             }
                           : undefined
                       }
@@ -1390,6 +1620,7 @@ export default function PixelProtocolEditor() {
                       style={{
                         left: (checkpoint.x / TILE) * EDITOR_TILE,
                         top: (checkpoint.y / TILE) * EDITOR_TILE,
+                        pointerEvents: editorMode === "level" ? "auto" : "none",
                       }}
                       onPointerDown={(event) => startCheckpointDrag(event, checkpoint)}
                       onClick={() => setSelection({ kind: "checkpoint", id: checkpoint.id })}
@@ -1408,6 +1639,7 @@ export default function PixelProtocolEditor() {
                       style={{
                         left: (orb.x / TILE) * EDITOR_TILE,
                         top: (orb.y / TILE) * EDITOR_TILE,
+                        pointerEvents: editorMode === "level" ? "auto" : "none",
                       }}
                       onPointerDown={(event) => startOrbDrag(event, orb)}
                       onClick={() => setSelection({ kind: "orb", id: orb.id })}
@@ -1426,6 +1658,7 @@ export default function PixelProtocolEditor() {
                       style={{
                         left: (enemy.x / TILE) * EDITOR_TILE,
                         top: (enemy.y / TILE) * EDITOR_TILE,
+                        pointerEvents: editorMode === "level" ? "auto" : "none",
                       }}
                       onPointerDown={(event) => startEnemyDrag(event, enemy)}
                       onClick={() => setSelection({ kind: "enemy", id: enemy.id })}
@@ -1445,6 +1678,7 @@ export default function PixelProtocolEditor() {
                   <div>Checkpoints: {draftLevel.checkpoints.length}</div>
                   <div>Orbs: {draftLevel.orbs.length}</div>
                   <div>Ennemis: {draftLevel.enemies.length}</div>
+                  <div>Decors: {(draftLevel.decorations ?? []).length}</div>
                   <div>Liens: {validation.links.length}</div>
                 </div>
               </div>
@@ -1552,6 +1786,30 @@ export default function PixelProtocolEditor() {
                         </span>
                       </span>
                       <span>({enemy.x}, {enemy.y})</span>
+                    </button>
+                  ))}
+                  {(draftLevel.decorations ?? []).map((decoration) => (
+                    <button
+                      key={decoration.id}
+                      type="button"
+                      className={`pp-editor-platform-row ${
+                        selection?.kind === "decoration" && selection.id === decoration.id ? "is-active" : ""
+                      }`}
+                      onClick={() => {
+                        setSelection({ kind: "decoration", id: decoration.id });
+                        setEditorMode("world");
+                      }}
+                    >
+                      <span>{decoration.id}</span>
+                      <span className="pp-editor-inline-tags">
+                        <span className="pp-editor-mini-tag pp-editor-mini-tag--decoration">
+                          {decoration.type}
+                        </span>
+                        <span className="pp-editor-mini-tag pp-editor-mini-tag--layer">
+                          {decoration.layer ?? "mid"}
+                        </span>
+                      </span>
+                      <span>({decoration.x}, {decoration.y})</span>
                     </button>
                   ))}
                 </div>
@@ -1957,6 +2215,243 @@ export default function PixelProtocolEditor() {
                             handleSelectedEnemyChange((enemy) => ({ ...enemy, maxX: Number(event.target.value) || 0 }))
                           }
                         />
+                      </label>
+                    </div>
+                  </>
+                )}
+
+                {selectedDecoration && (
+                  <>
+                    <div className="pp-editor-code">{selectedDecoration.id}</div>
+                    <div className="pp-editor-decoration-preview-card">
+                      <PixelProtocolDecoration
+                        decoration={{
+                          ...selectedDecoration,
+                          x: 0,
+                          y: 0,
+                          width: 96,
+                          height: 96,
+                        }}
+                      />
+                    </div>
+                    <div className="pp-editor-inline-fields">
+                      <label>
+                        <span>Type</span>
+                        <select
+                          value={selectedDecoration.type}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => {
+                              const nextType = event.target.value as DecorationType;
+                              const preset = getDecorationPreset(nextType);
+                              return {
+                                ...decoration,
+                                type: nextType,
+                                width: decoration.width || preset.defaultWidth,
+                                height: decoration.height || preset.defaultHeight,
+                                color: decoration.color ?? preset.color,
+                                colorSecondary: decoration.colorSecondary ?? preset.colorSecondary,
+                              };
+                            })
+                          }
+                        >
+                          {(["tetromino", "tech", "glitch", "network", "ai", "background"] as const).map((category) => (
+                            <optgroup key={category} label={category}>
+                              {DECORATION_PRESETS.filter((preset) => preset.category === category).map((preset) => (
+                                <option key={preset.type} value={preset.type}>
+                                  {preset.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Layer</span>
+                        <select
+                          value={selectedDecoration.layer ?? "mid"}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              layer: event.target.value as DecorationLayer,
+                            }))
+                          }
+                        >
+                          {DECORATION_LAYERS.map((layer) => (
+                            <option key={layer} value={layer}>
+                              {layer}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="pp-editor-inline-fields">
+                      <label>
+                        <span>X</span>
+                        <input
+                          type="number"
+                          value={selectedDecoration.x}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              x: Number(event.target.value) || 0,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Y</span>
+                        <input
+                          type="number"
+                          value={selectedDecoration.y}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              y: Number(event.target.value) || 0,
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="pp-editor-inline-fields">
+                      <label>
+                        <span>Largeur</span>
+                        <input
+                          type="number"
+                          min={4}
+                          value={selectedDecoration.width}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              width: Math.max(4, Number(event.target.value) || 4),
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Hauteur</span>
+                        <input
+                          type="number"
+                          min={4}
+                          value={selectedDecoration.height}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              height: Math.max(4, Number(event.target.value) || 4),
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="pp-editor-inline-fields">
+                      <label>
+                        <span>Rotation</span>
+                        <input
+                          type="number"
+                          min={-360}
+                          max={360}
+                          value={selectedDecoration.rotation ?? 0}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              rotation: Number(event.target.value) || 0,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Opacite</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          value={selectedDecoration.opacity ?? 0.9}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              opacity: Math.min(1, Math.max(0, Number(event.target.value) || 0)),
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="pp-editor-inline-fields">
+                      <label>
+                        <span>Couleur</span>
+                        <input
+                          type="color"
+                          value={selectedDecoration.color ?? "#00ffff"}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              color: event.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Couleur 2</span>
+                        <input
+                          type="color"
+                          value={selectedDecoration.colorSecondary ?? "#ff00ff"}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              colorSecondary: event.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="pp-editor-inline-fields">
+                      <label>
+                        <span>Animation</span>
+                        <select
+                          value={selectedDecoration.animation ?? "none"}
+                          onChange={(event) =>
+                            handleSelectedDecorationChange((decoration) => ({
+                              ...decoration,
+                              animation: event.target.value as DecorationAnimation,
+                            }))
+                          }
+                        >
+                          {DECORATION_ANIMATIONS.map((animation) => (
+                            <option key={animation} value={animation}>
+                              {animation}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Symetrie</span>
+                        <div className="pp-editor-inline-checkboxes">
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedDecoration.flipX)}
+                              onChange={(event) =>
+                                handleSelectedDecorationChange((decoration) => ({
+                                  ...decoration,
+                                  flipX: event.target.checked,
+                                }))
+                              }
+                            />
+                            Flip X
+                          </label>
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedDecoration.flipY)}
+                              onChange={(event) =>
+                                handleSelectedDecorationChange((decoration) => ({
+                                  ...decoration,
+                                  flipY: event.target.checked,
+                                }))
+                              }
+                            />
+                            Flip Y
+                          </label>
+                        </div>
                       </label>
                     </div>
                   </>

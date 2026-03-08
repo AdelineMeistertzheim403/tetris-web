@@ -33,6 +33,19 @@ async function parseError(res: Response, fallback: string) {
 function isLevelDef(value: unknown): value is LevelDef {
   if (!value || typeof value !== "object") return false;
   const level = value as LevelDef;
+  const validDecorations =
+    level.decorations === undefined ||
+    (Array.isArray(level.decorations) &&
+      level.decorations.every(
+        (decoration) =>
+          decoration &&
+          typeof decoration.id === "string" &&
+          typeof decoration.type === "string" &&
+          typeof decoration.x === "number" &&
+          typeof decoration.y === "number" &&
+          typeof decoration.width === "number" &&
+          typeof decoration.height === "number"
+      ));
   return (
     typeof level.id === "string" &&
     typeof level.name === "string" &&
@@ -47,7 +60,8 @@ function isLevelDef(value: unknown): value is LevelDef {
     Array.isArray(level.platforms) &&
     Array.isArray(level.checkpoints) &&
     Array.isArray(level.orbs) &&
-    Array.isArray(level.enemies)
+    Array.isArray(level.enemies) &&
+    validDecorations
   );
 }
 

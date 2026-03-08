@@ -88,6 +88,42 @@
   border-top: 2px solid #58ddff66;
 }
 
+.pp-decoration {
+  position: absolute;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+.pp-decoration-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pp-decoration--far {
+  opacity: 0.34;
+}
+
+.pp-decoration--mid {
+  opacity: 0.62;
+}
+
+.pp-decoration--near {
+  opacity: 0.86;
+}
+
+.pp-decoration--anim-pulse {
+  animation: pp-decoration-pulse 2s ease-in-out infinite;
+}
+
+.pp-decoration--anim-flow .pp-decoration-svg {
+  animation: pp-decoration-flow 2.5s linear infinite;
+}
+
+.pp-decoration--anim-glitch .pp-decoration-svg {
+  animation: pp-decoration-glitch 0.35s steps(2) infinite;
+}
+
 .pp-platform {
   position: absolute;
   border: 1px solid #0f1016;
@@ -463,6 +499,27 @@
   50% {
     filter: hue-rotate(34deg) brightness(0.8);
     opacity: 0.86;
+  }
+}
+
+@keyframes pp-decoration-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@keyframes pp-decoration-flow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(6px); }
+}
+
+@keyframes pp-decoration-glitch {
+  0%, 100% {
+    transform: translate(0, 0);
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    transform: translate(1px, -1px);
+    filter: hue-rotate(24deg);
   }
 }
 

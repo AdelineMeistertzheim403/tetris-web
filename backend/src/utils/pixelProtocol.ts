@@ -4,6 +4,9 @@ const DEFAULT_MOVE_AXIS = "x";
 const DEFAULT_MOVE_PATTERN = "pingpong";
 const DEFAULT_MOVE_RANGE_TILES = 4;
 const DEFAULT_MOVE_SPEED = 96;
+const DEFAULT_DECORATION_LAYER = "mid";
+const DEFAULT_DECORATION_ANIMATION = "none";
+const DEFAULT_DECORATION_OPACITY = 0.9;
 
 type PixelProtocolPlatformLike = {
   type?: unknown;
@@ -17,6 +20,24 @@ type PixelProtocolPlatformLike = {
 type PixelProtocolLevelLike = {
   platforms?: unknown;
   worldHeight?: unknown;
+  decorations?: unknown;
+} & Record<string, unknown>;
+
+type PixelProtocolDecorationLike = {
+  id?: unknown;
+  type?: unknown;
+  x?: unknown;
+  y?: unknown;
+  width?: unknown;
+  height?: unknown;
+  rotation?: unknown;
+  opacity?: unknown;
+  color?: unknown;
+  colorSecondary?: unknown;
+  layer?: unknown;
+  animation?: unknown;
+  flipX?: unknown;
+  flipY?: unknown;
 } & Record<string, unknown>;
 
 function normalizePlatform(platform: PixelProtocolPlatformLike) {
@@ -52,6 +73,51 @@ function normalizePlatform(platform: PixelProtocolPlatformLike) {
   return next;
 }
 
+function toFiniteNumber(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeDecoration(decoration: PixelProtocolDecorationLike) {
+  return {
+    ...decoration,
+    id:
+      typeof decoration.id === "string" && decoration.id.trim().length > 0
+        ? decoration.id.trim()
+        : "dec-1",
+    type:
+      typeof decoration.type === "string" && decoration.type.trim().length > 0
+        ? decoration.type.trim()
+        : "pixel_glitch",
+    x: Math.round(toFiniteNumber(decoration.x, 0)),
+    y: Math.round(toFiniteNumber(decoration.y, 0)),
+    width: Math.max(4, Math.round(toFiniteNumber(decoration.width, 80))),
+    height: Math.max(4, Math.round(toFiniteNumber(decoration.height, 80))),
+    rotation: toFiniteNumber(decoration.rotation, 0),
+    opacity: Math.min(1, Math.max(0, toFiniteNumber(decoration.opacity, DEFAULT_DECORATION_OPACITY))),
+    color:
+      typeof decoration.color === "string" && decoration.color.trim().length > 0
+        ? decoration.color.trim()
+        : "#00ffff",
+    colorSecondary:
+      typeof decoration.colorSecondary === "string" &&
+      decoration.colorSecondary.trim().length > 0
+        ? decoration.colorSecondary.trim()
+        : "#ff00ff",
+    layer:
+      decoration.layer === "far" || decoration.layer === "near"
+        ? decoration.layer
+        : DEFAULT_DECORATION_LAYER,
+    animation:
+      decoration.animation === "pulse" ||
+      decoration.animation === "flow" ||
+      decoration.animation === "glitch"
+        ? decoration.animation
+        : DEFAULT_DECORATION_ANIMATION,
+    flipX: Boolean(decoration.flipX),
+    flipY: Boolean(decoration.flipY),
+  };
+}
+
 export function normalizePixelProtocolLevelDefinition<T extends PixelProtocolLevelLike>(
   level: T
 ): T {
@@ -63,6 +129,13 @@ export function normalizePixelProtocolLevelDefinition<T extends PixelProtocolLev
       level.worldHeight >= DEFAULT_WORLD_HEIGHT
         ? Math.round(level.worldHeight)
         : DEFAULT_WORLD_HEIGHT,
+    decorations: Array.isArray(level.decorations)
+      ? level.decorations.map((decoration) =>
+          decoration && typeof decoration === "object"
+            ? normalizeDecoration(decoration as PixelProtocolDecorationLike)
+            : decoration
+        )
+      : [],
   };
 
   if (!Array.isArray(level.platforms)) {
@@ -80,6 +153,9 @@ export function normalizePixelProtocolLevelDefinition<T extends PixelProtocolLev
 }
 
 export {
+  DEFAULT_DECORATION_ANIMATION,
+  DEFAULT_DECORATION_LAYER,
+  DEFAULT_DECORATION_OPACITY,
   DEFAULT_MOVE_AXIS,
   DEFAULT_MOVE_PATTERN,
   DEFAULT_MOVE_RANGE_TILES,

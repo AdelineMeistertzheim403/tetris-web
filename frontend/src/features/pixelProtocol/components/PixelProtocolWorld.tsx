@@ -6,6 +6,10 @@ import {
   WORLD_RENDER_SCALE,
 } from "../constants";
 import {
+  PixelProtocolDecoration,
+  decorationLayerOrder,
+} from "../decorations";
+import {
   grappleAnchors,
   levelGroundY,
   levelWorldHeight,
@@ -48,6 +52,9 @@ export function PixelProtocolWorld({
   const anchors = grappleAnchors(runtime.platforms);
   const worldHeight = levelWorldHeight(level);
   const groundY = levelGroundY(level);
+  const decorations = [...(level.decorations ?? [])].sort(
+    (a, b) => decorationLayerOrder(a.layer) - decorationLayerOrder(b.layer)
+  );
   const orbStyle = (orb: GameRuntime["orbs"][number]) => {
     if (orb.grantsSkill) {
       const color =
@@ -81,6 +88,13 @@ export function PixelProtocolWorld({
           className="pp-ground"
           style={{ top: groundY, width: level.worldWidth }}
         />
+
+        {decorations.map((decoration) => (
+          <PixelProtocolDecoration
+            key={decoration.id}
+            decoration={decoration}
+          />
+        ))}
 
         {grappleCable && (
           <div
