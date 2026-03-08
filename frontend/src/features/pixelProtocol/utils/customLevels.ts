@@ -11,6 +11,7 @@ function isLevelDef(value: unknown): value is LevelDef {
     typeof level.name === "string" &&
     typeof level.world === "number" &&
     typeof level.worldWidth === "number" &&
+    (level.worldHeight === undefined || typeof level.worldHeight === "number") &&
     typeof level.requiredOrbs === "number" &&
     typeof level.spawn?.x === "number" &&
     typeof level.spawn?.y === "number" &&

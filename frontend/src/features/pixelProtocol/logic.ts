@@ -1,7 +1,11 @@
 import {
+  CAMERA_MIN_TOP_PADDING,
   CAMERA_BOTTOM_TRIGGER_RATIO,
   CAMERA_TOP_TRIGGER_RATIO,
-  GROUND_Y,
+  MOVING_DEFAULT_AXIS,
+  MOVING_DEFAULT_PATTERN,
+  MOVING_DEFAULT_RANGE_TILES,
+  MOVING_DEFAULT_SPEED,
   TILE,
   VIEWPORT_W,
   WORLD_H,
@@ -123,19 +127,35 @@ export function platformBlocks(platform: RuntimePlatform): Rect[] {
 
 export function allCollisionBlocks(
   platforms: RuntimePlatform[],
-  worldWidth: number
+  level: Pick<LevelDef, "worldWidth" | "worldHeight">
 ): Rect[] {
+  const groundY = levelGroundY(level);
   return [
     ...platforms.flatMap((p) => platformBlocks(p)),
     {
       x: 0,
-      y: GROUND_Y,
-      w: worldWidth,
+      y: groundY,
+      w: level.worldWidth,
       h: TILE,
       platformId: "ground",
       type: "stable" as PlatformType,
     },
   ];
+}
+
+export function levelWorldHeight(level: Pick<LevelDef, "worldHeight">): number {
+  if (
+    typeof level.worldHeight === "number" &&
+    Number.isFinite(level.worldHeight) &&
+    level.worldHeight >= TILE * 8
+  ) {
+    return Math.round(level.worldHeight);
+  }
+  return WORLD_H;
+}
+
+export function levelGroundY(level: Pick<LevelDef, "worldHeight">): number {
+  return levelWorldHeight(level) - TILE;
 }
 
 export function cloneLevel(level: LevelDef): GameRuntime {
@@ -160,6 +180,12 @@ export function cloneLevel(level: LevelDef): GameRuntime {
       grappleTargetX: null,
       grappleTargetY: null,
       grappleLandY: null,
+      grapplePlatformId: null,
+      groundPlatformId: null,
+      groundedSurface: null,
+      gravityInvertedUntil: 0,
+      corruptedUntil: 0,
+      corruptedDamageCooldownUntil: 0,
       phaseShiftUntil: 0,
       phaseShiftCooldownUntil: 0,
       overclockUntil: 0,
@@ -170,6 +196,20 @@ export function cloneLevel(level: LevelDef): GameRuntime {
     },
     platforms: level.platforms.map((p) => ({
       ...p,
+      moveAxis: p.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
+      movePattern: p.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
+      moveRangeTiles:
+        typeof p.moveRangeTiles === "number" &&
+        Number.isFinite(p.moveRangeTiles) &&
+        p.moveRangeTiles > 0
+          ? Math.round(p.moveRangeTiles)
+          : MOVING_DEFAULT_RANGE_TILES,
+      moveSpeed:
+        typeof p.moveSpeed === "number" &&
+        Number.isFinite(p.moveSpeed) &&
+        p.moveSpeed > 0
+          ? Math.round(p.moveSpeed)
+          : MOVING_DEFAULT_SPEED,
       currentRotation: p.rotation ?? 0,
       active: true,
       unstableWakeAt: 0,
@@ -180,6 +220,12 @@ export function cloneLevel(level: LevelDef): GameRuntime {
         : Number.POSITIVE_INFINITY,
       expiresAt: null,
       temporary: false,
+      moveOriginX: p.x,
+      moveOriginY: p.y,
+      moveProgress: 0,
+      moveDirection: 1 as const,
+      prevX: p.x,
+      prevY: p.y,
     })),
     checkpoints: level.checkpoints.map((c) => ({ ...c, activated: false })),
     respawn: { ...level.spawn },
@@ -234,11 +280,14 @@ export function grappleAnchors(platforms: RuntimePlatform[]): GrappleAnchor[] {
 
 export function updateCameraY(
   game: GameRuntime,
-  viewportHeight: number
+  viewportHeight: number,
+  level: Pick<LevelDef, "worldHeight">
 ): void {
   // La camera utilise une zone morte verticale pour eviter de recentrer l'ecran a chaque saut.
   const visibleWorldHeight = viewportHeight / WORLD_RENDER_SCALE;
-  const maxCameraY = Math.max(0, WORLD_H - visibleWorldHeight);
+  const worldHeight = levelWorldHeight(level);
+  const maxCameraY = Math.max(0, worldHeight - visibleWorldHeight);
+  const minCameraY = -Math.min(CAMERA_MIN_TOP_PADDING, Math.max(0, visibleWorldHeight - TILE));
   const topTriggerY =
     game.cameraY + visibleWorldHeight * CAMERA_TOP_TRIGGER_RATIO;
   const bottomTriggerY =
@@ -254,7 +303,7 @@ export function updateCameraY(
       visibleWorldHeight * CAMERA_BOTTOM_TRIGGER_RATIO;
   }
 
-  game.cameraY = clamp(game.cameraY, 0, maxCameraY);
+  game.cameraY = clamp(game.cameraY, minCameraY, maxCameraY);
 }
 
 export function viewportWorldWidth(clientWidth: number) {

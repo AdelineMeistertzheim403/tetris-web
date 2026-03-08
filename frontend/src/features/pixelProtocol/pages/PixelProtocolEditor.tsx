@@ -3,7 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { PixelProtocolControlsPanel } from "../components/PixelProtocolControlsPanel";
 import { PixelProtocolInfoPanel } from "../components/PixelProtocolInfoPanel";
 import { PixelProtocolWorld } from "../components/PixelProtocolWorld";
-import { PLATFORM_CLASS, TILE, WORLD_H } from "../constants";
+import {
+  MOVING_DEFAULT_AXIS,
+  MOVING_DEFAULT_PATTERN,
+  MOVING_DEFAULT_RANGE_TILES,
+  MOVING_DEFAULT_SPEED,
+  PLATFORM_CLASS,
+  TILE,
+  WORLD_H,
+} from "../constants";
 import { platformRenderData, validatePlatformLayout } from "../editorUtils";
 import { usePixelProtocolGame } from "../hooks/usePixelProtocolGame";
 import { abilityFlags } from "../logic";
@@ -38,19 +46,31 @@ import "../../../styles/pixel-protocol.css";
 import "../../../styles/pixel-protocol-editor.css";
 
 const EDITOR_TILE = 22;
-const WORLD_ROWS = WORLD_H / TILE;
+const MIN_WORLD_TILES = 12;
+const MIN_WORLD_ROWS = WORLD_H / TILE;
+const PORTAL_RIGHT_PADDING = TILE * 6;
+const PORTAL_W = 34;
+const PLAYER_W = 24;
 const TETROMINOS: Tetromino[] = ["I", "O", "T", "L", "J", "S", "Z"];
 const PLATFORM_TYPES: PlatformType[] = [
   "stable",
   "bounce",
+  "boost",
   "unstable",
+  "moving",
   "rotating",
   "glitch",
+  "corrupted",
+  "magnetic",
+  "ice",
+  "gravity",
   "grapplable",
   "armored",
   "hackable",
 ];
 const DEFAULT_ROTATE_EVERY_MS = 1800;
+const MOVING_AXES = ["x", "y"] as const;
+const MOVING_PATTERNS = ["pingpong", "loop"] as const;
 const ORB_AFFINITIES: DataOrbAffinity[] = ["standard", "blue", "red", "green", "purple"];
 const PIXEL_SKILLS: PixelSkill[] = [
   "DATA_GRAPPLE",
@@ -67,6 +87,7 @@ const TEMPLATE_BASE: LevelDef = {
   world: 1,
   name: "Nouveau niveau",
   worldWidth: 30 * TILE,
+  worldHeight: WORLD_H,
   requiredOrbs: 3,
   spawn: { x: 96, y: 450 },
   portal: { x: 960, y: 260 },
@@ -132,6 +153,49 @@ type DragState =
       candidateTileX: number;
       candidateTileY: number;
     };
+
+function getLevelWorldHeight(level: Pick<LevelDef, "worldHeight">) {
+  if (
+    typeof level.worldHeight === "number" &&
+    Number.isFinite(level.worldHeight) &&
+    level.worldHeight >= TILE * MIN_WORLD_ROWS
+  ) {
+    return Math.round(level.worldHeight);
+  }
+  return WORLD_H;
+}
+
+function computeAutoWorldWidth(level: LevelDef) {
+  let rightMostX = Math.max(level.portal.x + PORTAL_W, level.spawn.x + PLAYER_W);
+
+  for (const checkpoint of level.checkpoints) {
+    rightMostX = Math.max(rightMostX, checkpoint.x + 12);
+  }
+  for (const orb of level.orbs) {
+    rightMostX = Math.max(rightMostX, orb.x + 18);
+  }
+  for (const enemy of level.enemies) {
+    rightMostX = Math.max(rightMostX, enemy.maxX + 26);
+  }
+
+  const rendered = platformRenderData(level);
+  for (const { bounds } of rendered) {
+    if (!bounds) continue;
+    rightMostX = Math.max(rightMostX, bounds.left + bounds.width);
+  }
+
+  const requiredTiles = Math.max(
+    MIN_WORLD_TILES,
+    Math.ceil((rightMostX + PORTAL_RIGHT_PADDING) / TILE)
+  );
+  return requiredTiles * TILE;
+}
+
+function withAutoWorldWidth(level: LevelDef): LevelDef {
+  const nextWidth = computeAutoWorldWidth(level);
+  if (nextWidth === level.worldWidth) return level;
+  return { ...level, worldWidth: nextWidth };
+}
 
 function parseStage(id: string) {
   const match = id.match(/w\d+-(\d+)/i);
@@ -259,6 +323,28 @@ function normalizeTileOffset(value: number) {
   return ((value % TILE) + TILE) % TILE;
 }
 
+function normalizePlatformSettings(platform: PlatformDef): PlatformDef {
+  const next =
+    platform.type === "rotating" && !platform.rotateEveryMs
+      ? { ...platform, rotateEveryMs: DEFAULT_ROTATE_EVERY_MS }
+      : platform;
+
+  if (next.type !== "moving") return next;
+  return {
+    ...next,
+    moveAxis: next.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
+    movePattern: next.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
+    moveRangeTiles:
+      typeof next.moveRangeTiles === "number" && next.moveRangeTiles > 0
+        ? Math.round(next.moveRangeTiles)
+        : MOVING_DEFAULT_RANGE_TILES,
+    moveSpeed:
+      typeof next.moveSpeed === "number" && next.moveSpeed > 0
+        ? Math.round(next.moveSpeed)
+        : MOVING_DEFAULT_SPEED,
+  };
+}
+
 function applyDragPreview(level: LevelDef, dragState: DragState | null): LevelDef {
   if (!dragState) return level;
 
@@ -273,13 +359,13 @@ function applyDragPreview(level: LevelDef, dragState: DragState | null): LevelDe
   }
 
   if (dragState.kind === "portal") {
-    return {
+    return withAutoWorldWidth({
       ...level,
       portal: {
         x: dragState.candidateTileX * TILE + dragState.offsetX,
         y: dragState.candidateTileY * TILE + dragState.offsetY,
       },
-    };
+    });
   }
 
   if (dragState.kind === "platform") {
@@ -382,11 +468,13 @@ export default function PixelProtocolEditor() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
-  const draftLevelRef = useRef<LevelDef>(TEMPLATE_BASE);
+  const draftLevelRef = useRef<LevelDef>(withAutoWorldWidth(TEMPLATE_BASE));
   const dragStateRef = useRef<DragState | null>(null);
 
   const [levels, setLevels] = useState<EditorStoredLevel[]>([]);
-  const [draftLevel, setDraftLevel] = useState<LevelDef>(TEMPLATE_BASE);
+  const [draftLevel, setDraftLevel] = useState<LevelDef>(() =>
+    withAutoWorldWidth(TEMPLATE_BASE)
+  );
   const [published, setPublished] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
@@ -442,7 +530,8 @@ export default function PixelProtocolEditor() {
       ? draftLevel.enemies.find((enemy) => enemy.id === selection.id) ?? null
       : null;
 
-  const worldTiles = Math.max(12, Math.round(draftLevel.worldWidth / TILE));
+  const worldTiles = Math.max(MIN_WORLD_TILES, Math.round(displayedLevel.worldWidth / TILE));
+  const worldRows = Math.max(MIN_WORLD_ROWS, Math.round(getLevelWorldHeight(displayedLevel) / TILE));
   const abilities = abilityFlags(displayedLevel.world);
   const readonlyJson = useMemo(() => JSON.stringify(draftLevel, null, 2), [draftLevel]);
   const canDeleteSelection =
@@ -466,7 +555,9 @@ export default function PixelProtocolEditor() {
   };
 
   const selectLevel = (level: EditorStoredLevel) => {
-    const cleanLevel = isAdmin ? stripAdminFields(level as PixelProtocolAdminLevel) : level;
+    const cleanLevel = withAutoWorldWidth(
+      isAdmin ? stripAdminFields(level as PixelProtocolAdminLevel) : level
+    );
     setSelectedId(level.id);
     setPublished(level.active ?? false);
     setDraftLevel(cleanLevel);
@@ -488,7 +579,7 @@ export default function PixelProtocolEditor() {
         const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
         setPublished(isAdmin);
-        setDraftLevel(fresh);
+        setDraftLevel(withAutoWorldWidth(fresh));
         setSelection(null);
       }
     } catch (err) {
@@ -500,7 +591,7 @@ export default function PixelProtocolEditor() {
         if (local.length > 0) {
           selectLevel(local[0]);
         } else {
-          setDraftLevel(makeNewLevel([], false));
+          setDraftLevel(withAutoWorldWidth(makeNewLevel([], false)));
           setSelection(null);
         }
         setError("Mode hors ligne: niveaux custom locaux utilises.");
@@ -640,7 +731,7 @@ export default function PixelProtocolEditor() {
         const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
         setPublished(isAdmin);
-        setDraftLevel(fresh);
+        setDraftLevel(withAutoWorldWidth(fresh));
         setSelection(null);
       }
     } catch (err) {
@@ -652,14 +743,19 @@ export default function PixelProtocolEditor() {
     const fresh = makeNewLevel(levels, isAdmin);
     setSelectedId(null);
     setPublished(false);
-    setDraftLevel(fresh);
+    setDraftLevel(withAutoWorldWidth(fresh));
     setSelection(null);
     setPreviewLevel(null);
     resetMessages();
   };
 
   const setLevelField = <K extends keyof LevelDef>(field: K, value: LevelDef[K]) => {
-    applyDraftLevel({ ...draftLevel, [field]: value });
+    const next = { ...draftLevel, [field]: value };
+    if (field === "portal") {
+      applyDraftLevel(withAutoWorldWidth(next));
+      return;
+    }
+    applyDraftLevel(next);
   };
 
   const handleAddPlatform = () => {
@@ -679,8 +775,9 @@ export default function PixelProtocolEditor() {
           x: 6,
           y: 14,
         };
+    const normalizedPlatform = normalizePlatformSettings(basePlatform);
     applyDraftLevel(
-      { ...draftLevel, platforms: [...draftLevel.platforms, basePlatform] },
+      { ...draftLevel, platforms: [...draftLevel.platforms, normalizedPlatform] },
       { kind: "platform", id: newId }
     );
   };
@@ -736,13 +833,7 @@ export default function PixelProtocolEditor() {
     applyDraftLevel(
       updatePlatform(draftLevel, selectedPlatform.id, (platform) => {
         const nextPlatform = updater(platform);
-        if (nextPlatform.type === "rotating" && !nextPlatform.rotateEveryMs) {
-          return {
-            ...nextPlatform,
-            rotateEveryMs: DEFAULT_ROTATE_EVERY_MS,
-          };
-        }
-        return nextPlatform;
+        return normalizePlatformSettings(nextPlatform);
       }),
       selection
     );
@@ -1048,12 +1139,25 @@ export default function PixelProtocolEditor() {
               <span>Largeur (tuiles)</span>
               <input
                 type="number"
-                min={12}
+                min={MIN_WORLD_TILES}
                 max={180}
                 value={worldTiles}
                 onChange={(event) => {
-                  const tiles = Math.max(12, Number(event.target.value) || 12);
+                  const tiles = Math.max(MIN_WORLD_TILES, Number(event.target.value) || MIN_WORLD_TILES);
                   setLevelField("worldWidth", tiles * TILE);
+                }}
+              />
+            </label>
+            <label>
+              <span>Hauteur (tuiles)</span>
+              <input
+                type="number"
+                min={MIN_WORLD_ROWS}
+                max={80}
+                value={worldRows}
+                onChange={(event) => {
+                  const rows = Math.max(MIN_WORLD_ROWS, Number(event.target.value) || MIN_WORLD_ROWS);
+                  setLevelField("worldHeight", rows * TILE);
                 }}
               />
             </label>
@@ -1169,9 +1273,9 @@ export default function PixelProtocolEditor() {
               <div ref={boardScrollRef} className="pp-editor-world-scroll">
                 <div
                   className="pp-editor-world"
-                  style={{ width: worldTiles * EDITOR_TILE, height: WORLD_ROWS * EDITOR_TILE }}
+                  style={{ width: worldTiles * EDITOR_TILE, height: worldRows * EDITOR_TILE }}
                 >
-                  <svg className="pp-editor-links" width={worldTiles * EDITOR_TILE} height={WORLD_ROWS * EDITOR_TILE}>
+                  <svg className="pp-editor-links" width={worldTiles * EDITOR_TILE} height={worldRows * EDITOR_TILE}>
                     {validation.links.map((link, index) => {
                       const from =
                         link.from.kind === "spawn"
@@ -1199,7 +1303,7 @@ export default function PixelProtocolEditor() {
 
                   <div
                     className="pp-editor-ground"
-                    style={{ top: (WORLD_ROWS - 1) * EDITOR_TILE, height: EDITOR_TILE }}
+                    style={{ top: (worldRows - 1) * EDITOR_TILE, height: EDITOR_TILE }}
                   />
 
                   <button
@@ -1488,6 +1592,22 @@ export default function PixelProtocolEditor() {
                                 type === "rotating"
                                   ? platform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS
                                   : platform.rotateEveryMs,
+                              moveAxis:
+                                type === "moving"
+                                  ? platform.moveAxis ?? MOVING_DEFAULT_AXIS
+                                  : platform.moveAxis,
+                              movePattern:
+                                type === "moving"
+                                  ? platform.movePattern ?? MOVING_DEFAULT_PATTERN
+                                  : platform.movePattern,
+                              moveRangeTiles:
+                                type === "moving"
+                                  ? platform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES
+                                  : platform.moveRangeTiles,
+                              moveSpeed:
+                                type === "moving"
+                                  ? platform.moveSpeed ?? MOVING_DEFAULT_SPEED
+                                  : platform.moveSpeed,
                             }))
                           }
                         >
@@ -1553,6 +1673,80 @@ export default function PixelProtocolEditor() {
                           />
                         </label>
                       </div>
+                    )}
+                    {selectedPlatform.type === "moving" && (
+                      <>
+                        <div className="pp-editor-inline-fields">
+                          <label>
+                            <span>Axe</span>
+                            <select
+                              value={selectedPlatform.moveAxis ?? MOVING_DEFAULT_AXIS}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  moveAxis: event.target.value as (typeof MOVING_AXES)[number],
+                                }))
+                              }
+                            >
+                              {MOVING_AXES.map((axis) => (
+                                <option key={axis} value={axis}>
+                                  {axis}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span>Pattern</span>
+                            <select
+                              value={selectedPlatform.movePattern ?? MOVING_DEFAULT_PATTERN}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  movePattern: event.target.value as (typeof MOVING_PATTERNS)[number],
+                                }))
+                              }
+                            >
+                              {MOVING_PATTERNS.map((pattern) => (
+                                <option key={pattern} value={pattern}>
+                                  {pattern}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="pp-editor-inline-fields">
+                          <label>
+                            <span>Portee (tuiles)</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={24}
+                              value={selectedPlatform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  moveRangeTiles: Math.max(1, Number(event.target.value) || MOVING_DEFAULT_RANGE_TILES),
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            <span>Vitesse (px/s)</span>
+                            <input
+                              type="number"
+                              min={20}
+                              max={420}
+                              value={selectedPlatform.moveSpeed ?? MOVING_DEFAULT_SPEED}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  moveSpeed: Math.max(20, Number(event.target.value) || MOVING_DEFAULT_SPEED),
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                      </>
                     )}
                   </>
                 )}

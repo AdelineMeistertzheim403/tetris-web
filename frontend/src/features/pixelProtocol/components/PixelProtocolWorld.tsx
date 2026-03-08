@@ -1,13 +1,16 @@
 import type { RefObject } from "react";
 import {
   ENEMY_SPRITES,
-  GROUND_Y,
   PLATFORM_CLASS,
   PLAYER_VISUAL_SCALE,
-  WORLD_H,
   WORLD_RENDER_SCALE,
 } from "../constants";
-import { grappleAnchors, platformBlocks } from "../logic";
+import {
+  grappleAnchors,
+  levelGroundY,
+  levelWorldHeight,
+  platformBlocks,
+} from "../logic";
 import type { GameRuntime, LevelDef } from "../types";
 
 type PixelProtocolWorldProps = {
@@ -43,6 +46,8 @@ export function PixelProtocolWorld({
       }
     : null;
   const anchors = grappleAnchors(runtime.platforms);
+  const worldHeight = levelWorldHeight(level);
+  const groundY = levelGroundY(level);
   const orbStyle = (orb: GameRuntime["orbs"][number]) => {
     if (orb.grantsSkill) {
       const color =
@@ -67,14 +72,14 @@ export function PixelProtocolWorld({
         className="pp-world"
         style={{
           width: level.worldWidth,
-          height: WORLD_H,
+          height: worldHeight,
           transform: `translate(${-runtime.cameraX * WORLD_RENDER_SCALE}px, -${runtime.cameraY * WORLD_RENDER_SCALE}px) scale(${WORLD_RENDER_SCALE})`,
           transformOrigin: "top left",
         }}
       >
         <div
           className="pp-ground"
-          style={{ top: GROUND_Y, width: level.worldWidth }}
+          style={{ top: groundY, width: level.worldWidth }}
         />
 
         {grappleCable && (
@@ -175,6 +180,8 @@ export function PixelProtocolWorld({
             runtime.player.invulnUntil > now ? "pp-player--invuln" : ""
           } ${runtime.player.phaseShiftUntil > now ? "pp-player--phase" : ""} ${
             runtime.player.overclockUntil > now ? "pp-player--overclock" : ""
+          } ${runtime.player.corruptedUntil > now ? "pp-player--corrupted" : ""} ${
+            runtime.player.gravityInvertedUntil > now ? "pp-player--gravity-invert" : ""
           }`}
           style={{
             left: runtime.player.x - (runtime.player.w * (PLAYER_VISUAL_SCALE - 1)) / 2,
@@ -182,7 +189,10 @@ export function PixelProtocolWorld({
             width: runtime.player.w * PLAYER_VISUAL_SCALE,
             height: runtime.player.h * PLAYER_VISUAL_SCALE,
             backgroundImage: `url(${playerSprite})`,
-            transform: `scaleX(${runtime.player.facing})`,
+            transform:
+              runtime.player.gravityInvertedUntil > now
+                ? `scaleX(${runtime.player.facing}) rotate(180deg)`
+                : `scaleX(${runtime.player.facing})`,
             zIndex: 3 + playerRunFrame,
           }}
         />

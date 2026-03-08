@@ -1,9 +1,17 @@
-import { GROUND_Y, TILE, WORLD_H } from "./constants";
+import {
+  MOVING_DEFAULT_AXIS,
+  MOVING_DEFAULT_PATTERN,
+  MOVING_DEFAULT_RANGE_TILES,
+  MOVING_DEFAULT_SPEED,
+  TILE,
+} from "./constants";
 import {
   abilityFlags,
   allCollisionBlocks,
   cloneLevel,
   defaultViewportWorldWidth,
+  levelGroundY,
+  levelWorldHeight,
   platformBlocks,
 } from "./logic";
 import { updatePlayer } from "./game/updatePlayer";
@@ -65,6 +73,20 @@ const JUMP_PROFILES: JumpProfile[] = [
 function runtimePlatform(platform: PlatformDef): RuntimePlatform {
   return {
     ...platform,
+    moveAxis: platform.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
+    movePattern: platform.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
+    moveRangeTiles:
+      typeof platform.moveRangeTiles === "number" &&
+      Number.isFinite(platform.moveRangeTiles) &&
+      platform.moveRangeTiles > 0
+        ? Math.round(platform.moveRangeTiles)
+        : MOVING_DEFAULT_RANGE_TILES,
+    moveSpeed:
+      typeof platform.moveSpeed === "number" &&
+      Number.isFinite(platform.moveSpeed) &&
+      platform.moveSpeed > 0
+        ? Math.round(platform.moveSpeed)
+        : MOVING_DEFAULT_SPEED,
     active: true,
     currentRotation: platform.rotation ?? 0,
     hackedUntil: 0,
@@ -73,6 +95,12 @@ function runtimePlatform(platform: PlatformDef): RuntimePlatform {
     unstableWakeAt: 0,
     expiresAt: null,
     temporary: false,
+    moveOriginX: platform.x,
+    moveOriginY: platform.y,
+    moveProgress: 0,
+    moveDirection: 1,
+    prevX: platform.x,
+    prevY: platform.y,
   };
 }
 
@@ -238,7 +266,7 @@ function canReachPlatform(
           },
           level,
           now,
-          viewportHeight: WORLD_H,
+          viewportHeight: levelWorldHeight(level),
           viewportWidth: defaultViewportWorldWidth(),
         });
 
@@ -249,7 +277,7 @@ function canReachPlatform(
           return true;
         }
 
-        if (game.player.y > WORLD_H + 96) break;
+        if (game.player.y > levelWorldHeight(level) + 96) break;
       }
     }
   }
@@ -275,7 +303,7 @@ export function validatePlatformLayout(level: LevelDef): PlatformValidation {
   const links: ReachabilityLink[] = [];
   const rendered = platformRenderData(level);
   const occupied = new Map<string, string>();
-  const groundLimit = GROUND_Y;
+  const groundLimit = levelGroundY(level);
 
   for (const { blocks, platform } of rendered) {
     for (const block of blocks) {
@@ -312,7 +340,7 @@ export function validatePlatformLayout(level: LevelDef): PlatformValidation {
   }
 
   const runtimePlatforms = level.platforms.map(runtimePlatform);
-  const collisionBlocks = allCollisionBlocks(runtimePlatforms, level.worldWidth);
+  const collisionBlocks = allCollisionBlocks(runtimePlatforms, level);
   const reachable = new Set<string>();
   const queue: SourceNode[] = [{ kind: "spawn" }];
 
