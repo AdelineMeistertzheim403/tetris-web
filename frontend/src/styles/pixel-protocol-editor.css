@@ -342,6 +342,8 @@
 .pp-editor-mini-tag--enemy-rookie { border-color: #6bff9e88; color: #d0ffe0; }
 .pp-editor-mini-tag--enemy-pulse { border-color: #52c7ff88; color: #cbefff; }
 .pp-editor-mini-tag--enemy-apex { border-color: #ff786988; color: #ffd0c9; }
+.pp-editor-mini-tag--decoration { border-color: #d66fff88; color: #efd1ff; }
+.pp-editor-mini-tag--layer { border-color: #7de8ff66; color: #d8f6ff; }
 
 .pp-editor-level-actions .danger {
   border-color: #ff7a66;
@@ -424,6 +426,26 @@
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.pp-editor-mode-switch {
+  display: flex;
+  gap: 8px;
+}
+
+.pp-editor-mode-switch button {
+  border: 1px solid #2fdcff55;
+  background: rgba(5, 12, 24, 0.82);
+  color: #d8f6ff;
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  padding: 8px 10px;
+}
+
+.pp-editor-mode-switch button.is-active {
+  border-color: #8affbf;
+  color: #8affbf;
+  box-shadow: 0 0 10px rgba(98, 255, 168, 0.18);
 }
 
 .pp-editor-toolbar-group {
@@ -590,6 +612,45 @@
   opacity: 0.9;
 }
 
+.pp-editor-decoration-layer {
+  position: absolute;
+  border: 1px dashed transparent;
+  background: transparent;
+  padding: 0;
+  cursor: grab;
+  z-index: 1;
+}
+
+.pp-editor-decoration-layer.is-selected {
+  border-color: #d66fff;
+  box-shadow: 0 0 12px rgba(214, 111, 255, 0.24);
+}
+
+.pp-editor-decoration-layer.is-dragging {
+  cursor: grabbing;
+  opacity: 0.9;
+}
+
+.pp-editor-decoration-layer.is-readonly {
+  opacity: 0.55;
+}
+
+.pp-editor-decoration-preview {
+  position: absolute !important;
+  inset: 0;
+}
+
+.pp-editor-decoration-badge {
+  position: absolute;
+  left: 0;
+  top: -18px;
+  font-size: 8px;
+  color: #efd1ff;
+  background: rgba(18, 8, 24, 0.95);
+  border: 1px solid #d66fff55;
+  padding: 2px 5px;
+}
+
 .pp-editor-platform-block {
   position: absolute;
   animation: none !important;
@@ -714,6 +775,28 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.pp-editor-inline-checkboxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pp-editor-inline-checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+}
+
+.pp-editor-decoration-preview-card {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border: 1px solid #d66fff55;
+  background: rgba(13, 8, 23, 0.78);
+  overflow: hidden;
 }
 
 .pp-editor-platform-list {

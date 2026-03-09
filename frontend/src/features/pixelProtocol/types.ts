@@ -1,4 +1,87 @@
 export type Tetromino = "I" | "O" | "T" | "L" | "J" | "S" | "Z";
+export type DecorationType =
+  | "tetromino_I"
+  | "tetromino_T"
+  | "tetromino_L"
+  | "tetromino_Z"
+  | "tetromino_O"
+  | "tetromino_S"
+  | "tetromino_J"
+  | "tetromino_fragment"
+  | "tetromino_outline"
+  | "tetromino_glow_block"
+  | "stacked_tetromino_blocks"
+  | "tetromino_shadow"
+  | "broken_tetromino"
+  | "mini_tetromino_cluster"
+  | "tetromino_neon_border"
+  | "data_line"
+  | "data_nodes"
+  | "energy_pillar"
+  | "data_beam"
+  | "energy_core"
+  | "horizontal_data_stream"
+  | "vertical_data_stream"
+  | "data_pulse_nodes"
+  | "circuit_cross"
+  | "data_arrow"
+  | "packet_squares"
+  | "network_hub"
+  | "data_ladder"
+  | "digital_crosshair"
+  | "signal_beam"
+  | "pixel_glitch"
+  | "broken_pixels"
+  | "glitch_bar"
+  | "data_noise"
+  | "fragment_blocks"
+  | "glitch_stripes"
+  | "glitch_fragments"
+  | "broken_grid"
+  | "pixel_noise"
+  | "corrupted_blocks"
+  | "glitch_diagonal"
+  | "data_crack"
+  | "static_bar"
+  | "corruption_wave"
+  | "broken_pixels_cluster"
+  | "teleport_ring"
+  | "portal_grid"
+  | "network_triangle"
+  | "data_hub"
+  | "node_cluster"
+  | "server_block"
+  | "circuit_board"
+  | "ai_eye"
+  | "code_panel"
+  | "matrix_block"
+  | "ai_eye_large"
+  | "core_processor"
+  | "server_rack"
+  | "ai_triangle"
+  | "neural_nodes"
+  | "digital_chip"
+  | "circuit_hub"
+  | "core_ring"
+  | "data_scanner"
+  | "processor_grid"
+  | "grid_background"
+  | "vertical_grid"
+  | "floating_squares"
+  | "energy_arcs"
+  | "digital_wave"
+  | "horizon_grid"
+  | "neon_arc"
+  | "floating_squares_cluster"
+  | "background_circuit"
+  | "data_skyline"
+  | "pixel_star"
+  | "neon_rectangle"
+  | "digital_tunnel"
+  | "data_pulse"
+  | "wave_grid";
+export type DecorationLayer = "far" | "mid" | "near";
+export type DecorationAnimation = "none" | "pulse" | "flow" | "glitch";
 export type PlatformType =
   | "stable"
   | "unstable"
@@ -55,6 +138,23 @@ export type PlatformDef = {
   moveSpeed?: number;
 };
 
+export type DecorationDef = {
+  id: string;
+  type: DecorationType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+  opacity?: number;
+  color?: string;
+  colorSecondary?: string;
+  layer?: DecorationLayer;
+  animation?: DecorationAnimation;
+  flipX?: boolean;
+  flipY?: boolean;
+};
+
 export type DataOrb = {
   id: string;
   x: number;
@@ -99,6 +199,7 @@ export type LevelDef = {
   checkpoints: Checkpoint[];
   orbs: DataOrb[];
   enemies: Enemy[];
+  decorations?: DecorationDef[];
 };
 
 export type Player = {

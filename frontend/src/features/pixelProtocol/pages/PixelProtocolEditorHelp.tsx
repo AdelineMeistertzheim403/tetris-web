@@ -125,6 +125,16 @@ export default function PixelProtocolEditorHelp() {
           </ul>
         </HelpSection>
 
+        <HelpSection title="Mode Monde (decorations)">
+          <ul>
+            <li><strong>Mode Niveau</strong>: edition gameplay (plateformes, checkpoints, orbs, ennemis).</li>
+            <li><strong>Mode Monde</strong>: edition des decors SVG (sans collision, purement visuel).</li>
+            <li><strong>Decorations</strong>: chaque element peut etre deplace, redimensionne, colore, tourne, anime et passe entre les layers <strong>far/mid/near</strong>.</li>
+            <li><strong>Parallax simple</strong>: combine plusieurs layers avec opacites differentes pour creer de la profondeur.</li>
+            <li><strong>Performance</strong>: les SVG sont legers et editables sans exporter des images.</li>
+          </ul>
+        </HelpSection>
+
         <HelpSection title="Checkpoints, orbs et ennemis">
           <ul>
             <li><strong>Checkpoint</strong>: place un marqueur visible et un point de respawn associe. Le drag recalcule automatiquement le respawn coherent.</li>
