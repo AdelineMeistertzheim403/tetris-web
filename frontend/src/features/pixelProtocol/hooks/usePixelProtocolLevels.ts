@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { LEVELS as DEFAULT_LEVELS } from "../levels";
 import type { LevelDef } from "../types";
 import { fetchPixelProtocolLevels } from "../services/pixelProtocolService";
+import { listPixelProtocolWorldTemplates } from "../utils/worldTemplates";
+import { resolveLevelsWorldTemplates } from "../utils/resolveWorldTemplate";
 
 export function usePixelProtocolLevels() {
   const [levels, setLevels] = useState<LevelDef[]>([]);
@@ -16,7 +18,7 @@ export function usePixelProtocolLevels() {
       try {
         const remote = await fetchPixelProtocolLevels();
         if (active) {
-          setLevels(remote);
+          setLevels(resolveLevelsWorldTemplates(remote, listPixelProtocolWorldTemplates()));
           setUsingFallback(false);
         }
         if (active) setError(null);
@@ -25,7 +27,7 @@ export function usePixelProtocolLevels() {
         const message = err instanceof Error ? err.message : "Erreur chargement niveaux Pixel Protocol";
         setError(message);
         setUsingFallback(true);
-        setLevels(DEFAULT_LEVELS);
+        setLevels(resolveLevelsWorldTemplates(DEFAULT_LEVELS, listPixelProtocolWorldTemplates()));
       } finally {
         if (active) setLoading(false);
       }

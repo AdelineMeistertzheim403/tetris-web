@@ -26,6 +26,9 @@ function isLevelDef(value: unknown): value is LevelDef {
     typeof level.worldWidth === "number" &&
     (level.worldHeight === undefined || typeof level.worldHeight === "number") &&
     (level.worldTopPadding === undefined || typeof level.worldTopPadding === "number") &&
+    (level.worldTemplateId === undefined ||
+      level.worldTemplateId === null ||
+      typeof level.worldTemplateId === "string") &&
     typeof level.requiredOrbs === "number" &&
     typeof level.spawn?.x === "number" &&
     typeof level.spawn?.y === "number" &&
@@ -48,6 +51,7 @@ function mergeOrbMetadata(base: LevelDef | undefined, incoming: LevelDef): Level
   return {
     ...incoming,
     worldTopPadding: incoming.worldTopPadding ?? base.worldTopPadding,
+    worldTemplateId: incoming.worldTemplateId ?? base.worldTemplateId ?? null,
     orbs: incoming.orbs.map((orb) => {
       const previous = base.orbs.find((item) => item.id === orb.id);
       return {

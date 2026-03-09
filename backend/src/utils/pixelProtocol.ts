@@ -20,6 +20,8 @@ type PixelProtocolPlatformLike = {
 type PixelProtocolLevelLike = {
   platforms?: unknown;
   worldHeight?: unknown;
+  worldTopPadding?: unknown;
+  worldTemplateId?: unknown;
   decorations?: unknown;
 } & Record<string, unknown>;
 
@@ -129,6 +131,16 @@ export function normalizePixelProtocolLevelDefinition<T extends PixelProtocolLev
       level.worldHeight >= DEFAULT_WORLD_HEIGHT
         ? Math.round(level.worldHeight)
         : DEFAULT_WORLD_HEIGHT,
+    worldTopPadding:
+      typeof level.worldTopPadding === "number" &&
+      Number.isFinite(level.worldTopPadding) &&
+      level.worldTopPadding >= 0
+        ? Math.round(level.worldTopPadding)
+        : 0,
+    worldTemplateId:
+      typeof level.worldTemplateId === "string" && level.worldTemplateId.trim().length > 0
+        ? level.worldTemplateId.trim()
+        : null,
     decorations: Array.isArray(level.decorations)
       ? level.decorations.map((decoration) =>
           decoration && typeof decoration === "object"

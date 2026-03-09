@@ -192,6 +192,7 @@ export type LevelDef = {
   worldWidth: number;
   worldHeight?: number;
   worldTopPadding?: number;
+  worldTemplateId?: string | null;
   requiredOrbs: number;
   spawn: { x: number; y: number };
   portal: { x: number; y: number };
@@ -200,6 +201,16 @@ export type LevelDef = {
   orbs: DataOrb[];
   enemies: Enemy[];
   decorations?: DecorationDef[];
+};
+
+export type WorldTemplate = {
+  id: string;
+  name: string;
+  worldWidth: number;
+  worldHeight?: number;
+  worldTopPadding?: number;
+  decorations: DecorationDef[];
+  updatedAt?: string | null;
 };
 
 export type Player = {

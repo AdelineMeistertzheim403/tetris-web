@@ -462,6 +462,8 @@ export const pixelProtocolLevelSchema = z.object({
   name: z.string().trim().min(1).max(120),
   worldWidth: intWithin(1, 200_000),
   worldHeight: intWithin(8 * 32, 200_000).optional(),
+  worldTopPadding: intWithin(0, 20_000).optional(),
+  worldTemplateId: z.string().trim().min(1).max(120).nullable().optional(),
   requiredOrbs: intWithin(0, 999),
   spawn: z.object({
     x: pixelCoordSchema,
@@ -476,6 +478,15 @@ export const pixelProtocolLevelSchema = z.object({
   orbs: z.array(pixelProtocolOrbSchema).max(5_000),
   enemies: z.array(pixelProtocolEnemySchema).max(2_000),
   decorations: z.array(pixelProtocolDecorationSchema).max(5_000).optional(),
+});
+
+export const pixelProtocolWorldTemplateSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(120),
+  worldWidth: intWithin(1, 200_000),
+  worldHeight: intWithin(8 * 32, 200_000).optional(),
+  worldTopPadding: intWithin(0, 20_000).optional(),
+  decorations: z.array(pixelProtocolDecorationSchema).max(5_000),
 });
 
 export const pixelProtocolProgressSchema = z.object({

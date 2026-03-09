@@ -6,6 +6,7 @@ import { requireAdmin } from "../middleware/admin.middleware";
 import {
   pixelProtocolLevelSchema,
   pixelProtocolProgressSchema,
+  pixelProtocolWorldTemplateSchema,
 } from "../utils/validation";
 import { normalizePixelProtocolLevelDefinition } from "../utils/pixelProtocol";
 import { logger } from "../logger";
@@ -218,6 +219,33 @@ router.get("/custom-levels", verifyToken, async (req: AuthRequest, res: Response
   }
 });
 
+router.get("/world-templates", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const rows = await prisma.pixelProtocolWorldTemplate.findMany({
+      where: { userId },
+      orderBy: [{ updatedAt: "desc" }, { templateId: "desc" }],
+      select: { definition: true },
+    });
+
+    return res.json({
+      worlds: rows
+        .map((row) => {
+          const def = getJsonObject(row.definition);
+          return def ? normalizePixelProtocolLevelDefinition(def) : null;
+        })
+        .filter(Boolean),
+    });
+  } catch (err) {
+    logger.error({ err }, "Erreur chargement mondes custom Pixel Protocol");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 router.post("/custom-levels", verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -264,6 +292,56 @@ router.post("/custom-levels", verifyToken, async (req: AuthRequest, res: Respons
     });
   } catch (err) {
     logger.error({ err }, "Erreur sauvegarde niveau custom Pixel Protocol");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.post("/world-templates", verifyToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifie" });
+    }
+
+    const parsed = pixelProtocolWorldTemplateSchema.safeParse(req.body?.world);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Donnees invalides",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const world = normalizePixelProtocolLevelDefinition(parsed.data);
+
+    const saved = await prisma.pixelProtocolWorldTemplate.upsert({
+      where: {
+        userId_templateId: {
+          userId,
+          templateId: world.id,
+        },
+      },
+      update: {
+        definition: world as Prisma.InputJsonValue,
+      },
+      create: {
+        userId,
+        templateId: world.id,
+        definition: world as Prisma.InputJsonValue,
+      },
+      select: {
+        definition: true,
+        updatedAt: true,
+      },
+    });
+
+    return res.json({
+      world: normalizePixelProtocolLevelDefinition(
+        (getJsonObject(saved.definition) ?? {}) as Record<string, unknown>
+      ),
+      updatedAt: saved.updatedAt,
+    });
+  } catch (err) {
+    logger.error({ err }, "Erreur sauvegarde monde custom Pixel Protocol");
     return res.status(500).json({ error: "Erreur serveur" });
   }
 });
@@ -336,6 +414,33 @@ router.delete(
       return res.json({ success: true });
     } catch (err) {
       logger.error({ err }, "Erreur suppression niveau custom Pixel Protocol");
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+  }
+);
+
+router.delete(
+  "/world-templates/:templateId",
+  verifyToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Utilisateur non authentifie" });
+      }
+
+      const templateId = (req.params.templateId ?? "").trim();
+      if (!templateId) {
+        return res.status(400).json({ error: "Identifiant de monde manquant" });
+      }
+
+      await prisma.pixelProtocolWorldTemplate.deleteMany({
+        where: { userId, templateId },
+      });
+
+      return res.json({ success: true });
+    } catch (err) {
+      logger.error({ err }, "Erreur suppression monde custom Pixel Protocol");
       return res.status(500).json({ error: "Erreur serveur" });
     }
   }
