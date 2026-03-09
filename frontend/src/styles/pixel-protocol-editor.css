@@ -320,9 +320,15 @@
 
 .pp-editor-mini-tag--stable { border-color: #40d6ff88; color: #9eecff; }
 .pp-editor-mini-tag--unstable { border-color: #ff7a6688; color: #ffc2b8; }
+.pp-editor-mini-tag--moving { border-color: #58e6ff88; color: #d7fbff; }
 .pp-editor-mini-tag--rotating { border-color: #9c7fff88; color: #d7c8ff; }
 .pp-editor-mini-tag--glitch { border-color: #ff47c688; color: #ffb8eb; }
 .pp-editor-mini-tag--bounce { border-color: #6bff9e88; color: #c5ffd8; }
+.pp-editor-mini-tag--boost { border-color: #afff6288; color: #e4ffc5; }
+.pp-editor-mini-tag--corrupted { border-color: #a84a7a88; color: #ffc7e2; }
+.pp-editor-mini-tag--magnetic { border-color: #47d8cb88; color: #cbfff8; }
+.pp-editor-mini-tag--ice { border-color: #95deff88; color: #e1f7ff; }
+.pp-editor-mini-tag--gravity { border-color: #9f8dff88; color: #ddd5ff; }
 .pp-editor-mini-tag--grapplable { border-color: #57f6ff88; color: #c9fcff; }
 .pp-editor-mini-tag--armored { border-color: #8a95a188; color: #d5dde4; }
 .pp-editor-mini-tag--hackable { border-color: #ffd25288; color: #fff0b3; }
@@ -379,7 +385,9 @@
 }
 
 .pp-editor-form-grid input,
-.pp-editor-inline-fields input {
+.pp-editor-form-grid select,
+.pp-editor-inline-fields input,
+.pp-editor-inline-fields select {
   width: 100%;
   border: 1px solid #2fdcff66;
   background: rgba(3, 6, 15, 0.9);
@@ -518,6 +526,15 @@
   right: 0;
   background: linear-gradient(180deg, #29435d 0%, #182a3a 100%);
   border-top: 2px solid #58ddff66;
+}
+
+.pp-editor-top-padding {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed rgba(125, 232, 255, 0.4);
+  box-shadow: 0 0 12px rgba(89, 226, 255, 0.18);
+  pointer-events: none;
 }
 
 .pp-editor-spawn,

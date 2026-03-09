@@ -2,9 +2,15 @@ export type Tetromino = "I" | "O" | "T" | "L" | "J" | "S" | "Z";
 export type PlatformType =
   | "stable"
   | "unstable"
+  | "moving"
   | "rotating"
   | "glitch"
   | "bounce"
+  | "boost"
+  | "corrupted"
+  | "magnetic"
+  | "ice"
+  | "gravity"
   | "grapplable"
   | "armored"
   | "hackable";
@@ -43,6 +49,10 @@ export type PlatformDef = {
   rotation?: 0 | 1 | 2 | 3;
   type: PlatformType;
   rotateEveryMs?: number;
+  moveAxis?: "x" | "y";
+  movePattern?: "pingpong" | "loop";
+  moveRangeTiles?: number;
+  moveSpeed?: number;
 };
 
 export type DataOrb = {
@@ -80,6 +90,8 @@ export type LevelDef = {
   world: number;
   name: string;
   worldWidth: number;
+  worldHeight?: number;
+  worldTopPadding?: number;
   requiredOrbs: number;
   spawn: { x: number; y: number };
   portal: { x: number; y: number };
@@ -115,6 +127,13 @@ export type Player = {
   grappleTargetX: number | null;
   grappleTargetY: number | null;
   grappleLandY: number | null;
+  grapplePlatformId: string | null;
+  grappleAttachSide: "left" | "right" | null;
+  groundPlatformId: string | null;
+  groundedSurface: PlatformType | null;
+  gravityInvertedUntil: number;
+  corruptedUntil: number;
+  corruptedDamageCooldownUntil: number;
 };
 
 // Les plateformes runtime portent un etat temporaire qui ne doit jamais revenir dans les donnees de niveau.
@@ -127,6 +146,12 @@ export type RuntimePlatform = PlatformDef & {
   nextRotateAt: number;
   expiresAt: number | null;
   temporary: boolean;
+  moveOriginX: number;
+  moveOriginY: number;
+  moveProgress: number;
+  moveDirection: 1 | -1;
+  prevX: number;
+  prevY: number;
 };
 
 export type GrappleAnchor = {
@@ -134,6 +159,7 @@ export type GrappleAnchor = {
   y: number;
   landY: number;
   platformId: string;
+  attachSide: "top" | "left" | "right";
 };
 
 export type PlayerHistoryEntry = {
@@ -177,6 +203,8 @@ export type Rect = {
 export type InputSnapshot = {
   left: boolean;
   right: boolean;
+  up: boolean;
+  down: boolean;
   wantJump: boolean;
   wantDash: boolean;
   wantHack: boolean;

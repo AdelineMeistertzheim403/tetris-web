@@ -3,7 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { PixelProtocolControlsPanel } from "../components/PixelProtocolControlsPanel";
 import { PixelProtocolInfoPanel } from "../components/PixelProtocolInfoPanel";
 import { PixelProtocolWorld } from "../components/PixelProtocolWorld";
-import { PLATFORM_CLASS, TILE, WORLD_H } from "../constants";
+import {
+  DEFAULT_WORLD_TOP_PADDING,
+  MOVING_DEFAULT_AXIS,
+  MOVING_DEFAULT_PATTERN,
+  MOVING_DEFAULT_RANGE_TILES,
+  MOVING_DEFAULT_SPEED,
+  PLATFORM_CLASS,
+  TILE,
+  WORLD_H,
+} from "../constants";
 import { platformRenderData, validatePlatformLayout } from "../editorUtils";
 import { usePixelProtocolGame } from "../hooks/usePixelProtocolGame";
 import { abilityFlags } from "../logic";
@@ -38,19 +47,31 @@ import "../../../styles/pixel-protocol.css";
 import "../../../styles/pixel-protocol-editor.css";
 
 const EDITOR_TILE = 22;
-const WORLD_ROWS = WORLD_H / TILE;
+const MIN_WORLD_TILES = 12;
+const MIN_WORLD_ROWS = WORLD_H / TILE;
+const PORTAL_RIGHT_PADDING = TILE * 6;
+const PORTAL_W = 34;
+const PLAYER_W = 24;
 const TETROMINOS: Tetromino[] = ["I", "O", "T", "L", "J", "S", "Z"];
 const PLATFORM_TYPES: PlatformType[] = [
   "stable",
   "bounce",
+  "boost",
   "unstable",
+  "moving",
   "rotating",
   "glitch",
+  "corrupted",
+  "magnetic",
+  "ice",
+  "gravity",
   "grapplable",
   "armored",
   "hackable",
 ];
 const DEFAULT_ROTATE_EVERY_MS = 1800;
+const MOVING_AXES = ["x", "y"] as const;
+const MOVING_PATTERNS = ["pingpong", "loop"] as const;
 const ORB_AFFINITIES: DataOrbAffinity[] = ["standard", "blue", "red", "green", "purple"];
 const PIXEL_SKILLS: PixelSkill[] = [
   "DATA_GRAPPLE",
@@ -67,6 +88,8 @@ const TEMPLATE_BASE: LevelDef = {
   world: 1,
   name: "Nouveau niveau",
   worldWidth: 30 * TILE,
+  worldHeight: WORLD_H,
+  worldTopPadding: DEFAULT_WORLD_TOP_PADDING,
   requiredOrbs: 3,
   spawn: { x: 96, y: 450 },
   portal: { x: 960, y: 260 },
@@ -132,6 +155,68 @@ type DragState =
       candidateTileX: number;
       candidateTileY: number;
     };
+
+function getLevelWorldHeight(level: Pick<LevelDef, "worldHeight">) {
+  if (
+    typeof level.worldHeight === "number" &&
+    Number.isFinite(level.worldHeight) &&
+    level.worldHeight >= TILE * MIN_WORLD_ROWS
+  ) {
+    return Math.round(level.worldHeight);
+  }
+  return WORLD_H;
+}
+
+function getLevelWorldTopPadding(level: Pick<LevelDef, "worldTopPadding">) {
+  if (
+    typeof level.worldTopPadding === "number" &&
+    Number.isFinite(level.worldTopPadding) &&
+    level.worldTopPadding >= 0
+  ) {
+    return Math.round(level.worldTopPadding);
+  }
+  return DEFAULT_WORLD_TOP_PADDING;
+}
+
+function computeAutoWorldWidth(level: LevelDef) {
+  let rightMostX = Math.max(level.portal.x + PORTAL_W, level.spawn.x + PLAYER_W);
+
+  for (const checkpoint of level.checkpoints) {
+    rightMostX = Math.max(rightMostX, checkpoint.x + 12);
+  }
+  for (const orb of level.orbs) {
+    rightMostX = Math.max(rightMostX, orb.x + 18);
+  }
+  for (const enemy of level.enemies) {
+    rightMostX = Math.max(rightMostX, enemy.maxX + 26);
+  }
+
+  const rendered = platformRenderData(level);
+  for (const { bounds } of rendered) {
+    if (!bounds) continue;
+    rightMostX = Math.max(rightMostX, bounds.left + bounds.width);
+  }
+
+  const requiredTiles = Math.max(
+    MIN_WORLD_TILES,
+    Math.ceil((rightMostX + PORTAL_RIGHT_PADDING) / TILE)
+  );
+  return requiredTiles * TILE;
+}
+
+function withAutoWorldBounds(level: LevelDef): LevelDef {
+  const nextWidth = computeAutoWorldWidth(level);
+  const nextHeight = getLevelWorldHeight(level);
+  const nextTopPadding = getLevelWorldTopPadding(level);
+  if (
+    nextWidth === level.worldWidth &&
+    nextHeight === getLevelWorldHeight(level) &&
+    nextTopPadding === level.worldTopPadding
+  ) {
+    return level;
+  }
+  return { ...level, worldWidth: nextWidth, worldHeight: nextHeight, worldTopPadding: nextTopPadding };
+}
 
 function parseStage(id: string) {
   const match = id.match(/w\d+-(\d+)/i);
@@ -259,6 +344,28 @@ function normalizeTileOffset(value: number) {
   return ((value % TILE) + TILE) % TILE;
 }
 
+function normalizePlatformSettings(platform: PlatformDef): PlatformDef {
+  const next =
+    platform.type === "rotating" && !platform.rotateEveryMs
+      ? { ...platform, rotateEveryMs: DEFAULT_ROTATE_EVERY_MS }
+      : platform;
+
+  if (next.type !== "moving") return next;
+  return {
+    ...next,
+    moveAxis: next.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
+    movePattern: next.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
+    moveRangeTiles:
+      typeof next.moveRangeTiles === "number" && next.moveRangeTiles > 0
+        ? Math.round(next.moveRangeTiles)
+        : MOVING_DEFAULT_RANGE_TILES,
+    moveSpeed:
+      typeof next.moveSpeed === "number" && next.moveSpeed > 0
+        ? Math.round(next.moveSpeed)
+        : MOVING_DEFAULT_SPEED,
+  };
+}
+
 function applyDragPreview(level: LevelDef, dragState: DragState | null): LevelDef {
   if (!dragState) return level;
 
@@ -273,13 +380,13 @@ function applyDragPreview(level: LevelDef, dragState: DragState | null): LevelDe
   }
 
   if (dragState.kind === "portal") {
-    return {
+    return withAutoWorldBounds({
       ...level,
       portal: {
         x: dragState.candidateTileX * TILE + dragState.offsetX,
         y: dragState.candidateTileY * TILE + dragState.offsetY,
       },
-    };
+    });
   }
 
   if (dragState.kind === "platform") {
@@ -331,6 +438,7 @@ function PixelProtocolDraftPreview({
     playerRunFrame,
     playerSprite,
     portalOpen,
+    grapplePreview,
     resetLevel,
     runtime,
   } = usePixelProtocolGame([level]);
@@ -365,6 +473,7 @@ function PixelProtocolDraftPreview({
           playerRunFrame={playerRunFrame}
           playerSprite={playerSprite}
           portalOpen={portalOpen}
+          grapplePreview={grapplePreview}
           runtime={runtime}
         />
         <PixelProtocolControlsPanel
@@ -382,11 +491,13 @@ export default function PixelProtocolEditor() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
-  const draftLevelRef = useRef<LevelDef>(TEMPLATE_BASE);
+  const draftLevelRef = useRef<LevelDef>(withAutoWorldBounds(TEMPLATE_BASE));
   const dragStateRef = useRef<DragState | null>(null);
 
   const [levels, setLevels] = useState<EditorStoredLevel[]>([]);
-  const [draftLevel, setDraftLevel] = useState<LevelDef>(TEMPLATE_BASE);
+  const [draftLevel, setDraftLevel] = useState<LevelDef>(() =>
+    withAutoWorldBounds(TEMPLATE_BASE)
+  );
   const [published, setPublished] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
@@ -442,7 +553,11 @@ export default function PixelProtocolEditor() {
       ? draftLevel.enemies.find((enemy) => enemy.id === selection.id) ?? null
       : null;
 
-  const worldTiles = Math.max(12, Math.round(draftLevel.worldWidth / TILE));
+  const worldTiles = Math.max(MIN_WORLD_TILES, Math.round(displayedLevel.worldWidth / TILE));
+  const worldRows = Math.max(MIN_WORLD_ROWS, Math.round(getLevelWorldHeight(displayedLevel) / TILE));
+  const topPaddingRows = Math.max(0, Math.round(getLevelWorldTopPadding(displayedLevel) / TILE));
+  const editorTotalRows = worldRows + topPaddingRows;
+  const editorYOffset = topPaddingRows * EDITOR_TILE;
   const abilities = abilityFlags(displayedLevel.world);
   const readonlyJson = useMemo(() => JSON.stringify(draftLevel, null, 2), [draftLevel]);
   const canDeleteSelection =
@@ -450,6 +565,8 @@ export default function PixelProtocolEditor() {
     selection?.kind === "checkpoint" ||
     selection?.kind === "orb" ||
     selection?.kind === "enemy";
+  const validationWarnings = validation.issues.filter((issue) => issue.severity === "warning");
+  const validationErrors = validation.issues.filter((issue) => issue.severity === "error");
 
   const resetMessages = () => {
     setStatus(null);
@@ -457,8 +574,9 @@ export default function PixelProtocolEditor() {
   };
 
   const applyDraftLevel = (nextLevel: LevelDef, nextSelection: Selection = selection) => {
-    const nextValidation = validatePlatformLayout(nextLevel);
-    setDraftLevel(nextLevel);
+    const normalizedLevel = withAutoWorldBounds(nextLevel);
+    const nextValidation = validatePlatformLayout(normalizedLevel);
+    setDraftLevel(normalizedLevel);
     setSelection(nextSelection);
     setStatus(null);
     setError(nextValidation.isValid ? null : nextValidation.issues[0]?.message ?? null);
@@ -466,7 +584,9 @@ export default function PixelProtocolEditor() {
   };
 
   const selectLevel = (level: EditorStoredLevel) => {
-    const cleanLevel = isAdmin ? stripAdminFields(level as PixelProtocolAdminLevel) : level;
+    const cleanLevel = withAutoWorldBounds(
+      isAdmin ? stripAdminFields(level as PixelProtocolAdminLevel) : level
+    );
     setSelectedId(level.id);
     setPublished(level.active ?? false);
     setDraftLevel(cleanLevel);
@@ -488,7 +608,7 @@ export default function PixelProtocolEditor() {
         const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
         setPublished(isAdmin);
-        setDraftLevel(fresh);
+        setDraftLevel(withAutoWorldBounds(fresh));
         setSelection(null);
       }
     } catch (err) {
@@ -500,7 +620,7 @@ export default function PixelProtocolEditor() {
         if (local.length > 0) {
           selectLevel(local[0]);
         } else {
-          setDraftLevel(makeNewLevel([], false));
+          setDraftLevel(withAutoWorldBounds(makeNewLevel([], false)));
           setSelection(null);
         }
         setError("Mode hors ligne: niveaux custom locaux utilises.");
@@ -525,7 +645,7 @@ export default function PixelProtocolEditor() {
       const localY = clientY - rect.top + scroller.scrollTop;
       return {
         x: Math.max(0, Math.floor(localX / EDITOR_TILE)),
-        y: Math.max(0, Math.floor(localY / EDITOR_TILE)),
+        y: Math.max(0, Math.floor(localY / EDITOR_TILE) - topPaddingRows),
       };
     };
 
@@ -570,7 +690,7 @@ export default function PixelProtocolEditor() {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [dragState, selection]);
+  }, [dragState, selection, topPaddingRows]);
 
   const save = async (forceActive?: boolean) => {
     const layoutValidation = validatePlatformLayout(draftLevel);
@@ -584,12 +704,16 @@ export default function PixelProtocolEditor() {
       let savedLevel: LevelDef;
       if (isAdmin) {
         const saved = await savePixelProtocolLevel(draftLevel, active);
-        setLevels((prev) => sortAdminLevels([saved, ...prev.filter((lvl) => lvl.id !== saved.id)]));
-        setSelectedId(saved.id);
-        setPublished(saved.active);
-        setDraftLevel(stripAdminFields(saved));
+        const normalizedSaved = {
+          ...saved,
+          worldTopPadding: saved.worldTopPadding ?? draftLevel.worldTopPadding,
+        };
+        setLevels((prev) => sortAdminLevels([normalizedSaved, ...prev.filter((lvl) => lvl.id !== normalizedSaved.id)]));
+        setSelectedId(normalizedSaved.id);
+        setPublished(normalizedSaved.active);
+        setDraftLevel(stripAdminFields(normalizedSaved));
         setStatus(active ? "Niveau publie." : "Niveau sauvegarde en brouillon.");
-        savedLevel = stripAdminFields(saved);
+        savedLevel = stripAdminFields(normalizedSaved);
       } else {
         const merged = upsertPixelProtocolCustomLevel(draftLevel);
         setLevels(merged);
@@ -599,10 +723,22 @@ export default function PixelProtocolEditor() {
         savedLevel = draftLevel;
         try {
           const remoteSaved = await savePixelProtocolCustomLevel(draftLevel);
-          const synced = upsertPixelProtocolCustomLevel(remoteSaved);
+          const mergedRemote: LevelDef = {
+            ...remoteSaved,
+            worldTopPadding: remoteSaved.worldTopPadding ?? draftLevel.worldTopPadding,
+            orbs: remoteSaved.orbs.map((orb) => {
+              const draftOrb = draftLevel.orbs.find((item) => item.id === orb.id);
+              return {
+                ...orb,
+                affinity: orb.affinity ?? draftOrb?.affinity ?? "standard",
+                grantsSkill: orb.grantsSkill ?? draftOrb?.grantsSkill ?? null,
+              };
+            }),
+          };
+          const synced = upsertPixelProtocolCustomLevel(mergedRemote);
           setLevels(synced);
-          setDraftLevel(remoteSaved);
-          savedLevel = remoteSaved;
+          setDraftLevel(mergedRemote);
+          savedLevel = mergedRemote;
           setStatus("Niveau custom sauvegarde.");
         } catch {
           setStatus("Niveau custom sauvegarde localement.");
@@ -640,7 +776,7 @@ export default function PixelProtocolEditor() {
         const fresh = makeNewLevel([], isAdmin);
         setSelectedId(null);
         setPublished(isAdmin);
-        setDraftLevel(fresh);
+        setDraftLevel(withAutoWorldBounds(fresh));
         setSelection(null);
       }
     } catch (err) {
@@ -652,14 +788,26 @@ export default function PixelProtocolEditor() {
     const fresh = makeNewLevel(levels, isAdmin);
     setSelectedId(null);
     setPublished(false);
-    setDraftLevel(fresh);
+    setDraftLevel(withAutoWorldBounds(fresh));
     setSelection(null);
     setPreviewLevel(null);
     resetMessages();
   };
 
   const setLevelField = <K extends keyof LevelDef>(field: K, value: LevelDef[K]) => {
-    applyDraftLevel({ ...draftLevel, [field]: value });
+    const next = { ...draftLevel, [field]: value };
+    if (
+      field === "portal" ||
+      field === "spawn" ||
+      field === "platforms" ||
+      field === "checkpoints" ||
+      field === "orbs" ||
+      field === "enemies"
+    ) {
+      applyDraftLevel(withAutoWorldBounds(next));
+      return;
+    }
+    applyDraftLevel(next);
   };
 
   const handleAddPlatform = () => {
@@ -679,8 +827,9 @@ export default function PixelProtocolEditor() {
           x: 6,
           y: 14,
         };
+    const normalizedPlatform = normalizePlatformSettings(basePlatform);
     applyDraftLevel(
-      { ...draftLevel, platforms: [...draftLevel.platforms, basePlatform] },
+      { ...draftLevel, platforms: [...draftLevel.platforms, normalizedPlatform] },
       { kind: "platform", id: newId }
     );
   };
@@ -736,13 +885,7 @@ export default function PixelProtocolEditor() {
     applyDraftLevel(
       updatePlatform(draftLevel, selectedPlatform.id, (platform) => {
         const nextPlatform = updater(platform);
-        if (nextPlatform.type === "rotating" && !nextPlatform.rotateEveryMs) {
-          return {
-            ...nextPlatform,
-            rotateEveryMs: DEFAULT_ROTATE_EVERY_MS,
-          };
-        }
-        return nextPlatform;
+        return normalizePlatformSettings(nextPlatform);
       }),
       selection
     );
@@ -769,13 +912,14 @@ export default function PixelProtocolEditor() {
     if (!scroller) return;
     const rect = scroller.getBoundingClientRect();
     const tileX = Math.floor((event.clientX - rect.left + scroller.scrollLeft) / EDITOR_TILE);
-    const tileY = Math.floor((event.clientY - rect.top + scroller.scrollTop) / EDITOR_TILE);
+    const tileY =
+      Math.floor((event.clientY - rect.top + scroller.scrollTop) / EDITOR_TILE) - topPaddingRows;
     setSelection({ kind: "platform", id: platform.id });
     setDragState({
       kind: "platform",
       id: platform.id,
       offsetX: tileX - platform.x,
-      offsetY: tileY - platform.y,
+      offsetY: Math.max(0, tileY) - platform.y,
       candidateTileX: platform.x,
       candidateTileY: platform.y,
     });
@@ -1048,12 +1192,38 @@ export default function PixelProtocolEditor() {
               <span>Largeur (tuiles)</span>
               <input
                 type="number"
-                min={12}
+                min={MIN_WORLD_TILES}
                 max={180}
                 value={worldTiles}
                 onChange={(event) => {
-                  const tiles = Math.max(12, Number(event.target.value) || 12);
+                  const tiles = Math.max(MIN_WORLD_TILES, Number(event.target.value) || MIN_WORLD_TILES);
                   setLevelField("worldWidth", tiles * TILE);
+                }}
+              />
+            </label>
+            <label>
+              <span>Hauteur (tuiles)</span>
+              <input
+                type="number"
+                min={MIN_WORLD_ROWS}
+                max={80}
+                value={worldRows}
+                onChange={(event) => {
+                  const rows = Math.max(MIN_WORLD_ROWS, Number(event.target.value) || MIN_WORLD_ROWS);
+                  setLevelField("worldHeight", rows * TILE);
+                }}
+              />
+            </label>
+            <label>
+              <span>Marge haute (tuiles)</span>
+              <input
+                type="number"
+                min={0}
+                max={24}
+                value={topPaddingRows}
+                onChange={(event) => {
+                  const rows = Math.max(0, Number(event.target.value) || 0);
+                  setLevelField("worldTopPadding", rows * TILE);
                 }}
               />
             </label>
@@ -1169,27 +1339,27 @@ export default function PixelProtocolEditor() {
               <div ref={boardScrollRef} className="pp-editor-world-scroll">
                 <div
                   className="pp-editor-world"
-                  style={{ width: worldTiles * EDITOR_TILE, height: WORLD_ROWS * EDITOR_TILE }}
+                  style={{ width: worldTiles * EDITOR_TILE, height: editorTotalRows * EDITOR_TILE }}
                 >
-                  <svg className="pp-editor-links" width={worldTiles * EDITOR_TILE} height={WORLD_ROWS * EDITOR_TILE}>
+                  <svg className="pp-editor-links" width={worldTiles * EDITOR_TILE} height={editorTotalRows * EDITOR_TILE}>
                     {validation.links.map((link, index) => {
                       const from =
                         link.from.kind === "spawn"
                           ? {
                               x: (displayedLevel.spawn.x / TILE) * EDITOR_TILE + 10,
-                              y: (displayedLevel.spawn.y / TILE) * EDITOR_TILE + 10,
+                              y: (displayedLevel.spawn.y / TILE) * EDITOR_TILE + editorYOffset + 10,
                             }
                           : platformCenterMap.get(link.from.platformId)
                             ? {
                                 x: (platformCenterMap.get(link.from.platformId)!.x / TILE) * EDITOR_TILE,
-                                y: (platformCenterMap.get(link.from.platformId)!.y / TILE) * EDITOR_TILE,
+                                y: (platformCenterMap.get(link.from.platformId)!.y / TILE) * EDITOR_TILE + editorYOffset,
                               }
                             : null;
                       const toCenter = platformCenterMap.get(link.to.platformId);
                       const to = toCenter
                         ? {
                             x: (toCenter.x / TILE) * EDITOR_TILE,
-                            y: (toCenter.y / TILE) * EDITOR_TILE,
+                            y: (toCenter.y / TILE) * EDITOR_TILE + editorYOffset,
                           }
                         : null;
                       if (!from || !to) return null;
@@ -1197,9 +1367,16 @@ export default function PixelProtocolEditor() {
                     })}
                   </svg>
 
+                  {topPaddingRows > 0 && (
+                    <div
+                      className="pp-editor-top-padding"
+                      style={{ top: editorYOffset - 2, height: 2 }}
+                    />
+                  )}
+
                   <div
                     className="pp-editor-ground"
-                    style={{ top: (WORLD_ROWS - 1) * EDITOR_TILE, height: EDITOR_TILE }}
+                    style={{ top: (editorTotalRows - 1) * EDITOR_TILE, height: EDITOR_TILE }}
                   />
 
                   <button
@@ -1209,7 +1386,7 @@ export default function PixelProtocolEditor() {
                     } ${dragState?.kind === "spawn" ? "is-dragging" : ""}`}
                     style={{
                       left: (displayedLevel.spawn.x / TILE) * EDITOR_TILE,
-                      top: (displayedLevel.spawn.y / TILE) * EDITOR_TILE,
+                      top: (displayedLevel.spawn.y / TILE) * EDITOR_TILE + editorYOffset,
                     }}
                     onPointerDown={startSpawnDrag}
                     onClick={() => setSelection({ kind: "spawn" })}
@@ -1223,7 +1400,7 @@ export default function PixelProtocolEditor() {
                     } ${dragState?.kind === "portal" ? "is-dragging" : ""}`}
                     style={{
                       left: (displayedLevel.portal.x / TILE) * EDITOR_TILE,
-                      top: (displayedLevel.portal.y / TILE) * EDITOR_TILE,
+                      top: (displayedLevel.portal.y / TILE) * EDITOR_TILE + editorYOffset,
                     }}
                     onPointerDown={startPortalDrag}
                     onClick={() => setSelection({ kind: "portal" })}
@@ -1246,7 +1423,7 @@ export default function PixelProtocolEditor() {
                         bounds
                           ? {
                               left: (bounds.left / TILE) * EDITOR_TILE,
-                              top: (bounds.top / TILE) * EDITOR_TILE,
+                              top: (bounds.top / TILE) * EDITOR_TILE + editorYOffset,
                               width: (bounds.width / TILE) * EDITOR_TILE,
                               height: (bounds.height / TILE) * EDITOR_TILE,
                             }
@@ -1285,7 +1462,7 @@ export default function PixelProtocolEditor() {
                       }`}
                       style={{
                         left: (checkpoint.x / TILE) * EDITOR_TILE,
-                        top: (checkpoint.y / TILE) * EDITOR_TILE,
+                        top: (checkpoint.y / TILE) * EDITOR_TILE + editorYOffset,
                       }}
                       onPointerDown={(event) => startCheckpointDrag(event, checkpoint)}
                       onClick={() => setSelection({ kind: "checkpoint", id: checkpoint.id })}
@@ -1303,7 +1480,7 @@ export default function PixelProtocolEditor() {
                       }`}
                       style={{
                         left: (orb.x / TILE) * EDITOR_TILE,
-                        top: (orb.y / TILE) * EDITOR_TILE,
+                        top: (orb.y / TILE) * EDITOR_TILE + editorYOffset,
                       }}
                       onPointerDown={(event) => startOrbDrag(event, orb)}
                       onClick={() => setSelection({ kind: "orb", id: orb.id })}
@@ -1321,7 +1498,7 @@ export default function PixelProtocolEditor() {
                       }`}
                       style={{
                         left: (enemy.x / TILE) * EDITOR_TILE,
-                        top: (enemy.y / TILE) * EDITOR_TILE,
+                        top: (enemy.y / TILE) * EDITOR_TILE + editorYOffset,
                       }}
                       onPointerDown={(event) => startEnemyDrag(event, enemy)}
                       onClick={() => setSelection({ kind: "enemy", id: enemy.id })}
@@ -1347,12 +1524,26 @@ export default function PixelProtocolEditor() {
               <div className="pp-editor-panel pp-editor-subpanel">
                 <h2>Validation</h2>
                 {validation.isValid ? (
-                  <div className="pp-editor-status success">
-                    Layout valide: toutes les plateformes sont atteignables.
-                  </div>
+                  <>
+                    <div className="pp-editor-status success">
+                      Layout valide: toutes les plateformes sont atteignables.
+                    </div>
+                    {validationWarnings.length > 0 && (
+                      <div className="pp-editor-issues">
+                        {validationWarnings.map((issue, index) => (
+                          <div
+                            key={`${issue.platformId ?? "warning"}-${index}`}
+                            className="pp-editor-issue"
+                          >
+                            {issue.message}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="pp-editor-issues">
-                    {validation.issues.map((issue, index) => (
+                    {validationErrors.map((issue, index) => (
                       <button
                         key={`${issue.platformId ?? "global"}-${index}`}
                         type="button"
@@ -1488,6 +1679,22 @@ export default function PixelProtocolEditor() {
                                 type === "rotating"
                                   ? platform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS
                                   : platform.rotateEveryMs,
+                              moveAxis:
+                                type === "moving"
+                                  ? platform.moveAxis ?? MOVING_DEFAULT_AXIS
+                                  : platform.moveAxis,
+                              movePattern:
+                                type === "moving"
+                                  ? platform.movePattern ?? MOVING_DEFAULT_PATTERN
+                                  : platform.movePattern,
+                              moveRangeTiles:
+                                type === "moving"
+                                  ? platform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES
+                                  : platform.moveRangeTiles,
+                              moveSpeed:
+                                type === "moving"
+                                  ? platform.moveSpeed ?? MOVING_DEFAULT_SPEED
+                                  : platform.moveSpeed,
                             }))
                           }
                         >
@@ -1553,6 +1760,80 @@ export default function PixelProtocolEditor() {
                           />
                         </label>
                       </div>
+                    )}
+                    {selectedPlatform.type === "moving" && (
+                      <>
+                        <div className="pp-editor-inline-fields">
+                          <label>
+                            <span>Axe</span>
+                            <select
+                              value={selectedPlatform.moveAxis ?? MOVING_DEFAULT_AXIS}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  moveAxis: event.target.value as (typeof MOVING_AXES)[number],
+                                }))
+                              }
+                            >
+                              {MOVING_AXES.map((axis) => (
+                                <option key={axis} value={axis}>
+                                  {axis}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span>Pattern</span>
+                            <select
+                              value={selectedPlatform.movePattern ?? MOVING_DEFAULT_PATTERN}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  movePattern: event.target.value as (typeof MOVING_PATTERNS)[number],
+                                }))
+                              }
+                            >
+                              {MOVING_PATTERNS.map((pattern) => (
+                                <option key={pattern} value={pattern}>
+                                  {pattern}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="pp-editor-inline-fields">
+                          <label>
+                            <span>Portee (tuiles)</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={24}
+                              value={selectedPlatform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  moveRangeTiles: Math.max(1, Number(event.target.value) || MOVING_DEFAULT_RANGE_TILES),
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            <span>Vitesse (px/s)</span>
+                            <input
+                              type="number"
+                              min={20}
+                              max={420}
+                              value={selectedPlatform.moveSpeed ?? MOVING_DEFAULT_SPEED}
+                              onChange={(event) =>
+                                handleSelectedPlatformChange((platform) => ({
+                                  ...platform,
+                                  moveSpeed: Math.max(20, Number(event.target.value) || MOVING_DEFAULT_SPEED),
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                      </>
                     )}
                   </>
                 )}

@@ -110,9 +110,15 @@ export default function PixelProtocolEditorHelp() {
           <ul>
             <li><strong>stable</strong>: plateforme standard, ideale pour la structure principale.</li>
             <li><strong>bounce</strong>: projette le joueur plus haut, utile pour les chaines verticales.</li>
+            <li><strong>boost</strong>: impulsion forte verticale + horizontale, utile pour des sections vitesse.</li>
             <li><strong>unstable</strong>: tombe apres activation, a utiliser avec moderation.</li>
+            <li><strong>moving</strong>: plateforme mobile (axe X/Y) avec pattern ping-pong ou loop.</li>
             <li><strong>rotating</strong>: change de rotation automatiquement selon le delai configure.</li>
             <li><strong>glitch</strong>: plateforme piegee ou perturbante, plutot pour augmenter la pression.</li>
+            <li><strong>corrupted</strong>: ralentit Pixel et applique un malus de corruption.</li>
+            <li><strong>magnetic</strong>: attire legerement Pixel pour faciliter les approches de saut.</li>
+            <li><strong>ice</strong>: friction reduite, controle plus glissant.</li>
+            <li><strong>gravity</strong>: inverse temporairement la gravite du joueur.</li>
             <li><strong>grapplable</strong>: seul type qui accepte le <strong>Data Grapple</strong>. Utilise-le pour rendre les points d'accroche lisibles et intentionnels.</li>
             <li><strong>armored</strong>: variante plus robuste visuellement, utile pour marquer les zones solides.</li>
             <li><strong>hackable</strong>: liee aux capacites avancees des mondes plus tardifs.</li>
