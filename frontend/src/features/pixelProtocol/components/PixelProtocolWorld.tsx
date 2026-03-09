@@ -15,7 +15,7 @@ import {
   levelWorldHeight,
   platformBlocks,
 } from "../logic";
-import type { GameRuntime, LevelDef } from "../types";
+import type { DecorationDef, GameRuntime, LevelDef } from "../types";
 
 type PixelProtocolWorldProps = {
   gameViewportRef: RefObject<HTMLElement | null>;
@@ -57,6 +57,7 @@ export function PixelProtocolWorld({
   const worldHeight = levelWorldHeight(level);
   const groundY = levelGroundY(level);
   const yOffset = levelTopPadding(level);
+  const decorations: DecorationDef[] = level.decorations ?? [];
   const orbStyle = (orb: GameRuntime["orbs"][number]) => {
     if (orb.grantsSkill) {
       const color =
@@ -94,7 +95,10 @@ export function PixelProtocolWorld({
         {decorations.map((decoration) => (
           <PixelProtocolDecoration
             key={decoration.id}
-            decoration={decoration}
+            decoration={{
+              ...decoration,
+              y: decoration.y + yOffset,
+            }}
           />
         ))}
 
