@@ -57,7 +57,7 @@ export default function PixelProtocolEditorHelp() {
           </div>
           <ol>
             <li><strong>1</strong>: charge, supprime ou joue un niveau custom deja cree.</li>
-            <li><strong>2</strong>: regroupe `ID`, `Nom`, `Monde`, `Largeur`, `Spawn`, `Portail` et peut etre replie.</li>
+            <li><strong>2</strong>: regroupe l'identite du niveau, les <strong>Dimensions gameplay</strong>, le <strong>Monde decoratif</strong> et les <strong>Objectifs / points clefs</strong>. Cette zone peut etre repliee.</li>
             <li><strong>3</strong>: ajoute rapidement plateformes, checkpoints, orbs et ennemis.</li>
             <li><strong>4</strong>: zone de travail principale avec drag and drop et visualisation du niveau.</li>
             <li><strong>5</strong>: resume l'etat du niveau, signale les erreurs et liste les elements presents.</li>
@@ -67,12 +67,21 @@ export default function PixelProtocolEditorHelp() {
 
         <HelpSection title="Flux conseille">
           <ol>
-            <li>Commence par regler l'id, le nom, le monde, la largeur et le nombre d'orbs requises.</li>
-            <li>Place d'abord le spawn joueur puis le portail de sortie.</li>
-            <li>Construis un chemin principal avec les plateformes stables avant d'ajouter les variantes speciales.</li>
-            <li>Ajoute ensuite checkpoints, orbs et ennemis pour rythmer la progression.</li>
+            <li>Depuis le hub Pixel Protocol, choisis d'abord <strong>Mode monde</strong> ou <strong>Mode niveau</strong>.</li>
+            <li>En <strong>Mode monde</strong>, cree ou modifie un decor reutilisable avec les decorations.</li>
+            <li>En <strong>Mode niveau</strong>, regle d'abord les <strong>Dimensions gameplay</strong>, puis choisis un monde dans <strong>Monde decoratif</strong>.</li>
+            <li>Place ensuite le spawn, le portail et les elements de gameplay sur cette base visuelle.</li>
             <li>Teste regulierement le niveau avec "Tester le niveau" puis corrige les alertes de validation.</li>
           </ol>
+        </HelpSection>
+
+        <HelpSection title="Dimensions gameplay vs decor">
+          <ul>
+            <li><strong>Dimensions gameplay</strong>: elles controlent le sol, la hauteur jouable et la marge camera du niveau.</li>
+            <li><strong>Monde decoratif</strong>: il applique les decors et la largeur visuelle du monde lie, sans redefinir la hauteur gameplay.</li>
+            <li><strong>Resume decoratif</strong>: le panneau affiche en lecture seule la largeur, la hauteur et la marge du decor selectionne.</li>
+            <li><strong>Warning largeur</strong>: si le decor est plus etroit que le niveau gameplay, l'editeur affiche maintenant une alerte.</li>
+          </ul>
         </HelpSection>
 
         <HelpSection title="Rendre le niveau valide">
@@ -123,6 +132,69 @@ export default function PixelProtocolEditorHelp() {
             <li><strong>armored</strong>: variante plus robuste visuellement, utile pour marquer les zones solides.</li>
             <li><strong>hackable</strong>: liee aux capacites avancees des mondes plus tardifs.</li>
           </ul>
+        </HelpSection>
+
+        <HelpSection title="Mode Monde (decorations)">
+          <ul>
+            <li><strong>Choix du mode</strong>: il se fait maintenant dans le <strong>hub Pixel Protocol</strong>, avant d'ouvrir l'editeur.</li>
+            <li><strong>Mode Niveau</strong>: edition gameplay (plateformes, checkpoints, orbs, ennemis).</li>
+            <li><strong>Mode Monde</strong>: edition des decors SVG (sans collision, purement visuel).</li>
+            <li><strong>Reutilisation</strong>: un monde sauvegarde peut ensuite etre choisi dans le mode niveau.</li>
+            <li><strong>Lien dynamique</strong>: un niveau reference son monde via <strong>Monde decoratif</strong>. Si le monde est modifie plus tard, le niveau recupere automatiquement le nouveau decor a l'execution.</li>
+            <li><strong>Decorations</strong>: chaque element peut etre deplace, redimensionne, colore, tourne, anime et passe entre les layers <strong>far/mid/near</strong>.</li>
+            <li><strong>Parallax simple</strong>: combine plusieurs layers avec opacites differentes pour creer de la profondeur.</li>
+            <li><strong>Performance</strong>: les SVG sont legers et editables sans exporter des images.</li>
+          </ul>
+        </HelpSection>
+
+        <HelpSection title="Creer un monde decoratif">
+          <ol>
+            <li>Depuis le hub, ouvre <strong>l'editeur custom</strong> ou <strong>admin</strong> en <strong>Mode monde</strong>.</li>
+            <li>Definis d'abord le cadre global: <strong>ID</strong>, <strong>Nom</strong>, <strong>Largeur</strong>, <strong>Hauteur</strong> et <strong>Marge haute</strong>.</li>
+            <li>Ajoute un fond avec des decorations de layer <strong>far</strong> pour poser l'ambiance generale.</li>
+            <li>Ajoute ensuite les structures visuelles en <strong>mid</strong>: flux de donnees, piliers, circuits, skyline.</li>
+            <li>Reserve le layer <strong>near</strong> aux elements forts lisibles a l'ecran: hubs, anneaux, oeil IA, glitchs, silhouettes tetromino.</li>
+            <li>Utilise les animations <strong>flow</strong>, <strong>pulse</strong> et <strong>glitch</strong> avec moderation pour garder une lecture claire.</li>
+            <li>Teste plusieurs opacites avant de sauvegarder: un monde trop charge masque la lisibilite du gameplay ensuite.</li>
+            <li>Une fois le monde sauvegarde, retourne en <strong>Mode niveau</strong> et selectionne-le dans <strong>Monde decoratif</strong>.</li>
+          </ol>
+        </HelpSection>
+
+        <HelpSection title="JSON d'exemple de monde">
+          <p>Plusieurs <strong>WorldTemplate</strong> d'exemple sont embarques directement dans l'editeur.</p>
+          <ul>
+            <li>Ils couvrent plusieurs ambiances: <strong>Neon Foundry</strong>, <strong>Glitch Cathedral</strong>, <strong>Data Archives</strong> et <strong>Apex Core</strong>.</li>
+            <li>Ils montrent differents usages des layers <strong>far</strong>, <strong>mid</strong> et <strong>near</strong>, ainsi que des animations, rotations, flips et opacites.</li>
+            <li>Tu peux t'en servir comme base pour comprendre la structure JSON d'un monde ou pour fabriquer un nouveau decor plus rapidement.</li>
+            <li>En <strong>Mode monde</strong>, en custom comme en admin, tu peux charger l'un de ces mondes avec les <strong>boutons d'exemple</strong>, importer un autre JSON avec l'icone <strong>fichier fleche vers le haut</strong>, puis exporter ton monde courant avec l'icone <strong>fichier fleche vers le bas</strong>.</li>
+          </ul>
+          <p>Themes disponibles :</p>
+          <ul>
+            <li><strong>Neon Foundry</strong>: forge neon / industrie numerique.</li>
+            <li><strong>Glitch Cathedral</strong>: vertical / sanctuaire corrompu.</li>
+            <li><strong>Data Archives</strong>: serveurs / techno propre.</li>
+            <li><strong>Apex Core</strong>: boss final / coeur IA.</li>
+          </ul>
+          <p>Structure minimale attendue :</p>
+          <pre>{`{
+  "id": "world-mon-exemple",
+  "name": "Mon Monde",
+  "worldWidth": 4096,
+  "worldHeight": 960,
+  "worldTopPadding": 192,
+  "decorations": [
+    {
+      "id": "dec-1",
+      "type": "grid_background",
+      "x": 0,
+      "y": 96,
+      "width": 512,
+      "height": 320,
+      "layer": "far",
+      "animation": "none"
+    }
+  ]
+}`}</pre>
         </HelpSection>
 
         <HelpSection title="Checkpoints, orbs et ennemis">
@@ -178,6 +250,9 @@ export default function PixelProtocolEditorHelp() {
             <span><i className="fa-solid fa-expand" /> affiche les parametres du niveau</span>
             <span><i className="fa-solid fa-compress" /> masque les parametres du niveau</span>
             <span><i className="fa-solid fa-floppy-disk" /> sauvegarde le niveau courant</span>
+            <span><i className="fa-solid fa-wand-magic-sparkles" /> charge le monde decoratif d'exemple dans le mode monde</span>
+            <span><i className="fa-solid fa-file-arrow-up" /> importe un monde JSON dans le mode monde</span>
+            <span><i className="fa-solid fa-file-arrow-down" /> exporte le monde courant en JSON</span>
             <span><i className="fa-solid fa-vial-circle-check" /> lance un test local du niveau</span>
             <span><i className="fa-solid fa-play" /> joue le niveau custom selectionne</span>
             <span><i className="fa-solid fa-cubes" /> ajoute une nouvelle plateforme</span>
@@ -189,6 +264,14 @@ export default function PixelProtocolEditorHelp() {
             <span><i className="fa-solid fa-folder-open" /> charge un niveau dans l'editeur</span>
             <span><i className="fa-solid fa-trash" /> supprime un niveau de la liste</span>
           </div>
+        </HelpSection>
+
+        <HelpSection title="Hub et navigation">
+          <ul>
+            <li><strong>Ouvrir editeur custom</strong> ou <strong>editeur admin</strong>: ouvre maintenant un choix entre <strong>Mode niveau</strong> et <strong>Mode monde</strong>.</li>
+            <li><strong>Mondes custom</strong>: le hub affiche aussi la liste des mondes sauvegardes et permet d'ouvrir directement l'un d'eux en edition.</li>
+            <li><strong>Mode monde admin</strong>: il existe aussi, mais reste base sur le meme stockage local des mondes decoratifs si aucun backend dedie n'est branche.</li>
+          </ul>
         </HelpSection>
 
         <HelpSection title="Conseils de level design">

@@ -25,6 +25,11 @@ import {
   readLocalPixelProtocolSkills,
   writeLocalPixelProtocolSkills,
 } from "../utils/skills";
+import { listPixelProtocolWorldTemplates } from "../utils/worldTemplates";
+import {
+  resolveLevelWorldTemplate,
+  resolveLevelsWorldTemplates,
+} from "../utils/resolveWorldTemplate";
 import "../../../styles/pixel-protocol.css";
 import { useAuth } from "../../auth/context/AuthContext";
 import type { LevelDef } from "../types";
@@ -70,12 +75,22 @@ export default function PixelProtocolPage() {
         if (cancelled) return;
         writeLocalPixelProtocolProgress(remoteProgress);
         setProgress(remoteProgress);
-        setCustomLevels(mergePixelProtocolCustomLevels(remoteCustomLevels));
+        setCustomLevels(
+          resolveLevelsWorldTemplates(
+            mergePixelProtocolCustomLevels(remoteCustomLevels),
+            listPixelProtocolWorldTemplates()
+          )
+        );
         setSyncError(null);
       } catch {
         if (cancelled) return;
         setProgress(readLocalPixelProtocolProgress());
-        setCustomLevels(listPixelProtocolCustomLevels());
+        setCustomLevels(
+          resolveLevelsWorldTemplates(
+            listPixelProtocolCustomLevels(),
+            listPixelProtocolWorldTemplates()
+          )
+        );
         setSyncError("Mode hors ligne: progression locale utilisee.");
       } finally {
         if (!cancelled) setSyncLoading(false);
@@ -88,12 +103,15 @@ export default function PixelProtocolPage() {
   }, [user]);
 
   const hasLevels = levels.length > 0;
-  const campaignLevels = hasLevels ? levels : DEFAULT_LEVELS;
+  const campaignLevels = hasLevels
+    ? levels
+    : resolveLevelsWorldTemplates(DEFAULT_LEVELS, listPixelProtocolWorldTemplates());
   const customLevel = useMemo(() => {
     if (!customId) return null;
-    return (
+    return resolveLevelWorldTemplate(
       customLevels.find((level) => level.id === customId) ??
-      findPixelProtocolCustomLevel(customId)
+        findPixelProtocolCustomLevel(customId),
+      listPixelProtocolWorldTemplates()
     );
   }, [customId, customLevels]);
   const isCustomLevel = Boolean(customId);

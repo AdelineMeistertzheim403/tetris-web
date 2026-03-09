@@ -6,6 +6,19 @@ const STORAGE_KEY = "pixel-protocol-custom-levels-v1";
 function isLevelDef(value: unknown): value is LevelDef {
   if (!value || typeof value !== "object") return false;
   const level = value as LevelDef;
+  const validDecorations =
+    level.decorations === undefined ||
+    (Array.isArray(level.decorations) &&
+      level.decorations.every(
+        (decoration) =>
+          decoration &&
+          typeof decoration.id === "string" &&
+          typeof decoration.type === "string" &&
+          typeof decoration.x === "number" &&
+          typeof decoration.y === "number" &&
+          typeof decoration.width === "number" &&
+          typeof decoration.height === "number"
+      ));
   return (
     typeof level.id === "string" &&
     typeof level.name === "string" &&
@@ -13,6 +26,9 @@ function isLevelDef(value: unknown): value is LevelDef {
     typeof level.worldWidth === "number" &&
     (level.worldHeight === undefined || typeof level.worldHeight === "number") &&
     (level.worldTopPadding === undefined || typeof level.worldTopPadding === "number") &&
+    (level.worldTemplateId === undefined ||
+      level.worldTemplateId === null ||
+      typeof level.worldTemplateId === "string") &&
     typeof level.requiredOrbs === "number" &&
     typeof level.spawn?.x === "number" &&
     typeof level.spawn?.y === "number" &&
@@ -21,7 +37,8 @@ function isLevelDef(value: unknown): value is LevelDef {
     Array.isArray(level.platforms) &&
     Array.isArray(level.checkpoints) &&
     Array.isArray(level.orbs) &&
-    Array.isArray(level.enemies)
+    Array.isArray(level.enemies) &&
+    validDecorations
   );
 }
 
@@ -34,6 +51,7 @@ function mergeOrbMetadata(base: LevelDef | undefined, incoming: LevelDef): Level
   return {
     ...incoming,
     worldTopPadding: incoming.worldTopPadding ?? base.worldTopPadding,
+    worldTemplateId: incoming.worldTemplateId ?? base.worldTemplateId ?? null,
     orbs: incoming.orbs.map((orb) => {
       const previous = base.orbs.find((item) => item.id === orb.id);
       return {

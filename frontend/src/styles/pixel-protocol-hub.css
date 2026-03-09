@@ -50,6 +50,13 @@
   padding-top: 0.6rem;
 }
 
+.pp-hub-chooser {
+  padding: 0.6rem;
+  border: 1px solid #2d4d70;
+  border-radius: 0.6rem;
+  background: rgba(7, 17, 38, 0.75);
+}
+
 .pp-hub-select {
   width: 100%;
   padding: 0.5rem;
