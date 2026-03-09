@@ -1,22 +1,294 @@
 import type { CSSProperties, ReactNode } from "react";
+import svgPackManifestRaw from "./pixel_protocole_svg_pack/manifest.json?raw";
+import tilesetAtlasMapRaw from "./pixel_protocole_svg_pack/tileset/pixel_protocole_cyber_tileset.json?raw";
+import tilesetAtlasUrl from "./pixel_protocole_svg_pack/tileset/pixel_protocole_cyber_tileset.svg?url";
 import type {
+  BuiltinDecorationType,
   DecorationAnimation,
   DecorationDef,
   DecorationLayer,
   DecorationType,
+  SvgPackDecorationType,
+  TilesetDecorationType,
 } from "./types";
+
+type DecorationCategory =
+  | "tetromino"
+  | "tech"
+  | "glitch"
+  | "network"
+  | "ai"
+  | "background"
+  | "tileset";
 
 export type DecorationPreset = {
   type: DecorationType;
   label: string;
-  category: "tetromino" | "tech" | "glitch" | "network" | "ai" | "background";
+  category: DecorationCategory;
   defaultWidth: number;
   defaultHeight: number;
   color: string;
   colorSecondary: string;
 };
 
-export const DECORATION_PRESETS: DecorationPreset[] = [
+type SvgPackManifestEntry = {
+  file: string;
+  category?: string;
+  theme?: string;
+};
+
+type SvgPackManifest = {
+  decorations?: SvgPackManifestEntry[];
+  backgrounds?: SvgPackManifestEntry[];
+};
+
+type SvgPackAsset = {
+  markup: string;
+  width: number;
+  height: number;
+};
+
+type TilesetTile = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+type TilesetAsset = TilesetTile & {
+  atlasUrl: string;
+  atlasWidth: number;
+  atlasHeight: number;
+};
+
+export const DECORATION_CATEGORY_ORDER: DecorationCategory[] = [
+  "tetromino",
+  "tech",
+  "glitch",
+  "network",
+  "ai",
+  "background",
+  "tileset",
+];
+
+const SVG_PACK_MANIFEST = JSON.parse(svgPackManifestRaw) as SvgPackManifest;
+const SVG_PACK_SOURCE_BY_PATH = import.meta.glob(
+  "./pixel_protocole_svg_pack/**/*.svg",
+  {
+    eager: true,
+    import: "default",
+    query: "?raw",
+  }
+) as Record<string, string>;
+const TILESET_ATLAS_MAP = JSON.parse(tilesetAtlasMapRaw) as Record<string, TilesetTile>;
+
+const SVG_PACK_CATEGORY_COLORS: Record<
+  DecorationCategory,
+  { color: string; colorSecondary: string }
+> = {
+  tetromino: { color: "#00ffff", colorSecondary: "#ff00ff" },
+  tech: { color: "#00ffff", colorSecondary: "#89f8ff" },
+  glitch: { color: "#ff00ff", colorSecondary: "#00ffff" },
+  network: { color: "#00ffff", colorSecondary: "#ff00ff" },
+  ai: { color: "#8a5cff", colorSecondary: "#ff4d5a" },
+  background: { color: "#00f5ff", colorSecondary: "#ff4fd8" },
+  tileset: { color: "#00f5ff", colorSecondary: "#ff4fd8" },
+};
+
+function toSvgPackDecorationType(file: string): SvgPackDecorationType {
+  return `svg_pack:${file.replace(/\.svg$/i, "")}`;
+}
+
+function toTilesetDecorationType(tileKey: string): TilesetDecorationType {
+  return `tileset:${tileKey}`;
+}
+
+function toDecorationCategory(category: string | undefined): DecorationCategory {
+  switch ((category ?? "").toLowerCase()) {
+    case "tetromino":
+      return "tetromino";
+    case "circuit":
+      return "tech";
+    case "glitch":
+      return "glitch";
+    case "ai":
+      return "ai";
+    case "environment":
+      return "background";
+    default:
+      return "background";
+  }
+}
+
+function toTitleCaseToken(token: string) {
+  const upperTokenMap: Record<string, string> = {
+    ai: "AI",
+    i: "I",
+    o: "O",
+    t: "T",
+    l: "L",
+    j: "J",
+    s: "S",
+    z: "Z",
+  };
+
+  return upperTokenMap[token] ?? `${token.charAt(0).toUpperCase()}${token.slice(1)}`;
+}
+
+function humanizeSvgPackLabel(file: string, isBackground: boolean) {
+  const basename = file.replace(/\.svg$/i, "");
+  const stem = isBackground
+    ? basename.replace(/^bg_parallax_\d+_/, "")
+    : basename.replace(/^dec_\d+_/, "");
+
+  return stem
+    .split("_")
+    .filter(Boolean)
+    .map((token) => toTitleCaseToken(token.toLowerCase()))
+    .join(" ");
+}
+
+function humanizeTilesetLabel(tileKey: string) {
+  return tileKey
+    .split("_")
+    .filter(Boolean)
+    .map((token) => toTitleCaseToken(token.toLowerCase()))
+    .join(" ");
+}
+
+function parseSvgDimensions(svg: string) {
+  const viewBoxMatch = svg.match(/viewBox="([^"]+)"/i);
+  if (viewBoxMatch) {
+    const parts = viewBoxMatch[1]
+      .trim()
+      .split(/\s+/)
+      .map((value) => Number(value));
+    if (parts.length === 4 && parts.every((value) => Number.isFinite(value))) {
+      return {
+        width: Math.max(4, Math.round(parts[2] || 100)),
+        height: Math.max(4, Math.round(parts[3] || 100)),
+      };
+    }
+  }
+
+  const widthMatch = svg.match(/width="([^"]+)"/i);
+  const heightMatch = svg.match(/height="([^"]+)"/i);
+  const width = widthMatch ? Number.parseFloat(widthMatch[1]) : 100;
+  const height = heightMatch ? Number.parseFloat(heightMatch[1]) : 100;
+  return {
+    width: Math.max(4, Math.round(Number.isFinite(width) ? width : 100)),
+    height: Math.max(4, Math.round(Number.isFinite(height) ? height : 100)),
+  };
+}
+
+function normalizeSvgMarkup(svg: string) {
+  const trimmed = svg.trim().replace(/^\uFEFF/, "").replace(/<\?xml[\s\S]*?\?>/gi, "");
+  return trimmed.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+    const cleanedAttrs = attrs
+      .replace(/\swidth="[^"]*"/gi, "")
+      .replace(/\sheight="[^"]*"/gi, "")
+      .replace(/\spreserveAspectRatio="[^"]*"/gi, "")
+      .replace(/\sclass="[^"]*"/gi, "");
+
+    return `<svg${cleanedAttrs} width="100%" height="100%" preserveAspectRatio="none" class="pp-decoration-svg" aria-hidden="true">`;
+  });
+}
+
+function resolveSvgPackSource(path: string) {
+  return SVG_PACK_SOURCE_BY_PATH[path];
+}
+
+function buildSvgPackEntries() {
+  const assets = new Map<DecorationType, SvgPackAsset>();
+  const presets: DecorationPreset[] = [];
+
+  const registerEntry = (
+    folder: "decorations" | "backgrounds",
+    entry: SvgPackManifestEntry,
+    fallbackCategory: DecorationCategory
+  ) => {
+    const path = `./pixel_protocole_svg_pack/${folder}/${entry.file}`;
+    const source = resolveSvgPackSource(path);
+    if (!source) {
+      return;
+    }
+
+    const type = toSvgPackDecorationType(entry.file);
+    const category =
+      folder === "backgrounds"
+        ? "background"
+        : toDecorationCategory(entry.category) ?? fallbackCategory;
+    const { width, height } = parseSvgDimensions(source);
+    const colors = SVG_PACK_CATEGORY_COLORS[category];
+
+    assets.set(type, {
+      markup: normalizeSvgMarkup(source),
+      width,
+      height,
+    });
+
+    presets.push({
+      type,
+      label: humanizeSvgPackLabel(entry.file, folder === "backgrounds"),
+      category,
+      defaultWidth: width,
+      defaultHeight: height,
+      color: colors.color,
+      colorSecondary: colors.colorSecondary,
+    });
+  };
+
+  for (const entry of SVG_PACK_MANIFEST.decorations ?? []) {
+    registerEntry("decorations", entry, "background");
+  }
+
+  for (const entry of SVG_PACK_MANIFEST.backgrounds ?? []) {
+    registerEntry("backgrounds", entry, "background");
+  }
+
+  return { assets, presets };
+}
+
+function buildTilesetEntries() {
+  const assets = new Map<DecorationType, TilesetAsset>();
+  const presets: DecorationPreset[] = [];
+  const atlasSource = resolveSvgPackSource(
+    "./pixel_protocole_svg_pack/tileset/pixel_protocole_cyber_tileset.svg"
+  );
+  const { width: atlasWidth, height: atlasHeight } = atlasSource
+    ? parseSvgDimensions(atlasSource)
+    : { width: 256, height: 256 };
+
+  for (const [tileKey, tile] of Object.entries(TILESET_ATLAS_MAP)) {
+    const type = toTilesetDecorationType(tileKey);
+    const category: DecorationCategory = "tileset";
+    const colors = SVG_PACK_CATEGORY_COLORS[category];
+
+    assets.set(type, {
+      ...tile,
+      atlasUrl: tilesetAtlasUrl,
+      atlasWidth,
+      atlasHeight,
+    });
+
+    presets.push({
+      type,
+      label: humanizeTilesetLabel(tileKey),
+      category,
+      defaultWidth: tile.w,
+      defaultHeight: tile.h,
+      color: colors.color,
+      colorSecondary: colors.colorSecondary,
+    });
+  }
+
+  return { assets, presets };
+}
+
+const { assets: SVG_PACK_ASSETS, presets: SVG_PACK_PRESETS } = buildSvgPackEntries();
+const { assets: TILESET_ASSETS, presets: TILESET_PRESETS } = buildTilesetEntries();
+
+const BUILTIN_DECORATION_PRESETS: DecorationPreset[] = [
   { type: "tetromino_I", label: "Tetromino I", category: "tetromino", defaultWidth: 128, defaultHeight: 32, color: "#00ffff", colorSecondary: "#7ffbff" },
   { type: "tetromino_T", label: "Tetromino T", category: "tetromino", defaultWidth: 96, defaultHeight: 64, color: "#ff00ff", colorSecondary: "#ff8cff" },
   { type: "tetromino_L", label: "Tetromino L", category: "tetromino", defaultWidth: 72, defaultHeight: 96, color: "#00ff88", colorSecondary: "#9dffd0" },
@@ -99,6 +371,12 @@ export const DECORATION_PRESETS: DecorationPreset[] = [
   { type: "wave_grid", label: "Wave Grid", category: "background", defaultWidth: 220, defaultHeight: 80, color: "#00ffff", colorSecondary: "#9ffbff" },
 ];
 
+export const DECORATION_PRESETS: DecorationPreset[] = [
+  ...BUILTIN_DECORATION_PRESETS,
+  ...SVG_PACK_PRESETS,
+  ...TILESET_PRESETS,
+];
+
 const PRESET_BY_TYPE = new Map(
   DECORATION_PRESETS.map((preset) => [preset.type, preset] as const)
 );
@@ -117,8 +395,32 @@ export function getDecorationPreset(type: DecorationType) {
   return PRESET_BY_TYPE.get(type) ?? DECORATION_PRESETS[0];
 }
 
+export function isSvgPackDecorationType(
+  type: DecorationType
+): type is SvgPackDecorationType {
+  return type.startsWith("svg_pack:");
+}
+
+export function isTilesetDecorationType(
+  type: DecorationType
+): type is TilesetDecorationType {
+  return type.startsWith("tileset:");
+}
+
+export function usesEmbeddedDecorationArtwork(type: DecorationType) {
+  return isSvgPackDecorationType(type) || isTilesetDecorationType(type);
+}
+
+function getSvgPackDecorationAsset(type: DecorationType) {
+  return SVG_PACK_ASSETS.get(type);
+}
+
+function getTilesetDecorationAsset(type: DecorationType) {
+  return TILESET_ASSETS.get(type);
+}
+
 type DecorationSvgProps = {
-  type: DecorationType;
+  type: BuiltinDecorationType;
 };
 
 function decorationShape({ type }: DecorationSvgProps): ReactNode {
@@ -607,10 +909,21 @@ export function PixelProtocolDecoration({
   selected = false,
 }: PixelProtocolDecorationProps) {
   const preset = getDecorationPreset(decoration.type);
+  const svgPackAsset = getSvgPackDecorationAsset(decoration.type);
+  const tilesetAsset = getTilesetDecorationAsset(decoration.type);
+  const builtinType = usesEmbeddedDecorationArtwork(decoration.type)
+    ? "pixel_glitch"
+    : decoration.type;
   const layer = decoration.layer ?? "mid";
   const animation: DecorationAnimation = decoration.animation ?? "none";
-  const width = Math.max(4, decoration.width || preset.defaultWidth);
-  const height = Math.max(4, decoration.height || preset.defaultHeight);
+  const width = Math.max(
+    4,
+    decoration.width || svgPackAsset?.width || tilesetAsset?.w || preset.defaultWidth
+  );
+  const height = Math.max(
+    4,
+    decoration.height || svgPackAsset?.height || tilesetAsset?.h || preset.defaultHeight
+  );
   const flipX = decoration.flipX ? -1 : 1;
   const flipY = decoration.flipY ? -1 : 1;
   const baseStyle: CSSProperties = {
@@ -627,6 +940,14 @@ export function PixelProtocolDecoration({
     ...baseStyle,
     ["--pp-dec-color-2" as string]: decoration.colorSecondary ?? preset.colorSecondary,
   } as CSSProperties;
+  const tilesetStyle = tilesetAsset
+    ? ({
+        backgroundImage: `url("${tilesetAsset.atlasUrl}")`,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: `${(tilesetAsset.atlasWidth * width) / tilesetAsset.w}px ${(tilesetAsset.atlasHeight * height) / tilesetAsset.h}px`,
+        backgroundPosition: `${(-tilesetAsset.x * width) / tilesetAsset.w}px ${(-tilesetAsset.y * height) / tilesetAsset.h}px`,
+      } as CSSProperties)
+    : undefined;
 
   return (
     <div
@@ -634,14 +955,20 @@ export function PixelProtocolDecoration({
       style={decorationStyle}
       data-decoration-type={decoration.type}
     >
-      <svg
-        className="pp-decoration-svg"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        {decorationShape({ type: decoration.type })}
-      </svg>
+      {svgPackAsset ? (
+        <div dangerouslySetInnerHTML={{ __html: svgPackAsset.markup }} />
+      ) : tilesetAsset ? (
+        <div className="pp-decoration-tile" style={tilesetStyle} aria-hidden="true" />
+      ) : (
+        <svg
+          className="pp-decoration-svg"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {decorationShape({ type: builtinType })}
+        </svg>
+      )}
     </div>
   );
 }
