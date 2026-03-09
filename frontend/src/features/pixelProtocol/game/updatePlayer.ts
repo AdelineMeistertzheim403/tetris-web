@@ -18,10 +18,11 @@ import {
 } from "../constants";
 import {
   clamp,
-  grappleAnchors,
   levelGroundY,
   levelWorldHeight,
+  platformBlocks,
   rectIntersects,
+  selectGrappleTarget,
   updateCameraY,
 } from "../logic";
 import type {
@@ -122,26 +123,18 @@ export function applyUnlockedSkills({
     } else if (now < player.grappleCooldownUntil) {
       game.message = "Data Grapple en recharge.";
     } else {
-      const anchors = grappleAnchors(game.platforms);
-      const playerCenterX = player.x + player.w / 2;
-      const playerCenterY = player.y + player.h / 2;
-      const candidates = anchors
-        .map((anchor) => {
-          const dx = anchor.x - playerCenterX;
-          const dy = anchor.y - playerCenterY;
-          const distance = Math.hypot(dx, dy);
-          return {
-            ...anchor,
-            distance,
-            score: distance + Math.max(0, dy) * 0.35,
-          };
-        })
-        .filter((anchor) => anchor.distance <= 520)
-        .sort((a, b) => a.score - b.score);
-
-      const target = candidates[0];
+      const aimX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+      const aimY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+      const target = selectGrappleTarget({
+        platforms: game.platforms,
+        player,
+        aimX,
+        aimY,
+      });
       if (!target) {
-        game.message = "Aucun point d'accroche a portee.";
+        game.message = aimX !== 0 || aimY !== 0
+          ? "Aucun point d'accroche dans cette direction."
+          : "Aucun point d'accroche a portee.";
       } else {
         player.grappleUntil = now + 900;
         player.grappleCooldownUntil = now + 2400;
@@ -149,6 +142,7 @@ export function applyUnlockedSkills({
         player.grappleTargetY = target.y;
         player.grappleLandY = target.landY;
         player.grapplePlatformId = target.platformId;
+        player.grappleAttachSide = target.attachSide === "top" ? null : target.attachSide;
         player.grounded = false;
         player.groundPlatformId = null;
         player.groundedSurface = null;
@@ -286,12 +280,14 @@ export function updatePlayer({
     const targetY = player.grappleTargetY;
     const landY = player.grappleLandY;
     const grapplePlatformId = player.grapplePlatformId;
+    const grappleAttachSide = player.grappleAttachSide;
     if (targetX === null || targetY === null || landY === null) {
       player.grappleUntil = 0;
       player.grappleTargetX = null;
       player.grappleTargetY = null;
       player.grappleLandY = null;
       player.grapplePlatformId = null;
+      player.grappleAttachSide = null;
       return;
     }
 
@@ -300,17 +296,28 @@ export function updatePlayer({
     const distance = Math.hypot(dx, dy);
 
     if (distance < 18) {
-      player.x = targetX - player.w / 2;
-      player.y = landY - player.h;
+      if (grappleAttachSide === "left") {
+        player.x = targetX - player.w / 2;
+        player.y = landY - player.h / 2;
+        player.grounded = false;
+      } else if (grappleAttachSide === "right") {
+        player.x = targetX - player.w / 2;
+        player.y = landY - player.h / 2;
+        player.grounded = false;
+      } else {
+        player.x = targetX - player.w / 2;
+        player.y = landY - player.h;
+        player.grounded = true;
+      }
       player.vx = 0;
       player.vy = 0;
-      player.grounded = true;
       player.jumpsLeft = ability.extraAirJumps;
       player.grappleUntil = 0;
       player.grappleTargetX = null;
       player.grappleTargetY = null;
       player.grappleLandY = null;
       player.grapplePlatformId = null;
+      player.grappleAttachSide = grappleAttachSide;
       player.groundPlatformId = grapplePlatformId;
       player.groundedSurface = "grapplable";
       game.message = "Accroche validee.";
@@ -338,6 +345,29 @@ export function updatePlayer({
   }
 
   let targetVx = 0;
+  if (player.grappleAttachSide) {
+    const attachedPlatform = game.platforms.find((platform) => platform.id === player.groundPlatformId);
+    if (!attachedPlatform) {
+      player.grappleAttachSide = null;
+      player.groundPlatformId = null;
+      player.groundedSurface = null;
+    } else {
+      const platformRects = platformBlocks(attachedPlatform);
+      const left = Math.min(...platformRects.map((block) => block.x));
+      const right = Math.max(...platformRects.map((block) => block.x + block.w));
+      const top = Math.min(...platformRects.map((block) => block.y));
+      const bottom = Math.max(...platformRects.map((block) => block.y + block.h));
+      player.vx = 0;
+      player.vy = 0;
+      player.grounded = false;
+      player.groundedSurface = "grapplable";
+      player.x = player.grappleAttachSide === "left" ? left - player.w : right;
+      player.y = clamp(player.y, top - 6, bottom - player.h + 6);
+      updateCameraY(game, viewportHeight, level);
+      return;
+    }
+  }
+
   if (input.left) targetVx -= moveSpeed;
   if (input.right) targetVx += moveSpeed;
   if (targetVx > 0) player.facing = 1;
@@ -382,6 +412,7 @@ export function updatePlayer({
       player.grappleTargetY = null;
       player.grappleLandY = null;
       player.grapplePlatformId = null;
+      player.grappleAttachSide = null;
     }
   }
 
@@ -485,12 +516,24 @@ function resolvePlayerMovement({
             game.message = "Corruption active: performances degradees.";
           }
           if (block.type === "gravity") {
-            player.gravityInvertedUntil = now + GRAVITY_FLIP_DURATION_MS;
-            player.vy = launchDir * JUMP * 0.58;
-            player.grounded = false;
-            player.groundPlatformId = null;
-            player.groundedSurface = null;
-            game.message = "Polarite gravitationnelle inversee.";
+            const nextGravityInverted = gravDir > 0;
+            player.gravityInvertedUntil = nextGravityInverted
+              ? now + GRAVITY_FLIP_DURATION_MS
+              : 0;
+            player.vy = 0;
+            player.grounded = true;
+            player.groundPlatformId = block.platformId ?? null;
+            player.groundedSurface = block.type ?? null;
+            player.jumpsLeft = ability.extraAirJumps;
+            if (nextGravityInverted) {
+              player.y = block.y + block.h;
+            } else {
+              player.y = block.y - player.h;
+            }
+            playerRect.y = player.y;
+            game.message = nextGravityInverted
+              ? "Polarite gravitationnelle inversee."
+              : "Polarite gravitationnelle restauree.";
           }
           if (block.type === "unstable") {
             const platform = game.platforms.find(
@@ -565,6 +608,7 @@ export function respawnPlayer(game: GameRuntime, now: number, invulnMs: number) 
   player.grappleTargetY = null;
   player.grappleLandY = null;
   player.grapplePlatformId = null;
+  player.grappleAttachSide = null;
   player.grounded = false;
   player.groundPlatformId = null;
   player.groundedSurface = null;

@@ -26,6 +26,8 @@ export function usePixelProtocolControls() {
     (): InputSnapshot => ({
       left: keysRef.current.has("ArrowLeft") || keysRef.current.has("KeyA"),
       right: keysRef.current.has("ArrowRight") || keysRef.current.has("KeyD"),
+      up: keysRef.current.has("ArrowUp") || keysRef.current.has("KeyW"),
+      down: keysRef.current.has("ArrowDown") || keysRef.current.has("KeyS"),
       wantJump:
         justPressedRef.current.has("Space") ||
         justPressedRef.current.has("ArrowUp") ||

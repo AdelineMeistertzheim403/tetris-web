@@ -118,6 +118,7 @@ export default function PixelProtocolPage() {
     playerRunFrame,
     playerSprite,
     portalOpen,
+    grapplePreview,
     resetLevel,
     runtime,
     unlockedSkills: activeSkills,
@@ -269,6 +270,7 @@ export default function PixelProtocolPage() {
           playerRunFrame={playerRunFrame}
           playerSprite={playerSprite}
           portalOpen={portalOpen}
+          grapplePreview={grapplePreview}
           runtime={runtime}
         />
 

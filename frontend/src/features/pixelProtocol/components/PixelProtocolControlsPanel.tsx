@@ -31,11 +31,11 @@ export function PixelProtocolControlsPanel({
       <div className="pp-infoCard">
         <p className="pp-panelTitle">Controles</p>
         <p>Deplacement: Fleches ou WASD</p>
-        <p>Saut: Espace, Haut ou W</p>
+        <p>Saut: Espace, Fleche haut ou W</p>
         {ability.doubleJump && <p>Double saut: actif</p>}
         {ability.airDash && <p>Dash: Shift</p>}
         {ability.hackWave && <p>Hack: E</p>}
-        {ability.dataGrapple && <p>Data Grapple: G</p>}
+        {ability.dataGrapple && <p>Data Grapple: fleches/WASD + G, visee libre en accroche</p>}
         {ability.phaseShift && <p>Phase Shift: F</p>}
         {ability.pulseShock && <p>Pulse Shock: Q</p>}
         {ability.overclockMode && <p>Overclock: C</p>}

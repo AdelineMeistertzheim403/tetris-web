@@ -91,6 +91,7 @@ export type LevelDef = {
   name: string;
   worldWidth: number;
   worldHeight?: number;
+  worldTopPadding?: number;
   requiredOrbs: number;
   spawn: { x: number; y: number };
   portal: { x: number; y: number };
@@ -127,6 +128,7 @@ export type Player = {
   grappleTargetY: number | null;
   grappleLandY: number | null;
   grapplePlatformId: string | null;
+  grappleAttachSide: "left" | "right" | null;
   groundPlatformId: string | null;
   groundedSurface: PlatformType | null;
   gravityInvertedUntil: number;
@@ -157,6 +159,7 @@ export type GrappleAnchor = {
   y: number;
   landY: number;
   platformId: string;
+  attachSide: "top" | "left" | "right";
 };
 
 export type PlayerHistoryEntry = {
@@ -200,6 +203,8 @@ export type Rect = {
 export type InputSnapshot = {
   left: boolean;
   right: boolean;
+  up: boolean;
+  down: boolean;
   wantJump: boolean;
   wantDash: boolean;
   wantHack: boolean;
