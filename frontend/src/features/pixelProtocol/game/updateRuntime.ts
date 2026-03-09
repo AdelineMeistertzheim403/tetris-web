@@ -52,9 +52,9 @@ export function updateRuntime({
   game.history = game.history.filter((entry) => now - entry.at <= 2600);
 
   // Une frame s'execute toujours dans le meme ordre pour garder une physique et des interactions deterministes.
-  updatePlatforms(game, now);
+  updatePlatforms(game, now, dt);
 
-  const blocks = allCollisionBlocks(game.platforms, level.worldWidth);
+  const blocks = allCollisionBlocks(game.platforms, level);
 
   applyUnlockedSkills({ ability, game, input, now });
   applyHackPulse({ ability, game, input, now });
@@ -69,7 +69,7 @@ export function updateRuntime({
     viewportHeight,
     viewportWidth,
   });
-  handleFloorAndRespawn(game, input.wantRespawn, now);
+  handleFloorAndRespawn(game, input.wantRespawn, now, level);
   collectCheckpoints(game);
   collectOrbs(game);
   updateEnemies({ ability, blocks, dt, game, now });

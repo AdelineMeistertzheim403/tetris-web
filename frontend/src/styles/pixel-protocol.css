@@ -96,9 +96,43 @@
 
 .pp-platform--stable { background: #40d6ff; }
 .pp-platform--unstable { background: #ff7a66; animation: pp-blink 0.9s steps(1) infinite; }
+.pp-platform--moving {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #58e6ff 0 6px,
+      #90f3ff 6px 12px
+    );
+  box-shadow: inset 0 0 0 1px #d7fbff;
+}
 .pp-platform--rotating { background: #9c7fff; }
 .pp-platform--glitch { background: #ff47c6; filter: hue-rotate(40deg); }
 .pp-platform--bounce { background: #6bff9e; }
+.pp-platform--boost {
+  background:
+    linear-gradient(180deg, #afff62 0%, #64e65f 100%);
+  box-shadow: 0 0 10px #8dff65aa;
+}
+.pp-platform--corrupted {
+  background:
+    linear-gradient(180deg, #9f2a66 0%, #51163a 100%);
+  animation: pp-corrupted-flicker 0.32s steps(2) infinite;
+}
+.pp-platform--magnetic {
+  background:
+    radial-gradient(circle at 50% 55%, #a7fff2 0 28%, #47d8cb 29% 100%);
+  box-shadow: 0 0 12px #4cf5df99;
+}
+.pp-platform--ice {
+  background:
+    linear-gradient(180deg, #d9fbff 0%, #95deff 100%);
+  border-color: #7ecfff;
+}
+.pp-platform--gravity {
+  background:
+    linear-gradient(180deg, #9f8dff 0%, #5a4ad5 100%);
+  box-shadow: 0 0 12px #8f7bff99;
+}
 .pp-platform--grapplable {
   background:
     repeating-linear-gradient(
@@ -187,6 +221,14 @@
   border: 1px solid #d9ffff;
   border-radius: 50%;
   opacity: 0.9;
+}
+
+.pp-grappleAnchor--target {
+  transform: scale(1.28);
+  box-shadow:
+    0 0 18px #fff6a8,
+    0 0 28px #59e2ff;
+  border-color: #fff0a8;
 }
 
 .pp-portal {
@@ -327,6 +369,19 @@
     drop-shadow(0 0 18px #52c7ff88);
 }
 
+.pp-player--corrupted {
+  filter:
+    hue-rotate(-24deg)
+    saturate(1.45)
+    drop-shadow(0 0 9px #ff79bf99);
+}
+
+.pp-player--gravity-invert {
+  filter:
+    saturate(1.28)
+    drop-shadow(0 0 12px #9b8bffbb);
+}
+
 .pp-infoCard {
   display: grid;
   gap: 10px;
@@ -404,6 +459,18 @@
 
   100% {
     background-position: 0 18px;
+  }
+}
+
+@keyframes pp-corrupted-flicker {
+  0%, 100% {
+    filter: hue-rotate(0deg) brightness(1);
+    opacity: 1;
+  }
+
+  50% {
+    filter: hue-rotate(34deg) brightness(0.8);
+    opacity: 0.86;
   }
 }
 

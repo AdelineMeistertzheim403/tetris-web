@@ -301,13 +301,24 @@ const pixelProtocolPlatformSchema = z.object({
   type: z.enum([
     "stable",
     "unstable",
+    "moving",
     "rotating",
     "glitch",
     "bounce",
+    "boost",
+    "corrupted",
+    "magnetic",
+    "ice",
+    "gravity",
+    "grapplable",
     "armored",
     "hackable",
   ]),
   rotateEveryMs: intWithin(0, 60_000).optional(),
+  moveAxis: z.enum(["x", "y"]).optional(),
+  movePattern: z.enum(["pingpong", "loop"]).optional(),
+  moveRangeTiles: intWithin(1, 2_000).optional(),
+  moveSpeed: intWithin(1, 4_000).optional(),
 });
 
 const pixelProtocolCheckpointSchema = z.object({
@@ -318,10 +329,22 @@ const pixelProtocolCheckpointSchema = z.object({
   spawnY: pixelCoordSchema,
 });
 
+const pixelProtocolSkillSchema = z.enum([
+  "DATA_GRAPPLE",
+  "OVERJUMP",
+  "PHASE_SHIFT",
+  "PULSE_SHOCK",
+  "OVERCLOCK_MODE",
+  "TIME_BUFFER",
+  "PLATFORM_SPAWN",
+]);
+
 const pixelProtocolOrbSchema = z.object({
   id: z.string().trim().min(1).max(80),
   x: pixelCoordSchema,
   y: pixelCoordSchema,
+  affinity: z.enum(["standard", "blue", "red", "green", "purple"]).optional(),
+  grantsSkill: pixelProtocolSkillSchema.nullable().optional(),
 });
 
 const pixelProtocolEnemySchema = z.object({
@@ -340,6 +363,7 @@ export const pixelProtocolLevelSchema = z.object({
   world: intWithin(1, 99),
   name: z.string().trim().min(1).max(120),
   worldWidth: intWithin(1, 200_000),
+  worldHeight: intWithin(8 * 32, 200_000).optional(),
   requiredOrbs: intWithin(0, 999),
   spawn: z.object({
     x: pixelCoordSchema,

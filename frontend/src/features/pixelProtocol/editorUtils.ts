@@ -1,9 +1,19 @@
-import { GROUND_Y, TILE, WORLD_H } from "./constants";
+import {
+  MOVING_DEFAULT_AXIS,
+  MOVING_DEFAULT_PATTERN,
+  MOVING_DEFAULT_RANGE_TILES,
+  MOVING_DEFAULT_SPEED,
+  TILE,
+} from "./constants";
 import {
   abilityFlags,
   allCollisionBlocks,
   cloneLevel,
   defaultViewportWorldWidth,
+  grappleAnchors,
+  levelGroundY,
+  levelTopPadding,
+  levelWorldHeight,
   platformBlocks,
 } from "./logic";
 import { updatePlayer } from "./game/updatePlayer";
@@ -11,6 +21,7 @@ import type { LevelDef, PlatformDef, Rect, RuntimePlatform } from "./types";
 
 const PLAYER_W = 24;
 const PLAYER_H = 30;
+const CAMERA_HEADROOM_WARNING = TILE * 2;
 const DT = 1 / 60;
 const SIMULATION_MS = 1800;
 const MAX_STEPS = Math.round((SIMULATION_MS / 1000) / DT);
@@ -65,6 +76,20 @@ const JUMP_PROFILES: JumpProfile[] = [
 function runtimePlatform(platform: PlatformDef): RuntimePlatform {
   return {
     ...platform,
+    moveAxis: platform.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
+    movePattern: platform.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
+    moveRangeTiles:
+      typeof platform.moveRangeTiles === "number" &&
+      Number.isFinite(platform.moveRangeTiles) &&
+      platform.moveRangeTiles > 0
+        ? Math.round(platform.moveRangeTiles)
+        : MOVING_DEFAULT_RANGE_TILES,
+    moveSpeed:
+      typeof platform.moveSpeed === "number" &&
+      Number.isFinite(platform.moveSpeed) &&
+      platform.moveSpeed > 0
+        ? Math.round(platform.moveSpeed)
+        : MOVING_DEFAULT_SPEED,
     active: true,
     currentRotation: platform.rotation ?? 0,
     hackedUntil: 0,
@@ -73,6 +98,12 @@ function runtimePlatform(platform: PlatformDef): RuntimePlatform {
     unstableWakeAt: 0,
     expiresAt: null,
     temporary: false,
+    moveOriginX: platform.x,
+    moveOriginY: platform.y,
+    moveProgress: 0,
+    moveDirection: 1,
+    prevX: platform.x,
+    prevY: platform.y,
   };
 }
 
@@ -106,6 +137,21 @@ function topSupportSamples(platform: RuntimePlatform): Array<{ x: number; y: num
   }
 
   return samples;
+}
+
+function grappleSourceSamples(platform: RuntimePlatform) {
+  const anchors = grappleAnchors([platform]);
+  return anchors
+    .filter((anchor) => anchor.platformId === platform.id)
+    .map((anchor) => {
+      if (anchor.attachSide === "left") {
+        return { x: anchor.x - PLAYER_W / 2, y: anchor.y - PLAYER_H / 2 };
+      }
+      if (anchor.attachSide === "right") {
+        return { x: anchor.x - PLAYER_W / 2, y: anchor.y - PLAYER_H / 2 };
+      }
+      return { x: anchor.x - PLAYER_W / 2, y: anchor.landY - PLAYER_H };
+    });
 }
 
 function standsOnTarget(
@@ -159,16 +205,26 @@ function canReachPlatform(
   const targetBlocks = platformBlocks(targetPlatform);
   if (targetBlocks.length === 0) return false;
 
+  const sourcePlatform =
+    source.kind === "platform"
+      ? runtimePlatforms.find((platform) => platform.id === source.platformId) ?? null
+      : null;
+
   const starts =
     source.kind === "spawn"
       ? [{ x: level.spawn.x, y: level.spawn.y, grounded: false }]
-      : topSupportSamples(
-          runtimePlatforms.find((platform) => platform.id === source.platformId)!
-        ).map((sample) => ({
-          x: sample.x,
-          y: sample.y,
-          grounded: true,
-        }));
+      : [
+          ...topSupportSamples(sourcePlatform!).map((sample) => ({
+            x: sample.x,
+            y: sample.y,
+            grounded: true,
+          })),
+          ...grappleSourceSamples(sourcePlatform!).map((sample) => ({
+            x: sample.x,
+            y: sample.y,
+            grounded: false,
+          })),
+        ];
 
   if (starts.length === 0) return false;
 
@@ -182,6 +238,21 @@ function canReachPlatform(
   }
 
   const ability = abilityFlags(level.world);
+  const dataGrappleAvailable = level.orbs.some((orb) => orb.grantsSkill === "DATA_GRAPPLE");
+  const targetAnchors = grappleAnchors([targetPlatform]);
+
+  if (dataGrappleAvailable && targetAnchors.length > 0) {
+    for (const start of starts) {
+      const startCenterX = start.x + PLAYER_W / 2;
+      const startCenterY = start.y + PLAYER_H / 2;
+      for (const anchor of targetAnchors) {
+        const distance = Math.hypot(anchor.x - startCenterX, anchor.y - startCenterY);
+        if (distance <= 520) {
+          return true;
+        }
+      }
+    }
+  }
 
   for (const start of starts) {
     for (const profile of JUMP_PROFILES) {
@@ -225,6 +296,8 @@ function canReachPlatform(
           input: {
             left: direction < 0,
             right: direction > 0,
+            up: false,
+            down: false,
             wantDash: wantsDash,
             wantHack: false,
             wantJump: wantsJump,
@@ -238,7 +311,7 @@ function canReachPlatform(
           },
           level,
           now,
-          viewportHeight: WORLD_H,
+          viewportHeight: levelWorldHeight(level),
           viewportWidth: defaultViewportWorldWidth(),
         });
 
@@ -249,7 +322,7 @@ function canReachPlatform(
           return true;
         }
 
-        if (game.player.y > WORLD_H + 96) break;
+        if (game.player.y > levelWorldHeight(level) + 96) break;
       }
     }
   }
@@ -275,7 +348,8 @@ export function validatePlatformLayout(level: LevelDef): PlatformValidation {
   const links: ReachabilityLink[] = [];
   const rendered = platformRenderData(level);
   const occupied = new Map<string, string>();
-  const groundLimit = GROUND_Y;
+  const groundLimit = levelGroundY(level);
+  let topMostY = Math.min(level.spawn.y, level.portal.y);
 
   for (const { blocks, platform } of rendered) {
     for (const block of blocks) {
@@ -304,15 +378,34 @@ export function validatePlatformLayout(level: LevelDef): PlatformValidation {
         break;
       }
       occupied.set(key, platform.id);
+      topMostY = Math.min(topMostY, block.y);
     }
   }
 
-  if (issues.length > 0) {
+  for (const checkpoint of level.checkpoints) {
+    topMostY = Math.min(topMostY, checkpoint.y);
+  }
+  for (const orb of level.orbs) {
+    topMostY = Math.min(topMostY, orb.y);
+  }
+  for (const enemy of level.enemies) {
+    topMostY = Math.min(topMostY, enemy.y);
+  }
+
+  if (topMostY < CAMERA_HEADROOM_WARNING && levelTopPadding(level) < TILE * 6) {
+    issues.push({
+      message:
+        "Des elements sont trop proches du haut du niveau. Augmente la marge haute pour garder du champ au-dessus de Pixel.",
+      severity: "warning",
+    });
+  }
+
+  if (issues.some((issue) => issue.severity === "error")) {
     return { isValid: false, issues, reachablePlatformIds: [], links };
   }
 
   const runtimePlatforms = level.platforms.map(runtimePlatform);
-  const collisionBlocks = allCollisionBlocks(runtimePlatforms, level.worldWidth);
+  const collisionBlocks = allCollisionBlocks(runtimePlatforms, level);
   const reachable = new Set<string>();
   const queue: SourceNode[] = [{ kind: "spawn" }];
 
@@ -342,7 +435,7 @@ export function validatePlatformLayout(level: LevelDef): PlatformValidation {
   }
 
   return {
-    isValid: issues.length === 0,
+    isValid: !issues.some((issue) => issue.severity === "error"),
     issues,
     reachablePlatformIds: [...reachable],
     links,
