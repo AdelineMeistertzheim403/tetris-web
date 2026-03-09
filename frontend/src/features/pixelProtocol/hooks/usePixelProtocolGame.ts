@@ -14,7 +14,7 @@ import { updateRuntime } from "../game/updateRuntime";
 import { usePixelProtocolControls } from "./usePixelProtocolControls";
 import { usePixelProtocolViewport } from "./usePixelProtocolViewport";
 import { LEVELS as DEFAULT_LEVELS } from "../levels";
-import { abilityFlags, cloneLevel } from "../logic";
+import { abilityFlags, cloneLevel, levelTopPadding, selectGrappleTarget } from "../logic";
 import type { EnemyKind, GameRuntime, LevelDef, PixelSkill } from "../types";
 
 export function usePixelProtocolGame(
@@ -207,7 +207,11 @@ export function usePixelProtocolGame(
           idleSinceRef.current = null;
         }
 
-        if (!prevGrounded && game.player.grounded && game.player.y + game.player.h >= level.spawn.y + 60) {
+        if (
+          !prevGrounded &&
+          game.player.grounded &&
+          game.player.y + game.player.h >= level.spawn.y + levelTopPadding(level) + 60
+        ) {
           pushDialogue("player_fail_jump", getNearestSpeaker(game));
         }
 
@@ -248,6 +252,16 @@ export function usePixelProtocolGame(
   ]);
 
   const runtime = runtimeRef.current;
+  const currentInput = readInput();
+  const grapplePreview =
+    ability.dataGrapple
+      ? selectGrappleTarget({
+          platforms: runtime.platforms,
+          player: runtime.player,
+          aimX: (currentInput.right ? 1 : 0) - (currentInput.left ? 1 : 0),
+          aimY: (currentInput.down ? 1 : 0) - (currentInput.up ? 1 : 0),
+        })
+      : null;
   const portalOpen = runtime.collected >= level.requiredOrbs;
   const isRunning = runtime.player.grounded && Math.abs(runtime.player.vx) > 35;
   const playerRunFrame =
@@ -274,6 +288,7 @@ export function usePixelProtocolGame(
     playerRunFrame,
     playerSprite,
     portalOpen,
+    grapplePreview,
     resetLevel,
     runtime,
     chatLine,

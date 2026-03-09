@@ -2,6 +2,7 @@ import {
   CAMERA_MIN_TOP_PADDING,
   CAMERA_BOTTOM_TRIGGER_RATIO,
   CAMERA_TOP_TRIGGER_RATIO,
+  DEFAULT_WORLD_TOP_PADDING,
   MOVING_DEFAULT_AXIS,
   MOVING_DEFAULT_PATTERN,
   MOVING_DEFAULT_RANGE_TILES,
@@ -143,7 +144,17 @@ export function allCollisionBlocks(
   ];
 }
 
-export function levelWorldHeight(level: Pick<LevelDef, "worldHeight">): number {
+export function levelWorldHeight(level: Pick<LevelDef, "worldHeight" | "worldTopPadding">): number {
+  const baseHeight =
+    typeof level.worldHeight === "number" &&
+    Number.isFinite(level.worldHeight) &&
+    level.worldHeight >= TILE * 8
+      ? Math.round(level.worldHeight)
+      : WORLD_H;
+  return baseHeight + levelTopPadding(level);
+}
+
+export function levelPlayableHeight(level: Pick<LevelDef, "worldHeight">): number {
   if (
     typeof level.worldHeight === "number" &&
     Number.isFinite(level.worldHeight) &&
@@ -154,16 +165,28 @@ export function levelWorldHeight(level: Pick<LevelDef, "worldHeight">): number {
   return WORLD_H;
 }
 
-export function levelGroundY(level: Pick<LevelDef, "worldHeight">): number {
+export function levelTopPadding(level: Pick<LevelDef, "worldTopPadding">): number {
+  if (
+    typeof level.worldTopPadding === "number" &&
+    Number.isFinite(level.worldTopPadding) &&
+    level.worldTopPadding >= 0
+  ) {
+    return Math.round(level.worldTopPadding);
+  }
+  return DEFAULT_WORLD_TOP_PADDING;
+}
+
+export function levelGroundY(level: Pick<LevelDef, "worldHeight" | "worldTopPadding">): number {
   return levelWorldHeight(level) - TILE;
 }
 
 export function cloneLevel(level: LevelDef): GameRuntime {
+  const yOffset = levelTopPadding(level);
   return {
     startedAt: performance.now(),
     player: {
       x: level.spawn.x,
-      y: level.spawn.y,
+      y: level.spawn.y + yOffset,
       w: 24,
       h: 30,
       vx: 0,
@@ -181,6 +204,7 @@ export function cloneLevel(level: LevelDef): GameRuntime {
       grappleTargetY: null,
       grappleLandY: null,
       grapplePlatformId: null,
+      grappleAttachSide: null,
       groundPlatformId: null,
       groundedSurface: null,
       gravityInvertedUntil: 0,
@@ -196,6 +220,7 @@ export function cloneLevel(level: LevelDef): GameRuntime {
     },
     platforms: level.platforms.map((p) => ({
       ...p,
+      y: p.y + yOffset / TILE,
       moveAxis: p.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
       movePattern: p.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
       moveRangeTiles:
@@ -221,16 +246,21 @@ export function cloneLevel(level: LevelDef): GameRuntime {
       expiresAt: null,
       temporary: false,
       moveOriginX: p.x,
-      moveOriginY: p.y,
+      moveOriginY: p.y + yOffset / TILE,
       moveProgress: 0,
       moveDirection: 1 as const,
       prevX: p.x,
-      prevY: p.y,
+      prevY: p.y + yOffset / TILE,
     })),
-    checkpoints: level.checkpoints.map((c) => ({ ...c, activated: false })),
-    respawn: { ...level.spawn },
-    orbs: level.orbs.map((o) => ({ ...o, taken: false })),
-    enemies: level.enemies.map((e) => ({ ...e })),
+    checkpoints: level.checkpoints.map((c) => ({
+      ...c,
+      y: c.y + yOffset,
+      spawnY: c.spawnY + yOffset,
+      activated: false,
+    })),
+    respawn: { x: level.spawn.x, y: level.spawn.y + yOffset },
+    orbs: level.orbs.map((o) => ({ ...o, y: o.y + yOffset, taken: false })),
+    enemies: level.enemies.map((e) => ({ ...e, y: e.y + yOffset })),
     cameraX: 0,
     cameraY: 0,
     collected: 0,
@@ -268,39 +298,116 @@ export function grappleAnchors(platforms: RuntimePlatform[]): GrappleAnchor[] {
     const left = Math.min(...blocks.map((block) => block.x));
     const right = Math.max(...blocks.map((block) => block.x + block.w));
     const top = Math.min(...blocks.map((block) => block.y));
+    const bottom = Math.max(...blocks.map((block) => block.y + block.h));
+    const width = right - left;
+    const height = bottom - top;
+    if (height > width) {
+      const centerY = top + height / 2;
+      anchors.push({
+        x: left - 18,
+        y: centerY,
+        landY: centerY,
+        platformId: platform.id,
+        attachSide: "left",
+      });
+      anchors.push({
+        x: right + 18,
+        y: centerY,
+        landY: centerY,
+        platformId: platform.id,
+        attachSide: "right",
+      });
+      continue;
+    }
     anchors.push({
       x: left + (right - left) / 2,
       y: top - 18,
       landY: top,
       platformId: platform.id,
+      attachSide: "top",
     });
   }
   return anchors;
 }
 
+export function selectGrappleTarget(params: {
+  platforms: RuntimePlatform[];
+  player: Pick<GameRuntime["player"], "x" | "y" | "w" | "h" | "groundPlatformId" | "grapplePlatformId">;
+  aimX: number;
+  aimY: number;
+}) {
+  const { aimX, aimY, platforms, player } = params;
+  const anchors = grappleAnchors(platforms);
+  const playerCenterX = player.x + player.w / 2;
+  const playerCenterY = player.y + player.h / 2;
+  const aiming = aimX !== 0 || aimY !== 0;
+  const blockedPlatformId = player.groundPlatformId ?? player.grapplePlatformId;
+  const aimLength = Math.hypot(aimX, aimY) || 1;
+  const normalizedAimX = aimX / aimLength;
+  const normalizedAimY = aimY / aimLength;
+
+  return anchors
+    .map((anchor) => {
+      const dx = anchor.x - playerCenterX;
+      const dy = anchor.y - playerCenterY;
+      const distance = Math.hypot(dx, dy);
+      const dirDot = aiming
+        ? (dx * normalizedAimX + dy * normalizedAimY) / Math.max(distance, 1)
+        : 0;
+      const angularPenalty = aiming ? (1 - clamp(dirDot, -1, 1)) * 180 : 0;
+      return {
+        ...anchor,
+        distance,
+        dirDot,
+        score:
+          distance +
+          angularPenalty +
+          (anchor.platformId === blockedPlatformId ? 180 : 0),
+      };
+    })
+    .filter((anchor) => anchor.distance <= 680)
+    .sort((a, b) => a.score - b.score)[0] ?? null;
+}
+
 export function updateCameraY(
   game: GameRuntime,
   viewportHeight: number,
-  level: Pick<LevelDef, "worldHeight">
+  level: Pick<LevelDef, "worldHeight" | "worldTopPadding">
 ): void {
-  // La camera utilise une zone morte verticale pour eviter de recentrer l'ecran a chaque saut.
   const visibleWorldHeight = viewportHeight / WORLD_RENDER_SCALE;
   const worldHeight = levelWorldHeight(level);
   const maxCameraY = Math.max(0, worldHeight - visibleWorldHeight);
-  const minCameraY = -Math.min(CAMERA_MIN_TOP_PADDING, Math.max(0, visibleWorldHeight - TILE));
-  const topTriggerY =
-    game.cameraY + visibleWorldHeight * CAMERA_TOP_TRIGGER_RATIO;
-  const bottomTriggerY =
-    game.cameraY + visibleWorldHeight * CAMERA_BOTTOM_TRIGGER_RATIO;
+  const maxTopPadding = Math.max(levelTopPadding(level), CAMERA_MIN_TOP_PADDING, visibleWorldHeight * 0.72);
+  const minCameraY = -Math.min(maxTopPadding, Math.max(0, visibleWorldHeight - TILE));
+  const isAttached = Boolean(game.player.grappleAttachSide);
+  const isAirborne = !game.player.grounded;
+  const isAscending = game.player.vy < -60 || (isAirborne && game.player.vy < 100);
+  const lookAheadUp = isAttached
+    ? visibleWorldHeight * 0.34
+    : isAscending
+      ? visibleWorldHeight * 0.28
+      : isAirborne
+        ? visibleWorldHeight * 0.18
+        : visibleWorldHeight * 0.08;
+  const topTriggerRatio = isAttached || isAscending ? 0.12 : CAMERA_TOP_TRIGGER_RATIO;
+  const bottomTriggerRatio = isAttached || isAscending ? 0.56 : CAMERA_BOTTOM_TRIGGER_RATIO;
+  const focusTopY = game.player.y - lookAheadUp;
+  const topTriggerY = game.cameraY + visibleWorldHeight * topTriggerRatio;
+  const bottomTriggerY = game.cameraY + visibleWorldHeight * bottomTriggerRatio;
+  const desiredCameraY =
+    focusTopY - visibleWorldHeight * topTriggerRatio;
 
-  if (game.player.y < topTriggerY) {
+  if (focusTopY < topTriggerY) {
+    game.cameraY = desiredCameraY;
+  } else if (focusTopY + game.player.h > bottomTriggerY) {
     game.cameraY =
-      game.player.y - visibleWorldHeight * CAMERA_TOP_TRIGGER_RATIO;
-  } else if (game.player.y + game.player.h > bottomTriggerY) {
-    game.cameraY =
-      game.player.y +
+      focusTopY +
       game.player.h -
-      visibleWorldHeight * CAMERA_BOTTOM_TRIGGER_RATIO;
+      visibleWorldHeight * bottomTriggerRatio;
+  }
+
+  if (isAttached || isAscending) {
+    game.cameraY += (desiredCameraY - game.cameraY) * 0.22;
   }
 
   game.cameraY = clamp(game.cameraY, minCameraY, maxCameraY);

@@ -550,6 +550,15 @@
   border-top: 2px solid #58ddff66;
 }
 
+.pp-editor-top-padding {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed rgba(125, 232, 255, 0.4);
+  box-shadow: 0 0 12px rgba(89, 226, 255, 0.18);
+  pointer-events: none;
+}
+
 .pp-editor-spawn,
 .pp-editor-portal {
   position: absolute;

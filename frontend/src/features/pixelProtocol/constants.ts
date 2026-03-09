@@ -9,7 +9,7 @@ export const SPEED = 240;
 export const JUMP = 560;
 export const DASH_SPEED = 620;
 export const DASH_MS = 150;
-export const ICE_GROUND_ACCEL = 520;
+export const ICE_GROUND_ACCEL = 180;
 export const BOOST_JUMP_MULTIPLIER = 1.45;
 export const BOOST_OVERCLOCK_MULTIPLIER = 1.62;
 export const BOOST_HORIZONTAL_PUSH = 210;
@@ -32,6 +32,7 @@ export const RUN_ANIMATION_FRAME_MS = 300;
 export const CAMERA_TOP_TRIGGER_RATIO = 0.3;
 export const CAMERA_BOTTOM_TRIGGER_RATIO = 0.78;
 export const CAMERA_MIN_TOP_PADDING = 3 * TILE;
+export const DEFAULT_WORLD_TOP_PADDING = 0;
 
 export const PLAYER_IDLE_SPRITE = "/sprites_pixel_protocole/pixel/pixel_iddle.png";
 export const PLAYER_RUN_SPRITE = "/sprites_pixel_protocole/pixel/pixel_run.png";

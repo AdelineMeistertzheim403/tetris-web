@@ -1,4 +1,4 @@
-import { rectIntersects } from "../logic";
+import { levelTopPadding, rectIntersects } from "../logic";
 import type { GameRuntime, LevelDef, Rect } from "../types";
 
 export function collectCheckpoints(game: GameRuntime) {
@@ -48,7 +48,12 @@ export function handlePortal({
   level: LevelDef;
   onAdvanceLevel: () => void;
 }) {
-  const portalRect: Rect = { x: level.portal.x, y: level.portal.y, w: 34, h: 44 };
+  const portalRect: Rect = {
+    x: level.portal.x,
+    y: level.portal.y + levelTopPadding(level),
+    w: 34,
+    h: 44,
+  };
   const playerRect: Rect = {
     x: game.player.x,
     y: game.player.y,

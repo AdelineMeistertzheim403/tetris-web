@@ -7,11 +7,11 @@ import {
 } from "../constants";
 import {
   PixelProtocolDecoration,
-  decorationLayerOrder,
 } from "../decorations";
 import {
   grappleAnchors,
   levelGroundY,
+  levelTopPadding,
   levelWorldHeight,
   platformBlocks,
 } from "../logic";
@@ -23,6 +23,9 @@ type PixelProtocolWorldProps = {
   playerRunFrame: number;
   playerSprite: string;
   portalOpen: boolean;
+  grapplePreview:
+    | { x: number; y: number; platformId: string; attachSide: "top" | "left" | "right" }
+    | null;
   runtime: GameRuntime;
 };
 
@@ -32,6 +35,7 @@ export function PixelProtocolWorld({
   playerRunFrame,
   playerSprite,
   portalOpen,
+  grapplePreview,
   runtime,
 }: PixelProtocolWorldProps) {
   const now = performance.now();
@@ -52,9 +56,7 @@ export function PixelProtocolWorld({
   const anchors = grappleAnchors(runtime.platforms);
   const worldHeight = levelWorldHeight(level);
   const groundY = levelGroundY(level);
-  const decorations = [...(level.decorations ?? [])].sort(
-    (a, b) => decorationLayerOrder(a.layer) - decorationLayerOrder(b.layer)
-  );
+  const yOffset = levelTopPadding(level);
   const orbStyle = (orb: GameRuntime["orbs"][number]) => {
     if (orb.grantsSkill) {
       const color =
@@ -111,7 +113,14 @@ export function PixelProtocolWorld({
         {anchors.map((anchor) => (
           <div
             key={`anchor-${anchor.platformId}`}
-            className="pp-grappleAnchor"
+            className={`pp-grappleAnchor ${
+              grapplePreview &&
+              grapplePreview.platformId === anchor.platformId &&
+              grapplePreview.x === anchor.x &&
+              grapplePreview.y === anchor.y
+                ? "pp-grappleAnchor--target"
+                : ""
+            }`}
             style={{ left: anchor.x - 8, top: anchor.y - 8 }}
           />
         ))}
@@ -157,7 +166,7 @@ export function PixelProtocolWorld({
 
         <div
           className={`pp-portal ${portalOpen ? "pp-portal--open" : ""}`}
-          style={{ left: level.portal.x, top: level.portal.y }}
+          style={{ left: level.portal.x, top: level.portal.y + yOffset }}
         />
 
         {runtime.enemies.map((enemy) => {

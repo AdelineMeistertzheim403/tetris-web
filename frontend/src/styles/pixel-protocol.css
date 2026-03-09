@@ -259,6 +259,14 @@
   opacity: 0.9;
 }
 
+.pp-grappleAnchor--target {
+  transform: scale(1.28);
+  box-shadow:
+    0 0 18px #fff6a8,
+    0 0 28px #59e2ff;
+  border-color: #fff0a8;
+}
+
 .pp-portal {
   position: absolute;
   width: 34px;

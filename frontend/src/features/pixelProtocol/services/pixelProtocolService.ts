@@ -52,6 +52,7 @@ function isLevelDef(value: unknown): value is LevelDef {
     typeof level.world === "number" &&
     typeof level.worldWidth === "number" &&
     (level.worldHeight === undefined || typeof level.worldHeight === "number") &&
+    (level.worldTopPadding === undefined || typeof level.worldTopPadding === "number") &&
     typeof level.requiredOrbs === "number" &&
     typeof level.spawn?.x === "number" &&
     typeof level.spawn?.y === "number" &&
