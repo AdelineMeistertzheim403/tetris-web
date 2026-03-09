@@ -1,6 +1,6 @@
 import { getAuthHeader } from "../../auth/services/authService";
 import { sortLevels } from "../levelBuilders";
-import type { LevelDef } from "../types";
+import type { LevelDef, WorldTemplate } from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -33,6 +33,19 @@ async function parseError(res: Response, fallback: string) {
 function isLevelDef(value: unknown): value is LevelDef {
   if (!value || typeof value !== "object") return false;
   const level = value as LevelDef;
+  const validDecorations =
+    level.decorations === undefined ||
+    (Array.isArray(level.decorations) &&
+      level.decorations.every(
+        (decoration) =>
+          decoration &&
+          typeof decoration.id === "string" &&
+          typeof decoration.type === "string" &&
+          typeof decoration.x === "number" &&
+          typeof decoration.y === "number" &&
+          typeof decoration.width === "number" &&
+          typeof decoration.height === "number"
+      ));
   return (
     typeof level.id === "string" &&
     typeof level.name === "string" &&
@@ -40,6 +53,9 @@ function isLevelDef(value: unknown): value is LevelDef {
     typeof level.worldWidth === "number" &&
     (level.worldHeight === undefined || typeof level.worldHeight === "number") &&
     (level.worldTopPadding === undefined || typeof level.worldTopPadding === "number") &&
+    (level.worldTemplateId === undefined ||
+      level.worldTemplateId === null ||
+      typeof level.worldTemplateId === "string") &&
     typeof level.requiredOrbs === "number" &&
     typeof level.spawn?.x === "number" &&
     typeof level.spawn?.y === "number" &&
@@ -48,7 +64,21 @@ function isLevelDef(value: unknown): value is LevelDef {
     Array.isArray(level.platforms) &&
     Array.isArray(level.checkpoints) &&
     Array.isArray(level.orbs) &&
-    Array.isArray(level.enemies)
+    Array.isArray(level.enemies) &&
+    validDecorations
+  );
+}
+
+function isWorldTemplate(value: unknown): value is WorldTemplate {
+  if (!value || typeof value !== "object") return false;
+  const world = value as WorldTemplate;
+  return (
+    typeof world.id === "string" &&
+    typeof world.name === "string" &&
+    typeof world.worldWidth === "number" &&
+    (world.worldHeight === undefined || typeof world.worldHeight === "number") &&
+    (world.worldTopPadding === undefined || typeof world.worldTopPadding === "number") &&
+    Array.isArray(world.decorations)
   );
 }
 
@@ -79,6 +109,15 @@ function parseLevelsPayload(data: unknown): LevelDef[] {
       ? (data as { levels: unknown[] }).levels
       : [];
   return sortLevels(arr.filter(isLevelDef));
+}
+
+function parseWorldTemplatesPayload(data: unknown): WorldTemplate[] {
+  const arr = Array.isArray(data)
+    ? data
+    : data && typeof data === "object" && Array.isArray((data as { worlds?: unknown[] }).worlds)
+      ? (data as { worlds: unknown[] }).worlds
+      : [];
+  return arr.filter(isWorldTemplate);
 }
 
 export async function fetchPixelProtocolLevels(): Promise<LevelDef[]> {
@@ -163,6 +202,21 @@ export async function fetchPixelProtocolCustomLevels(): Promise<LevelDef[]> {
   return parseLevelsPayload(await res.json());
 }
 
+export async function fetchPixelProtocolWorldTemplates(): Promise<WorldTemplate[]> {
+  const res = await fetch(`${API_URL}/pixel-protocol/world-templates`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur chargement mondes custom Pixel Protocol"));
+  }
+
+  return parseWorldTemplatesPayload(await res.json());
+}
+
 export async function savePixelProtocolCustomLevel(level: LevelDef): Promise<LevelDef> {
   const res = await fetch(`${API_URL}/pixel-protocol/custom-levels`, {
     method: "POST",
@@ -182,6 +236,25 @@ export async function savePixelProtocolCustomLevel(level: LevelDef): Promise<Lev
   return isLevelDef(data.level) ? data.level : level;
 }
 
+export async function savePixelProtocolWorldTemplate(world: WorldTemplate): Promise<WorldTemplate> {
+  const res = await fetch(`${API_URL}/pixel-protocol/world-templates`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+    body: JSON.stringify({ world }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur sauvegarde monde custom Pixel Protocol"));
+  }
+
+  const data = (await res.json()) as { world?: unknown };
+  return isWorldTemplate(data.world) ? data.world : world;
+}
+
 export async function deletePixelProtocolCustomLevel(levelId: string): Promise<void> {
   const res = await fetch(`${API_URL}/pixel-protocol/custom-levels/${encodeURIComponent(levelId)}`, {
     method: "DELETE",
@@ -193,6 +266,20 @@ export async function deletePixelProtocolCustomLevel(levelId: string): Promise<v
 
   if (!res.ok) {
     throw new Error(await parseError(res, "Erreur suppression niveau custom Pixel Protocol"));
+  }
+}
+
+export async function deletePixelProtocolWorldTemplate(templateId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/pixel-protocol/world-templates/${encodeURIComponent(templateId)}`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur suppression monde custom Pixel Protocol"));
   }
 }
 

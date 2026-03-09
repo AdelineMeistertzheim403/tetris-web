@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/context/AuthContext";
 import {
   fetchPixelProtocolCustomLevels,
   fetchPixelProtocolProgress,
+  fetchPixelProtocolWorldTemplates,
   type PixelProtocolProgress,
 } from "../services/pixelProtocolService";
 import {
@@ -12,7 +13,11 @@ import {
 } from "../utils/customLevels";
 import { readLocalPixelProtocolProgress } from "../utils/progress";
 import { readLocalPixelProtocolSkills } from "../utils/skills";
-import type { LevelDef } from "../types";
+import {
+  listPixelProtocolWorldTemplates,
+  mergePixelProtocolWorldTemplates,
+} from "../utils/worldTemplates";
+import type { LevelDef, WorldTemplate } from "../types";
 import "../../../styles/pixel-protocol-hub.css";
 
 function toWorldStage(levelIndex: number) {
@@ -32,6 +37,11 @@ export default function PixelProtocolHub() {
     listPixelProtocolCustomLevels()
   );
   const [selectedCustomId, setSelectedCustomId] = useState("");
+  const [worldTemplates, setWorldTemplates] = useState<WorldTemplate[]>(() =>
+    listPixelProtocolWorldTemplates()
+  );
+  const [selectedWorldId, setSelectedWorldId] = useState("");
+  const [showEditorChooser, setShowEditorChooser] = useState(false);
   const [unlockedSkills] = useState(() => readLocalPixelProtocolSkills());
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -49,6 +59,7 @@ export default function PixelProtocolHub() {
       if (!cancelled) {
         setProgress(localProgress);
         setCustomLevels(localCustomLevels);
+        setWorldTemplates(listPixelProtocolWorldTemplates());
       }
 
       if (!user) {
@@ -57,9 +68,10 @@ export default function PixelProtocolHub() {
       }
 
       try {
-        const [remoteProgress, remoteCustomLevels] = await Promise.all([
+        const [remoteProgress, remoteCustomLevels, remoteWorldTemplates] = await Promise.all([
           fetchPixelProtocolProgress(),
           fetchPixelProtocolCustomLevels(),
+          fetchPixelProtocolWorldTemplates(),
         ]);
         if (cancelled) return;
 
@@ -69,6 +81,7 @@ export default function PixelProtocolHub() {
           updatedAt: remoteProgress.updatedAt ?? localProgress.updatedAt ?? null,
         });
         setCustomLevels(mergePixelProtocolCustomLevels(remoteCustomLevels));
+        setWorldTemplates(mergePixelProtocolWorldTemplates(remoteWorldTemplates));
       } catch {
         if (!cancelled) {
           setSyncError("Mode hors ligne: donnees locales utilisees.");
@@ -89,6 +102,12 @@ export default function PixelProtocolHub() {
       setSelectedCustomId(customLevels[0].id);
     }
   }, [customLevels, selectedCustomId]);
+
+  useEffect(() => {
+    if (worldTemplates.length > 0 && !selectedWorldId) {
+      setSelectedWorldId(worldTemplates[0].id);
+    }
+  }, [worldTemplates, selectedWorldId]);
 
   const stage = useMemo(
     () => toWorldStage(progress.currentLevel),
@@ -134,10 +153,28 @@ export default function PixelProtocolHub() {
               </button>
               <button
                 className="pp-hub-btn"
-                onClick={() => navigate("/pixel-protocol/editor")}
+                onClick={() => {
+                  setShowEditorChooser((current) => !current);
+                }}
               >
                 {user?.role === "ADMIN" ? "Ouvrir editeur admin" : "Ouvrir editeur custom"}
               </button>
+              {showEditorChooser && (
+                <div className="pp-hub-stack pp-hub-chooser">
+                  <button
+                    className="pp-hub-btn"
+                    onClick={() => navigate("/pixel-protocol/editor?mode=level")}
+                  >
+                    Mode niveau
+                  </button>
+                  <button
+                    className="pp-hub-btn"
+                    onClick={() => navigate("/pixel-protocol/editor?mode=world")}
+                  >
+                    Mode monde
+                  </button>
+                </div>
+              )}
               <button
                 className="pp-hub-btn"
                 onClick={() => navigate("/pixel-protocol/help/editor")}
@@ -168,6 +205,31 @@ export default function PixelProtocolHub() {
                 }
               >
                 Lancer niveau custom
+              </button>
+            </div>
+
+            <div className="pp-hub-divider pp-hub-stack">
+              <div className="text-cyan-200">Mondes custom</div>
+              <select
+                className="pp-hub-select"
+                value={selectedWorldId}
+                onChange={(event) => setSelectedWorldId(event.target.value)}
+              >
+                <option value="">-- choisir --</option>
+                {worldTemplates.map((world) => (
+                  <option key={world.id} value={world.id}>
+                    {world.name} ({world.id})
+                  </option>
+                ))}
+              </select>
+              <button
+                className="pp-hub-btn"
+                disabled={!selectedWorldId}
+                onClick={() =>
+                  navigate(`/pixel-protocol/editor?mode=world&template=${encodeURIComponent(selectedWorldId)}`)
+                }
+              >
+                Modifier monde
               </button>
             </div>
 

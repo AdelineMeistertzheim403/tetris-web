@@ -155,10 +155,9 @@ function grappleSourceSamples(platform: RuntimePlatform) {
 }
 
 function standsOnTarget(
-  player: { x: number; y: number; w: number; h: number; grounded: boolean },
+  player: { x: number; y: number; w: number; h: number },
   blocks: Rect[]
 ) {
-  if (!player.grounded) return false;
   const feetY = player.y + player.h;
   return blocks.some((block) => {
     const overlapsX = player.x < block.x + block.w && player.x + player.w > block.x;
@@ -177,7 +176,12 @@ function edgeDistance(source: Rect[], target: Rect[]) {
   return 0;
 }
 
-function plausibleJump(sourceBlocks: Rect[], targetBlocks: Rect[], world: number) {
+function plausibleJump(
+  sourceBlocks: Rect[],
+  targetBlocks: Rect[],
+  world: number,
+  sourceType?: RuntimePlatform["type"] | "ground"
+) {
   const sourceTop = Math.min(...sourceBlocks.map((block) => block.y));
   const targetTop = Math.min(...targetBlocks.map((block) => block.y));
   const verticalRise = sourceTop - targetTop;
@@ -186,9 +190,13 @@ function plausibleJump(sourceBlocks: Rect[], targetBlocks: Rect[], world: number
 
   const extraJump = world >= 2 ? 150 : 0;
   const extraDash = world >= 3 ? 190 : 0;
+  const sourceRiseBonus =
+    sourceType === "bounce" ? 120 : sourceType === "boost" ? 180 : sourceType === "ground" ? 20 : 0;
+  const sourceGapBonus =
+    sourceType === "bounce" ? 60 : sourceType === "boost" ? 110 : sourceType === "ground" ? 20 : 0;
 
-  if (verticalRise > 210 + extraJump) return false;
-  if (horizontalGap > 250 + extraJump + extraDash) return false;
+  if (verticalRise > 210 + extraJump + sourceRiseBonus) return false;
+  if (horizontalGap > 250 + extraJump + extraDash + sourceGapBonus) return false;
   if (verticalDrop > 340) return false;
   return true;
 }
@@ -209,10 +217,14 @@ function canReachPlatform(
     source.kind === "platform"
       ? runtimePlatforms.find((platform) => platform.id === source.platformId) ?? null
       : null;
+  const spawnGroundY = levelGroundY(level);
+  const spawnFeetY = level.spawn.y + PLAYER_H;
+  const spawnOnGround = Math.abs(spawnFeetY - spawnGroundY) <= 2;
+  const spawnY = spawnOnGround ? spawnGroundY - PLAYER_H : level.spawn.y;
 
   const starts =
     source.kind === "spawn"
-      ? [{ x: level.spawn.x, y: level.spawn.y, grounded: false }]
+      ? [{ x: level.spawn.x, y: spawnY, grounded: spawnOnGround }]
       : [
           ...topSupportSamples(sourcePlatform!).map((sample) => ({
             x: sample.x,
@@ -230,10 +242,13 @@ function canReachPlatform(
 
   const sourceBlocks =
     source.kind === "spawn"
-      ? [{ x: level.spawn.x, y: level.spawn.y, w: PLAYER_W, h: PLAYER_H }]
+      ? [{ x: level.spawn.x, y: spawnY, w: PLAYER_W, h: PLAYER_H }]
       : platformBlocks(runtimePlatforms.find((platform) => platform.id === source.platformId)!);
 
-  if (source.kind !== "spawn" && !plausibleJump(sourceBlocks, targetBlocks, level.world)) {
+  const sourceType =
+    source.kind === "spawn" ? (spawnOnGround ? "ground" : undefined) : sourcePlatform?.type;
+
+  if (!plausibleJump(sourceBlocks, targetBlocks, level.world, sourceType)) {
     return false;
   }
 
