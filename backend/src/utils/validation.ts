@@ -358,9 +358,7 @@ const pixelProtocolEnemySchema = z.object({
   stunnedUntil: z.number().finite().min(0).max(1_000_000_000),
 });
 
-const pixelProtocolDecorationSchema = z.object({
-  id: z.string().trim().min(1).max(80),
-  type: z.enum([
+const pixelProtocolBuiltinDecorationTypeSchema = z.enum([
     "tetromino_I",
     "tetromino_T",
     "tetromino_L",
@@ -441,6 +439,24 @@ const pixelProtocolDecorationSchema = z.object({
     "digital_tunnel",
     "data_pulse",
     "wave_grid",
+  ]);
+
+const pixelProtocolSvgPackDecorationTypeSchema = z
+  .string()
+  .trim()
+  .regex(/^svg_pack:[a-z0-9_]+$/);
+
+const pixelProtocolTilesetDecorationTypeSchema = z
+  .string()
+  .trim()
+  .regex(/^tileset:[A-Za-z0-9_]+$/);
+
+const pixelProtocolDecorationSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  type: z.union([
+    pixelProtocolBuiltinDecorationTypeSchema,
+    pixelProtocolSvgPackDecorationTypeSchema,
+    pixelProtocolTilesetDecorationTypeSchema,
   ]),
   x: pixelCoordSchema,
   y: pixelCoordSchema,
