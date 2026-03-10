@@ -1,5 +1,22 @@
 import type { LevelDef, WorldTemplate } from "../types";
 
+function scaleDecorationsToLevel(level: LevelDef, world: WorldTemplate) {
+  const sourceWidth = Math.max(1, world.worldWidth);
+  const sourceHeight = Math.max(1, world.worldHeight ?? level.worldHeight ?? 1);
+  const targetWidth = Math.max(1, level.worldWidth);
+  const targetHeight = Math.max(1, level.worldHeight ?? world.worldHeight ?? sourceHeight);
+  const scaleX = targetWidth / sourceWidth;
+  const scaleY = targetHeight / sourceHeight;
+
+  return world.decorations.map((decoration) => ({
+    ...decoration,
+    x: Math.round(decoration.x * scaleX),
+    y: Math.round(decoration.y * scaleY),
+    width: Math.max(4, Math.round(decoration.width * scaleX)),
+    height: Math.max(4, Math.round(decoration.height * scaleY)),
+  }));
+}
+
 export function applyWorldTemplateToLevel(
   level: LevelDef,
   world: WorldTemplate
@@ -7,8 +24,7 @@ export function applyWorldTemplateToLevel(
   return {
     ...level,
     worldTemplateId: world.id,
-    worldWidth: world.worldWidth,
-    decorations: world.decorations,
+    decorations: scaleDecorationsToLevel(level, world),
   };
 }
 

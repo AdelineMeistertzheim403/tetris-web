@@ -50,3 +50,32 @@ export const verifyToken = (
     return res.status(403).json({ error: "Token invalide ou expire" });
   }
 };
+
+export const attachOptionalUser = (
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+) => {
+  const authHeader = req.headers.authorization;
+  const headerToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : null;
+  const cookieToken = req.cookies?.[AUTH_COOKIE_NAME] ?? null;
+  const token = headerToken ?? cookieToken;
+
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtUserPayload;
+    if (decoded?.id) {
+      req.user = decoded;
+    }
+  } catch (err) {
+    logger.warn({ err }, "Erreur attachOptionalUser");
+  }
+
+  next();
+};

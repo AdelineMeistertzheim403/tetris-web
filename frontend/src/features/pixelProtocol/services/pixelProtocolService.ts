@@ -16,6 +16,17 @@ export type PixelProtocolProgress = {
   updatedAt?: string | null;
 };
 
+export type PixelProtocolCommunityLevel = {
+  id: number;
+  level: LevelDef;
+  authorId: number;
+  authorPseudo: string;
+  isOwn: boolean;
+  likeCount: number;
+  likedByMe: boolean;
+  updatedAt?: string | null;
+};
+
 export type SavePixelProtocolProgressPayload = {
   highestLevel?: number;
   currentLevel?: number;
@@ -86,6 +97,20 @@ function isAdminLevel(value: unknown): value is PixelProtocolAdminLevel {
   return isLevelDef(value) && typeof (value as PixelProtocolAdminLevel).active === "boolean";
 }
 
+function isCommunityLevel(value: unknown): value is PixelProtocolCommunityLevel {
+  if (!value || typeof value !== "object") return false;
+  const row = value as PixelProtocolCommunityLevel;
+  return (
+    Number.isFinite(row.id) &&
+    isLevelDef(row.level) &&
+    Number.isFinite(row.authorId) &&
+    typeof row.authorPseudo === "string" &&
+    typeof row.isOwn === "boolean" &&
+    Number.isFinite(row.likeCount) &&
+    typeof row.likedByMe === "boolean"
+  );
+}
+
 function normalizeProgress(data: unknown): PixelProtocolProgress {
   const row = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
   const highestLevel = Number.isFinite(row.highestLevel)
@@ -118,6 +143,15 @@ function parseWorldTemplatesPayload(data: unknown): WorldTemplate[] {
       ? (data as { worlds: unknown[] }).worlds
       : [];
   return arr.filter(isWorldTemplate);
+}
+
+function parseCommunityLevelsPayload(data: unknown): PixelProtocolCommunityLevel[] {
+  const arr = Array.isArray(data)
+    ? data
+    : data && typeof data === "object" && Array.isArray((data as { levels?: unknown[] }).levels)
+      ? (data as { levels: unknown[] }).levels
+      : [];
+  return arr.filter(isCommunityLevel);
 }
 
 export async function fetchPixelProtocolLevels(): Promise<LevelDef[]> {
@@ -217,6 +251,40 @@ export async function fetchPixelProtocolWorldTemplates(): Promise<WorldTemplate[
   return parseWorldTemplatesPayload(await res.json());
 }
 
+export async function fetchPixelProtocolCommunityLevels(): Promise<PixelProtocolCommunityLevel[]> {
+  const res = await fetch(`${API_URL}/pixel-protocol/community-levels`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur chargement niveaux joueurs Pixel Protocol"));
+  }
+
+  return parseCommunityLevelsPayload(await res.json());
+}
+
+export async function fetchPixelProtocolCommunityLevel(
+  publishedId: number
+): Promise<PixelProtocolCommunityLevel> {
+  const res = await fetch(`${API_URL}/pixel-protocol/community-levels/${publishedId}`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur chargement niveau joueur Pixel Protocol"));
+  }
+
+  const data = (await res.json()) as { level?: unknown };
+  if (isCommunityLevel(data.level)) return data.level;
+  throw new Error("Niveau joueur invalide");
+}
+
 export async function savePixelProtocolCustomLevel(level: LevelDef): Promise<LevelDef> {
   const res = await fetch(`${API_URL}/pixel-protocol/custom-levels`, {
     method: "POST",
@@ -253,6 +321,50 @@ export async function savePixelProtocolWorldTemplate(world: WorldTemplate): Prom
 
   const data = (await res.json()) as { world?: unknown };
   return isWorldTemplate(data.world) ? data.world : world;
+}
+
+export async function publishPixelProtocolCommunityLevel(
+  levelId: string
+): Promise<PixelProtocolCommunityLevel> {
+  const res = await fetch(`${API_URL}/pixel-protocol/community-levels`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+    body: JSON.stringify({ levelId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur publication niveau Pixel Protocol"));
+  }
+
+  const data = (await res.json()) as { level?: unknown };
+  if (isCommunityLevel(data.level)) return data.level;
+  throw new Error("Publication invalide");
+}
+
+export async function togglePixelProtocolCommunityLevelLike(
+  publishedId: number
+): Promise<{ liked: boolean; likeCount: number }> {
+  const res = await fetch(`${API_URL}/pixel-protocol/community-levels/${publishedId}/like`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur vote niveau Pixel Protocol"));
+  }
+
+  const data = (await res.json()) as { liked?: unknown; likeCount?: unknown };
+  return {
+    liked: Boolean(data.liked),
+    likeCount: Number.isFinite(data.likeCount) ? Math.max(0, Math.floor(data.likeCount as number)) : 0,
+  };
 }
 
 export async function deletePixelProtocolCustomLevel(levelId: string): Promise<void> {

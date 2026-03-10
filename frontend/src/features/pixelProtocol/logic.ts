@@ -381,33 +381,37 @@ export function updateCameraY(
   const minCameraY = -Math.min(maxTopPadding, Math.max(0, visibleWorldHeight - TILE));
   const isAttached = Boolean(game.player.grappleAttachSide);
   const isAirborne = !game.player.grounded;
-  const isAscending = game.player.vy < -60 || (isAirborne && game.player.vy < 100);
-  const lookAheadUp = isAttached
-    ? visibleWorldHeight * 0.34
+  const isAscending = game.player.vy < -180;
+  const targetRatio = isAttached
+    ? 0.34
     : isAscending
-      ? visibleWorldHeight * 0.28
+      ? 0.42
       : isAirborne
-        ? visibleWorldHeight * 0.18
-        : visibleWorldHeight * 0.08;
-  const topTriggerRatio = isAttached || isAscending ? 0.12 : CAMERA_TOP_TRIGGER_RATIO;
-  const bottomTriggerRatio = isAttached || isAscending ? 0.56 : CAMERA_BOTTOM_TRIGGER_RATIO;
-  const focusTopY = game.player.y - lookAheadUp;
+        ? 0.48
+        : 0.52;
+  const topTriggerRatio = isAttached
+    ? 0.18
+    : isAscending
+      ? 0.22
+      : isAirborne
+        ? 0.26
+        : Math.max(CAMERA_TOP_TRIGGER_RATIO, 0.3);
+  const bottomTriggerRatio = isAttached
+    ? 0.72
+    : isAscending
+      ? 0.76
+      : isAirborne
+        ? 0.8
+        : Math.max(CAMERA_BOTTOM_TRIGGER_RATIO, 0.82);
+  const playerTop = game.player.y;
+  const playerBottom = game.player.y + game.player.h;
   const topTriggerY = game.cameraY + visibleWorldHeight * topTriggerRatio;
   const bottomTriggerY = game.cameraY + visibleWorldHeight * bottomTriggerRatio;
-  const desiredCameraY =
-    focusTopY - visibleWorldHeight * topTriggerRatio;
+  const desiredCameraY = playerTop - visibleWorldHeight * targetRatio;
 
-  if (focusTopY < topTriggerY) {
-    game.cameraY = desiredCameraY;
-  } else if (focusTopY + game.player.h > bottomTriggerY) {
-    game.cameraY =
-      focusTopY +
-      game.player.h -
-      visibleWorldHeight * bottomTriggerRatio;
-  }
-
-  if (isAttached || isAscending) {
-    game.cameraY += (desiredCameraY - game.cameraY) * 0.22;
+  if (playerTop < topTriggerY || playerBottom > bottomTriggerY) {
+    const smoothing = isAttached ? 0.18 : isAscending ? 0.14 : 0.1;
+    game.cameraY += (desiredCameraY - game.cameraY) * smoothing;
   }
 
   game.cameraY = clamp(game.cameraY, minCameraY, maxCameraY);
