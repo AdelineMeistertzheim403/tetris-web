@@ -73,6 +73,15 @@ import exampleDataArchivesJson from "../examples/world-template-data-archives.js
 import exampleApexCoreJson from "../examples/world-template-apex-core.json?raw";
 import exampleNeonCityJson from "../examples/world-template-neon-city.json?raw";
 import exampleGlitchWorldJson from "../examples/world-template-glitch-world.json?raw";
+import exampleApexCore2Json from "../examples/world-template-apex-core-2.json?raw";
+import exampleShowcaseTetrominoCircuitJson from "../examples/world-template-showcase-tetromino-circuit.json?raw";
+import exampleShowcaseGlitchCorruptionJson from "../examples/world-template-showcase-glitch-corruption.json?raw";
+import exampleShowcaseAiNetworkJson from "../examples/world-template-showcase-ai-network.json?raw";
+import exampleShowcaseAtmosphereJson from "../examples/world-template-showcase-atmosphere.json?raw";
+import exampleSvgPackGalleryAJson from "../examples/world-template-svg-pack-gallery-a.json?raw";
+import exampleSvgPackGalleryBJson from "../examples/world-template-svg-pack-gallery-b.json?raw";
+import exampleTilesetAtlasShowcaseJson from "../examples/world-template-tileset-atlas-showcase.json?raw";
+import exampleMegaShowcaseJson from "../examples/world-template-mega-showcase.json?raw";
 import "../../../styles/pixel-protocol.css";
 import "../../../styles/pixel-protocol-editor.css";
 
@@ -106,6 +115,9 @@ const DECORATION_LAYERS: DecorationLayer[] = ["far", "mid", "near"];
 const DECORATION_ANIMATIONS: DecorationAnimation[] = ["none", "pulse", "flow", "glitch"];
 const DECORATION_DUPLICATE_OFFSET = TILE;
 const DUPLICATION_LAYOUTS = ["grid", "circle"] as const;
+const DECORATION_SOURCES = ["all", "builtin", "svg_pack", "tileset"] as const;
+const EXAMPLE_SORTS = ["recent", "a-z", "showcase", "ambiance"] as const;
+const EDITOR_UI_STORAGE_KEY = "pixel-protocol-editor-ui-v1";
 const ORB_AFFINITIES: DataOrbAffinity[] = ["standard", "blue", "red", "green", "purple"];
 const PIXEL_SKILLS: PixelSkill[] = [
   "DATA_GRAPPLE",
@@ -153,7 +165,240 @@ const WORLD_EXAMPLES = [
     theme: "tileset / corruption / danger",
     raw: exampleGlitchWorldJson,
   },
+  {
+    id: "apex-core-2",
+    name: "Apex Core 2",
+    theme: "variante boss final / coeur central",
+    raw: exampleApexCore2Json,
+  },
+  {
+    id: "showcase-tetromino-circuit",
+    name: "Showcase Tetromino Circuit",
+    theme: "builtin tetromino / circuits",
+    raw: exampleShowcaseTetrominoCircuitJson,
+  },
+  {
+    id: "showcase-glitch-corruption",
+    name: "Showcase Glitch Corruption",
+    theme: "builtin glitch / corruption",
+    raw: exampleShowcaseGlitchCorruptionJson,
+  },
+  {
+    id: "showcase-ai-network",
+    name: "Showcase AI Network",
+    theme: "builtin IA / reseau",
+    raw: exampleShowcaseAiNetworkJson,
+  },
+  {
+    id: "showcase-atmosphere",
+    name: "Showcase Atmosphere",
+    theme: "builtin backgrounds / ambiance",
+    raw: exampleShowcaseAtmosphereJson,
+  },
+  {
+    id: "svg-pack-gallery-a",
+    name: "SVG Pack Gallery A",
+    theme: "50 decors svg_pack:*",
+    raw: exampleSvgPackGalleryAJson,
+  },
+  {
+    id: "svg-pack-gallery-b",
+    name: "SVG Pack Gallery B",
+    theme: "reste du pack + backgrounds",
+    raw: exampleSvgPackGalleryBJson,
+  },
+  {
+    id: "tileset-atlas-showcase",
+    name: "Tileset Atlas Showcase",
+    theme: "64 tuiles tileset:*",
+    raw: exampleTilesetAtlasShowcaseJson,
+  },
+  {
+    id: "mega-showcase",
+    name: "Mega Showcase",
+    theme: "builtin + svg_pack + tileset",
+    raw: exampleMegaShowcaseJson,
+  },
 ] as const;
+const DECORATION_INSPECTOR_SECTIONS = [
+  "source",
+  "transform",
+  "style",
+  "animation",
+  "duplication",
+] as const;
+const PLATFORM_INSPECTOR_SECTIONS = [
+  "shape",
+  "layout",
+  "behavior",
+] as const;
+const CHECKPOINT_INSPECTOR_SECTIONS = [
+  "position",
+  "respawn",
+] as const;
+const ORB_INSPECTOR_SECTIONS = [
+  "position",
+  "ability",
+] as const;
+const ENEMY_INSPECTOR_SECTIONS = [
+  "type",
+  "position",
+  "patrol",
+] as const;
+const CENTER_PANEL_SECTIONS = [
+  "layoutState",
+  "validation",
+  "elements",
+  "linkedWorld",
+] as const;
+
+type EditorUiPrefs = {
+  exampleTemplatesExpanded: boolean;
+  savedWorldsExpanded: boolean;
+  decorationInspectorSections: Record<
+    (typeof DECORATION_INSPECTOR_SECTIONS)[number],
+    boolean
+  >;
+  platformInspectorSections: Record<
+    (typeof PLATFORM_INSPECTOR_SECTIONS)[number],
+    boolean
+  >;
+  checkpointInspectorSections: Record<
+    (typeof CHECKPOINT_INSPECTOR_SECTIONS)[number],
+    boolean
+  >;
+  orbInspectorSections: Record<(typeof ORB_INSPECTOR_SECTIONS)[number], boolean>;
+  enemyInspectorSections: Record<(typeof ENEMY_INSPECTOR_SECTIONS)[number], boolean>;
+  centerPanelSections: Record<(typeof CENTER_PANEL_SECTIONS)[number], boolean>;
+};
+
+function defaultEditorUiPrefs(): EditorUiPrefs {
+  return {
+    exampleTemplatesExpanded: false,
+    savedWorldsExpanded: false,
+    decorationInspectorSections: {
+      source: false,
+      transform: false,
+      style: false,
+      animation: false,
+      duplication: false,
+    },
+    platformInspectorSections: {
+      shape: false,
+      layout: false,
+      behavior: false,
+    },
+    checkpointInspectorSections: {
+      position: false,
+      respawn: false,
+    },
+    orbInspectorSections: {
+      position: false,
+      ability: false,
+    },
+    enemyInspectorSections: {
+      type: false,
+      position: false,
+      patrol: false,
+    },
+    centerPanelSections: {
+      layoutState: false,
+      validation: false,
+      elements: false,
+      linkedWorld: false,
+    },
+  };
+}
+
+function getEditorUiScope(mode: "level" | "world", isAdmin: boolean) {
+  return `${mode}:${isAdmin ? "admin" : "custom"}` as const;
+}
+
+function decorationSource(type: DecorationType): (typeof DECORATION_SOURCES)[number] {
+  if (type.startsWith("svg_pack:")) return "svg_pack";
+  if (type.startsWith("tileset:")) return "tileset";
+  return "builtin";
+}
+
+function isShowcaseExample(example: (typeof WORLD_EXAMPLES)[number]) {
+  const haystack = `${example.id} ${example.name} ${example.theme}`.toLowerCase();
+  return (
+    haystack.includes("showcase") ||
+    haystack.includes("gallery") ||
+    haystack.includes("atlas") ||
+    haystack.includes("mega")
+  );
+}
+
+function readEditorUiPrefs(scope: string) {
+  if (typeof window === "undefined") return defaultEditorUiPrefs();
+  try {
+    const raw = window.localStorage.getItem(EDITOR_UI_STORAGE_KEY);
+    if (!raw) return defaultEditorUiPrefs();
+    const parsed = JSON.parse(raw) as
+      | {
+          [scope: string]: Partial<EditorUiPrefs> | undefined;
+        }
+      | Partial<EditorUiPrefs>;
+    const scoped: Partial<EditorUiPrefs> =
+      scope in parsed
+        ? ((parsed as Record<string, Partial<EditorUiPrefs> | undefined>)[scope] ?? {})
+        : (parsed as Partial<EditorUiPrefs>);
+    const defaults = defaultEditorUiPrefs();
+    return {
+      exampleTemplatesExpanded: scoped.exampleTemplatesExpanded ?? defaults.exampleTemplatesExpanded,
+      savedWorldsExpanded: scoped.savedWorldsExpanded ?? defaults.savedWorldsExpanded,
+      decorationInspectorSections: {
+        source: scoped.decorationInspectorSections?.source ?? defaults.decorationInspectorSections.source,
+        transform:
+          scoped.decorationInspectorSections?.transform ??
+          defaults.decorationInspectorSections.transform,
+        style: scoped.decorationInspectorSections?.style ?? defaults.decorationInspectorSections.style,
+        animation:
+          scoped.decorationInspectorSections?.animation ??
+          defaults.decorationInspectorSections.animation,
+        duplication:
+          scoped.decorationInspectorSections?.duplication ??
+          defaults.decorationInspectorSections.duplication,
+      },
+      platformInspectorSections: {
+        shape: scoped.platformInspectorSections?.shape ?? defaults.platformInspectorSections.shape,
+        layout: scoped.platformInspectorSections?.layout ?? defaults.platformInspectorSections.layout,
+        behavior:
+          scoped.platformInspectorSections?.behavior ?? defaults.platformInspectorSections.behavior,
+      },
+      checkpointInspectorSections: {
+        position:
+          scoped.checkpointInspectorSections?.position ??
+          defaults.checkpointInspectorSections.position,
+        respawn:
+          scoped.checkpointInspectorSections?.respawn ??
+          defaults.checkpointInspectorSections.respawn,
+      },
+      orbInspectorSections: {
+        position: scoped.orbInspectorSections?.position ?? defaults.orbInspectorSections.position,
+        ability: scoped.orbInspectorSections?.ability ?? defaults.orbInspectorSections.ability,
+      },
+      enemyInspectorSections: {
+        type: scoped.enemyInspectorSections?.type ?? defaults.enemyInspectorSections.type,
+        position:
+          scoped.enemyInspectorSections?.position ?? defaults.enemyInspectorSections.position,
+        patrol: scoped.enemyInspectorSections?.patrol ?? defaults.enemyInspectorSections.patrol,
+      },
+      centerPanelSections: {
+        layoutState:
+          scoped.centerPanelSections?.layoutState ?? defaults.centerPanelSections.layoutState,
+        validation:
+          scoped.centerPanelSections?.validation ?? defaults.centerPanelSections.validation,
+        elements: scoped.centerPanelSections?.elements ?? defaults.centerPanelSections.elements,
+        linkedWorld:
+          scoped.centerPanelSections?.linkedWorld ?? defaults.centerPanelSections.linkedWorld,
+      },
+    } satisfies EditorUiPrefs;
+  } catch {
+    return defaultEditorUiPrefs();
+  }
+}
 
 const TEMPLATE_BASE: LevelDef = {
   id: "w1-1",
@@ -764,6 +1009,9 @@ export default function PixelProtocolEditor() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const editorMode: EditorMode = searchParams.get("mode") === "world" ? "world" : "level";
+  const isAdmin = user?.role === "ADMIN";
+  const uiScope = getEditorUiScope(editorMode, isAdmin);
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
   const draftLevelRef = useRef<LevelDef>(withAutoWorldBounds(TEMPLATE_BASE));
   const dragStateRef = useRef<DragState | null>(null);
@@ -797,9 +1045,36 @@ export default function PixelProtocolEditor() {
     useState<(typeof DUPLICATION_LAYOUTS)[number]>("grid");
   const [duplicateStartAngle, setDuplicateStartAngle] = useState(0);
   const [duplicateArcAngle, setDuplicateArcAngle] = useState(360);
-  const editorMode: EditorMode = searchParams.get("mode") === "world" ? "world" : "level";
+  const [decorationSourceFilter, setDecorationSourceFilter] =
+    useState<(typeof DECORATION_SOURCES)[number]>("all");
+  const [exampleTemplatesExpanded, setExampleTemplatesExpanded] = useState(
+    () => readEditorUiPrefs(uiScope).exampleTemplatesExpanded
+  );
+  const [savedWorldsExpanded, setSavedWorldsExpanded] = useState(
+    () => readEditorUiPrefs(uiScope).savedWorldsExpanded
+  );
+  const [decorationInspectorSections, setDecorationInspectorSections] = useState<
+    Record<(typeof DECORATION_INSPECTOR_SECTIONS)[number], boolean>
+  >(() => readEditorUiPrefs(uiScope).decorationInspectorSections);
+  const [platformInspectorSections, setPlatformInspectorSections] = useState<
+    Record<(typeof PLATFORM_INSPECTOR_SECTIONS)[number], boolean>
+  >(() => readEditorUiPrefs(uiScope).platformInspectorSections);
+  const [checkpointInspectorSections, setCheckpointInspectorSections] = useState<
+    Record<(typeof CHECKPOINT_INSPECTOR_SECTIONS)[number], boolean>
+  >(() => readEditorUiPrefs(uiScope).checkpointInspectorSections);
+  const [orbInspectorSections, setOrbInspectorSections] = useState<
+    Record<(typeof ORB_INSPECTOR_SECTIONS)[number], boolean>
+  >(() => readEditorUiPrefs(uiScope).orbInspectorSections);
+  const [enemyInspectorSections, setEnemyInspectorSections] = useState<
+    Record<(typeof ENEMY_INSPECTOR_SECTIONS)[number], boolean>
+  >(() => readEditorUiPrefs(uiScope).enemyInspectorSections);
+  const [centerPanelSections, setCenterPanelSections] = useState<
+    Record<(typeof CENTER_PANEL_SECTIONS)[number], boolean>
+  >(() => readEditorUiPrefs(uiScope).centerPanelSections);
+  const [exampleSearch, setExampleSearch] = useState("");
+  const [exampleSort, setExampleSort] =
+    useState<(typeof EXAMPLE_SORTS)[number]>("recent");
   const requestedTemplateId = searchParams.get("template");
-  const isAdmin = user?.role === "ADMIN";
   const isWorldEditor = editorMode === "world";
 
   draftLevelRef.current = draftLevel;
@@ -855,6 +1130,50 @@ export default function PixelProtocolEditor() {
     draftLevel.worldTemplateId
       ? worldTemplates.find((world) => world.id === draftLevel.worldTemplateId) ?? null
       : null;
+  const filteredDecorationPresets = useMemo(
+    () => {
+      const filtered = DECORATION_PRESETS.filter((preset) =>
+        decorationSourceFilter === "all"
+          ? true
+          : decorationSource(preset.type) === decorationSourceFilter
+      );
+      if (
+        selectedDecoration &&
+        !filtered.some((preset) => preset.type === selectedDecoration.type)
+      ) {
+        const currentPreset = DECORATION_PRESETS.find(
+          (preset) => preset.type === selectedDecoration.type
+        );
+        if (currentPreset) filtered.unshift(currentPreset);
+      }
+      return filtered;
+    },
+    [decorationSourceFilter, selectedDecoration]
+  );
+  const filteredExamples = useMemo(() => {
+    const query = exampleSearch.trim().toLowerCase();
+    const withIndex = WORLD_EXAMPLES.map((example, index) => ({ example, index }));
+    const searched = withIndex.filter(({ example }) => {
+      if (!query) return true;
+      const haystack = `${example.name} ${example.theme} ${example.id}`.toLowerCase();
+      return haystack.includes(query);
+    });
+
+    searched.sort((a, b) => {
+      if (exampleSort === "recent") return b.index - a.index;
+      if (exampleSort === "a-z") return a.example.name.localeCompare(b.example.name, "fr");
+      if (exampleSort === "showcase") {
+        const aShowcase = isShowcaseExample(a.example) ? 0 : 1;
+        const bShowcase = isShowcaseExample(b.example) ? 0 : 1;
+        return aShowcase - bShowcase || a.example.name.localeCompare(b.example.name, "fr");
+      }
+      const aAmbiance = isShowcaseExample(a.example) ? 1 : 0;
+      const bAmbiance = isShowcaseExample(b.example) ? 1 : 0;
+      return aAmbiance - bAmbiance || a.example.name.localeCompare(b.example.name, "fr");
+    });
+
+    return searched.map(({ example }) => example);
+  }, [exampleSearch, exampleSort]);
   const renderDecorations = useMemo(
     () =>
       [...(displayedLevel.decorations ?? [])].sort(
@@ -1100,6 +1419,55 @@ export default function PixelProtocolEditor() {
   useEffect(() => {
     refreshLevels();
   }, [isAdmin, isWorldEditor, requestedTemplateId]);
+
+  useEffect(() => {
+    const prefs = readEditorUiPrefs(uiScope);
+    setExampleTemplatesExpanded(prefs.exampleTemplatesExpanded);
+    setSavedWorldsExpanded(prefs.savedWorldsExpanded);
+    setDecorationInspectorSections(prefs.decorationInspectorSections);
+    setPlatformInspectorSections(prefs.platformInspectorSections);
+    setCheckpointInspectorSections(prefs.checkpointInspectorSections);
+    setOrbInspectorSections(prefs.orbInspectorSections);
+    setEnemyInspectorSections(prefs.enemyInspectorSections);
+    setCenterPanelSections(prefs.centerPanelSections);
+  }, [uiScope]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let parsed: Record<string, EditorUiPrefs> = {};
+    try {
+      const raw = window.localStorage.getItem(EDITOR_UI_STORAGE_KEY);
+      if (raw) {
+        const candidate = JSON.parse(raw) as Record<string, EditorUiPrefs>;
+        if (candidate && typeof candidate === "object") {
+          parsed = candidate;
+        }
+      }
+    } catch {
+      parsed = {};
+    }
+    parsed[uiScope] = {
+          exampleTemplatesExpanded,
+          savedWorldsExpanded,
+          decorationInspectorSections,
+          platformInspectorSections,
+          checkpointInspectorSections,
+          orbInspectorSections,
+          enemyInspectorSections,
+          centerPanelSections,
+        };
+    window.localStorage.setItem(EDITOR_UI_STORAGE_KEY, JSON.stringify(parsed));
+  }, [
+    uiScope,
+    exampleTemplatesExpanded,
+    savedWorldsExpanded,
+    decorationInspectorSections,
+    platformInspectorSections,
+    checkpointInspectorSections,
+    orbInspectorSections,
+    enemyInspectorSections,
+    centerPanelSections,
+  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1541,6 +1909,118 @@ export default function PixelProtocolEditor() {
     );
   };
 
+  const toggleDecorationInspectorSection = (
+    section: (typeof DECORATION_INSPECTOR_SECTIONS)[number]
+  ) => {
+    setDecorationInspectorSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  };
+
+  const togglePlatformInspectorSection = (
+    section: (typeof PLATFORM_INSPECTOR_SECTIONS)[number]
+  ) => {
+    setPlatformInspectorSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  };
+
+  const toggleCheckpointInspectorSection = (
+    section: (typeof CHECKPOINT_INSPECTOR_SECTIONS)[number]
+  ) => {
+    setCheckpointInspectorSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  };
+
+  const toggleOrbInspectorSection = (section: (typeof ORB_INSPECTOR_SECTIONS)[number]) => {
+    setOrbInspectorSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  };
+
+  const toggleEnemyInspectorSection = (section: (typeof ENEMY_INSPECTOR_SECTIONS)[number]) => {
+    setEnemyInspectorSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  };
+
+  const toggleCenterPanelSection = (section: (typeof CENTER_PANEL_SECTIONS)[number]) => {
+    setCenterPanelSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  };
+
+  const setAllCenterPanelSections = (expanded: boolean) => {
+    setCenterPanelSections(
+      Object.fromEntries(
+        CENTER_PANEL_SECTIONS.map((section) => [section, expanded])
+      ) as Record<(typeof CENTER_PANEL_SECTIONS)[number], boolean>
+    );
+  };
+
+  const resetEditorUi = () => {
+    const prefs = defaultEditorUiPrefs();
+    setExampleTemplatesExpanded(prefs.exampleTemplatesExpanded);
+    setSavedWorldsExpanded(prefs.savedWorldsExpanded);
+    setDecorationInspectorSections(prefs.decorationInspectorSections);
+    setPlatformInspectorSections(prefs.platformInspectorSections);
+    setCheckpointInspectorSections(prefs.checkpointInspectorSections);
+    setOrbInspectorSections(prefs.orbInspectorSections);
+    setEnemyInspectorSections(prefs.enemyInspectorSections);
+    setCenterPanelSections(prefs.centerPanelSections);
+    setStatus("Interface reinitialisee pour ce mode.");
+    setError(null);
+  };
+
+  const setAllInspectorSections = (expanded: boolean) => {
+    if (selectedPlatform) {
+      setPlatformInspectorSections(
+        Object.fromEntries(
+          PLATFORM_INSPECTOR_SECTIONS.map((section) => [section, expanded])
+        ) as Record<(typeof PLATFORM_INSPECTOR_SECTIONS)[number], boolean>
+      );
+      return;
+    }
+    if (selectedCheckpoint) {
+      setCheckpointInspectorSections(
+        Object.fromEntries(
+          CHECKPOINT_INSPECTOR_SECTIONS.map((section) => [section, expanded])
+        ) as Record<(typeof CHECKPOINT_INSPECTOR_SECTIONS)[number], boolean>
+      );
+      return;
+    }
+    if (selectedOrb) {
+      setOrbInspectorSections(
+        Object.fromEntries(
+          ORB_INSPECTOR_SECTIONS.map((section) => [section, expanded])
+        ) as Record<(typeof ORB_INSPECTOR_SECTIONS)[number], boolean>
+      );
+      return;
+    }
+    if (selectedEnemy) {
+      setEnemyInspectorSections(
+        Object.fromEntries(
+          ENEMY_INSPECTOR_SECTIONS.map((section) => [section, expanded])
+        ) as Record<(typeof ENEMY_INSPECTOR_SECTIONS)[number], boolean>
+      );
+      return;
+    }
+    if (selectedDecoration) {
+      setDecorationInspectorSections(
+        Object.fromEntries(
+          DECORATION_INSPECTOR_SECTIONS.map((section) => [section, expanded])
+        ) as Record<(typeof DECORATION_INSPECTOR_SECTIONS)[number], boolean>
+      );
+    }
+  };
+
   const startPlatformDrag = (event: React.PointerEvent<HTMLButtonElement>, platform: PlatformDef) => {
     event.preventDefault();
     const scroller = boardScrollRef.current;
@@ -1658,7 +2138,9 @@ export default function PixelProtocolEditor() {
         <div className="pp-editor-head-actions">
           <button
             type="button"
-            className="pp-editor-icon-btn"
+            className={`pp-editor-icon-btn ${
+              isWorldEditor ? "pp-editor-icon-btn--decoration" : "pp-editor-icon-btn--platform"
+            }`}
             title={isWorldEditor ? "Nouveau monde" : "Nouveau niveau"}
             aria-label={isWorldEditor ? "Nouveau monde" : "Nouveau niveau"}
             onClick={startNewLevel}
@@ -1667,7 +2149,7 @@ export default function PixelProtocolEditor() {
           </button>
           <button
             type="button"
-            className="pp-editor-icon-btn"
+            className="pp-editor-icon-btn pp-editor-icon-btn--refresh"
             title="Actualiser"
             aria-label="Actualiser"
             onClick={refreshLevels}
@@ -1676,7 +2158,7 @@ export default function PixelProtocolEditor() {
           </button>
           <button
             type="button"
-            className="pp-editor-icon-btn"
+            className="pp-editor-icon-btn pp-editor-icon-btn--help"
             title="Aide"
             aria-label="Aide"
             onClick={() => navigate("/pixel-protocol/help/editor")}
@@ -1685,7 +2167,16 @@ export default function PixelProtocolEditor() {
           </button>
           <button
             type="button"
-            className="pp-editor-icon-btn"
+            className="pp-editor-icon-btn pp-editor-icon-btn--reset-ui"
+            title="Reinitialiser l'interface"
+            aria-label="Reinitialiser l'interface"
+            onClick={resetEditorUi}
+          >
+            <i className="fa-solid fa-rotate-left" />
+          </button>
+          <button
+            type="button"
+            className="pp-editor-icon-btn pp-editor-icon-btn--back"
             title="Retour"
             aria-label="Retour"
             onClick={() => navigate("/pixel-protocol")}
@@ -1720,7 +2211,7 @@ export default function PixelProtocolEditor() {
               {isWorldEditor && (
                 <button
                   type="button"
-                  className="pp-editor-icon-btn pp-editor-icon-btn--publish"
+                  className="pp-editor-icon-btn pp-editor-icon-btn--example"
                   title="Charger le monde d'exemple"
                   aria-label="Charger le monde d'exemple"
                   onClick={() => handleLoadExampleWorldTemplate(WORLD_EXAMPLES[0].raw)}
@@ -1731,7 +2222,7 @@ export default function PixelProtocolEditor() {
               {isWorldEditor && (
                 <button
                   type="button"
-                  className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                  className="pp-editor-icon-btn pp-editor-icon-btn--import"
                   title="Importer un monde JSON"
                   aria-label="Importer un monde JSON"
                   onClick={() => importWorldInputRef.current?.click()}
@@ -1742,7 +2233,7 @@ export default function PixelProtocolEditor() {
               {isWorldEditor && (
                 <button
                   type="button"
-                  className="pp-editor-icon-btn pp-editor-icon-btn--save"
+                  className="pp-editor-icon-btn pp-editor-icon-btn--export"
                   title="Exporter le monde courant en JSON"
                   aria-label="Exporter le monde courant en JSON"
                   onClick={handleExportWorldTemplate}
@@ -1752,7 +2243,7 @@ export default function PixelProtocolEditor() {
               )}
               <button
                 type="button"
-                className="pp-editor-icon-btn"
+                className="pp-editor-icon-btn pp-editor-icon-btn--save"
                 title="Sauvegarder"
                 aria-label="Sauvegarder"
                 onClick={() => save(false)}
@@ -1763,7 +2254,7 @@ export default function PixelProtocolEditor() {
                 <>
                   <button
                     type="button"
-                    className="pp-editor-icon-btn"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--test"
                     title="Tester le niveau"
                     aria-label="Tester le niveau"
                     onClick={openPreview}
@@ -1772,7 +2263,7 @@ export default function PixelProtocolEditor() {
                   </button>
                   <button
                     type="button"
-                    className="pp-editor-icon-btn"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--play"
                     title="Jouer ce niveau"
                     aria-label="Jouer ce niveau"
                     onClick={() => navigate(`/pixel-protocol/play?custom=${encodeURIComponent(selectedId ?? draftLevel.id)}`)}
@@ -1785,28 +2276,82 @@ export default function PixelProtocolEditor() {
             </div>
           )}
           {isWorldEditor && (
-            <div className="pp-editor-example-actions" aria-label="Mondes d'exemple">
-              {WORLD_EXAMPLES.map((example) => (
-                <button
-                  key={example.id}
-                  type="button"
-                  className="pp-editor-example-btn"
-                  onClick={() => handleLoadExampleWorldTemplate(example.raw)}
-                >
-                  <strong>{example.name}</strong>
-                  <span>{example.theme}</span>
-                </button>
-              ))}
+            <div className="pp-editor-collapsible">
+              <button
+                type="button"
+                className="pp-editor-collapsible__toggle"
+                onClick={() => setExampleTemplatesExpanded((current: boolean) => !current)}
+              >
+                <span>{`Mondes d'exemple (${WORLD_EXAMPLES.length})`}</span>
+                <i
+                  className={`fa-solid ${
+                    exampleTemplatesExpanded ? "fa-chevron-up" : "fa-chevron-down"
+                  }`}
+                  aria-hidden="true"
+                />
+              </button>
+              {exampleTemplatesExpanded && (
+                <>
+                  <div className="pp-editor-example-toolbar">
+                    <input
+                      type="search"
+                      value={exampleSearch}
+                      onChange={(event) => setExampleSearch(event.target.value)}
+                      placeholder="Rechercher un exemple"
+                      aria-label="Rechercher un monde d'exemple"
+                    />
+                    <select
+                      value={exampleSort}
+                      onChange={(event) =>
+                        setExampleSort(event.target.value as (typeof EXAMPLE_SORTS)[number])
+                      }
+                      aria-label="Trier les mondes d'exemple"
+                    >
+                      <option value="recent">Recents</option>
+                      <option value="a-z">A-Z</option>
+                      <option value="showcase">Showcase</option>
+                      <option value="ambiance">Ambiance</option>
+                    </select>
+                  </div>
+                  <div className="pp-editor-example-actions" aria-label="Mondes d'exemple">
+                  {filteredExamples.map((example) => (
+                    <button
+                      key={example.id}
+                      type="button"
+                      className="pp-editor-example-btn"
+                      onClick={() => handleLoadExampleWorldTemplate(example.raw)}
+                    >
+                      <strong>{example.name}</strong>
+                      <span>{example.theme}</span>
+                    </button>
+                  ))}
+                  </div>
+                  {filteredExamples.length === 0 && (
+                    <p className="pp-editor-muted">Aucun monde d'exemple pour cette recherche.</p>
+                  )}
+                </>
+              )}
             </div>
           )}
-          <h2>
-            {isWorldEditor
-              ? "Tes mondes custom"
-              : isAdmin
-                ? "Niveaux disponibles"
-                : "Tes niveaux custom"}
-          </h2>
-          {loading ? (
+          <div className="pp-editor-collapsible">
+            <button
+              type="button"
+              className="pp-editor-collapsible__toggle"
+              onClick={() => setSavedWorldsExpanded((current: boolean) => !current)}
+            >
+              <span>
+                {isWorldEditor
+                  ? `Tes mondes custom (${worldTemplates.length})`
+                  : isAdmin
+                    ? `Niveaux disponibles (${levels.length})`
+                    : `Tes niveaux custom (${levels.length})`}
+              </span>
+              <i
+                className={`fa-solid ${savedWorldsExpanded ? "fa-chevron-up" : "fa-chevron-down"}`}
+                aria-hidden="true"
+              />
+            </button>
+          {savedWorldsExpanded && (loading ? (
             <p className="pp-editor-muted">Chargement...</p>
           ) : (isWorldEditor ? worldTemplates.length === 0 : levels.length === 0) ? (
             <p className="pp-editor-muted">
@@ -1849,7 +2394,7 @@ export default function PixelProtocolEditor() {
                   <div className="pp-editor-level-actions">
                     <button
                       type="button"
-                      className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                      className="pp-editor-icon-btn pp-editor-icon-btn--load"
                       title="Charger"
                       aria-label="Charger"
                       onClick={() =>
@@ -1873,7 +2418,8 @@ export default function PixelProtocolEditor() {
                 </div>
               ))}
             </div>
-          )}
+          ))}
+          </div>
         </aside>
 
         <section className="pp-editor-panel pp-editor-main">
@@ -2147,7 +2693,7 @@ export default function PixelProtocolEditor() {
                     <>
                       <button
                         type="button"
-                        className="pp-editor-icon-btn pp-editor-icon-btn--build"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--platform"
                         title="Ajouter plateforme"
                         aria-label="Ajouter plateforme"
                         onClick={handleAddPlatform}
@@ -2156,7 +2702,7 @@ export default function PixelProtocolEditor() {
                       </button>
                       <button
                         type="button"
-                        className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--checkpoint"
                         title="Ajouter checkpoint"
                         aria-label="Ajouter checkpoint"
                         onClick={handleAddCheckpoint}
@@ -2165,7 +2711,7 @@ export default function PixelProtocolEditor() {
                       </button>
                       <button
                         type="button"
-                        className="pp-editor-icon-btn pp-editor-icon-btn--build"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--orb"
                         title="Ajouter orb"
                         aria-label="Ajouter orb"
                         onClick={handleAddOrb}
@@ -2174,7 +2720,7 @@ export default function PixelProtocolEditor() {
                       </button>
                       <button
                         type="button"
-                        className="pp-editor-icon-btn pp-editor-icon-btn--combat"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--enemy"
                         title="Ajouter ennemi"
                         aria-label="Ajouter ennemi"
                         onClick={handleAddEnemy}
@@ -2186,7 +2732,7 @@ export default function PixelProtocolEditor() {
                     <>
                       <button
                         type="button"
-                        className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--decoration"
                         title="Ajouter decoration"
                         aria-label="Ajouter decoration"
                         onClick={handleAddDecoration}
@@ -2195,7 +2741,7 @@ export default function PixelProtocolEditor() {
                       </button>
                       <button
                         type="button"
-                        className="pp-editor-icon-btn pp-editor-icon-btn--build"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--duplicate"
                         title="Dupliquer decoration"
                         aria-label="Dupliquer decoration"
                         onClick={handleDuplicateDecoration}
@@ -2474,377 +3020,531 @@ export default function PixelProtocolEditor() {
                 </div>
               </div>
 
+              <div className="pp-editor-center-actions">
+                <button
+                  type="button"
+                  className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                  aria-label="Tout ouvrir la colonne centrale"
+                  title="Tout ouvrir la colonne centrale"
+                  onClick={() => setAllCenterPanelSections(true)}
+                >
+                  <i className="fa-solid fa-angles-down" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                  aria-label="Tout fermer la colonne centrale"
+                  title="Tout fermer la colonne centrale"
+                  onClick={() => setAllCenterPanelSections(false)}
+                >
+                  <i className="fa-solid fa-angles-up" aria-hidden="true" />
+                </button>
+              </div>
+
               <div className="pp-editor-preview">
-                <h3>Etat du layout</h3>
-                <div className="pp-editor-preview-grid">
-                  <div>Platforms: {draftLevel.platforms.length}</div>
-                  <div>Reachable: {validation.reachablePlatformIds.length}</div>
-                  <div>Checkpoints: {draftLevel.checkpoints.length}</div>
-                  <div>Orbs: {draftLevel.orbs.length}</div>
-                  <div>Ennemis: {draftLevel.enemies.length}</div>
-                  <div>Decors: {(draftLevel.decorations ?? []).length}</div>
-                  <div>Liens: {validation.links.length}</div>
-                </div>
+                <button
+                  type="button"
+                  className="pp-editor-panel-toggle"
+                  onClick={() => toggleCenterPanelSection("layoutState")}
+                >
+                  <span><i className="fa-solid fa-chart-simple" aria-hidden="true" /> Etat du layout</span>
+                  <i
+                    className={`fa-solid ${
+                      centerPanelSections.layoutState ? "fa-chevron-up" : "fa-chevron-down"
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+                {centerPanelSections.layoutState && (
+                  <div className="pp-editor-preview-grid">
+                    <div>Platforms: {draftLevel.platforms.length}</div>
+                    <div>Reachable: {validation.reachablePlatformIds.length}</div>
+                    <div>Checkpoints: {draftLevel.checkpoints.length}</div>
+                    <div>Orbs: {draftLevel.orbs.length}</div>
+                    <div>Ennemis: {draftLevel.enemies.length}</div>
+                    <div>Decors: {(draftLevel.decorations ?? []).length}</div>
+                    <div>Liens: {validation.links.length}</div>
+                  </div>
+                )}
               </div>
               {editorMode === "level" && (
                 <div className="pp-editor-panel pp-editor-subpanel">
-                  <h2>Validation</h2>
-                  {validation.isValid ? (
-                    <>
-                      <div className="pp-editor-status success">
-                        Layout valide: toutes les plateformes sont atteignables.
-                      </div>
-                      {validationWarnings.length > 0 && (
-                        <div className="pp-editor-issues">
-                          {validationWarnings.map((issue, index) => (
-                            <div
-                              key={`${issue.platformId ?? "warning"}-${index}`}
-                              className="pp-editor-issue"
-                            >
-                              {issue.message}
-                            </div>
-                          ))}
+                  <button
+                    type="button"
+                    className="pp-editor-panel-toggle"
+                    onClick={() => toggleCenterPanelSection("validation")}
+                  >
+                    <span><i className="fa-solid fa-shield-halved" aria-hidden="true" /> Validation</span>
+                    <i
+                      className={`fa-solid ${
+                        centerPanelSections.validation ? "fa-chevron-up" : "fa-chevron-down"
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {centerPanelSections.validation &&
+                    (validation.isValid ? (
+                      <>
+                        <div className="pp-editor-status success">
+                          Layout valide: toutes les plateformes sont atteignables.
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="pp-editor-issues">
-                      {validationErrors.map((issue, index) => (
-                        <button
-                          key={`${issue.platformId ?? "global"}-${index}`}
-                          type="button"
-                          className="pp-editor-issue"
-                          onClick={() => {
-                            if (issue.platformId) setSelection({ kind: "platform", id: issue.platformId });
-                          }}
-                        >
-                          {issue.message}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                        {validationWarnings.length > 0 && (
+                          <div className="pp-editor-issues">
+                            {validationWarnings.map((issue, index) => (
+                              <div
+                                key={`${issue.platformId ?? "warning"}-${index}`}
+                                className="pp-editor-issue"
+                              >
+                                {issue.message}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="pp-editor-issues">
+                        {validationErrors.map((issue, index) => (
+                          <button
+                            key={`${issue.platformId ?? "global"}-${index}`}
+                            type="button"
+                            className="pp-editor-issue"
+                            onClick={() => {
+                              if (issue.platformId) setSelection({ kind: "platform", id: issue.platformId });
+                            }}
+                          >
+                            {issue.message}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
                 </div>
               )}
 
               <div className="pp-editor-panel pp-editor-subpanel">
-                <h2>Elements du niveau</h2>
-                <div className="pp-editor-platform-list">
-                  {editorMode === "level" && draftLevel.platforms.map((platform) => (
-                    <button
-                      key={platform.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "platform" && selection.id === platform.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "platform", id: platform.id })}
-                    >
-                      <span>{platform.id}</span>
-                      <span className="pp-editor-inline-tags">
-                        <span className="pp-editor-mini-tag pp-editor-mini-tag--shape">{platform.tetromino}</span>
-                        <span className={`pp-editor-mini-tag pp-editor-mini-tag--${platform.type}`}>
-                          {platform.type}
-                        </span>
-                      </span>
-                      <span>({platform.x}, {platform.y})</span>
-                    </button>
-                  ))}
-                  {editorMode === "level" && draftLevel.checkpoints.map((checkpoint) => (
-                    <button
-                      key={checkpoint.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "checkpoint" && selection.id === checkpoint.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "checkpoint", id: checkpoint.id })}
-                    >
-                      <span>{checkpoint.id}</span>
-                      <span className="pp-editor-inline-tags">
-                        <span className="pp-editor-mini-tag pp-editor-mini-tag--checkpoint">checkpoint</span>
-                      </span>
-                      <span>({checkpoint.x}, {checkpoint.y})</span>
-                    </button>
-                  ))}
-                  {editorMode === "level" && draftLevel.orbs.map((orb) => (
-                    <button
-                      key={orb.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "orb" && selection.id === orb.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "orb", id: orb.id })}
-                    >
-                      <span>{orb.id}</span>
-                      <span className="pp-editor-inline-tags">
-                        <span className="pp-editor-mini-tag pp-editor-mini-tag--orb">orb</span>
-                        {orb.affinity && orb.affinity !== "standard" && (
-                          <span className={`pp-editor-mini-tag pp-editor-mini-tag--affinity-${orb.affinity}`}>
-                            {orb.affinity}
+                <button
+                  type="button"
+                  className="pp-editor-panel-toggle"
+                  onClick={() => toggleCenterPanelSection("elements")}
+                >
+                  <span><i className="fa-solid fa-list" aria-hidden="true" /> Elements du niveau</span>
+                  <i
+                    className={`fa-solid ${
+                      centerPanelSections.elements ? "fa-chevron-up" : "fa-chevron-down"
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+                {centerPanelSections.elements && (
+                  <div className="pp-editor-platform-list">
+                    {editorMode === "level" && draftLevel.platforms.map((platform) => (
+                      <button
+                        key={platform.id}
+                        type="button"
+                        className={`pp-editor-platform-row ${
+                          selection?.kind === "platform" && selection.id === platform.id ? "is-active" : ""
+                        }`}
+                        onClick={() => setSelection({ kind: "platform", id: platform.id })}
+                      >
+                        <span>{platform.id}</span>
+                        <span className="pp-editor-inline-tags">
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--shape">{platform.tetromino}</span>
+                          <span className={`pp-editor-mini-tag pp-editor-mini-tag--${platform.type}`}>
+                            {platform.type}
                           </span>
-                        )}
-                        {orb.grantsSkill && (
-                          <span className="pp-editor-mini-tag pp-editor-mini-tag--skill">
-                            {orb.grantsSkill}
+                        </span>
+                        <span>({platform.x}, {platform.y})</span>
+                      </button>
+                    ))}
+                    {editorMode === "level" && draftLevel.checkpoints.map((checkpoint) => (
+                      <button
+                        key={checkpoint.id}
+                        type="button"
+                        className={`pp-editor-platform-row ${
+                          selection?.kind === "checkpoint" && selection.id === checkpoint.id ? "is-active" : ""
+                        }`}
+                        onClick={() => setSelection({ kind: "checkpoint", id: checkpoint.id })}
+                      >
+                        <span>{checkpoint.id}</span>
+                        <span className="pp-editor-inline-tags">
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--checkpoint">checkpoint</span>
+                        </span>
+                        <span>({checkpoint.x}, {checkpoint.y})</span>
+                      </button>
+                    ))}
+                    {editorMode === "level" && draftLevel.orbs.map((orb) => (
+                      <button
+                        key={orb.id}
+                        type="button"
+                        className={`pp-editor-platform-row ${
+                          selection?.kind === "orb" && selection.id === orb.id ? "is-active" : ""
+                        }`}
+                        onClick={() => setSelection({ kind: "orb", id: orb.id })}
+                      >
+                        <span>{orb.id}</span>
+                        <span className="pp-editor-inline-tags">
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--orb">orb</span>
+                          {orb.affinity && orb.affinity !== "standard" && (
+                            <span className={`pp-editor-mini-tag pp-editor-mini-tag--affinity-${orb.affinity}`}>
+                              {orb.affinity}
+                            </span>
+                          )}
+                          {orb.grantsSkill && (
+                            <span className="pp-editor-mini-tag pp-editor-mini-tag--skill">
+                              {orb.grantsSkill}
+                            </span>
+                          )}
+                        </span>
+                        <span>({orb.x}, {orb.y})</span>
+                      </button>
+                    ))}
+                    {editorMode === "level" && draftLevel.enemies.map((enemy) => (
+                      <button
+                        key={enemy.id}
+                        type="button"
+                        className={`pp-editor-platform-row ${
+                          selection?.kind === "enemy" && selection.id === enemy.id ? "is-active" : ""
+                        }`}
+                        onClick={() => setSelection({ kind: "enemy", id: enemy.id })}
+                      >
+                        <span>{enemy.id}</span>
+                        <span className="pp-editor-inline-tags">
+                          <span className={`pp-editor-mini-tag pp-editor-mini-tag--enemy-${enemy.kind}`}>
+                            {enemy.kind}
                           </span>
-                        )}
-                      </span>
-                      <span>({orb.x}, {orb.y})</span>
-                    </button>
-                  ))}
-                  {editorMode === "level" && draftLevel.enemies.map((enemy) => (
-                    <button
-                      key={enemy.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "enemy" && selection.id === enemy.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "enemy", id: enemy.id })}
-                    >
-                      <span>{enemy.id}</span>
-                      <span className="pp-editor-inline-tags">
-                        <span className={`pp-editor-mini-tag pp-editor-mini-tag--enemy-${enemy.kind}`}>
-                          {enemy.kind}
                         </span>
-                      </span>
-                      <span>({enemy.x}, {enemy.y})</span>
-                    </button>
-                  ))}
-                  {editorMode === "world" && (draftLevel.decorations ?? []).map((decoration) => (
-                    <button
-                      key={decoration.id}
-                      type="button"
-                      className={`pp-editor-platform-row ${
-                        selection?.kind === "decoration" && selection.id === decoration.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setSelection({ kind: "decoration", id: decoration.id })}
-                    >
-                      <span>{decoration.id}</span>
-                      <span className="pp-editor-inline-tags">
-                        <span className="pp-editor-mini-tag pp-editor-mini-tag--decoration">
-                          {decoration.type}
+                        <span>({enemy.x}, {enemy.y})</span>
+                      </button>
+                    ))}
+                    {editorMode === "world" && (draftLevel.decorations ?? []).map((decoration) => (
+                      <button
+                        key={decoration.id}
+                        type="button"
+                        className={`pp-editor-platform-row ${
+                          selection?.kind === "decoration" && selection.id === decoration.id ? "is-active" : ""
+                        }`}
+                        onClick={() => setSelection({ kind: "decoration", id: decoration.id })}
+                      >
+                        <span>{decoration.id}</span>
+                        <span className="pp-editor-inline-tags">
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--decoration">
+                            {decoration.type}
+                          </span>
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--layer">
+                            {decoration.layer ?? "mid"}
+                          </span>
                         </span>
-                        <span className="pp-editor-mini-tag pp-editor-mini-tag--layer">
-                          {decoration.layer ?? "mid"}
-                        </span>
-                      </span>
-                      <span>({decoration.x}, {decoration.y})</span>
-                    </button>
-                  ))}
-                </div>
+                        <span>({decoration.x}, {decoration.y})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {editorMode === "level" && selectedWorldTemplate && (
                 <div className="pp-editor-panel pp-editor-subpanel">
-                  <h2>Monde lie</h2>
-                  <div className="pp-editor-platform-list">
-                    <div className="pp-editor-platform-row is-active">
-                      <span>{selectedWorldTemplate.name}</span>
-                      <span className="pp-editor-inline-tags">
-                        <span className="pp-editor-mini-tag pp-editor-mini-tag--layer">
-                          {selectedWorldTemplate.id}
+                  <button
+                    type="button"
+                    className="pp-editor-panel-toggle"
+                    onClick={() => toggleCenterPanelSection("linkedWorld")}
+                  >
+                    <span><i className="fa-solid fa-globe" aria-hidden="true" /> Monde lie</span>
+                    <i
+                      className={`fa-solid ${
+                        centerPanelSections.linkedWorld ? "fa-chevron-up" : "fa-chevron-down"
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {centerPanelSections.linkedWorld && (
+                    <div className="pp-editor-platform-list">
+                      <div className="pp-editor-platform-row is-active">
+                        <span>{selectedWorldTemplate.name}</span>
+                        <span className="pp-editor-inline-tags">
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--layer">
+                            {selectedWorldTemplate.id}
+                          </span>
+                          <span className="pp-editor-mini-tag pp-editor-mini-tag--decoration">
+                            {selectedWorldTemplate.decorations.length} decors
+                          </span>
                         </span>
-                        <span className="pp-editor-mini-tag pp-editor-mini-tag--decoration">
-                          {selectedWorldTemplate.decorations.length} decors
+                        <span>
+                          {Math.round(selectedWorldTemplate.worldWidth / TILE)}x
+                          {Math.round((selectedWorldTemplate.worldHeight ?? WORLD_H) / TILE)}
                         </span>
-                      </span>
-                      <span>
-                        {Math.round(selectedWorldTemplate.worldWidth / TILE)}x
-                        {Math.round((selectedWorldTemplate.worldHeight ?? WORLD_H) / TILE)}
-                      </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
 
             <aside className="pp-editor-inspector">
               <div className="pp-editor-panel pp-editor-subpanel">
-                <h2>Selection</h2>
+                <div className="pp-editor-inspector-head">
+                  <h2>Selection</h2>
+                  {(selectedPlatform ||
+                    selectedCheckpoint ||
+                    selectedOrb ||
+                    selectedEnemy ||
+                    selectedDecoration) && (
+                    <div className="pp-editor-inspector-actions">
+                      <button
+                        type="button"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                        aria-label="Tout ouvrir"
+                        title="Tout ouvrir"
+                        onClick={() => setAllInspectorSections(true)}
+                      >
+                        <i className="fa-solid fa-angles-down" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="pp-editor-icon-btn pp-editor-icon-btn--info"
+                        aria-label="Tout fermer"
+                        title="Tout fermer"
+                        onClick={() => setAllInspectorSections(false)}
+                      >
+                        <i className="fa-solid fa-angles-up" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {selectedPlatform && (
                   <>
                     <div className="pp-editor-code">{selectedPlatform.id}</div>
-                    <div className="pp-editor-chip-grid pp-editor-chip-grid--tetrominos">
-                      {TETROMINOS.map((tetromino) => (
+                    <div className="pp-editor-inspector-groups">
+                      <section className="pp-editor-inspector-group">
                         <button
-                          key={tetromino}
                           type="button"
-                          className={selectedPlatform.tetromino === tetromino ? "is-active" : ""}
-                          onClick={() => handleSelectedPlatformChange((platform) => ({ ...platform, tetromino }))}
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => togglePlatformInspectorSection("shape")}
                         >
-                          {tetromino}
+                          <span><i className="fa-solid fa-cubes" aria-hidden="true" /> Forme & type</span>
+                          <i className={`fa-solid ${platformInspectorSections.shape ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
                         </button>
-                      ))}
-                    </div>
-                    <div className="pp-editor-chip-grid pp-editor-chip-grid--platform-types">
-                      {PLATFORM_TYPES.map((type) => (
-                        <button
-                          key={type}
-                          type="button"
-                          className={`pp-editor-chip-grid__button ${
-                            selectedPlatform.type === type ? "is-active" : ""
-                          }`}
-                          onClick={() =>
-                            handleSelectedPlatformChange((platform) => ({
-                              ...platform,
-                              type,
-                              rotateEveryMs:
-                                type === "rotating"
-                                  ? platform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS
-                                  : platform.rotateEveryMs,
-                              moveAxis:
-                                type === "moving"
-                                  ? platform.moveAxis ?? MOVING_DEFAULT_AXIS
-                                  : platform.moveAxis,
-                              movePattern:
-                                type === "moving"
-                                  ? platform.movePattern ?? MOVING_DEFAULT_PATTERN
-                                  : platform.movePattern,
-                              moveRangeTiles:
-                                type === "moving"
-                                  ? platform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES
-                                  : platform.moveRangeTiles,
-                              moveSpeed:
-                                type === "moving"
-                                  ? platform.moveSpeed ?? MOVING_DEFAULT_SPEED
-                                  : platform.moveSpeed,
-                            }))
-                          }
-                        >
-                          {type}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="pp-editor-chip-grid pp-editor-chip-grid--small">
-                      {[0, 1, 2, 3].map((rotation) => (
-                        <button
-                          key={rotation}
-                          type="button"
-                          className={(selectedPlatform.rotation ?? 0) === rotation ? "is-active" : ""}
-                          onClick={() =>
-                            handleSelectedPlatformChange((platform) => ({
-                              ...platform,
-                              rotation: rotation as 0 | 1 | 2 | 3,
-                            }))
-                          }
-                        >
-                          Rot {rotation}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>X</span>
-                        <input
-                          type="number"
-                          value={selectedPlatform.x}
-                          onChange={(event) =>
-                            handleSelectedPlatformChange((platform) => ({ ...platform, x: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Y</span>
-                        <input
-                          type="number"
-                          value={selectedPlatform.y}
-                          onChange={(event) =>
-                            handleSelectedPlatformChange((platform) => ({ ...platform, y: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    {selectedPlatform.type === "rotating" && (
-                      <div className="pp-editor-inline-fields">
-                        <label>
-                          <span>Rotation ms</span>
-                          <input
-                            type="number"
-                            min={100}
-                            step={10}
-                            value={selectedPlatform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS}
-                            onChange={(event) =>
-                              handleSelectedPlatformChange((platform) => ({
-                                ...platform,
-                                rotateEveryMs:
-                                  Math.max(100, Number(event.target.value) || DEFAULT_ROTATE_EVERY_MS),
-                              }))
-                            }
-                          />
-                        </label>
-                      </div>
-                    )}
-                    {selectedPlatform.type === "moving" && (
-                      <>
-                        <div className="pp-editor-inline-fields">
-                          <label>
-                            <span>Axe</span>
-                            <select
-                              value={selectedPlatform.moveAxis ?? MOVING_DEFAULT_AXIS}
-                              onChange={(event) =>
-                                handleSelectedPlatformChange((platform) => ({
-                                  ...platform,
-                                  moveAxis: event.target.value as (typeof MOVING_AXES)[number],
-                                }))
-                              }
-                            >
-                              {MOVING_AXES.map((axis) => (
-                                <option key={axis} value={axis}>
-                                  {axis}
-                                </option>
+                        {platformInspectorSections.shape && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-chip-grid pp-editor-chip-grid--tetrominos">
+                              {TETROMINOS.map((tetromino) => (
+                                <button
+                                  key={tetromino}
+                                  type="button"
+                                  className={selectedPlatform.tetromino === tetromino ? "is-active" : ""}
+                                  onClick={() => handleSelectedPlatformChange((platform) => ({ ...platform, tetromino }))}
+                                >
+                                  {tetromino}
+                                </button>
                               ))}
-                            </select>
-                          </label>
-                          <label>
-                            <span>Pattern</span>
-                            <select
-                              value={selectedPlatform.movePattern ?? MOVING_DEFAULT_PATTERN}
-                              onChange={(event) =>
-                                handleSelectedPlatformChange((platform) => ({
-                                  ...platform,
-                                  movePattern: event.target.value as (typeof MOVING_PATTERNS)[number],
-                                }))
-                              }
-                            >
-                              {MOVING_PATTERNS.map((pattern) => (
-                                <option key={pattern} value={pattern}>
-                                  {pattern}
-                                </option>
+                            </div>
+                            <div className="pp-editor-chip-grid pp-editor-chip-grid--platform-types">
+                              {PLATFORM_TYPES.map((type) => (
+                                <button
+                                  key={type}
+                                  type="button"
+                                  className={`pp-editor-chip-grid__button ${
+                                    selectedPlatform.type === type ? "is-active" : ""
+                                  }`}
+                                  onClick={() =>
+                                    handleSelectedPlatformChange((platform) => ({
+                                      ...platform,
+                                      type,
+                                      rotateEveryMs:
+                                        type === "rotating"
+                                          ? platform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS
+                                          : platform.rotateEveryMs,
+                                      moveAxis:
+                                        type === "moving"
+                                          ? platform.moveAxis ?? MOVING_DEFAULT_AXIS
+                                          : platform.moveAxis,
+                                      movePattern:
+                                        type === "moving"
+                                          ? platform.movePattern ?? MOVING_DEFAULT_PATTERN
+                                          : platform.movePattern,
+                                      moveRangeTiles:
+                                        type === "moving"
+                                          ? platform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES
+                                          : platform.moveRangeTiles,
+                                      moveSpeed:
+                                        type === "moving"
+                                          ? platform.moveSpeed ?? MOVING_DEFAULT_SPEED
+                                          : platform.moveSpeed,
+                                    }))
+                                  }
+                                >
+                                  {type}
+                                </button>
                               ))}
-                            </select>
-                          </label>
-                        </div>
-                        <div className="pp-editor-inline-fields">
-                          <label>
-                            <span>Portee (tuiles)</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={24}
-                              value={selectedPlatform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES}
-                              onChange={(event) =>
-                                handleSelectedPlatformChange((platform) => ({
-                                  ...platform,
-                                  moveRangeTiles: Math.max(1, Number(event.target.value) || MOVING_DEFAULT_RANGE_TILES),
-                                }))
-                              }
-                            />
-                          </label>
-                          <label>
-                            <span>Vitesse (px/s)</span>
-                            <input
-                              type="number"
-                              min={20}
-                              max={420}
-                              value={selectedPlatform.moveSpeed ?? MOVING_DEFAULT_SPEED}
-                              onChange={(event) =>
-                                handleSelectedPlatformChange((platform) => ({
-                                  ...platform,
-                                  moveSpeed: Math.max(20, Number(event.target.value) || MOVING_DEFAULT_SPEED),
-                                }))
-                              }
-                            />
-                          </label>
-                        </div>
-                      </>
-                    )}
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => togglePlatformInspectorSection("layout")}
+                        >
+                          <span><i className="fa-solid fa-up-down-left-right" aria-hidden="true" /> Position & rotation</span>
+                          <i className={`fa-solid ${platformInspectorSections.layout ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {platformInspectorSections.layout && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-chip-grid pp-editor-chip-grid--small">
+                              {[0, 1, 2, 3].map((rotation) => (
+                                <button
+                                  key={rotation}
+                                  type="button"
+                                  className={(selectedPlatform.rotation ?? 0) === rotation ? "is-active" : ""}
+                                  onClick={() =>
+                                    handleSelectedPlatformChange((platform) => ({
+                                      ...platform,
+                                      rotation: rotation as 0 | 1 | 2 | 3,
+                                    }))
+                                  }
+                                >
+                                  Rot {rotation}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>X</span>
+                                <input
+                                  type="number"
+                                  value={selectedPlatform.x}
+                                  onChange={(event) =>
+                                    handleSelectedPlatformChange((platform) => ({ ...platform, x: Number(event.target.value) || 0 }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Y</span>
+                                <input
+                                  type="number"
+                                  value={selectedPlatform.y}
+                                  onChange={(event) =>
+                                    handleSelectedPlatformChange((platform) => ({ ...platform, y: Number(event.target.value) || 0 }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                            {selectedPlatform.type === "rotating" && (
+                              <div className="pp-editor-inline-fields">
+                                <label>
+                                  <span>Rotation ms</span>
+                                  <input
+                                    type="number"
+                                    min={100}
+                                    step={10}
+                                    value={selectedPlatform.rotateEveryMs ?? DEFAULT_ROTATE_EVERY_MS}
+                                    onChange={(event) =>
+                                      handleSelectedPlatformChange((platform) => ({
+                                        ...platform,
+                                        rotateEveryMs:
+                                          Math.max(100, Number(event.target.value) || DEFAULT_ROTATE_EVERY_MS),
+                                      }))
+                                    }
+                                  />
+                                </label>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => togglePlatformInspectorSection("behavior")}
+                        >
+                          <span><i className="fa-solid fa-sliders" aria-hidden="true" /> Comportement</span>
+                          <i className={`fa-solid ${platformInspectorSections.behavior ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {platformInspectorSections.behavior && (
+                          <div className="pp-editor-inspector-group__body">
+                            {selectedPlatform.type === "moving" ? (
+                              <>
+                                <div className="pp-editor-inline-fields">
+                                  <label>
+                                    <span>Axe</span>
+                                    <select
+                                      value={selectedPlatform.moveAxis ?? MOVING_DEFAULT_AXIS}
+                                      onChange={(event) =>
+                                        handleSelectedPlatformChange((platform) => ({
+                                          ...platform,
+                                          moveAxis: event.target.value as (typeof MOVING_AXES)[number],
+                                        }))
+                                      }
+                                    >
+                                      {MOVING_AXES.map((axis) => (
+                                        <option key={axis} value={axis}>
+                                          {axis}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label>
+                                    <span>Pattern</span>
+                                    <select
+                                      value={selectedPlatform.movePattern ?? MOVING_DEFAULT_PATTERN}
+                                      onChange={(event) =>
+                                        handleSelectedPlatformChange((platform) => ({
+                                          ...platform,
+                                          movePattern: event.target.value as (typeof MOVING_PATTERNS)[number],
+                                        }))
+                                      }
+                                    >
+                                      {MOVING_PATTERNS.map((pattern) => (
+                                        <option key={pattern} value={pattern}>
+                                          {pattern}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                </div>
+                                <div className="pp-editor-inline-fields">
+                                  <label>
+                                    <span>Portee (tuiles)</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={24}
+                                      value={selectedPlatform.moveRangeTiles ?? MOVING_DEFAULT_RANGE_TILES}
+                                      onChange={(event) =>
+                                        handleSelectedPlatformChange((platform) => ({
+                                          ...platform,
+                                          moveRangeTiles: Math.max(1, Number(event.target.value) || MOVING_DEFAULT_RANGE_TILES),
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Vitesse (px/s)</span>
+                                    <input
+                                      type="number"
+                                      min={20}
+                                      max={420}
+                                      value={selectedPlatform.moveSpeed ?? MOVING_DEFAULT_SPEED}
+                                      onChange={(event) =>
+                                        handleSelectedPlatformChange((platform) => ({
+                                          ...platform,
+                                          moveSpeed: Math.max(20, Number(event.target.value) || MOVING_DEFAULT_SPEED),
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="pp-editor-muted">
+                                Aucun parametre avance necessaire pour ce type de plateforme.
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </section>
+                    </div>
                   </>
                 )}
 
@@ -2869,61 +3569,92 @@ export default function PixelProtocolEditor() {
                 {selectedCheckpoint && (
                   <>
                     <div className="pp-editor-code">{selectedCheckpoint.id}</div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>X</span>
-                        <input
-                          type="number"
-                          value={selectedCheckpoint.x}
-                          onChange={(event) =>
-                            handleSelectedCheckpointChange((checkpoint) => ({
-                              ...checkpoint,
-                              x: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Y</span>
-                        <input
-                          type="number"
-                          value={selectedCheckpoint.y}
-                          onChange={(event) =>
-                            handleSelectedCheckpointChange((checkpoint) => ({
-                              ...checkpoint,
-                              y: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Spawn X</span>
-                        <input
-                          type="number"
-                          value={selectedCheckpoint.spawnX}
-                          onChange={(event) =>
-                            handleSelectedCheckpointChange((checkpoint) => ({
-                              ...checkpoint,
-                              spawnX: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Spawn Y</span>
-                        <input
-                          type="number"
-                          value={selectedCheckpoint.spawnY}
-                          onChange={(event) =>
-                            handleSelectedCheckpointChange((checkpoint) => ({
-                              ...checkpoint,
-                              spawnY: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                      </label>
+                    <div className="pp-editor-inspector-groups">
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleCheckpointInspectorSection("position")}
+                        >
+                          <span><i className="fa-solid fa-location-dot" aria-hidden="true" /> Position</span>
+                          <i className={`fa-solid ${checkpointInspectorSections.position ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {checkpointInspectorSections.position && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>X</span>
+                                <input
+                                  type="number"
+                                  value={selectedCheckpoint.x}
+                                  onChange={(event) =>
+                                    handleSelectedCheckpointChange((checkpoint) => ({
+                                      ...checkpoint,
+                                      x: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Y</span>
+                                <input
+                                  type="number"
+                                  value={selectedCheckpoint.y}
+                                  onChange={(event) =>
+                                    handleSelectedCheckpointChange((checkpoint) => ({
+                                      ...checkpoint,
+                                      y: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleCheckpointInspectorSection("respawn")}
+                        >
+                          <span><i className="fa-solid fa-flag-checkered" aria-hidden="true" /> Respawn</span>
+                          <i className={`fa-solid ${checkpointInspectorSections.respawn ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {checkpointInspectorSections.respawn && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Spawn X</span>
+                                <input
+                                  type="number"
+                                  value={selectedCheckpoint.spawnX}
+                                  onChange={(event) =>
+                                    handleSelectedCheckpointChange((checkpoint) => ({
+                                      ...checkpoint,
+                                      spawnX: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Spawn Y</span>
+                                <input
+                                  type="number"
+                                  value={selectedCheckpoint.spawnY}
+                                  onChange={(event) =>
+                                    handleSelectedCheckpointChange((checkpoint) => ({
+                                      ...checkpoint,
+                                      spawnY: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
                     </div>
                   </>
                 )}
@@ -2931,68 +3662,109 @@ export default function PixelProtocolEditor() {
                 {selectedOrb && (
                   <>
                     <div className="pp-editor-code">{selectedOrb.id}</div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>X</span>
-                        <input
-                          type="number"
-                          value={selectedOrb.x}
-                          onChange={(event) =>
-                            handleSelectedOrbChange((orb) => ({ ...orb, x: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Y</span>
-                        <input
-                          type="number"
-                          value={selectedOrb.y}
-                          onChange={(event) =>
-                            handleSelectedOrbChange((orb) => ({ ...orb, y: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Affinite</span>
-                        <select
-                          value={selectedOrb.affinity ?? "standard"}
-                          onChange={(event) =>
-                            handleSelectedOrbChange((orb) => ({
-                              ...orb,
-                              affinity: event.target.value as DataOrbAffinity,
-                              grantsSkill:
-                                event.target.value === "standard" ? null : orb.grantsSkill ?? "OVERJUMP",
-                            }))
-                          }
+                    <div className="pp-editor-inspector-groups">
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleOrbInspectorSection("position")}
                         >
-                          {ORB_AFFINITIES.map((affinity) => (
-                            <option key={affinity} value={affinity}>
-                              {affinity}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Skill</span>
-                        <select
-                          value={selectedOrb.grantsSkill ?? ""}
-                          onChange={(event) =>
-                            handleSelectedOrbChange((orb) => ({
-                              ...orb,
-                              grantsSkill: event.target.value ? (event.target.value as PixelSkill) : null,
-                            }))
-                          }
+                          <span><i className="fa-solid fa-location-dot" aria-hidden="true" /> Position</span>
+                          <i className={`fa-solid ${orbInspectorSections.position ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {orbInspectorSections.position && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>X</span>
+                                <input
+                                  type="number"
+                                  value={selectedOrb.x}
+                                  onChange={(event) =>
+                                    handleSelectedOrbChange((orb) => ({
+                                      ...orb,
+                                      x: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Y</span>
+                                <input
+                                  type="number"
+                                  value={selectedOrb.y}
+                                  onChange={(event) =>
+                                    handleSelectedOrbChange((orb) => ({
+                                      ...orb,
+                                      y: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleOrbInspectorSection("ability")}
                         >
-                          <option value="">aucune</option>
-                          {PIXEL_SKILLS.map((skill) => (
-                            <option key={skill} value={skill}>
-                              {skill}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          <span><i className="fa-solid fa-circle-nodes" aria-hidden="true" /> Affinite & skill</span>
+                          <i className={`fa-solid ${orbInspectorSections.ability ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {orbInspectorSections.ability && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Affinite</span>
+                                <select
+                                  value={selectedOrb.affinity ?? "standard"}
+                                  onChange={(event) =>
+                                    handleSelectedOrbChange((orb) => ({
+                                      ...orb,
+                                      affinity: event.target.value as DataOrbAffinity,
+                                      grantsSkill:
+                                        event.target.value === "standard"
+                                          ? null
+                                          : orb.grantsSkill ?? "OVERJUMP",
+                                    }))
+                                  }
+                                >
+                                  {ORB_AFFINITIES.map((affinity) => (
+                                    <option key={affinity} value={affinity}>
+                                      {affinity}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label>
+                                <span>Skill</span>
+                                <select
+                                  value={selectedOrb.grantsSkill ?? ""}
+                                  onChange={(event) =>
+                                    handleSelectedOrbChange((orb) => ({
+                                      ...orb,
+                                      grantsSkill: event.target.value
+                                        ? (event.target.value as PixelSkill)
+                                        : null,
+                                    }))
+                                  }
+                                >
+                                  <option value="">aucune</option>
+                                  {PIXEL_SKILLS.map((skill) => (
+                                    <option key={skill} value={skill}>
+                                      {skill}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
                     </div>
                   </>
                 )}
@@ -3000,61 +3772,121 @@ export default function PixelProtocolEditor() {
                 {selectedEnemy && (
                   <>
                     <div className="pp-editor-code">{selectedEnemy.id}</div>
-                    <div className="pp-editor-chip-grid pp-editor-chip-grid--small">
-                      {(["rookie", "pulse", "apex"] as const).map((kind) => (
+                    <div className="pp-editor-inspector-groups">
+                      <section className="pp-editor-inspector-group">
                         <button
-                          key={kind}
                           type="button"
-                          className={selectedEnemy.kind === kind ? "is-active" : ""}
-                          onClick={() => handleSelectedEnemyChange((enemy) => ({ ...enemy, kind }))}
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleEnemyInspectorSection("type")}
                         >
-                          {kind}
+                          <span><i className="fa-solid fa-robot" aria-hidden="true" /> Type</span>
+                          <i className={`fa-solid ${enemyInspectorSections.type ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
                         </button>
-                      ))}
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>X</span>
-                        <input
-                          type="number"
-                          value={selectedEnemy.x}
-                          onChange={(event) =>
-                            handleSelectedEnemyChange((enemy) => ({ ...enemy, x: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Y</span>
-                        <input
-                          type="number"
-                          value={selectedEnemy.y}
-                          onChange={(event) =>
-                            handleSelectedEnemyChange((enemy) => ({ ...enemy, y: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Min X</span>
-                        <input
-                          type="number"
-                          value={selectedEnemy.minX}
-                          onChange={(event) =>
-                            handleSelectedEnemyChange((enemy) => ({ ...enemy, minX: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Max X</span>
-                        <input
-                          type="number"
-                          value={selectedEnemy.maxX}
-                          onChange={(event) =>
-                            handleSelectedEnemyChange((enemy) => ({ ...enemy, maxX: Number(event.target.value) || 0 }))
-                          }
-                        />
-                      </label>
+                        {enemyInspectorSections.type && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-chip-grid pp-editor-chip-grid--small">
+                              {(["rookie", "pulse", "apex"] as const).map((kind) => (
+                                <button
+                                  key={kind}
+                                  type="button"
+                                  className={selectedEnemy.kind === kind ? "is-active" : ""}
+                                  onClick={() =>
+                                    handleSelectedEnemyChange((enemy) => ({ ...enemy, kind }))
+                                  }
+                                >
+                                  {kind}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleEnemyInspectorSection("position")}
+                        >
+                          <span><i className="fa-solid fa-location-dot" aria-hidden="true" /> Position</span>
+                          <i className={`fa-solid ${enemyInspectorSections.position ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {enemyInspectorSections.position && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>X</span>
+                                <input
+                                  type="number"
+                                  value={selectedEnemy.x}
+                                  onChange={(event) =>
+                                    handleSelectedEnemyChange((enemy) => ({
+                                      ...enemy,
+                                      x: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Y</span>
+                                <input
+                                  type="number"
+                                  value={selectedEnemy.y}
+                                  onChange={(event) =>
+                                    handleSelectedEnemyChange((enemy) => ({
+                                      ...enemy,
+                                      y: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleEnemyInspectorSection("patrol")}
+                        >
+                          <span><i className="fa-solid fa-ruler-horizontal" aria-hidden="true" /> Patrouille</span>
+                          <i className={`fa-solid ${enemyInspectorSections.patrol ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {enemyInspectorSections.patrol && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Min X</span>
+                                <input
+                                  type="number"
+                                  value={selectedEnemy.minX}
+                                  onChange={(event) =>
+                                    handleSelectedEnemyChange((enemy) => ({
+                                      ...enemy,
+                                      minX: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Max X</span>
+                                <input
+                                  type="number"
+                                  value={selectedEnemy.maxX}
+                                  onChange={(event) =>
+                                    handleSelectedEnemyChange((enemy) => ({
+                                      ...enemy,
+                                      maxX: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
                     </div>
                   </>
                 )}
@@ -3073,391 +3905,488 @@ export default function PixelProtocolEditor() {
                         }}
                       />
                     </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Type</span>
-                        <select
-                          value={selectedDecoration.type}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => {
-                              const nextType = event.target.value as DecorationType;
-                              const preset = getDecorationPreset(nextType);
-                              return {
-                                ...decoration,
-                                type: nextType,
-                                width: decoration.width || preset.defaultWidth,
-                                height: decoration.height || preset.defaultHeight,
-                                color: decoration.color ?? preset.color,
-                                colorSecondary: decoration.colorSecondary ?? preset.colorSecondary,
-                              };
-                            })
-                          }
-                        >
-                          {DECORATION_CATEGORY_ORDER.map((category) => (
-                            <optgroup key={category} label={category}>
-                              {DECORATION_PRESETS.filter((preset) => preset.category === category).map((preset) => (
-                                <option key={preset.type} value={preset.type}>
-                                  {preset.label}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Layer</span>
-                        <select
-                          value={selectedDecoration.layer ?? "mid"}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              layer: event.target.value as DecorationLayer,
-                            }))
-                          }
-                        >
-                          {DECORATION_LAYERS.map((layer) => (
-                            <option key={layer} value={layer}>
-                              {layer}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>X</span>
-                        <input
-                          type="number"
-                          value={selectedDecoration.x}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              x: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Y</span>
-                        <input
-                          type="number"
-                          value={selectedDecoration.y}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              y: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Largeur</span>
-                        <input
-                          type="number"
-                          min={4}
-                          value={selectedDecoration.width}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              width: Math.max(4, Number(event.target.value) || 4),
-                            }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Hauteur</span>
-                        <input
-                          type="number"
-                          min={4}
-                          value={selectedDecoration.height}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              height: Math.max(4, Number(event.target.value) || 4),
-                            }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Rotation</span>
-                        <input
-                          type="number"
-                          min={-360}
-                          max={360}
-                          value={selectedDecoration.rotation ?? 0}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              rotation: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Opacite</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          value={selectedDecoration.opacity ?? 0.9}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              opacity: Math.min(1, Math.max(0, Number(event.target.value) || 0)),
-                            }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    {selectedDecorationUsesEmbeddedArtwork && (
-                      <p className="pp-editor-muted">
-                        Asset integre: les couleurs proviennent directement du fichier source.
-                      </p>
-                    )}
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Couleur</span>
-                        <input
-                          type="color"
-                          disabled={selectedDecorationUsesEmbeddedArtwork}
-                          value={selectedDecoration.color ?? "#00ffff"}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              color: event.target.value,
-                            }))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Couleur 2</span>
-                        <input
-                          type="color"
-                          disabled={selectedDecorationUsesEmbeddedArtwork}
-                          value={selectedDecoration.colorSecondary ?? "#ff00ff"}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              colorSecondary: event.target.value,
-                            }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Animation</span>
-                        <select
-                          value={selectedDecoration.animation ?? "none"}
-                          onChange={(event) =>
-                            handleSelectedDecorationChange((decoration) => ({
-                              ...decoration,
-                              animation: event.target.value as DecorationAnimation,
-                            }))
-                          }
-                        >
-                          {DECORATION_ANIMATIONS.map((animation) => (
-                            <option key={animation} value={animation}>
-                              {animation}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Symetrie</span>
-                        <div className="pp-editor-inline-checkboxes">
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={Boolean(selectedDecoration.flipX)}
-                              onChange={(event) =>
-                                handleSelectedDecorationChange((decoration) => ({
-                                  ...decoration,
-                                  flipX: event.target.checked,
-                                }))
-                              }
-                            />
-                            Flip X
-                          </label>
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={Boolean(selectedDecoration.flipY)}
-                              onChange={(event) =>
-                                handleSelectedDecorationChange((decoration) => ({
-                                  ...decoration,
-                                  flipY: event.target.checked,
-                                }))
-                              }
-                            />
-                            Flip Y
-                          </label>
-                        </div>
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Duplication X</span>
-                        <input
-                          type="number"
-                          value={duplicateOffsetX}
-                          onChange={(event) =>
-                            setDuplicateOffsetX(Math.round(Number(event.target.value) || 0))
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Duplication Y</span>
-                        <input
-                          type="number"
-                          value={duplicateOffsetY}
-                          onChange={(event) =>
-                            setDuplicateOffsetY(Math.round(Number(event.target.value) || 0))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Colonnes</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={20}
-                          value={duplicateColumns}
-                          onChange={(event) =>
-                            setDuplicateColumns(
-                              Math.min(20, Math.max(1, Math.round(Number(event.target.value) || 1)))
-                            )
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Lignes</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={20}
-                          value={duplicateRows}
-                          onChange={(event) =>
-                            setDuplicateRows(
-                              Math.min(20, Math.max(1, Math.round(Number(event.target.value) || 1)))
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Mode</span>
-                        <select
-                          value={duplicateLayout}
-                          onChange={(event) =>
-                            setDuplicateLayout(
-                              (event.target.value as (typeof DUPLICATION_LAYOUTS)[number]) ??
-                                "grid"
-                            )
-                          }
-                        >
-                          <option value="grid">Grille</option>
-                          <option value="circle">Cercle</option>
-                        </select>
-                      </label>
-                      {duplicateLayout === "circle" && (
-                        <label>
-                          <span>Angle depart</span>
-                          <input
-                            type="number"
-                            min={-360}
-                            max={360}
-                            value={duplicateStartAngle}
-                            onChange={(event) =>
-                              setDuplicateStartAngle(
-                                Math.max(-360, Math.min(360, Math.round(Number(event.target.value) || 0)))
-                              )
-                            }
-                          />
-                        </label>
-                      )}
-                      {duplicateLayout === "circle" && (
-                        <label>
-                          <span>Arc</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={360}
-                            value={duplicateArcAngle}
-                            onChange={(event) =>
-                              setDuplicateArcAngle(
-                                Math.max(1, Math.min(360, Math.round(Number(event.target.value) || 360)))
-                              )
-                            }
-                          />
-                        </label>
-                      )}
-                      <label>
-                        <span>Miroir</span>
-                        <div className="pp-editor-inline-checkboxes">
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={duplicateMirrorX}
-                              onChange={(event) => setDuplicateMirrorX(event.target.checked)}
-                            />
-                            X
-                          </label>
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={duplicateMirrorY}
-                              onChange={(event) => setDuplicateMirrorY(event.target.checked)}
-                            />
-                            Y
-                          </label>
-                        </div>
-                      </label>
-                      <label>
-                        <span>Alterne</span>
-                        <div className="pp-editor-inline-checkboxes">
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={duplicateAlternateMirror}
-                              onChange={(event) =>
-                                setDuplicateAlternateMirror(event.target.checked)
-                              }
-                            />
-                            Miroir 1/2
-                          </label>
-                        </div>
-                      </label>
-                      <label>
-                        <span>Apercu</span>
-                        <div className="pp-editor-duplicate-shortcut">
-                          {duplicatePreviewDecorations.length} copie(s)
-                        </div>
-                      </label>
-                    </div>
-                    <div className="pp-editor-inline-fields">
-                      <label>
-                        <span>Action</span>
+                    <div className="pp-editor-inspector-groups">
+                      <section className="pp-editor-inspector-group">
                         <button
                           type="button"
-                          className="pp-editor-duplicate-action"
-                          onClick={handleDuplicateDecoration}
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleDecorationInspectorSection("source")}
                         >
-                          Dupliquer
+                          <span><i className="fa-solid fa-shapes" aria-hidden="true" /> Source & type</span>
+                          <i className={`fa-solid ${decorationInspectorSections.source ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
                         </button>
-                      </label>
-                      <label>
-                        <span>Raccourci</span>
-                        <div className="pp-editor-duplicate-shortcut">Ctrl/Cmd + D</div>
-                      </label>
+                        {decorationInspectorSections.source && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Source</span>
+                                <div className="pp-editor-chip-grid pp-editor-chip-grid--small">
+                                  {DECORATION_SOURCES.map((source) => (
+                                    <button
+                                      key={source}
+                                      type="button"
+                                      className={`pp-editor-chip-grid__button ${
+                                        decorationSourceFilter === source ? "is-active" : ""
+                                      }`}
+                                      onClick={() => setDecorationSourceFilter(source)}
+                                    >
+                                      {source}
+                                    </button>
+                                  ))}
+                                </div>
+                              </label>
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Type</span>
+                                <select
+                                  value={selectedDecoration.type}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => {
+                                      const nextType = event.target.value as DecorationType;
+                                      const preset = getDecorationPreset(nextType);
+                                      return {
+                                        ...decoration,
+                                        type: nextType,
+                                        width: decoration.width || preset.defaultWidth,
+                                        height: decoration.height || preset.defaultHeight,
+                                        color: decoration.color ?? preset.color,
+                                        colorSecondary: decoration.colorSecondary ?? preset.colorSecondary,
+                                      };
+                                    })
+                                  }
+                                >
+                                  {DECORATION_CATEGORY_ORDER.map((category) => (
+                                    <optgroup key={category} label={category}>
+                                      {filteredDecorationPresets.filter((preset) => preset.category === category).map((preset) => (
+                                        <option key={preset.type} value={preset.type}>
+                                          {preset.label}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  ))}
+                                </select>
+                              </label>
+                              <label>
+                                <span>Layer</span>
+                                <select
+                                  value={selectedDecoration.layer ?? "mid"}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      layer: event.target.value as DecorationLayer,
+                                    }))
+                                  }
+                                >
+                                  {DECORATION_LAYERS.map((layer) => (
+                                    <option key={layer} value={layer}>
+                                      {layer}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleDecorationInspectorSection("transform")}
+                        >
+                          <span><i className="fa-solid fa-up-down-left-right" aria-hidden="true" /> Transform</span>
+                          <i className={`fa-solid ${decorationInspectorSections.transform ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {decorationInspectorSections.transform && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>X</span>
+                                <input
+                                  type="number"
+                                  value={selectedDecoration.x}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      x: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Y</span>
+                                <input
+                                  type="number"
+                                  value={selectedDecoration.y}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      y: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Largeur</span>
+                                <input
+                                  type="number"
+                                  min={4}
+                                  value={selectedDecoration.width}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      width: Math.max(4, Number(event.target.value) || 4),
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Hauteur</span>
+                                <input
+                                  type="number"
+                                  min={4}
+                                  value={selectedDecoration.height}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      height: Math.max(4, Number(event.target.value) || 4),
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Rotation</span>
+                                <input
+                                  type="number"
+                                  min={-360}
+                                  max={360}
+                                  value={selectedDecoration.rotation ?? 0}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      rotation: Number(event.target.value) || 0,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Opacite</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={1}
+                                  step={0.05}
+                                  value={selectedDecoration.opacity ?? 0.9}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      opacity: Math.min(1, Math.max(0, Number(event.target.value) || 0)),
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleDecorationInspectorSection("style")}
+                        >
+                          <span><i className="fa-solid fa-palette" aria-hidden="true" /> Couleurs & style</span>
+                          <i className={`fa-solid ${decorationInspectorSections.style ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {decorationInspectorSections.style && (
+                          <div className="pp-editor-inspector-group__body">
+                            {selectedDecorationUsesEmbeddedArtwork && (
+                              <p className="pp-editor-muted">
+                                Asset integre: les couleurs proviennent directement du fichier source.
+                              </p>
+                            )}
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Couleur</span>
+                                <input
+                                  type="color"
+                                  disabled={selectedDecorationUsesEmbeddedArtwork}
+                                  value={selectedDecoration.color ?? "#00ffff"}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      color: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Couleur 2</span>
+                                <input
+                                  type="color"
+                                  disabled={selectedDecorationUsesEmbeddedArtwork}
+                                  value={selectedDecoration.colorSecondary ?? "#ff00ff"}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      colorSecondary: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleDecorationInspectorSection("animation")}
+                        >
+                          <span><i className="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> Animation & symetrie</span>
+                          <i className={`fa-solid ${decorationInspectorSections.animation ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {decorationInspectorSections.animation && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Animation</span>
+                                <select
+                                  value={selectedDecoration.animation ?? "none"}
+                                  onChange={(event) =>
+                                    handleSelectedDecorationChange((decoration) => ({
+                                      ...decoration,
+                                      animation: event.target.value as DecorationAnimation,
+                                    }))
+                                  }
+                                >
+                                  {DECORATION_ANIMATIONS.map((animation) => (
+                                    <option key={animation} value={animation}>
+                                      {animation}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label>
+                                <span>Symetrie</span>
+                                <div className="pp-editor-inline-checkboxes">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(selectedDecoration.flipX)}
+                                      onChange={(event) =>
+                                        handleSelectedDecorationChange((decoration) => ({
+                                          ...decoration,
+                                          flipX: event.target.checked,
+                                        }))
+                                      }
+                                    />
+                                    Flip X
+                                  </label>
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(selectedDecoration.flipY)}
+                                      onChange={(event) =>
+                                        handleSelectedDecorationChange((decoration) => ({
+                                          ...decoration,
+                                          flipY: event.target.checked,
+                                        }))
+                                      }
+                                    />
+                                    Flip Y
+                                  </label>
+                                </div>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      <section className="pp-editor-inspector-group">
+                        <button
+                          type="button"
+                          className="pp-editor-inspector-group__toggle"
+                          onClick={() => toggleDecorationInspectorSection("duplication")}
+                        >
+                          <span><i className="fa-solid fa-clone" aria-hidden="true" /> Duplication</span>
+                          <i className={`fa-solid ${decorationInspectorSections.duplication ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
+                        </button>
+                        {decorationInspectorSections.duplication && (
+                          <div className="pp-editor-inspector-group__body">
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Duplication X</span>
+                                <input
+                                  type="number"
+                                  value={duplicateOffsetX}
+                                  onChange={(event) =>
+                                    setDuplicateOffsetX(Math.round(Number(event.target.value) || 0))
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Duplication Y</span>
+                                <input
+                                  type="number"
+                                  value={duplicateOffsetY}
+                                  onChange={(event) =>
+                                    setDuplicateOffsetY(Math.round(Number(event.target.value) || 0))
+                                  }
+                                />
+                              </label>
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Colonnes</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={20}
+                                  value={duplicateColumns}
+                                  onChange={(event) =>
+                                    setDuplicateColumns(
+                                      Math.min(20, Math.max(1, Math.round(Number(event.target.value) || 1)))
+                                    )
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>Lignes</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={20}
+                                  value={duplicateRows}
+                                  onChange={(event) =>
+                                    setDuplicateRows(
+                                      Math.min(20, Math.max(1, Math.round(Number(event.target.value) || 1)))
+                                    )
+                                  }
+                                />
+                              </label>
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Mode</span>
+                                <select
+                                  value={duplicateLayout}
+                                  onChange={(event) =>
+                                    setDuplicateLayout(
+                                      (event.target.value as (typeof DUPLICATION_LAYOUTS)[number]) ??
+                                        "grid"
+                                    )
+                                  }
+                                >
+                                  <option value="grid">Grille</option>
+                                  <option value="circle">Cercle</option>
+                                </select>
+                              </label>
+                              {duplicateLayout === "circle" && (
+                                <label>
+                                  <span>Angle depart</span>
+                                  <input
+                                    type="number"
+                                    min={-360}
+                                    max={360}
+                                    value={duplicateStartAngle}
+                                    onChange={(event) =>
+                                      setDuplicateStartAngle(
+                                        Math.max(-360, Math.min(360, Math.round(Number(event.target.value) || 0)))
+                                      )
+                                    }
+                                  />
+                                </label>
+                              )}
+                              {duplicateLayout === "circle" && (
+                                <label>
+                                  <span>Arc</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={360}
+                                    value={duplicateArcAngle}
+                                    onChange={(event) =>
+                                      setDuplicateArcAngle(
+                                        Math.max(1, Math.min(360, Math.round(Number(event.target.value) || 360)))
+                                      )
+                                    }
+                                  />
+                                </label>
+                              )}
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Miroir</span>
+                                <div className="pp-editor-inline-checkboxes">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={duplicateMirrorX}
+                                      onChange={(event) => setDuplicateMirrorX(event.target.checked)}
+                                    />
+                                    X
+                                  </label>
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={duplicateMirrorY}
+                                      onChange={(event) => setDuplicateMirrorY(event.target.checked)}
+                                    />
+                                    Y
+                                  </label>
+                                </div>
+                              </label>
+                              <label>
+                                <span>Alterne</span>
+                                <div className="pp-editor-inline-checkboxes">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={duplicateAlternateMirror}
+                                      onChange={(event) =>
+                                        setDuplicateAlternateMirror(event.target.checked)
+                                      }
+                                    />
+                                    Miroir 1/2
+                                  </label>
+                                </div>
+                              </label>
+                              <label>
+                                <span>Apercu</span>
+                                <div className="pp-editor-duplicate-shortcut">
+                                  {duplicatePreviewDecorations.length} copie(s)
+                                </div>
+                              </label>
+                            </div>
+                            <div className="pp-editor-inline-fields">
+                              <label>
+                                <span>Action</span>
+                                <button
+                                  type="button"
+                                  className="pp-editor-duplicate-action"
+                                  onClick={handleDuplicateDecoration}
+                                >
+                                  Dupliquer
+                                </button>
+                              </label>
+                              <label>
+                                <span>Raccourci</span>
+                                <div className="pp-editor-duplicate-shortcut">Ctrl/Cmd + D</div>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </section>
                     </div>
                   </>
                 )}
