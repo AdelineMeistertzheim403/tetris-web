@@ -1,0 +1,425 @@
+{
+  "decorations": [
+    {
+      "file": "dec_001_tetromino_i_solid.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_002_tetromino_i_outline.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_003_tetromino_i_cracked.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_004_tetromino_o_solid.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_005_tetromino_o_outline.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_006_tetromino_o_cracked.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_007_tetromino_t_solid.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_008_tetromino_t_outline.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_009_tetromino_t_cracked.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_010_tetromino_l_solid.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_011_tetromino_l_outline.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_012_tetromino_l_cracked.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_013_tetromino_j_solid.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_014_tetromino_j_outline.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_015_tetromino_j_cracked.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_016_tetromino_s_solid.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_017_tetromino_s_outline.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_018_tetromino_s_cracked.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_019_tetromino_z_solid.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_020_tetromino_z_outline.svg",
+      "category": "tetromino"
+    },
+    {
+      "file": "dec_021_circuit_hline_1.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_022_circuit_vline_1.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_023_circuit_cross_1.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_024_circuit_elbow_1.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_025_circuit_ladder_1.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_026_circuit_hub_1.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_027_circuit_hline_2.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_028_circuit_vline_2.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_029_circuit_cross_2.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_030_circuit_elbow_2.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_031_circuit_ladder_2.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_032_circuit_hub_2.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_033_circuit_hline_3.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_034_circuit_vline_3.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_035_circuit_cross_3.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_036_circuit_elbow_3.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_037_circuit_ladder_3.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_038_circuit_hub_3.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_039_circuit_hline_4.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_040_circuit_vline_4.svg",
+      "category": "circuit"
+    },
+    {
+      "file": "dec_041_glitch_1.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_042_glitch_2.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_043_glitch_3.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_044_glitch_4.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_045_glitch_5.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_046_glitch_6.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_047_glitch_7.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_048_glitch_8.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_049_glitch_9.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_050_glitch_10.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_051_glitch_11.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_052_glitch_12.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_053_glitch_13.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_054_glitch_14.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_055_glitch_15.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_056_glitch_16.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_057_glitch_17.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_058_glitch_18.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_059_glitch_19.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_060_glitch_20.svg",
+      "category": "glitch"
+    },
+    {
+      "file": "dec_061_ai_eye_1.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_062_ai_core_1.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_063_ai_chip_1.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_064_ai_server_1.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_065_ai_scanner_1.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_066_ai_eye_2.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_067_ai_core_2.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_068_ai_chip_2.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_069_ai_server_2.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_070_ai_scanner_2.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_071_ai_eye_3.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_072_ai_core_3.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_073_ai_chip_3.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_074_ai_server_3.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_075_ai_scanner_3.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_076_ai_eye_4.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_077_ai_core_4.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_078_ai_chip_4.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_079_ai_server_4.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_080_ai_scanner_4.svg",
+      "category": "ai"
+    },
+    {
+      "file": "dec_081_env_grid_1.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_082_env_wave_1.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_083_env_skyline_1.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_084_env_portal_1.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_085_env_floating_1.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_086_env_grid_2.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_087_env_wave_2.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_088_env_skyline_2.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_089_env_portal_2.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_090_env_floating_2.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_091_env_grid_3.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_092_env_wave_3.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_093_env_skyline_3.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_094_env_portal_3.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_095_env_floating_3.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_096_env_grid_4.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_097_env_wave_4.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_098_env_skyline_4.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_099_env_portal_4.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_100_env_floating_4.svg",
+      "category": "environment"
+    }
+  ],
+  "backgrounds": [
+    {
+      "file": "bg_parallax_01_neon_grid.svg",
+      "theme": "neon_grid"
+    },
+    {
+      "file": "bg_parallax_02_data_city.svg",
+      "theme": "data_city"
+    },
+    {
+      "file": "bg_parallax_03_apex_core.svg",
+      "theme": "apex_core"
+    }
+  ],
+  "tileset": [
+    {
+      "file": "pixel_protocole_cyber_tileset.svg",
+      "map": "pixel_protocole_cyber_tileset.json",
+      "tiles": 64
+    }
+  ]
+}

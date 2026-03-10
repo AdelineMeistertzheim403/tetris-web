@@ -1,5 +1,5 @@
 export type Tetromino = "I" | "O" | "T" | "L" | "J" | "S" | "Z";
-export type DecorationType =
+export type BuiltinDecorationType =
   | "tetromino_I"
   | "tetromino_T"
   | "tetromino_L"
@@ -80,6 +80,12 @@ export type DecorationType =
   | "digital_tunnel"
   | "data_pulse"
   | "wave_grid";
+export type SvgPackDecorationType = `svg_pack:${string}`;
+export type TilesetDecorationType = `tileset:${string}`;
+export type DecorationType =
+  | BuiltinDecorationType
+  | SvgPackDecorationType
+  | TilesetDecorationType;
 export type DecorationLayer = "far" | "mid" | "near";
 export type DecorationAnimation = "none" | "pulse" | "flow" | "glitch";
 export type PlatformType =

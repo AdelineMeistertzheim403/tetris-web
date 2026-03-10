@@ -14,10 +14,12 @@ import {
   WORLD_H,
 } from "../constants";
 import {
+  DECORATION_CATEGORY_ORDER,
   DECORATION_PRESETS,
   PixelProtocolDecoration,
   decorationLayerOrder,
   getDecorationPreset,
+  usesEmbeddedDecorationArtwork,
 } from "../decorations";
 import { platformRenderData, validatePlatformLayout } from "../editorUtils";
 import { usePixelProtocolGame } from "../hooks/usePixelProtocolGame";
@@ -69,6 +71,8 @@ import exampleNeonFoundryJson from "../examples/world-template-neon-foundry.json
 import exampleGlitchCathedralJson from "../examples/world-template-glitch-cathedral.json?raw";
 import exampleDataArchivesJson from "../examples/world-template-data-archives.json?raw";
 import exampleApexCoreJson from "../examples/world-template-apex-core.json?raw";
+import exampleNeonCityJson from "../examples/world-template-neon-city.json?raw";
+import exampleGlitchWorldJson from "../examples/world-template-glitch-world.json?raw";
 import "../../../styles/pixel-protocol.css";
 import "../../../styles/pixel-protocol-editor.css";
 
@@ -136,6 +140,18 @@ const WORLD_EXAMPLES = [
     name: "Apex Core",
     theme: "boss final / coeur IA",
     raw: exampleApexCoreJson,
+  },
+  {
+    id: "neon-city",
+    name: "Neon City",
+    theme: "tileset / skyline / signaletique",
+    raw: exampleNeonCityJson,
+  },
+  {
+    id: "glitch-world",
+    name: "Glitch World",
+    theme: "tileset / corruption / danger",
+    raw: exampleGlitchWorldJson,
   },
 ] as const;
 
@@ -832,6 +848,9 @@ export default function PixelProtocolEditor() {
     selection?.kind === "decoration"
       ? (draftLevel.decorations ?? []).find((decoration) => decoration.id === selection.id) ?? null
       : null;
+  const selectedDecorationUsesEmbeddedArtwork = selectedDecoration
+    ? usesEmbeddedDecorationArtwork(selectedDecoration.type)
+    : false;
   const selectedWorldTemplate =
     draftLevel.worldTemplateId
       ? worldTemplates.find((world) => world.id === draftLevel.worldTemplateId) ?? null
@@ -3074,7 +3093,7 @@ export default function PixelProtocolEditor() {
                             })
                           }
                         >
-                          {(["tetromino", "tech", "glitch", "network", "ai", "background"] as const).map((category) => (
+                          {DECORATION_CATEGORY_ORDER.map((category) => (
                             <optgroup key={category} label={category}>
                               {DECORATION_PRESETS.filter((preset) => preset.category === category).map((preset) => (
                                 <option key={preset.type} value={preset.type}>
@@ -3195,11 +3214,17 @@ export default function PixelProtocolEditor() {
                         />
                       </label>
                     </div>
+                    {selectedDecorationUsesEmbeddedArtwork && (
+                      <p className="pp-editor-muted">
+                        Asset integre: les couleurs proviennent directement du fichier source.
+                      </p>
+                    )}
                     <div className="pp-editor-inline-fields">
                       <label>
                         <span>Couleur</span>
                         <input
                           type="color"
+                          disabled={selectedDecorationUsesEmbeddedArtwork}
                           value={selectedDecoration.color ?? "#00ffff"}
                           onChange={(event) =>
                             handleSelectedDecorationChange((decoration) => ({
@@ -3213,6 +3238,7 @@ export default function PixelProtocolEditor() {
                         <span>Couleur 2</span>
                         <input
                           type="color"
+                          disabled={selectedDecorationUsesEmbeddedArtwork}
                           value={selectedDecoration.colorSecondary ?? "#ff00ff"}
                           onChange={(event) =>
                             handleSelectedDecorationChange((decoration) => ({
