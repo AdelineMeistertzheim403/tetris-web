@@ -31,6 +31,8 @@ import PixelProtocolHub from "./features/pixelProtocol/pages/PixelProtocolHub";
 import PixelProtocolPage from "./features/pixelProtocol/pages/PixelProtocolPage";
 import PixelProtocolEditor from "./features/pixelProtocol/pages/PixelProtocolEditor";
 import PixelProtocolEditorHelp from "./features/pixelProtocol/pages/PixelProtocolEditorHelp";
+import PixelProtocolCommunityHub from "./features/pixelProtocol/pages/PixelProtocolCommunityHub";
+import PixelProtocolCommunityLevelPage from "./features/pixelProtocol/pages/PixelProtocolCommunityLevelPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
 
@@ -80,7 +82,9 @@ function App() {
       <Route path="/tetromaze/editor" element={<TetromazeEditor />} />
       <Route path="/tetromaze/help/editor" element={<TetromazeEditorHelp />} />
       <Route path="/pixel-protocol" element={<PixelProtocolHub />} />
+      <Route path="/pixel-protocol/community" element={<PixelProtocolCommunityHub />} />
       <Route path="/pixel-protocol/play" element={<PixelProtocolPage />} />
+      <Route path="/pixel-protocol/community/:publishedId" element={<PixelProtocolCommunityLevelPage />} />
       <Route
         path="/pixel-protocol/editor"
         element={

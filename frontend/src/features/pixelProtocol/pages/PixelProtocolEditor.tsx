@@ -43,13 +43,16 @@ import type {
 import {
   deletePixelProtocolCustomLevel,
   deletePixelProtocolLevel,
+  fetchPixelProtocolCommunityLevels,
   fetchPixelProtocolCustomLevels,
   fetchPixelProtocolAdminLevels,
   fetchPixelProtocolWorldTemplates,
+  publishPixelProtocolCommunityLevel,
   savePixelProtocolCustomLevel,
   savePixelProtocolLevel,
   savePixelProtocolWorldTemplate,
   deletePixelProtocolWorldTemplate,
+  type PixelProtocolCommunityLevel,
   type PixelProtocolAdminLevel,
 } from "../services/pixelProtocolService";
 import {
@@ -66,6 +69,10 @@ import {
   upsertPixelProtocolWorldTemplate,
 } from "../utils/worldTemplates";
 import { applyWorldTemplateToLevel } from "../utils/resolveWorldTemplate";
+import {
+  getPixelProtocolCustomLevelCompletion,
+  hasCompletedCurrentPixelProtocolLevel,
+} from "../utils/communityCompletion";
 import { useAuth } from "../../auth/context/AuthContext";
 import exampleNeonFoundryJson from "../examples/world-template-neon-foundry.json?raw";
 import exampleGlitchCathedralJson from "../examples/world-template-glitch-cathedral.json?raw";
@@ -1033,6 +1040,7 @@ export default function PixelProtocolEditor() {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [previewLevel, setPreviewLevel] = useState<LevelDef | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
+  const [communityLevels, setCommunityLevels] = useState<PixelProtocolCommunityLevel[]>([]);
   const [editorExpanded, setEditorExpanded] = useState(true);
   const [duplicateOffsetX, setDuplicateOffsetX] = useState(DECORATION_DUPLICATE_OFFSET);
   const [duplicateOffsetY, setDuplicateOffsetY] = useState(DECORATION_DUPLICATE_OFFSET);
@@ -1229,6 +1237,22 @@ export default function PixelProtocolEditor() {
     selection?.kind === "decoration";
   const validationWarnings = validation.issues.filter((issue) => issue.severity === "warning");
   const validationErrors = validation.issues.filter((issue) => issue.severity === "error");
+  const currentCompletion = useMemo(
+    () => getPixelProtocolCustomLevelCompletion(draftLevel),
+    [draftLevel]
+  );
+  const ownPublishedLevel = useMemo(
+    () =>
+      communityLevels.find(
+        (level) => level.isOwn && level.level.id === draftLevel.id
+      ) ?? null,
+    [communityLevels, draftLevel.id]
+  );
+  const canPublishCommunityLevel =
+    !isAdmin &&
+    !isWorldEditor &&
+    validation.isValid &&
+    hasCompletedCurrentPixelProtocolLevel(draftLevel);
 
   const resetMessages = () => {
     setStatus(null);
@@ -1388,6 +1412,13 @@ export default function PixelProtocolEditor() {
         ? sortAdminLevels(await fetchPixelProtocolAdminLevels())
         : mergePixelProtocolCustomLevels(await fetchPixelProtocolCustomLevels());
       setLevels(sorted);
+      if (!isAdmin) {
+        try {
+          setCommunityLevels(await fetchPixelProtocolCommunityLevels());
+        } catch {
+          setCommunityLevels([]);
+        }
+      }
       if (sorted.length > 0) {
         selectLevel(sorted[0]);
       } else {
@@ -1413,6 +1444,37 @@ export default function PixelProtocolEditor() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveCurrentCustomDraft = async (levelToSave: LevelDef): Promise<LevelDef> => {
+    const merged = upsertPixelProtocolCustomLevel(levelToSave);
+    setLevels(merged);
+    setSelectedId(levelToSave.id);
+    setPublished(false);
+    setDraftLevel(levelToSave);
+
+    try {
+      const remoteSaved = await savePixelProtocolCustomLevel(levelToSave);
+      const mergedRemote: LevelDef = {
+        ...remoteSaved,
+        worldTopPadding: remoteSaved.worldTopPadding ?? levelToSave.worldTopPadding,
+        orbs: remoteSaved.orbs.map((orb) => {
+          const draftOrb = levelToSave.orbs.find((item) => item.id === orb.id);
+          return {
+            ...orb,
+            affinity: orb.affinity ?? draftOrb?.affinity ?? "standard",
+            grantsSkill: orb.grantsSkill ?? draftOrb?.grantsSkill ?? null,
+          };
+        }),
+      };
+      const synced = upsertPixelProtocolCustomLevel(mergedRemote);
+      setLevels(synced);
+      setDraftLevel(mergedRemote);
+      setSelectedId(mergedRemote.id);
+      return mergedRemote;
+    } catch {
+      return levelToSave;
     }
   };
 
@@ -1607,39 +1669,53 @@ export default function PixelProtocolEditor() {
         setStatus(active ? "Niveau publie." : "Niveau sauvegarde en brouillon.");
         savedLevel = stripAdminFields(normalizedSaved);
       } else {
-        const merged = upsertPixelProtocolCustomLevel(draftLevel);
-        setLevels(merged);
-        setSelectedId(draftLevel.id);
-        setPublished(false);
-        setDraftLevel(draftLevel);
-        savedLevel = draftLevel;
-        try {
-          const remoteSaved = await savePixelProtocolCustomLevel(draftLevel);
-          const mergedRemote: LevelDef = {
-            ...remoteSaved,
-            worldTopPadding: remoteSaved.worldTopPadding ?? draftLevel.worldTopPadding,
-            orbs: remoteSaved.orbs.map((orb) => {
-              const draftOrb = draftLevel.orbs.find((item) => item.id === orb.id);
-              return {
-                ...orb,
-                affinity: orb.affinity ?? draftOrb?.affinity ?? "standard",
-                grantsSkill: orb.grantsSkill ?? draftOrb?.grantsSkill ?? null,
-              };
-            }),
-          };
-          const synced = upsertPixelProtocolCustomLevel(mergedRemote);
-          setLevels(synced);
-          setDraftLevel(mergedRemote);
-          savedLevel = mergedRemote;
-          setStatus("Niveau custom sauvegarde.");
-        } catch {
-          setStatus("Niveau custom sauvegarde localement.");
-        }
+        savedLevel = await saveCurrentCustomDraft(draftLevel);
+        setStatus(savedLevel === draftLevel ? "Niveau custom sauvegarde localement." : "Niveau custom sauvegarde.");
       }
       setSelection(savedLevel.platforms[0] ? { kind: "platform", id: savedLevel.platforms[0].id } : null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur sauvegarde niveau");
+    }
+  };
+
+  const playCurrentLevel = async () => {
+    if (isAdmin || isWorldEditor) return;
+    const layoutValidation = validatePlatformLayout(draftLevel);
+    if (!layoutValidation.isValid) {
+      setError(layoutValidation.issues[0]?.message ?? "Corrige le layout avant de jouer.");
+      return;
+    }
+
+    const savedLevel = await saveCurrentCustomDraft(draftLevel);
+    setStatus("Niveau pret pour le test complet.");
+    setError(null);
+    navigate(`/pixel-protocol/play?custom=${encodeURIComponent(savedLevel.id)}`);
+  };
+
+  const publishCurrentLevel = async () => {
+    if (isAdmin || isWorldEditor) return;
+    if (!validation.isValid) {
+      setError(validationErrors[0]?.message ?? "Le layout doit etre valide avant publication.");
+      return;
+    }
+    if (!hasCompletedCurrentPixelProtocolLevel(draftLevel)) {
+      setError("Tu dois finir cette version exacte du niveau avant de le publier.");
+      return;
+    }
+
+    try {
+      const savedLevel = await saveCurrentCustomDraft(draftLevel);
+      const publishedLevel = await publishPixelProtocolCommunityLevel(savedLevel.id);
+      setCommunityLevels((current) => {
+        const next = [publishedLevel, ...current.filter((item) => item.id !== publishedLevel.id)];
+        next.sort((a, b) => b.likeCount - a.likeCount || b.id - a.id);
+        return next;
+      });
+      setStatus("Niveau publie dans la galerie des joueurs.");
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur publication niveau");
     }
   };
 
@@ -2266,10 +2342,25 @@ export default function PixelProtocolEditor() {
                     className="pp-editor-icon-btn pp-editor-icon-btn--play"
                     title="Jouer ce niveau"
                     aria-label="Jouer ce niveau"
-                    onClick={() => navigate(`/pixel-protocol/play?custom=${encodeURIComponent(selectedId ?? draftLevel.id)}`)}
-                    disabled={!selectedId}
+                    onClick={() => void playCurrentLevel()}
                   >
                     <i className="fa-solid fa-play" />
+                  </button>
+                  <button
+                    type="button"
+                    className="pp-editor-icon-btn pp-editor-icon-btn--publish"
+                    title={
+                      validation.isValid
+                        ? hasCompletedCurrentPixelProtocolLevel(draftLevel)
+                          ? "Publier dans la galerie"
+                          : "Finis d'abord cette version exacte du niveau"
+                        : "Le layout doit etre valide pour publier"
+                    }
+                    aria-label="Publier dans la galerie"
+                    onClick={() => void publishCurrentLevel()}
+                    disabled={!canPublishCommunityLevel}
+                  >
+                    <i className="fa-solid fa-upload" />
                   </button>
                 </>
               )}
@@ -2387,6 +2478,11 @@ export default function PixelProtocolEditor() {
                     <span>
                       {isWorldEditor ? `Decors ${(lvl as WorldTemplate).decorations.length}` : `Monde ${(lvl as EditorStoredLevel).world}`}
                     </span>
+                    {!isAdmin &&
+                      !isWorldEditor &&
+                      communityLevels.some((communityLevel) => communityLevel.isOwn && communityLevel.level.id === lvl.id) && (
+                        <span>Galerie: publie</span>
+                      )}
                     {!isWorldEditor && (lvl as EditorStoredLevel).worldTemplateId && (
                       <span>Decor: {(lvl as EditorStoredLevel).worldTemplateId}</span>
                     )}
@@ -3082,12 +3178,26 @@ export default function PixelProtocolEditor() {
                       aria-hidden="true"
                     />
                   </button>
-                  {centerPanelSections.validation &&
+                {centerPanelSections.validation &&
                     (validation.isValid ? (
                       <>
                         <div className="pp-editor-status success">
                           Layout valide: toutes les plateformes sont atteignables.
                         </div>
+                        {!isAdmin && !isWorldEditor && (
+                          <div className={`pp-editor-status ${currentCompletion && canPublishCommunityLevel ? "success" : "warning"}`}>
+                            {currentCompletion && canPublishCommunityLevel
+                              ? "Publication joueur debloquee: cette version du niveau a deja ete terminee."
+                              : currentCompletion
+                                ? "Le niveau a ete fini, mais le layout a change depuis. Rejoue-le avant publication."
+                                : "Pour publier, tu dois encore finir ce niveau via Jouer ce niveau."}
+                          </div>
+                        )}
+                        {!isAdmin && !isWorldEditor && ownPublishedLevel && (
+                          <div className="pp-editor-status success">
+                            Niveau deja publie dans la galerie joueurs. Likes actuels: {ownPublishedLevel.likeCount}.
+                          </div>
+                        )}
                         {validationWarnings.length > 0 && (
                           <div className="pp-editor-issues">
                             {validationWarnings.map((issue, index) => (
