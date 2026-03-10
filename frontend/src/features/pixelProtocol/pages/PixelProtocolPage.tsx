@@ -7,9 +7,11 @@ import { usePixelProtocolGame } from "../hooks/usePixelProtocolGame";
 import { usePixelProtocolLevels } from "../hooks/usePixelProtocolLevels";
 import { LEVELS as DEFAULT_LEVELS } from "../levels";
 import {
+  fetchPixelProtocolCommunityLevel,
   fetchPixelProtocolCustomLevels,
   fetchPixelProtocolProgress,
   savePixelProtocolProgress,
+  type PixelProtocolCommunityLevel,
   type PixelProtocolProgress,
 } from "../services/pixelProtocolService";
 import {
@@ -21,6 +23,7 @@ import {
   readLocalPixelProtocolProgress,
   writeLocalPixelProtocolProgress,
 } from "../utils/progress";
+import { markPixelProtocolCustomLevelCompleted as markCompletedCustomLevel } from "../utils/communityCompletion";
 import {
   readLocalPixelProtocolSkills,
   writeLocalPixelProtocolSkills,
@@ -44,6 +47,7 @@ export default function PixelProtocolPage() {
   const [searchParams] = useSearchParams();
   const { levels, loading, error, usingFallback } = usePixelProtocolLevels();
   const customId = searchParams.get("custom");
+  const requestedCommunityId = Number.parseInt(searchParams.get("community") ?? "", 10);
   const requestedLevel = Number.parseInt(searchParams.get("level") ?? "", 10);
 
   const [progress, setProgress] = useState<PixelProtocolProgress>(() =>
@@ -55,10 +59,14 @@ export default function PixelProtocolPage() {
   const [customLevels, setCustomLevels] = useState<LevelDef[]>(() =>
     listPixelProtocolCustomLevels()
   );
+  const [communityLevel, setCommunityLevel] = useState<PixelProtocolCommunityLevel | null>(null);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityError, setCommunityError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const syncKeyRef = useRef<string>("");
   const finalSaveKeyRef = useRef<string>("");
+  const customCompletionKeyRef = useRef<string>("");
 
   useEffect(() => {
     if (!user) return;
@@ -102,6 +110,37 @@ export default function PixelProtocolPage() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!Number.isFinite(requestedCommunityId) || requestedCommunityId <= 0) {
+      setCommunityLevel(null);
+      setCommunityError(null);
+      setCommunityLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCommunityLoading(true);
+    setCommunityError(null);
+
+    void fetchPixelProtocolCommunityLevel(requestedCommunityId)
+      .then((level) => {
+        if (cancelled) return;
+        setCommunityLevel(level);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setCommunityLevel(null);
+        setCommunityError(err instanceof Error ? err.message : "Niveau joueur introuvable");
+      })
+      .finally(() => {
+        if (!cancelled) setCommunityLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestedCommunityId]);
+
   const hasLevels = levels.length > 0;
   const campaignLevels = hasLevels
     ? levels
@@ -115,8 +154,12 @@ export default function PixelProtocolPage() {
     );
   }, [customId, customLevels]);
   const isCustomLevel = Boolean(customId);
+  const isCommunityLevel = Boolean(
+    Number.isFinite(requestedCommunityId) && requestedCommunityId > 0
+  );
   const missingCustomLevel = Boolean(customId) && !customLevel && !syncLoading;
-  const gameLevels = customLevel ? [customLevel] : campaignLevels;
+  const missingCommunityLevel = isCommunityLevel && !communityLevel && !communityLoading;
+  const gameLevels = communityLevel ? [communityLevel.level] : customLevel ? [customLevel] : campaignLevels;
   const initialLevelIndex = customLevel
     ? 0
     : clamp(
@@ -154,7 +197,7 @@ export default function PixelProtocolPage() {
   }, [progress]);
 
   useEffect(() => {
-    if (isCustomLevel) return;
+    if (isCustomLevel || isCommunityLevel) return;
 
     const reachedLevel = clamp(levelIndex + 1, 1, gameLevels.length);
     const nextProgress = {
@@ -182,10 +225,10 @@ export default function PixelProtocolPage() {
       .catch(() => {
         setSyncError("Mode hors ligne: progression locale utilisee.");
       });
-  }, [gameLevels.length, isCustomLevel, levelIndex, progress.currentLevel, progress.highestLevel, progress.updatedAt, user]);
+  }, [gameLevels.length, isCommunityLevel, isCustomLevel, levelIndex, progress.currentLevel, progress.highestLevel, progress.updatedAt, user]);
 
   useEffect(() => {
-    if (isCustomLevel || runtime.status !== "won") return;
+    if (isCustomLevel || isCommunityLevel || runtime.status !== "won") return;
 
     const finalLevel = gameLevels.length;
     const saveKey = `${finalLevel}:${runtime.status}:${Boolean(user)}`;
@@ -213,30 +256,25 @@ export default function PixelProtocolPage() {
       .catch(() => {
         setSyncError("Mode hors ligne: progression locale utilisee.");
       });
-  }, [gameLevels.length, isCustomLevel, progress.highestLevel, runtime.status, user]);
+  }, [gameLevels.length, isCommunityLevel, isCustomLevel, progress.highestLevel, runtime.status, user]);
 
-  if (!loading && !error && !hasLevels && !customLevel) {
+  useEffect(() => {
+    if (!isCustomLevel || runtime.status !== "won" || !customLevel) return;
+
+    const completionKey = `${customLevel.id}:${runtime.status}`;
+    if (customCompletionKeyRef.current === completionKey) return;
+    customCompletionKeyRef.current = completionKey;
+    markCompletedCustomLevel(customLevel);
+  }, [customLevel, isCustomLevel, runtime.status]);
+
+  if (isCommunityLevel && communityLoading) {
     return (
       <div className="pp-shell">
         <div className="pp-layout">
           <div className="pp-panel">
             <div className="pp-header">
               <h1>Pixel Protocol</h1>
-              <p>Aucun niveau publie pour le moment.</p>
-            </div>
-            <div className="pp-infoCard">
-              <p className="pp-panelTitle">Info</p>
-              <p>Reviens plus tard ou ouvre l'editeur pour tes niveaux custom.</p>
-            </div>
-            <div className="pp-actions">
-              <button type="button" onClick={() => navigate("/dashboard")}>
-                Retour dashboard
-              </button>
-              {user && (
-                <button type="button" onClick={() => navigate("/pixel-protocol/editor")}>
-                  Editeur de niveaux
-                </button>
-              )}
+              <p>Chargement du niveau joueur...</p>
             </div>
           </div>
         </div>
@@ -260,6 +298,55 @@ export default function PixelProtocolPage() {
               {user && (
                 <button type="button" onClick={() => navigate("/pixel-protocol/editor")}>
                   Ouvrir l'editeur
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (missingCommunityLevel) {
+    return (
+      <div className="pp-shell">
+        <div className="pp-layout">
+          <div className="pp-panel">
+            <div className="pp-header">
+              <h1>Pixel Protocol</h1>
+              <p>{communityError ?? "Niveau joueur introuvable."}</p>
+            </div>
+            <div className="pp-actions">
+              <button type="button" onClick={() => navigate("/pixel-protocol")}>
+                Retour menu
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!loading && !error && !hasLevels && !customLevel) {
+    return (
+      <div className="pp-shell">
+        <div className="pp-layout">
+          <div className="pp-panel">
+            <div className="pp-header">
+              <h1>Pixel Protocol</h1>
+              <p>Aucun niveau publie pour le moment.</p>
+            </div>
+            <div className="pp-infoCard">
+              <p className="pp-panelTitle">Info</p>
+              <p>Reviens plus tard ou ouvre l'editeur pour tes niveaux custom.</p>
+            </div>
+            <div className="pp-actions">
+              <button type="button" onClick={() => navigate("/dashboard")}>
+                Retour dashboard
+              </button>
+              {user && (
+                <button type="button" onClick={() => navigate("/pixel-protocol/editor")}>
+                  Editeur de niveaux
                 </button>
               )}
             </div>
@@ -302,6 +389,10 @@ export default function PixelProtocolPage() {
               ? "Chargement des niveaux..."
               : syncError || error || usingFallback
                 ? syncError ?? "Serveur indisponible, niveaux locaux utilises."
+                : isCommunityLevel
+                  ? communityLoading
+                    ? "Chargement du niveau joueur..."
+                    : `Niveau joueur par ${communityLevel?.authorPseudo ?? "inconnu"}`
                 : isCustomLevel
                   ? "Lecture d'un niveau custom utilisateur."
                   : `Progression: ${progress.currentLevel}/${gameLevels.length}`
