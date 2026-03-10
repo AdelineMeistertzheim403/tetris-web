@@ -20,6 +20,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.8rem;
+}
+
+.pp-editor-help-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.pp-editor-help-head__actions .pp-editor-icon-btn {
+  min-width: 42px;
+  min-height: 42px;
+  font-size: 21px;
 }
 
 .pp-editor-help-head h1 {
@@ -27,34 +41,166 @@
   font-size: 1.1rem;
 }
 
+.pp-editor-help-search {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #2fdcff44;
+  background: rgba(8, 17, 31, 0.78);
+  box-shadow: inset 0 0 18px #0ca7ff1f;
+}
+
+.pp-editor-help-search i {
+  color: #8fe6ff;
+  font-size: 1.12rem;
+}
+
+.pp-editor-help-search input {
+  flex: 1 1 auto;
+  min-width: 180px;
+  border: 1px solid rgba(143, 230, 255, 0.18);
+  background: rgba(7, 18, 33, 0.55);
+  color: #def4ff;
+  padding: 0.65rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.68rem;
+}
+
+.pp-editor-help-search__count {
+  font-size: 0.62rem;
+  color: #facc15;
+  white-space: nowrap;
+}
+
+.pp-editor-help-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.pp-editor-help-quick-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(143, 230, 255, 0.18);
+  background: rgba(7, 18, 33, 0.55);
+  color: #cbe8f7;
+  font-family: inherit;
+  font-size: 0.62rem;
+  text-align: left;
+}
+
+.pp-editor-help-quick-link i {
+  color: #8fe6ff;
+  font-size: 1.05rem;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.pp-editor-help-quick-link.is-active {
+  border-color: rgba(250, 204, 21, 0.72);
+  color: #fff6cf;
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.16);
+}
+
 .pp-editor-help-card {
   padding: 0;
   overflow: hidden;
+  border: 1px solid #2fdcff44;
+  background: rgba(8, 17, 31, 0.78);
+  box-shadow: inset 0 0 18px #0ca7ff1f;
+}
+
+.pp-editor-help-card.is-highlighted {
+  border-color: rgba(250, 204, 21, 0.72);
+  box-shadow:
+    inset 0 0 18px #0ca7ff1f,
+    0 0 0 1px rgba(250, 204, 21, 0.16);
 }
 
 .pp-editor-help-card summary {
   list-style: none;
   cursor: pointer;
   padding: 0.8rem;
-  color: #8fe6ff;
+  color: #d8f6ff;
   font-size: 0.82rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.8rem;
+  background: rgba(7, 15, 30, 0.86);
+  border-bottom: 1px solid rgba(47, 220, 255, 0.14);
 }
 
 .pp-editor-help-card summary::-webkit-details-marker {
   display: none;
 }
 
-.pp-editor-help-card summary::after {
-  content: "+";
-  color: #facc15;
-  font-size: 0.9rem;
+.pp-editor-help-card__summary-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
 }
 
-.pp-editor-help-card[open] summary::after {
-  content: "-";
+.pp-editor-help-card__summary-label i {
+  width: 1.2rem;
+  font-size: 1.12rem;
+  text-align: center;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.pp-editor-help-card__summary-label .fa-map,
+.pp-editor-help-quick-link .fa-map,
+.pp-editor-help-card__summary-label .fa-compass,
+.pp-editor-help-quick-link .fa-compass {
+  color: #7de8ff;
+}
+
+.pp-editor-help-card__summary-label .fa-route,
+.pp-editor-help-quick-link .fa-route,
+.pp-editor-help-card__summary-label .fa-ruler-combined,
+.pp-editor-help-quick-link .fa-ruler-combined,
+.pp-editor-help-card__summary-label .fa-filter,
+.pp-editor-help-quick-link .fa-filter {
+  color: #ffd166;
+}
+
+.pp-editor-help-card__summary-label .fa-earth-europe,
+.pp-editor-help-quick-link .fa-earth-europe,
+.pp-editor-help-card__summary-label .fa-mountain-city,
+.pp-editor-help-quick-link .fa-mountain-city,
+.pp-editor-help-card__summary-label .fa-brush,
+.pp-editor-help-quick-link .fa-brush {
+  color: #8effc0;
+}
+
+.pp-editor-help-card__summary-label .fa-cubes,
+.pp-editor-help-quick-link .fa-cubes,
+.pp-editor-help-card__summary-label .fa-layer-group,
+.pp-editor-help-quick-link .fa-layer-group,
+.pp-editor-help-card__summary-label .fa-robot,
+.pp-editor-help-quick-link .fa-robot {
+  color: #ff9b85;
+}
+
+.pp-editor-help-card__summary-label .fa-shield-halved,
+.pp-editor-help-quick-link .fa-shield-halved,
+.pp-editor-help-card__summary-label .fa-circle-plus,
+.pp-editor-help-quick-link .fa-circle-plus,
+.pp-editor-help-card__summary-label .fa-bolt,
+.pp-editor-help-quick-link .fa-bolt,
+.pp-editor-help-card__summary-label .fa-keyboard,
+.pp-editor-help-quick-link .fa-keyboard,
+.pp-editor-help-card__summary-label .fa-icons,
+.pp-editor-help-quick-link .fa-icons,
+.pp-editor-help-card__summary-label .fa-pencil-ruler,
+.pp-editor-help-quick-link .fa-pencil-ruler,
+.pp-editor-help-card__summary-label .fa-screwdriver-wrench,
+.pp-editor-help-quick-link .fa-screwdriver-wrench,
+.pp-editor-help-card__summary-label .fa-file-code,
+.pp-editor-help-quick-link .fa-file-code {
+  color: #c9a7ff;
 }
 
 .pp-editor-help-card__body {
@@ -101,6 +247,7 @@
   width: 1rem;
   text-align: center;
   color: #8fe6ff;
+  font-size: 0.95rem;
 }
 
 .pp-editor-help-map {
@@ -136,6 +283,23 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .pp-editor-help-head__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .pp-editor-help-search {
+    flex-wrap: wrap;
+  }
+
+  .pp-editor-help-search__count {
+    width: 100%;
+  }
+
+  .pp-editor-help-quick-links {
+    flex-direction: column;
   }
 
   .pp-editor-help-map {
