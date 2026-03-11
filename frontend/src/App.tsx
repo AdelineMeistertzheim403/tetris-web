@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./features/app/components/Navbar";
 import Login from "./features/auth/pages/Login";
@@ -27,14 +27,15 @@ import TetromazeHub from "./features/tetromaze/pages/TetromazeHub";
 import TetromazeEditor from "./features/tetromaze/pages/TetromazeEditor";
 import TetromazeEditorHelp from "./features/tetromaze/pages/TetromazeEditorHelp";
 import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
-import PixelProtocolHub from "./features/pixelProtocol/pages/PixelProtocolHub";
-import PixelProtocolPage from "./features/pixelProtocol/pages/PixelProtocolPage";
-import PixelProtocolEditor from "./features/pixelProtocol/pages/PixelProtocolEditor";
-import PixelProtocolEditorHelp from "./features/pixelProtocol/pages/PixelProtocolEditorHelp";
-import PixelProtocolCommunityHub from "./features/pixelProtocol/pages/PixelProtocolCommunityHub";
-import PixelProtocolCommunityLevelPage from "./features/pixelProtocol/pages/PixelProtocolCommunityLevelPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
+
+const PixelProtocolHub = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolHub"));
+const PixelProtocolPage = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolPage"));
+const PixelProtocolEditor = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolEditor"));
+const PixelProtocolEditorHelp = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolEditorHelp"));
+const PixelProtocolCommunityHub = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityHub"));
+const PixelProtocolCommunityLevelPage = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityLevelPage"));
 
 function App() {
   const { user } = useAuth();
@@ -51,53 +52,58 @@ function App() {
     <>
       {/* Navbar globale affichée sur toutes les routes */}
       <Navbar />
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Home />} />
-        <Route path="/game" element={<Game />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/sprint" element={<Sprint />} />
-      <Route path="/versus" element={<Versus />} />
-      <Route path="/brickfall-solo" element={<BrickfallSolo />} />
-      <Route path="/brickfall-solo/play" element={<BrickfallSoloPlay />} />
-      <Route path="/brickfall-editor" element={<BrickfallEditor />} />
-      <Route path="/brickfall/help/editor" element={<BrickfallEditorHelp />} />
-      <Route path="/brickfall-versus" element={<BrickfallVersus />} />
-      <Route path="/roguelike" element={<RoguelikePage />} />
-      <Route path="/roguelike-versus" element={<RoguelikeVersus />} />
-      <Route path="/roguelike/lexique" element={<RoguelikeLexicon />} />
-      <Route path="/puzzle" element={<PuzzleSelect />} />
-      <Route path="/puzzle/:id" element={<PuzzleRun />} />
-      <Route path="/tetromaze" element={<TetromazeHub />} />
-      <Route path="/tetromaze/play" element={<TetromazePage />} />
-      <Route path="/tetromaze/editor" element={<TetromazeEditor />} />
-      <Route path="/tetromaze/help/editor" element={<TetromazeEditorHelp />} />
-      <Route path="/pixel-protocol" element={<PixelProtocolHub />} />
-      <Route path="/pixel-protocol/community" element={<PixelProtocolCommunityHub />} />
-      <Route path="/pixel-protocol/play" element={<PixelProtocolPage />} />
-      <Route path="/pixel-protocol/community/:publishedId" element={<PixelProtocolCommunityLevelPage />} />
-      <Route
-        path="/pixel-protocol/editor"
-        element={
-          <ProtectedRoute>
-            <PixelProtocolEditor />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/pixel-protocol/help/editor" element={<PixelProtocolEditorHelp />} />
-      <Route path="/tetrobots" element={<TetrobotsPage />} />
-      <Route path="/achievements" element={<AchievementsPage />} />
-      <Route path="/settings" element={<Settings />} />
-      </Routes>
+      <Suspense fallback={<div className="panel">Chargement...</div>}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Home />} />
+          <Route path="/game" element={<Game />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/sprint" element={<Sprint />} />
+          <Route path="/versus" element={<Versus />} />
+          <Route path="/brickfall-solo" element={<BrickfallSolo />} />
+          <Route path="/brickfall-solo/play" element={<BrickfallSoloPlay />} />
+          <Route path="/brickfall-editor" element={<BrickfallEditor />} />
+          <Route path="/brickfall/help/editor" element={<BrickfallEditorHelp />} />
+          <Route path="/brickfall-versus" element={<BrickfallVersus />} />
+          <Route path="/roguelike" element={<RoguelikePage />} />
+          <Route path="/roguelike-versus" element={<RoguelikeVersus />} />
+          <Route path="/roguelike/lexique" element={<RoguelikeLexicon />} />
+          <Route path="/puzzle" element={<PuzzleSelect />} />
+          <Route path="/puzzle/:id" element={<PuzzleRun />} />
+          <Route path="/tetromaze" element={<TetromazeHub />} />
+          <Route path="/tetromaze/play" element={<TetromazePage />} />
+          <Route path="/tetromaze/editor" element={<TetromazeEditor />} />
+          <Route path="/tetromaze/help/editor" element={<TetromazeEditorHelp />} />
+          <Route path="/pixel-protocol" element={<PixelProtocolHub />} />
+          <Route path="/pixel-protocol/community" element={<PixelProtocolCommunityHub />} />
+          <Route path="/pixel-protocol/play" element={<PixelProtocolPage />} />
+          <Route
+            path="/pixel-protocol/community/:publishedId"
+            element={<PixelProtocolCommunityLevelPage />}
+          />
+          <Route
+            path="/pixel-protocol/editor"
+            element={
+              <ProtectedRoute>
+                <PixelProtocolEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/pixel-protocol/help/editor" element={<PixelProtocolEditorHelp />} />
+          <Route path="/tetrobots" element={<TetrobotsPage />} />
+          <Route path="/achievements" element={<AchievementsPage />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }

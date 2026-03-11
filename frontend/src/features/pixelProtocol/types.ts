@@ -157,6 +157,17 @@ export type DecorationDef = {
   colorSecondary?: string;
   layer?: DecorationLayer;
   animation?: DecorationAnimation;
+  animationSpeed?: number;
+  animationDelay?: number;
+  animationIntensity?: number;
+  animationDirection?: "x" | "y" | "diag-up" | "diag-down";
+  animationPulseScale?: number;
+  animationJitterX?: number;
+  animationJitterY?: number;
+  animationHueShift?: number;
+  parallaxEnabled?: boolean;
+  parallaxX?: number;
+  parallaxY?: number;
   flipX?: boolean;
   flipY?: boolean;
 };

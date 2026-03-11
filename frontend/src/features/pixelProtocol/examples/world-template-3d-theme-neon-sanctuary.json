@@ -1,0 +1,18 @@
+{
+  "id": "world-3d-theme-neon-sanctuary",
+  "name": "3D Theme Neon Sanctuary",
+  "worldWidth": 3520,
+  "worldHeight": 1216,
+  "worldTopPadding": 256,
+  "updatedAt": "2026-03-11T15:10:00.000Z",
+  "decorations": [
+    { "id": "sanctuary-bg-1", "type": "svg_pack:bg_parallax_01_neon_grid", "x": 0, "y": 88, "width": 1800, "height": 390, "rotation": 0, "opacity": 0.14, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "far", "animation": "flow", "flipX": false, "flipY": false },
+    { "id": "sanctuary-bg-2", "type": "svg_pack:dec_084_env_portal_1", "x": 210, "y": 520, "width": 180, "height": 180, "rotation": 0, "opacity": 0.16, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "far", "animation": "flow", "flipX": false, "flipY": false },
+    { "id": "sanctuary-1", "type": "svg_pack:dec_137_env_3d_neon_shrine", "x": 220, "y": 320, "width": 236, "height": 206, "rotation": 0, "opacity": 0.97, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "near", "animation": "pulse", "flipX": false, "flipY": false },
+    { "id": "sanctuary-2", "type": "svg_pack:dec_138_env_3d_neon_censer", "x": 590, "y": 290, "width": 170, "height": 212, "rotation": 0, "opacity": 0.96, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "near", "animation": "flow", "flipX": false, "flipY": false },
+    { "id": "sanctuary-3", "type": "svg_pack:dec_139_env_3d_neon_cloister", "x": 870, "y": 320, "width": 266, "height": 206, "rotation": 0, "opacity": 0.97, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "near", "animation": "none", "flipX": false, "flipY": false },
+    { "id": "sanctuary-4", "type": "svg_pack:dec_140_env_3d_neon_altar", "x": 1240, "y": 382, "width": 240, "height": 180, "rotation": 0, "opacity": 0.98, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "near", "animation": "pulse", "flipX": false, "flipY": false },
+    { "id": "sanctuary-5", "type": "svg_pack:dec_109_env_3d_core_altar", "x": 1570, "y": 388, "width": 250, "height": 188, "rotation": 0, "opacity": 0.95, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "near", "animation": "pulse", "flipX": false, "flipY": false },
+    { "id": "sanctuary-6", "type": "svg_pack:dec_127_env_3d_command_dais", "x": 1910, "y": 392, "width": 244, "height": 182, "rotation": 0, "opacity": 0.96, "color": "#ff8af0", "colorSecondary": "#6fe7ff", "layer": "near", "animation": "none", "flipX": false, "flipY": false }
+  ]
+}

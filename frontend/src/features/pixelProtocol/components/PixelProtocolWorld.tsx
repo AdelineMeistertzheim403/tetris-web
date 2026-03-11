@@ -17,6 +17,36 @@ import {
 } from "../logic";
 import type { DecorationDef, GameRuntime, LevelDef } from "../types";
 
+function decorationParallaxRatio(layer: DecorationDef["layer"]) {
+  switch (layer) {
+    case "far":
+      return { x: 0.35, y: 0.2 };
+    case "near":
+      return { x: 0.9, y: 0.75 };
+    case "mid":
+    default:
+      return { x: 0.65, y: 0.5 };
+  }
+}
+
+function resolveDecorationParallax(decoration: DecorationDef) {
+  if (decoration.parallaxEnabled === false) {
+    return { x: 1, y: 1 };
+  }
+
+  const defaults = decorationParallaxRatio(decoration.layer);
+  return {
+    x:
+      typeof decoration.parallaxX === "number" && Number.isFinite(decoration.parallaxX)
+        ? decoration.parallaxX
+        : defaults.x,
+    y:
+      typeof decoration.parallaxY === "number" && Number.isFinite(decoration.parallaxY)
+        ? decoration.parallaxY
+        : defaults.y,
+  };
+}
+
 type PixelProtocolWorldProps = {
   gameViewportRef: RefObject<HTMLElement | null>;
   level: LevelDef;
@@ -93,13 +123,22 @@ export function PixelProtocolWorld({
         />
 
         {decorations.map((decoration) => (
-          <PixelProtocolDecoration
-            key={decoration.id}
-            decoration={{
-              ...decoration,
-              y: decoration.y + yOffset,
-            }}
-          />
+          (() => {
+            const parallax = resolveDecorationParallax(decoration);
+            return (
+              <PixelProtocolDecoration
+                key={decoration.id}
+                decoration={{
+                  ...decoration,
+                  x: decoration.x + runtime.cameraX * (1 - parallax.x),
+                  y:
+                    decoration.y +
+                    yOffset +
+                    runtime.cameraY * (1 - parallax.y),
+                }}
+              />
+            );
+          })()
         ))}
 
         {grappleCable && (

@@ -6,6 +6,7 @@ import {
   togglePixelProtocolCommunityLevelLike,
   type PixelProtocolCommunityLevel,
 } from "../services/pixelProtocolService";
+import { CommunityLevelCard } from "../components/CommunityLevelCard";
 import "../../../styles/pixel-protocol-hub.css";
 
 export default function PixelProtocolCommunityLevelPage() {
@@ -71,8 +72,16 @@ export default function PixelProtocolCommunityLevelPage() {
           {error && <div className="pp-hub-stat text-yellow-300">{error}</div>}
           {!loading && level && (
             <>
+              <CommunityLevelCard
+                level={level}
+                compact
+                canLike={Boolean(user)}
+                onPlay={(item) =>
+                  navigate(`/pixel-protocol/play?community=${encodeURIComponent(item.id)}`)
+                }
+                onLike={() => void handleLike()}
+              />
               <div className="pp-hub-community-meta">
-                <strong>{level.level.name}</strong>
                 <span>Auteur: {level.authorPseudo}</span>
                 <span>ID public: {level.id}</span>
                 <span>Monde: {level.level.world}</span>
@@ -81,25 +90,6 @@ export default function PixelProtocolCommunityLevelPage() {
                 <span>Plateformes: {level.level.platforms.length}</span>
                 <span>Checkpoints: {level.level.checkpoints.length}</span>
                 <span>Ennemis: {level.level.enemies.length}</span>
-              </div>
-              <div className="pp-hub-community-actions">
-                <button
-                  className="pp-hub-icon-btn"
-                  title="Jouer ce niveau"
-                  aria-label="Jouer ce niveau"
-                  onClick={() => navigate(`/pixel-protocol/play?community=${encodeURIComponent(level.id)}`)}
-                >
-                  <i className="fa-solid fa-play" aria-hidden="true" />
-                </button>
-                <button
-                  className={`pp-hub-icon-btn pp-hub-btn--like ${level.likedByMe ? "is-liked" : ""}`}
-                  title={level.isOwn ? "Ton niveau" : level.likedByMe ? "Retirer like" : "Liker ce niveau"}
-                  aria-label={level.isOwn ? "Ton niveau" : level.likedByMe ? "Retirer like" : "Liker ce niveau"}
-                  disabled={!user || level.isOwn}
-                  onClick={() => void handleLike()}
-                >
-                  <i className={`fa-solid ${level.likedByMe ? "fa-heart-crack" : "fa-heart"}`} aria-hidden="true" />
-                </button>
               </div>
               <div className="pp-hub-divider pp-hub-stack">
                 <button

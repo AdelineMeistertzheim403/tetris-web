@@ -92,6 +92,15 @@
   position: absolute;
   pointer-events: none;
   transform-origin: center center;
+  --pp-dec-animation-duration-mult: 1;
+  --pp-dec-animation-delay: 0s;
+  --pp-dec-animation-intensity: 1;
+  --pp-dec-flow-x: 6px;
+  --pp-dec-flow-y: 0px;
+  --pp-dec-pulse-scale: 1.05;
+  --pp-dec-glitch-x: 1px;
+  --pp-dec-glitch-y: 1px;
+  --pp-dec-glitch-hue: 24deg;
 }
 
 .pp-decoration-svg {
@@ -121,15 +130,20 @@
 }
 
 .pp-decoration--anim-pulse {
-  animation: pp-decoration-pulse 2s ease-in-out infinite;
+  animation: pp-decoration-pulse calc(2s * var(--pp-dec-animation-duration-mult)) ease-in-out infinite;
+  animation-delay: var(--pp-dec-animation-delay);
 }
 
-.pp-decoration--anim-flow .pp-decoration-svg {
-  animation: pp-decoration-flow 2.5s linear infinite;
+.pp-decoration--anim-flow .pp-decoration-svg,
+.pp-decoration--anim-flow .pp-decoration-tile {
+  animation: pp-decoration-flow calc(2.5s * var(--pp-dec-animation-duration-mult)) linear infinite;
+  animation-delay: var(--pp-dec-animation-delay);
 }
 
-.pp-decoration--anim-glitch .pp-decoration-svg {
-  animation: pp-decoration-glitch 0.35s steps(2) infinite;
+.pp-decoration--anim-glitch .pp-decoration-svg,
+.pp-decoration--anim-glitch .pp-decoration-tile {
+  animation: pp-decoration-glitch calc(0.35s * var(--pp-dec-animation-duration-mult)) steps(2) infinite;
+  animation-delay: var(--pp-dec-animation-delay);
 }
 
 .pp-platform {
@@ -519,13 +533,16 @@
 }
 
 @keyframes pp-decoration-pulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: calc(0.45 + 0.1 * var(--pp-dec-animation-intensity)); }
+  50% {
+    opacity: 1;
+    transform: scale(var(--pp-dec-pulse-scale));
+  }
 }
 
 @keyframes pp-decoration-flow {
   0% { transform: translateX(0); }
-  100% { transform: translateX(6px); }
+  100% { transform: translate(var(--pp-dec-flow-x), var(--pp-dec-flow-y)); }
 }
 
 @keyframes pp-decoration-glitch {
@@ -534,8 +551,11 @@
     filter: hue-rotate(0deg);
   }
   50% {
-    transform: translate(1px, -1px);
-    filter: hue-rotate(24deg);
+    transform: translate(
+      var(--pp-dec-glitch-x),
+      calc(-1 * var(--pp-dec-glitch-y))
+    );
+    filter: hue-rotate(var(--pp-dec-glitch-hue));
   }
 }
 
