@@ -18,6 +18,7 @@ type DecorationCategory =
   | "glitch"
   | "network"
   | "ai"
+  | "three_d"
   | "background"
   | "tileset";
 
@@ -67,6 +68,7 @@ export const DECORATION_CATEGORY_ORDER: DecorationCategory[] = [
   "glitch",
   "network",
   "ai",
+  "three_d",
   "background",
   "tileset",
 ];
@@ -91,6 +93,7 @@ const SVG_PACK_CATEGORY_COLORS: Record<
   glitch: { color: "#ff00ff", colorSecondary: "#00ffff" },
   network: { color: "#00ffff", colorSecondary: "#ff00ff" },
   ai: { color: "#8a5cff", colorSecondary: "#ff4d5a" },
+  three_d: { color: "#7df9ff", colorSecondary: "#ffd84d" },
   background: { color: "#00f5ff", colorSecondary: "#ff4fd8" },
   tileset: { color: "#00f5ff", colorSecondary: "#ff4fd8" },
 };
@@ -120,9 +123,52 @@ function toDecorationCategory(category: string | undefined): DecorationCategory 
   }
 }
 
+function isThreeDDecorationFile(file: string) {
+  return /_3d_/i.test(file);
+}
+
+function resolveThreeDPalette(file: string) {
+  const lower = file.toLowerCase();
+  if (lower.includes("desert")) {
+    return { color: "#f6c56f", colorSecondary: "#00f5ff" };
+  }
+  if (lower.includes("orbital")) {
+    return { color: "#d7e1ee", colorSecondary: "#7df9ff" };
+  }
+  if (lower.includes("neon")) {
+    return { color: "#ff7ae6", colorSecondary: "#7df9ff" };
+  }
+  if (
+    lower.includes("cyber_palm") ||
+    lower.includes("vine_") ||
+    lower.includes("lotus") ||
+    lower.includes("root_") ||
+    lower.includes("canopy") ||
+    lower.includes("bloom") ||
+    lower.includes("coral") ||
+    lower.includes("jungle")
+  ) {
+    return { color: "#9fffca", colorSecondary: "#00f5ff" };
+  }
+  if (
+    lower.includes("tower") ||
+    lower.includes("transit") ||
+    lower.includes("dome") ||
+    lower.includes("reactor") ||
+    lower.includes("skyway") ||
+    lower.includes("hangar") ||
+    lower.includes("command") ||
+    lower.includes("sentinel")
+  ) {
+    return { color: "#7df9ff", colorSecondary: "#ffd84d" };
+  }
+  return SVG_PACK_CATEGORY_COLORS.three_d;
+}
+
 function toTitleCaseToken(token: string) {
   const upperTokenMap: Record<string, string> = {
     ai: "AI",
+    "3d": "3D",
     i: "I",
     o: "O",
     t: "T",
@@ -217,9 +263,14 @@ function buildSvgPackEntries() {
     const category =
       folder === "backgrounds"
         ? "background"
+        : isThreeDDecorationFile(entry.file)
+          ? "three_d"
         : toDecorationCategory(entry.category) ?? fallbackCategory;
     const { width, height } = parseSvgDimensions(source);
-    const colors = SVG_PACK_CATEGORY_COLORS[category];
+    const colors =
+      category === "three_d"
+        ? resolveThreeDPalette(entry.file)
+        : SVG_PACK_CATEGORY_COLORS[category];
 
     assets.set(type, {
       markup: normalizeSvgMarkup(source),
@@ -939,6 +990,35 @@ export function PixelProtocolDecoration({
   const decorationStyle = {
     ...baseStyle,
     ["--pp-dec-color-2" as string]: decoration.colorSecondary ?? preset.colorSecondary,
+    ["--pp-dec-animation-duration-mult" as string]: `${Math.max(
+      0.1,
+      decoration.animationSpeed ?? 1
+    )}`,
+    ["--pp-dec-animation-delay" as string]: `${decoration.animationDelay ?? 0}s`,
+    ["--pp-dec-animation-intensity" as string]: `${Math.max(
+      0,
+      decoration.animationIntensity ?? 1
+    )}`,
+    ["--pp-dec-flow-x" as string]:
+      decoration.animationDirection === "y"
+        ? "0px"
+        : decoration.animationDirection === "diag-up" ||
+            decoration.animationDirection === "diag-down" ||
+            decoration.animationDirection === undefined
+          ? `${6 * Math.max(0, decoration.animationIntensity ?? 1)}px`
+          : `${6 * Math.max(0, decoration.animationIntensity ?? 1)}px`,
+    ["--pp-dec-flow-y" as string]:
+      decoration.animationDirection === "y"
+        ? `${6 * Math.max(0, decoration.animationIntensity ?? 1)}px`
+        : decoration.animationDirection === "diag-up"
+          ? `${-6 * Math.max(0, decoration.animationIntensity ?? 1)}px`
+          : decoration.animationDirection === "diag-down"
+            ? `${6 * Math.max(0, decoration.animationIntensity ?? 1)}px`
+            : "0px",
+    ["--pp-dec-glitch-x" as string]: `${decoration.animationJitterX ?? 1}px`,
+    ["--pp-dec-glitch-y" as string]: `${decoration.animationJitterY ?? 1}px`,
+    ["--pp-dec-glitch-hue" as string]: `${decoration.animationHueShift ?? 24}deg`,
+    ["--pp-dec-pulse-scale" as string]: `${decoration.animationPulseScale ?? 1.05}`,
   } as CSSProperties;
   const tilesetStyle = tilesetAsset
     ? ({

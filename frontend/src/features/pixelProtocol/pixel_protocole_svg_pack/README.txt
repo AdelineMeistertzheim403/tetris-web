@@ -2,6 +2,7 @@
 
 Contenu :
 - 100 décorations SVG optimisées pour Phaser/Canvas
+- 40 décorations SVG "3D" isométriques supplémentaires
 - 3 backgrounds parallax SVG
 - 1 tileset cyber complet + JSON de mapping
 

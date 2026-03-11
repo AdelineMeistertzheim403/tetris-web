@@ -3,10 +3,6 @@ import {
   CAMERA_BOTTOM_TRIGGER_RATIO,
   CAMERA_TOP_TRIGGER_RATIO,
   DEFAULT_WORLD_TOP_PADDING,
-  MOVING_DEFAULT_AXIS,
-  MOVING_DEFAULT_PATTERN,
-  MOVING_DEFAULT_RANGE_TILES,
-  MOVING_DEFAULT_SPEED,
   TILE,
   VIEWPORT_W,
   WORLD_H,
@@ -22,6 +18,7 @@ import type {
   RuntimePlatform,
   Tetromino,
 } from "./types";
+import { createRuntimePlatform } from "./utils/platformRuntime";
 
 const SHAPES: Record<Tetromino, Array<{ x: number; y: number }>> = {
   I: [
@@ -218,40 +215,12 @@ export function cloneLevel(level: LevelDef): GameRuntime {
       timeBufferCooldownUntil: 0,
       platformSpawnCooldownUntil: 0,
     },
-    platforms: level.platforms.map((p) => ({
-      ...p,
-      y: p.y + yOffset / TILE,
-      moveAxis: p.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
-      movePattern: p.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
-      moveRangeTiles:
-        typeof p.moveRangeTiles === "number" &&
-        Number.isFinite(p.moveRangeTiles) &&
-        p.moveRangeTiles > 0
-          ? Math.round(p.moveRangeTiles)
-          : MOVING_DEFAULT_RANGE_TILES,
-      moveSpeed:
-        typeof p.moveSpeed === "number" &&
-        Number.isFinite(p.moveSpeed) &&
-        p.moveSpeed > 0
-          ? Math.round(p.moveSpeed)
-          : MOVING_DEFAULT_SPEED,
-      currentRotation: p.rotation ?? 0,
-      active: true,
-      unstableWakeAt: 0,
-      unstableDropAt: 0,
-      hackedUntil: 0,
-      nextRotateAt: p.rotateEveryMs
-        ? performance.now() + p.rotateEveryMs
-        : Number.POSITIVE_INFINITY,
-      expiresAt: null,
-      temporary: false,
-      moveOriginX: p.x,
-      moveOriginY: p.y + yOffset / TILE,
-      moveProgress: 0,
-      moveDirection: 1 as const,
-      prevX: p.x,
-      prevY: p.y + yOffset / TILE,
-    })),
+    platforms: level.platforms.map((platform) =>
+      createRuntimePlatform(platform, {
+        now: performance.now(),
+        yOffsetTiles: yOffset / TILE,
+      })
+    ),
     checkpoints: level.checkpoints.map((c) => ({
       ...c,
       y: c.y + yOffset,

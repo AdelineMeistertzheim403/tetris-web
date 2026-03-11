@@ -6,6 +6,7 @@ import {
   togglePixelProtocolCommunityLevelLike,
   type PixelProtocolCommunityLevel,
 } from "../services/pixelProtocolService";
+import { CommunityLevelCard } from "../components/CommunityLevelCard";
 import "../../../styles/pixel-protocol-hub.css";
 
 export default function PixelProtocolCommunityHub() {
@@ -129,44 +130,18 @@ export default function PixelProtocolCommunityHub() {
           {pagedLevels.length > 0 && (
             <div className="pp-hub-community-list">
               {pagedLevels.map((level) => (
-                <article key={level.id} className="pp-hub-community-card">
-                  <div className="pp-hub-community-meta">
-                    <strong>{level.level.name}</strong>
-                    <span>{level.authorPseudo}</span>
-                    <span>{level.likeCount} like{level.likeCount > 1 ? "s" : ""}</span>
-                  </div>
-                  <div className="pp-hub-community-actions">
-                    <button
-                      className="pp-hub-icon-btn"
-                      title="Jouer ce niveau"
-                      aria-label="Jouer ce niveau"
-                      onClick={() =>
-                        navigate(`/pixel-protocol/play?community=${encodeURIComponent(level.id)}`)
-                      }
-                    >
-                      <i className="fa-solid fa-play" aria-hidden="true" />
-                    </button>
-                    <button
-                      className="pp-hub-icon-btn"
-                      title="Voir le detail"
-                      aria-label="Voir le detail"
-                      onClick={() =>
-                        navigate(`/pixel-protocol/community/${encodeURIComponent(level.id)}`)
-                      }
-                    >
-                      <i className="fa-solid fa-circle-info" aria-hidden="true" />
-                    </button>
-                    <button
-                      className={`pp-hub-icon-btn pp-hub-btn--like ${level.likedByMe ? "is-liked" : ""}`}
-                      title={level.isOwn ? "Ton niveau" : level.likedByMe ? "Retirer like" : "Liker ce niveau"}
-                      aria-label={level.isOwn ? "Ton niveau" : level.likedByMe ? "Retirer like" : "Liker ce niveau"}
-                      disabled={!user || level.isOwn}
-                      onClick={() => void handleToggleCommunityLike(level)}
-                    >
-                      <i className={`fa-solid ${level.likedByMe ? "fa-heart-crack" : "fa-heart"}`} aria-hidden="true" />
-                    </button>
-                  </div>
-                </article>
+                <CommunityLevelCard
+                  key={level.id}
+                  level={level}
+                  canLike={Boolean(user)}
+                  onPlay={(item) =>
+                    navigate(`/pixel-protocol/play?community=${encodeURIComponent(item.id)}`)
+                  }
+                  onDetail={(item) =>
+                    navigate(`/pixel-protocol/community/${encodeURIComponent(item.id)}`)
+                  }
+                  onLike={(item) => void handleToggleCommunityLike(item)}
+                />
               ))}
             </div>
           )}

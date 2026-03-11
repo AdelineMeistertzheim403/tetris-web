@@ -1,10 +1,4 @@
-import {
-  MOVING_DEFAULT_AXIS,
-  MOVING_DEFAULT_PATTERN,
-  MOVING_DEFAULT_RANGE_TILES,
-  MOVING_DEFAULT_SPEED,
-  TILE,
-} from "./constants";
+import { TILE } from "./constants";
 import {
   abilityFlags,
   allCollisionBlocks,
@@ -18,6 +12,7 @@ import {
 } from "./logic";
 import { updatePlayer } from "./game/updatePlayer";
 import type { LevelDef, PlatformDef, Rect, RuntimePlatform } from "./types";
+import { createRuntimePlatform } from "./utils/platformRuntime";
 
 const PLAYER_W = 24;
 const PLAYER_H = 30;
@@ -72,40 +67,6 @@ const JUMP_PROFILES: JumpProfile[] = [
   { jumpAtMs: 0, dashAtMs: 110, doubleJumpAtMs: 240 },
   { jumpAtMs: 70, dashAtMs: 160, doubleJumpAtMs: 280 },
 ];
-
-function runtimePlatform(platform: PlatformDef): RuntimePlatform {
-  return {
-    ...platform,
-    moveAxis: platform.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
-    movePattern: platform.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
-    moveRangeTiles:
-      typeof platform.moveRangeTiles === "number" &&
-      Number.isFinite(platform.moveRangeTiles) &&
-      platform.moveRangeTiles > 0
-        ? Math.round(platform.moveRangeTiles)
-        : MOVING_DEFAULT_RANGE_TILES,
-    moveSpeed:
-      typeof platform.moveSpeed === "number" &&
-      Number.isFinite(platform.moveSpeed) &&
-      platform.moveSpeed > 0
-        ? Math.round(platform.moveSpeed)
-        : MOVING_DEFAULT_SPEED,
-    active: true,
-    currentRotation: platform.rotation ?? 0,
-    hackedUntil: 0,
-    nextRotateAt: Number.POSITIVE_INFINITY,
-    unstableDropAt: 0,
-    unstableWakeAt: 0,
-    expiresAt: null,
-    temporary: false,
-    moveOriginX: platform.x,
-    moveOriginY: platform.y,
-    moveProgress: 0,
-    moveDirection: 1,
-    prevX: platform.x,
-    prevY: platform.y,
-  };
-}
 
 function rectBounds(blocks: Rect[]) {
   if (blocks.length === 0) return null;
@@ -347,7 +308,7 @@ function canReachPlatform(
 
 export function platformRenderData(level: LevelDef): PlatformRenderData[] {
   return level.platforms.map((platform) => {
-    const blocks = platformBlocks(runtimePlatform(platform));
+    const blocks = platformBlocks(createRuntimePlatform(platform, { now: 0 }));
     const bounds = rectBounds(blocks);
     return {
       platform,
@@ -419,7 +380,7 @@ export function validatePlatformLayout(level: LevelDef): PlatformValidation {
     return { isValid: false, issues, reachablePlatformIds: [], links };
   }
 
-  const runtimePlatforms = level.platforms.map(runtimePlatform);
+  const runtimePlatforms = level.platforms.map((platform) => createRuntimePlatform(platform, { now: 0 }));
   const collisionBlocks = allCollisionBlocks(runtimePlatforms, level);
   const reachable = new Set<string>();
   const queue: SourceNode[] = [{ kind: "spawn" }];
