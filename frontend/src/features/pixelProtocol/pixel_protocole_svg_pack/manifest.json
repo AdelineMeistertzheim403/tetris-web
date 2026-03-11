@@ -399,6 +399,166 @@
     {
       "file": "dec_100_env_floating_4.svg",
       "category": "environment"
+    },
+    {
+      "file": "dec_101_env_3d_cube_stack.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_102_env_3d_crystal_cluster.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_103_env_3d_data_totem.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_104_env_3d_pillar_gate.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_105_env_3d_floating_isle.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_106_env_3d_hex_beacon.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_107_env_3d_bridge_span.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_108_env_3d_monolith_pair.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_109_env_3d_core_altar.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_110_env_3d_stairs.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_111_env_3d_shard_field.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_112_env_3d_platform_stack.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_113_env_3d_cyber_palm.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_114_env_3d_vine_arch.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_115_env_3d_lotus_pod.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_116_env_3d_root_spire.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_117_env_3d_canopy_platform.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_118_env_3d_geo_bloom.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_119_env_3d_coral_tree.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_120_env_3d_jungle_gate.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_121_env_3d_tower_cluster.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_122_env_3d_transit_hub.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_123_env_3d_dome_hall.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_124_env_3d_reactor_wall.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_125_env_3d_skyway_node.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_126_env_3d_prism_hangar.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_127_env_3d_command_dais.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_128_env_3d_sentinel_row.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_129_env_3d_desert_obelisk.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_130_env_3d_desert_dune_gate.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_131_env_3d_desert_relay.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_132_env_3d_desert_wreck.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_133_env_3d_orbital_arch.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_134_env_3d_orbital_fragment.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_135_env_3d_orbital_array.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_136_env_3d_orbital_sarcophagus.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_137_env_3d_neon_shrine.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_138_env_3d_neon_censer.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_139_env_3d_neon_cloister.svg",
+      "category": "environment"
+    },
+    {
+      "file": "dec_140_env_3d_neon_altar.svg",
+      "category": "environment"
     }
   ],
   "backgrounds": [

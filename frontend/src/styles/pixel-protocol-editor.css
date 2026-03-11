@@ -1157,6 +1157,140 @@
   word-break: break-word;
 }
 
+.pp-editor-icon-chip,
+.pp-editor-source-filter-btn {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #2fdcff44;
+  background: rgba(5, 12, 24, 0.74);
+  color: #9ad2e7;
+  box-shadow: inset 0 0 10px rgba(12, 167, 255, 0.08);
+  transition:
+    border-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+}
+
+.pp-editor-icon-chip i,
+.pp-editor-source-filter-btn i {
+  font-size: 15px;
+}
+
+.pp-editor-icon-chip:hover,
+.pp-editor-icon-chip:focus-visible,
+.pp-editor-source-filter-btn:hover,
+.pp-editor-source-filter-btn:focus-visible {
+  border-color: #7de8ff;
+  color: #d8f6ff;
+  background: rgba(10, 22, 40, 0.82);
+  box-shadow:
+    inset 0 0 8px rgba(47, 220, 255, 0.1),
+    0 0 6px rgba(47, 220, 255, 0.1);
+}
+
+.pp-editor-icon-chip.is-active,
+.pp-editor-source-filter-btn.is-active {
+  border-color: #8affbf;
+  color: #8affbf;
+  background: rgba(10, 26, 24, 0.96);
+  box-shadow:
+    inset 0 -3px 0 rgba(138, 255, 191, 0.7),
+    inset 0 0 10px rgba(138, 255, 191, 0.08);
+}
+
+.pp-editor-icon-chip.is-active:hover,
+.pp-editor-icon-chip.is-active:focus-visible,
+.pp-editor-source-filter-btn.is-active:hover,
+.pp-editor-source-filter-btn.is-active:focus-visible {
+  border-color: #b7ffd0;
+  color: #cfffdf;
+  background: rgba(12, 30, 26, 0.96);
+}
+
+.pp-editor-icon-chip::after,
+.pp-editor-source-filter-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 8px;
+  border: 1px solid #2fdcff66;
+  background: rgba(3, 7, 18, 0.96);
+  color: #d8f6ff;
+  font-size: 8px;
+  line-height: 1.3;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  box-shadow: 0 0 14px rgba(47, 220, 255, 0.18);
+  z-index: 20;
+}
+
+.pp-editor-icon-chip::before,
+.pp-editor-source-filter-btn::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid #2fdcff66;
+  border-bottom: 1px solid #2fdcff66;
+  background: rgba(3, 7, 18, 0.96);
+  transform: translateX(-50%) rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  z-index: 19;
+}
+
+.pp-editor-icon-chip:hover::after,
+.pp-editor-icon-chip:hover::before,
+.pp-editor-icon-chip:focus-visible::after,
+.pp-editor-icon-chip:focus-visible::before,
+.pp-editor-source-filter-btn:hover::after,
+.pp-editor-source-filter-btn:hover::before,
+.pp-editor-source-filter-btn:focus-visible::after,
+.pp-editor-source-filter-btn:focus-visible::before {
+  opacity: 1;
+}
+
+.pp-editor-icon-chip:hover::after,
+.pp-editor-icon-chip:focus-visible::after,
+.pp-editor-source-filter-btn:hover::after,
+.pp-editor-source-filter-btn:focus-visible::after {
+  transform: translateX(-50%) translateY(0);
+}
+
+.pp-editor-source-filter-row {
+  display: grid;
+  grid-template-columns: repeat(5, 44px);
+  gap: 8px;
+  justify-content: start;
+  justify-items: center;
+}
+
+.pp-editor-parallax-preset-row {
+  display: grid;
+  grid-template-columns: repeat(4, 44px);
+  gap: 8px;
+  justify-content: start;
+  justify-items: center;
+}
+
+
 @media (max-width: 1100px) {
   .pp-editor-chip-grid--platform-types {
     grid-template-columns: 1fr;

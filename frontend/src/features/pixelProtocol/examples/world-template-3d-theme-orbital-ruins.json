@@ -1,0 +1,18 @@
+{
+  "id": "world-3d-theme-orbital-ruins",
+  "name": "3D Theme Orbital Ruins",
+  "worldWidth": 3520,
+  "worldHeight": 1216,
+  "worldTopPadding": 256,
+  "updatedAt": "2026-03-11T15:05:00.000Z",
+  "decorations": [
+    { "id": "orbital-bg-1", "type": "svg_pack:bg_parallax_03_apex_core", "x": 0, "y": 78, "width": 1800, "height": 400, "rotation": 0, "opacity": 0.12, "color": "#d7e1ee", "colorSecondary": "#6fe7ff", "layer": "far", "animation": "flow", "flipX": false, "flipY": false },
+    { "id": "orbital-bg-2", "type": "svg_pack:dec_083_env_skyline_1", "x": 180, "y": 520, "width": 420, "height": 132, "rotation": 0, "opacity": 0.18, "color": "#cbd7e8", "colorSecondary": "#70e6ff", "layer": "far", "animation": "none", "flipX": false, "flipY": false },
+    { "id": "orbital-1", "type": "svg_pack:dec_133_env_3d_orbital_arch", "x": 220, "y": 332, "width": 250, "height": 194, "rotation": 0, "opacity": 0.96, "color": "#d7e1ee", "colorSecondary": "#00f5ff", "layer": "near", "animation": "none", "flipX": false, "flipY": false },
+    { "id": "orbital-2", "type": "svg_pack:dec_134_env_3d_orbital_fragment", "x": 600, "y": 392, "width": 214, "height": 160, "rotation": 0, "opacity": 0.94, "color": "#d7e1ee", "colorSecondary": "#00f5ff", "layer": "near", "animation": "glitch", "flipX": false, "flipY": false },
+    { "id": "orbital-3", "type": "svg_pack:dec_135_env_3d_orbital_array", "x": 930, "y": 368, "width": 286, "height": 186, "rotation": 0, "opacity": 0.95, "color": "#d7e1ee", "colorSecondary": "#00f5ff", "layer": "near", "animation": "pulse", "flipX": false, "flipY": false },
+    { "id": "orbital-4", "type": "svg_pack:dec_136_env_3d_orbital_sarcophagus", "x": 1320, "y": 274, "width": 180, "height": 206, "rotation": 0, "opacity": 0.96, "color": "#d7e1ee", "colorSecondary": "#00f5ff", "layer": "near", "animation": "pulse", "flipX": false, "flipY": false },
+    { "id": "orbital-5", "type": "svg_pack:dec_108_env_3d_monolith_pair", "x": 1630, "y": 334, "width": 250, "height": 188, "rotation": 0, "opacity": 0.94, "color": "#d7e1ee", "colorSecondary": "#ffb5f3", "layer": "near", "animation": "glitch", "flipX": false, "flipY": false },
+    { "id": "orbital-6", "type": "svg_pack:dec_124_env_3d_reactor_wall", "x": 1980, "y": 356, "width": 312, "height": 188, "rotation": 0, "opacity": 0.96, "color": "#d7e1ee", "colorSecondary": "#00f5ff", "layer": "near", "animation": "none", "flipX": false, "flipY": false }
+  ]
+}

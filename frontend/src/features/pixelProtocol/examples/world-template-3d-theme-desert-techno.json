@@ -1,0 +1,18 @@
+{
+  "id": "world-3d-theme-desert-techno",
+  "name": "3D Theme Desert Techno",
+  "worldWidth": 3520,
+  "worldHeight": 1216,
+  "worldTopPadding": 256,
+  "updatedAt": "2026-03-11T15:00:00.000Z",
+  "decorations": [
+    { "id": "desert-bg-1", "type": "svg_pack:bg_parallax_02_data_city", "x": 0, "y": 96, "width": 1800, "height": 380, "rotation": 0, "opacity": 0.1, "color": "#ffd27a", "colorSecondary": "#ff7d4d", "layer": "far", "animation": "flow", "flipX": false, "flipY": false },
+    { "id": "desert-bg-2", "type": "svg_pack:dec_097_env_wave_4", "x": 120, "y": 540, "width": 460, "height": 120, "rotation": 0, "opacity": 0.28, "color": "#ffce73", "colorSecondary": "#ff9d45", "layer": "far", "animation": "flow", "flipX": false, "flipY": false },
+    { "id": "desert-1", "type": "svg_pack:dec_129_env_3d_desert_obelisk", "x": 220, "y": 300, "width": 170, "height": 226, "rotation": 0, "opacity": 0.96, "color": "#ffd27a", "colorSecondary": "#00f5ff", "layer": "near", "animation": "pulse", "flipX": false, "flipY": false },
+    { "id": "desert-2", "type": "svg_pack:dec_130_env_3d_desert_dune_gate", "x": 520, "y": 368, "width": 260, "height": 188, "rotation": 0, "opacity": 0.96, "color": "#ffd27a", "colorSecondary": "#00f5ff", "layer": "near", "animation": "none", "flipX": false, "flipY": false },
+    { "id": "desert-3", "type": "svg_pack:dec_131_env_3d_desert_relay", "x": 880, "y": 316, "width": 190, "height": 190, "rotation": 0, "opacity": 0.96, "color": "#ffd27a", "colorSecondary": "#00f5ff", "layer": "near", "animation": "pulse", "flipX": false, "flipY": false },
+    { "id": "desert-4", "type": "svg_pack:dec_132_env_3d_desert_wreck", "x": 1180, "y": 418, "width": 250, "height": 166, "rotation": 0, "opacity": 0.94, "color": "#ffd27a", "colorSecondary": "#ff7d4d", "layer": "near", "animation": "glitch", "flipX": false, "flipY": false },
+    { "id": "desert-5", "type": "svg_pack:dec_104_env_3d_pillar_gate", "x": 1540, "y": 326, "width": 244, "height": 184, "rotation": 0, "opacity": 0.94, "color": "#ffd27a", "colorSecondary": "#ff7d4d", "layer": "near", "animation": "none", "flipX": false, "flipY": false },
+    { "id": "desert-6", "type": "svg_pack:dec_105_env_3d_floating_isle", "x": 1890, "y": 344, "width": 280, "height": 210, "rotation": 0, "opacity": 0.94, "color": "#ffd27a", "colorSecondary": "#00f5ff", "layer": "near", "animation": "flow", "flipX": false, "flipY": false }
+  ]
+}
