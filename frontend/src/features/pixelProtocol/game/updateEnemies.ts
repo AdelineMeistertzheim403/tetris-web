@@ -49,9 +49,11 @@ export function updateEnemies({
         player.vy = -JUMP * 0.65;
         game.message = "Tetrobot neutralise.";
       } else {
-        player.hp -= ability.shield ? 0 : 1;
+        player.hp = Math.max(0, player.hp - 1);
         respawnPlayer(game, now, 1600);
-        game.message = ability.shield ? "Bouclier actif." : "Impact critique.";
+        game.message = ability.shield
+          ? "Bouclier sature. Reinitialisation d'urgence."
+          : "Impact critique.";
       }
     }
   }

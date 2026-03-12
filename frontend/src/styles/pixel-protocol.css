@@ -74,10 +74,138 @@
   box-shadow: 0 0 22px #21a8ff66;
 }
 
+.pp-stage {
+  position: relative;
+  min-width: 0;
+}
+
+.pp-endScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    linear-gradient(180deg, rgb(4 10 21 / 0.58) 0%, rgb(2 7 16 / 0.82) 100%);
+  backdrop-filter: blur(4px);
+}
+
+.pp-endScreen__card {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  background:
+    linear-gradient(180deg, rgb(8 18 34 / 0.97) 0%, rgb(5 10 22 / 0.98) 100%);
+  border: 1px solid #39daff55;
+  box-shadow:
+    inset 0 0 24px #19c8ff14,
+    0 0 28px #07111f;
+}
+
+.pp-endScreen__eyebrow {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8ceeff;
+}
+
+.pp-endScreen__title {
+  margin: 0;
+  font-size: clamp(20px, 3vw, 28px);
+  color: #f1fbff;
+  text-shadow: 0 0 12px #36a7ff44;
+}
+
+.pp-endScreen__text,
+.pp-endScreen__meta,
+.pp-endScreen__error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.pp-endScreen__text,
+.pp-endScreen__meta {
+  color: #bddaf2;
+}
+
+.pp-endScreen__error {
+  color: #ffb0b0;
+}
+
+.pp-endScreen__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.pp-endScreen__action {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #2e6aa1;
+  background: rgba(5, 15, 35, 0.94);
+  color: #eaf7ff;
+  text-transform: uppercase;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease;
+}
+
+.pp-endScreen__action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #57cfff;
+  box-shadow: 0 0 16px #1ea8ff33;
+}
+
+.pp-endScreen__action:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.pp-endScreen__action i {
+  font-size: 16px;
+}
+
+.pp-endScreen__action--replay i {
+  color: #8effc0;
+  text-shadow: 0 0 12px rgba(142, 255, 192, 0.28);
+}
+
+.pp-endScreen__action--next i {
+  color: #8effc0;
+  text-shadow: 0 0 12px rgba(142, 255, 192, 0.28);
+}
+
+.pp-endScreen__action--like i,
+.pp-endScreen__action--gallery i {
+  color: #ff9bd8;
+  text-shadow: 0 0 12px rgba(255, 155, 216, 0.28);
+}
+
+.pp-endScreen__action--exit i {
+  color: #ffb36e;
+  text-shadow: 0 0 12px rgba(255, 179, 110, 0.28);
+}
+
+.pp-endScreen__action--like.is-active {
+  border-color: #ff8fd3;
+  box-shadow: 0 0 18px rgba(255, 143, 211, 0.18);
+}
+
 .pp-world {
   position: absolute;
-  inset: 0 auto 0 0;
-  will-change: transform;
+  inset: 0 auto auto 0;
 }
 
 .pp-ground {
@@ -222,6 +350,7 @@
   position: absolute;
   width: 12px;
   height: 42px;
+  --pp-checkpoint-scale: 1;
   border-radius: 2px;
   background: linear-gradient(180deg, #9fb3d6 0%, #5d7096 100%);
   box-shadow: 0 0 8px #4f699333;
@@ -230,10 +359,10 @@
 .pp-checkpoint::after {
   content: "";
   position: absolute;
-  left: 12px;
-  top: 2px;
-  width: 14px;
-  height: 10px;
+  left: calc(12px * var(--pp-checkpoint-scale));
+  top: calc(2px * var(--pp-checkpoint-scale));
+  width: calc(14px * var(--pp-checkpoint-scale));
+  height: calc(10px * var(--pp-checkpoint-scale));
   background: #7b8fb6;
   clip-path: polygon(0 0, 100% 50%, 0 100%);
 }

@@ -70,6 +70,7 @@ type CommunityLevelRow = {
   authorId: number;
   authorPseudo: string;
   likeCount: bigint | number;
+  playCount: number;
 };
 
 function serializeCommunityLevel(
@@ -91,6 +92,7 @@ function serializeCommunityLevel(
     authorPseudo: row.authorPseudo,
     isOwn: currentUserId ? row.authorId === currentUserId : false,
     likeCount: Number(row.likeCount ?? 0),
+    playCount: Number(row.playCount ?? 0),
     likedByMe,
     updatedAt: row.updatedAt ?? null,
   };
@@ -128,6 +130,7 @@ router.get("/community-levels", attachOptionalUser, async (req: AuthRequest, res
         published.world,
         published.definition,
         published."updatedAt",
+        published."playCount",
         users.id AS "authorId",
         users.pseudo AS "authorPseudo",
         COUNT(likes.id)::int AS "likeCount"
@@ -142,6 +145,7 @@ router.get("/community-levels", attachOptionalUser, async (req: AuthRequest, res
         published.world,
         published.definition,
         published."updatedAt",
+        published."playCount",
         users.id,
         users.pseudo
       ORDER BY COUNT(likes.id) DESC, published."updatedAt" DESC, published.id DESC
@@ -187,6 +191,7 @@ router.get(
           published.world,
           published.definition,
           published."updatedAt",
+          published."playCount",
           users.id AS "authorId",
           users.pseudo AS "authorPseudo",
           COUNT(likes.id)::int AS "likeCount"
@@ -202,6 +207,7 @@ router.get(
           published.world,
           published.definition,
           published."updatedAt",
+          published."playCount",
           users.id,
           users.pseudo
       `);
@@ -558,6 +564,7 @@ router.post("/community-levels", verifyToken, async (req: AuthRequest, res: Resp
         world: true,
         definition: true,
         updatedAt: true,
+        playCount: true,
       },
     });
 
@@ -573,6 +580,7 @@ router.post("/community-levels", verifyToken, async (req: AuthRequest, res: Resp
           authorId: userId,
           authorPseudo: pseudoRow?.pseudo ?? "unknown",
           likeCount: 0,
+          playCount: published.playCount ?? 0,
         },
         userId,
         false
@@ -580,6 +588,40 @@ router.post("/community-levels", verifyToken, async (req: AuthRequest, res: Resp
     });
   } catch (err) {
     logger.error({ err }, "Erreur publication niveau communautaire Pixel Protocol");
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+router.post("/community-levels/:publishedId/play", async (req, res: Response) => {
+  try {
+    const publishedId = Number.parseInt(req.params.publishedId ?? "", 10);
+    if (!Number.isFinite(publishedId) || publishedId <= 0) {
+      return res.status(400).json({ error: "Identifiant de niveau invalide" });
+    }
+
+    const existing = await prisma.pixelProtocolPublishedLevel.findUnique({
+      where: { id: publishedId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Niveau publie introuvable" });
+    }
+
+    const updated = await prisma.pixelProtocolPublishedLevel.update({
+      where: { id: publishedId },
+      data: {
+        playCount: {
+          increment: 1,
+        },
+      },
+      select: {
+        playCount: true,
+      },
+    });
+
+    return res.json({ playCount: updated.playCount });
+  } catch (err) {
+    logger.error({ err }, "Erreur comptage parties niveau communautaire Pixel Protocol");
     return res.status(500).json({ error: "Erreur serveur" });
   }
 });

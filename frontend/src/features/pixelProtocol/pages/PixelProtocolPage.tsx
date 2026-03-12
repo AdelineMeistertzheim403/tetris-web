@@ -10,7 +10,9 @@ import {
   fetchPixelProtocolCommunityLevel,
   fetchPixelProtocolCustomLevels,
   fetchPixelProtocolProgress,
+  recordPixelProtocolCommunityLevelPlay,
   savePixelProtocolProgress,
+  togglePixelProtocolCommunityLevelLike,
   type PixelProtocolCommunityLevel,
   type PixelProtocolProgress,
 } from "../services/pixelProtocolService";
@@ -35,6 +37,7 @@ import {
 } from "../utils/resolveWorldTemplate";
 import "../../../styles/pixel-protocol.css";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useAchievements } from "../../achievements/hooks/useAchievements";
 import type { LevelDef } from "../types";
 
 function clamp(value: number, min: number, max: number) {
@@ -44,9 +47,11 @@ function clamp(value: number, min: number, max: number) {
 export default function PixelProtocolPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { checkAchievements, updateStats } = useAchievements();
   const [searchParams] = useSearchParams();
   const { levels, loading, error, usingFallback } = usePixelProtocolLevels();
   const customId = searchParams.get("custom");
+  const requestedLevelId = searchParams.get("levelId");
   const requestedCommunityId = Number.parseInt(searchParams.get("community") ?? "", 10);
   const requestedLevel = Number.parseInt(searchParams.get("level") ?? "", 10);
 
@@ -62,11 +67,14 @@ export default function PixelProtocolPage() {
   const [communityLevel, setCommunityLevel] = useState<PixelProtocolCommunityLevel | null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
   const [communityError, setCommunityError] = useState<string | null>(null);
+  const [communityLikeBusy, setCommunityLikeBusy] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const syncKeyRef = useRef<string>("");
-  const finalSaveKeyRef = useRef<string>("");
   const customCompletionKeyRef = useRef<string>("");
+  const countedCommunityPlayRef = useRef<string>("");
+  const countedPortalRef = useRef<string>("");
+  const previousCollectedRef = useRef(0);
 
   useEffect(() => {
     if (!user) return;
@@ -115,6 +123,7 @@ export default function PixelProtocolPage() {
       setCommunityLevel(null);
       setCommunityError(null);
       setCommunityLoading(false);
+      setCommunityLikeBusy(false);
       return;
     }
 
@@ -153,15 +162,31 @@ export default function PixelProtocolPage() {
       listPixelProtocolWorldTemplates()
     );
   }, [customId, customLevels]);
+  const localLevel = useMemo(() => {
+    if (!requestedLevelId) return null;
+    return resolveLevelWorldTemplate(
+      DEFAULT_LEVELS.find((item) => item.id === requestedLevelId) ?? null,
+      listPixelProtocolWorldTemplates()
+    );
+  }, [requestedLevelId]);
   const isCustomLevel = Boolean(customId);
+  const isLocalLevel = Boolean(localLevel);
   const isCommunityLevel = Boolean(
     Number.isFinite(requestedCommunityId) && requestedCommunityId > 0
   );
   const missingCustomLevel = Boolean(customId) && !customLevel && !syncLoading;
   const missingCommunityLevel = isCommunityLevel && !communityLevel && !communityLoading;
-  const gameLevels = communityLevel ? [communityLevel.level] : customLevel ? [customLevel] : campaignLevels;
+  const gameLevels = communityLevel
+    ? [communityLevel.level]
+    : customLevel
+      ? [customLevel]
+      : localLevel
+        ? [localLevel]
+        : campaignLevels;
   const initialLevelIndex = customLevel
     ? 0
+    : localLevel
+      ? 0
     : clamp(
         Number.isFinite(requestedLevel) && requestedLevel > 0
           ? requestedLevel - 1
@@ -171,9 +196,11 @@ export default function PixelProtocolPage() {
       );
 
   const {
+    advanceLevel,
     ability,
     chatLine,
     gameViewportRef,
+    hasNextLevel,
     level,
     levelIndex,
     playerRunFrame,
@@ -197,9 +224,13 @@ export default function PixelProtocolPage() {
   }, [progress]);
 
   useEffect(() => {
-    if (isCustomLevel || isCommunityLevel) return;
+    if (isCustomLevel || isCommunityLevel || isLocalLevel) return;
 
-    const reachedLevel = clamp(levelIndex + 1, 1, gameLevels.length);
+    const reachedLevel = clamp(
+      levelIndex + (runtime.status === "won" ? 2 : 1),
+      1,
+      gameLevels.length
+    );
     const nextProgress = {
       highestLevel: Math.max(progress.highestLevel, reachedLevel),
       currentLevel: reachedLevel,
@@ -225,38 +256,7 @@ export default function PixelProtocolPage() {
       .catch(() => {
         setSyncError("Mode hors ligne: progression locale utilisee.");
       });
-  }, [gameLevels.length, isCommunityLevel, isCustomLevel, levelIndex, progress.currentLevel, progress.highestLevel, progress.updatedAt, user]);
-
-  useEffect(() => {
-    if (isCustomLevel || isCommunityLevel || runtime.status !== "won") return;
-
-    const finalLevel = gameLevels.length;
-    const saveKey = `${finalLevel}:${runtime.status}:${Boolean(user)}`;
-    if (finalSaveKeyRef.current === saveKey) return;
-    finalSaveKeyRef.current = saveKey;
-
-    const nextProgress = {
-      highestLevel: Math.max(progress.highestLevel, finalLevel),
-      currentLevel: finalLevel,
-    };
-
-    setProgress((current) => ({
-      highestLevel: Math.max(current.highestLevel, nextProgress.highestLevel),
-      currentLevel: Math.max(current.currentLevel, nextProgress.currentLevel),
-      updatedAt: current.updatedAt ?? null,
-    }));
-
-    if (!user) return;
-
-    void savePixelProtocolProgress(nextProgress)
-      .then((saved) => {
-        writeLocalPixelProtocolProgress(saved);
-        setProgress(saved);
-      })
-      .catch(() => {
-        setSyncError("Mode hors ligne: progression locale utilisee.");
-      });
-  }, [gameLevels.length, isCommunityLevel, isCustomLevel, progress.highestLevel, runtime.status, user]);
+  }, [gameLevels.length, isCommunityLevel, isCustomLevel, isLocalLevel, levelIndex, progress.currentLevel, progress.highestLevel, progress.updatedAt, runtime.status, user]);
 
   useEffect(() => {
     if (!isCustomLevel || runtime.status !== "won" || !customLevel) return;
@@ -266,6 +266,148 @@ export default function PixelProtocolPage() {
     customCompletionKeyRef.current = completionKey;
     markCompletedCustomLevel(customLevel);
   }, [customLevel, isCustomLevel, runtime.status]);
+
+  const handleCommunityLike = async () => {
+    if (!user || !communityLevel || communityLevel.isOwn || communityLikeBusy) return;
+    setCommunityLikeBusy(true);
+    try {
+      const result = await togglePixelProtocolCommunityLevelLike(communityLevel.id);
+      if (result.liked && !communityLevel.likedByMe) {
+        const next = updateStats((prev) => ({
+          ...prev,
+          counters: {
+            ...prev.counters,
+            likes_given: (prev.counters.likes_given ?? 0) + 1,
+          },
+        }));
+        checkAchievements({
+          mode: "PIXEL_PROTOCOL",
+          counters: {
+            likes_given: next.counters.likes_given,
+          },
+        });
+      }
+      setCommunityLevel({
+        ...communityLevel,
+        likedByMe: result.liked,
+        likeCount: result.likeCount,
+      });
+      setCommunityError(null);
+    } catch (err) {
+      setCommunityError(err instanceof Error ? err.message : "Vote impossible");
+    } finally {
+      setCommunityLikeBusy(false);
+    }
+  };
+
+  const endScreen =
+    runtime.status === "lost"
+      ? {
+          title: "Signal perdu",
+          subtitle:
+            isCommunityLevel
+              ? "Le niveau joueur t'a desynchronise. Tu peux relancer une tentative ou revenir a la galerie."
+              : "Pixel n'a plus de vie. Relance une tentative ou retourne au hub.",
+        }
+      : runtime.status === "won"
+        ? {
+            title: isCommunityLevel ? "Transmission complete" : "Secteur stabilise",
+            subtitle: isCommunityLevel
+              ? `Niveau termine${communityLevel ? ` par ${communityLevel.authorPseudo}` : ""}.`
+              : isCustomLevel
+                ? "Ton niveau custom est complete."
+                : isLocalLevel
+                  ? "Le niveau de test est complete."
+                  : levelIndex >= gameLevels.length - 1
+                    ? "Campagne terminee."
+                    : null,
+          }
+        : null;
+
+  useEffect(() => {
+    if (!isCommunityLevel || !communityLevel) return;
+    const playKey = String(communityLevel.id);
+    if (countedCommunityPlayRef.current === playKey) return;
+    countedCommunityPlayRef.current = playKey;
+    const next = updateStats((prev) => ({
+      ...prev,
+      counters: {
+        ...prev.counters,
+        community_levels_played: (prev.counters.community_levels_played ?? 0) + 1,
+      },
+    }));
+    checkAchievements({
+      mode: "PIXEL_PROTOCOL",
+      counters: {
+        community_levels_played: next.counters.community_levels_played,
+      },
+    });
+    void recordPixelProtocolCommunityLevelPlay(communityLevel.id)
+      .then((result) => {
+        setCommunityLevel((current) =>
+          current && current.id === communityLevel.id
+            ? {
+                ...current,
+                playCount: result.playCount,
+              }
+            : current
+        );
+      })
+      .catch(() => {});
+  }, [checkAchievements, communityLevel, isCommunityLevel, updateStats]);
+
+  useEffect(() => {
+    const diff = runtime.collected - previousCollectedRef.current;
+    previousCollectedRef.current = runtime.collected;
+    if (diff <= 0) return;
+    const next = updateStats((prev) => ({
+      ...prev,
+      counters: {
+        ...prev.counters,
+        data_orbs_collected: (prev.counters.data_orbs_collected ?? 0) + diff,
+      },
+    }));
+    checkAchievements({
+      mode: "PIXEL_PROTOCOL",
+      counters: {
+        data_orbs_collected: next.counters.data_orbs_collected,
+      },
+    });
+  }, [checkAchievements, runtime.collected, updateStats]);
+
+  useEffect(() => {
+    if (runtime.status !== "won") return;
+    const levelKey = isCommunityLevel
+      ? `community:${communityLevel?.id ?? "unknown"}`
+      : isCustomLevel
+        ? `custom:${customLevel?.id ?? level.id}`
+        : `campaign:${level.id}`;
+    const winKey = `${levelKey}:${Math.round(runtime.startedAt)}`;
+    if (countedPortalRef.current === winKey) return;
+    countedPortalRef.current = winKey;
+    const next = updateStats((prev) => ({
+      ...prev,
+      counters: {
+        ...prev.counters,
+        portals_opened: (prev.counters.portals_opened ?? 0) + 1,
+      },
+    }));
+    checkAchievements({
+      mode: "PIXEL_PROTOCOL",
+      counters: {
+        portals_opened: next.counters.portals_opened,
+      },
+    });
+  }, [
+    checkAchievements,
+    communityLevel?.id,
+    customLevel?.id,
+    isCommunityLevel,
+    isCustomLevel,
+    level.id,
+    runtime.status,
+    updateStats,
+  ]);
 
   if (isCommunityLevel && communityLoading) {
     return (
@@ -369,15 +511,111 @@ export default function PixelProtocolPage() {
           hp={runtime.player.hp}
         />
 
-        <PixelProtocolWorld
-          gameViewportRef={gameViewportRef}
-          level={level}
-          playerRunFrame={playerRunFrame}
-          playerSprite={playerSprite}
-          portalOpen={portalOpen}
-          grapplePreview={grapplePreview}
-          runtime={runtime}
-        />
+        <div className="pp-stage">
+          <PixelProtocolWorld
+            gameViewportRef={gameViewportRef}
+            level={level}
+            playerRunFrame={playerRunFrame}
+            playerSprite={playerSprite}
+            portalOpen={portalOpen}
+            grapplePreview={grapplePreview}
+            runtime={runtime}
+          />
+          {endScreen && (
+            <div className="pp-endScreen" role="dialog" aria-modal="true" aria-labelledby="pp-end-title">
+              <div className="pp-endScreen__card">
+                <p className="pp-endScreen__eyebrow">
+                  {runtime.status === "won" ? "Mission terminee" : "Execution interrompue"}
+                </p>
+                <h2 id="pp-end-title" className="pp-endScreen__title">
+                  {endScreen.title}
+                </h2>
+                {endScreen.subtitle && (
+                  <p className="pp-endScreen__text">{endScreen.subtitle}</p>
+                )}
+                {isCommunityLevel && communityLevel && runtime.status === "won" && (
+                  <p className="pp-endScreen__meta">
+                    Niveau joueur #{communityLevel.id} · {communityLevel.likeCount} like
+                    {communityLevel.likeCount > 1 ? "s" : ""}
+                  </p>
+                )}
+                {runtime.status === "lost" && (
+                  <p className="pp-endScreen__meta">Dernier message: {runtime.message}</p>
+                )}
+                <div className="pp-endScreen__actions">
+                  {!isCommunityLevel &&
+                    !isCustomLevel &&
+                    !isLocalLevel &&
+                    runtime.status === "won" &&
+                    hasNextLevel && (
+                      <button
+                        type="button"
+                        className="pp-endScreen__action pp-endScreen__action--next"
+                        onClick={advanceLevel}
+                      >
+                        <i className="fa-solid fa-forward" aria-hidden="true" />
+                        <span>Niveau suivant</span>
+                      </button>
+                    )}
+                  <button
+                    type="button"
+                    className="pp-endScreen__action pp-endScreen__action--replay"
+                    onClick={resetLevel}
+                  >
+                    <i className="fa-solid fa-rotate-right" aria-hidden="true" />
+                    <span>Rejouer</span>
+                  </button>
+                  {isCommunityLevel && communityLevel && runtime.status === "won" && (
+                    <button
+                      type="button"
+                      className={`pp-endScreen__action pp-endScreen__action--like ${
+                        communityLevel.likedByMe ? "is-active" : ""
+                      }`}
+                      onClick={() => void handleCommunityLike()}
+                      disabled={!user || communityLevel.isOwn || communityLikeBusy}
+                    >
+                      <i
+                        className={`fa-solid ${
+                          communityLevel.likedByMe ? "fa-heart-crack" : "fa-heart"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span>
+                        {communityLevel.isOwn
+                          ? "Ton niveau"
+                          : communityLevel.likedByMe
+                            ? "Retirer like"
+                            : "Liker"}
+                      </span>
+                    </button>
+                  )}
+                  {isCommunityLevel ? (
+                    <button
+                      type="button"
+                      className="pp-endScreen__action pp-endScreen__action--gallery"
+                      onClick={() => navigate("/pixel-protocol/community")}
+                    >
+                      <i className="fa-solid fa-users" aria-hidden="true" />
+                      <span>Galerie</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="pp-endScreen__action pp-endScreen__action--exit"
+                      onClick={() => navigate("/pixel-protocol")}
+                    >
+                      <i className="fa-solid fa-arrow-left" aria-hidden="true" />
+                      <span>Retour hub</span>
+                    </button>
+                  )}
+                </div>
+                {isCommunityLevel && communityError && (
+                  <p className="pp-endScreen__error">{communityError}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <PixelProtocolControlsPanel
           ability={ability}

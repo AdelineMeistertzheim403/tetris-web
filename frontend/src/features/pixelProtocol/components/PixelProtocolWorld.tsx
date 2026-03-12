@@ -12,7 +12,6 @@ import {
   grappleAnchors,
   levelGroundY,
   levelTopPadding,
-  levelWorldHeight,
   platformBlocks,
 } from "../logic";
 import type { DecorationDef, GameRuntime, LevelDef } from "../types";
@@ -68,6 +67,10 @@ export function PixelProtocolWorld({
   grapplePreview,
   runtime,
 }: PixelProtocolWorldProps) {
+  const scale = WORLD_RENDER_SCALE;
+  const scaled = (value: number) => value * scale;
+  const screenX = (value: number) => scaled(value - runtime.cameraX);
+  const screenY = (value: number) => scaled(value - runtime.cameraY);
   const now = performance.now();
   const grappling =
     runtime.player.grappleTargetX !== null &&
@@ -84,7 +87,6 @@ export function PixelProtocolWorld({
       }
     : null;
   const anchors = grappleAnchors(runtime.platforms);
-  const worldHeight = levelWorldHeight(level);
   const groundY = levelGroundY(level);
   const yOffset = levelTopPadding(level);
   const decorations: DecorationDef[] = level.decorations ?? [];
@@ -111,15 +113,15 @@ export function PixelProtocolWorld({
       <div
         className="pp-world"
         style={{
-          width: level.worldWidth,
-          height: worldHeight,
-          transform: `translate(${-runtime.cameraX * WORLD_RENDER_SCALE}px, -${runtime.cameraY * WORLD_RENDER_SCALE}px) scale(${WORLD_RENDER_SCALE})`,
-          transformOrigin: "top left",
+          left: 0,
+          top: 0,
+          width: "100%",
+          height: "100%",
         }}
       >
         <div
           className="pp-ground"
-          style={{ top: groundY, width: level.worldWidth }}
+          style={{ top: screenY(groundY), left: 0, width: "100%", height: scaled(32) }}
         />
 
         {decorations.map((decoration) => (
@@ -130,11 +132,15 @@ export function PixelProtocolWorld({
                 key={decoration.id}
                 decoration={{
                   ...decoration,
-                  x: decoration.x + runtime.cameraX * (1 - parallax.x),
+                  x: scaled(decoration.x - runtime.cameraX * parallax.x),
                   y:
-                    decoration.y +
-                    yOffset +
-                    runtime.cameraY * (1 - parallax.y),
+                    scaled(
+                      decoration.y +
+                      yOffset +
+                      - runtime.cameraY * parallax.y
+                    ),
+                  width: scaled(decoration.width),
+                  height: scaled(decoration.height),
                 }}
               />
             );
@@ -145,9 +151,9 @@ export function PixelProtocolWorld({
           <div
             className="pp-grappleCable"
             style={{
-              left: playerGrappleOrigin.x,
-              top: playerGrappleOrigin.y,
-              width: Math.hypot(grappleCable.dx, grappleCable.dy),
+              left: screenX(playerGrappleOrigin.x),
+              top: screenY(playerGrappleOrigin.y),
+              width: scaled(Math.hypot(grappleCable.dx, grappleCable.dy)),
               transform: `rotate(${Math.atan2(grappleCable.dy, grappleCable.dx)}rad)`,
             }}
           />
@@ -164,7 +170,7 @@ export function PixelProtocolWorld({
                 ? "pp-grappleAnchor--target"
                 : ""
             }`}
-            style={{ left: anchor.x - 8, top: anchor.y - 8 }}
+            style={{ left: screenX(anchor.x - 8), top: screenY(anchor.y - 8) }}
           />
         ))}
 
@@ -178,10 +184,10 @@ export function PixelProtocolWorld({
                 platform.active ? "" : "pp-platform--off"
               }`}
               style={{
-                left: block.x,
-                top: block.y,
-                width: block.w,
-                height: block.h,
+                left: screenX(block.x),
+                top: screenY(block.y),
+                width: scaled(block.w),
+                height: scaled(block.h),
               }}
             />
           ))
@@ -193,7 +199,13 @@ export function PixelProtocolWorld({
             <div
               key={orb.id}
               className="pp-orb"
-              style={{ left: orb.x, top: orb.y, ...orbStyle(orb) }}
+              style={{
+                left: screenX(orb.x),
+                top: screenY(orb.y),
+                width: scaled(18),
+                height: scaled(18),
+                ...orbStyle(orb),
+              }}
             />
           ))}
 
@@ -203,13 +215,24 @@ export function PixelProtocolWorld({
             className={`pp-checkpoint ${
               checkpoint.activated ? "pp-checkpoint--active" : ""
             }`}
-            style={{ left: checkpoint.x, top: checkpoint.y }}
+            style={{
+              left: screenX(checkpoint.x),
+              top: screenY(checkpoint.y),
+              width: scaled(12),
+              height: scaled(42),
+              ["--pp-checkpoint-scale" as string]: `${scale}`,
+            }}
           />
         ))}
 
         <div
           className={`pp-portal ${portalOpen ? "pp-portal--open" : ""}`}
-          style={{ left: level.portal.x, top: level.portal.y + yOffset }}
+          style={{
+            left: screenX(level.portal.x),
+            top: screenY(level.portal.y + yOffset),
+            width: scaled(34),
+            height: scaled(44),
+          }}
         />
 
         {runtime.enemies.map((enemy) => {
@@ -230,10 +253,10 @@ export function PixelProtocolWorld({
                 enemy.stunnedUntil > now ? "pp-enemy--stunned" : ""
               }`}
               style={{
-                left: enemy.x - (enemyVisualSize - 26) / 2,
-                top: enemy.y - (enemyVisualSize - 26),
-                width: enemyVisualSize,
-                height: enemyVisualSize,
+                left: screenX(enemy.x - (enemyVisualSize - 26) / 2),
+                top: screenY(enemy.y - (enemyVisualSize - 26)),
+                width: scaled(enemyVisualSize),
+                height: scaled(enemyVisualSize),
                 backgroundImage: `url(${enemySprite})`,
                 transform: `scaleX(${enemy.vx >= 0 ? 1 : -1})`,
               }}
@@ -250,10 +273,14 @@ export function PixelProtocolWorld({
             runtime.player.gravityInvertedUntil > now ? "pp-player--gravity-invert" : ""
           }`}
           style={{
-            left: runtime.player.x - (runtime.player.w * (PLAYER_VISUAL_SCALE - 1)) / 2,
-            top: runtime.player.y - runtime.player.h * (PLAYER_VISUAL_SCALE - 1),
-            width: runtime.player.w * PLAYER_VISUAL_SCALE,
-            height: runtime.player.h * PLAYER_VISUAL_SCALE,
+            left: screenX(
+              runtime.player.x - (runtime.player.w * (PLAYER_VISUAL_SCALE - 1)) / 2
+            ),
+            top: screenY(
+              runtime.player.y - runtime.player.h * (PLAYER_VISUAL_SCALE - 1)
+            ),
+            width: scaled(runtime.player.w * PLAYER_VISUAL_SCALE),
+            height: scaled(runtime.player.h * PLAYER_VISUAL_SCALE),
             backgroundImage: `url(${playerSprite})`,
             transform:
               runtime.player.gravityInvertedUntil > now

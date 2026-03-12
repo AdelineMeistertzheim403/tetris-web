@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ACHIEVEMENTS, type Achievement } from "../data/achievements";
+import {
+  ACHIEVEMENTS,
+  type Achievement,
+  type AchievementMode,
+} from "../data/achievements";
 import type { GameMode } from "../../game/types/GameMode";
 import { useAuth } from "../../auth/context/AuthContext";
 import {
@@ -19,7 +23,7 @@ type AchievementContext = {
   lines?: number;
   level?: number;
   tetrisCleared?: boolean;
-  mode?: GameMode | "ALL";
+  mode?: AchievementMode;
 
   // run meta
   bombsUsed?: number;
@@ -28,6 +32,7 @@ type AchievementContext = {
   seed?: string;
   historyViewedCount?: number;
   custom?: Record<string, boolean | number>;
+  counters?: Record<string, number>;
 
   // collections
   perks?: string[];
@@ -89,6 +94,7 @@ type AchievementStats = {
   tetromazeEscapesApex: number;
   tetromazePowerUses: number;
   tetromazeCaptures: number;
+  counters: Record<string, number>;
 };
 
 // Persistance locale des achievements + stats pour éviter un fetch constant.
@@ -175,6 +181,7 @@ const DEFAULT_STATS: AchievementStats = {
   tetromazeEscapesApex: 0,
   tetromazePowerUses: 0,
   tetromazeCaptures: 0,
+  counters: {},
 };
 
 const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => {
@@ -191,6 +198,7 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
       ...DEFAULT_STATS.puzzleAttemptsById,
       ...(raw.puzzleAttemptsById ?? {}),
     },
+    counters: { ...DEFAULT_STATS.counters, ...(raw.counters ?? {}) },
   };
 };
 
@@ -292,7 +300,8 @@ export function useAchievements() {
       a.tetromazeEscapesPulse === b.tetromazeEscapesPulse &&
       a.tetromazeEscapesApex === b.tetromazeEscapesApex &&
       a.tetromazePowerUses === b.tetromazePowerUses &&
-      a.tetromazeCaptures === b.tetromazeCaptures
+      a.tetromazeCaptures === b.tetromazeCaptures &&
+      areRecordNumbersEqual(a.counters, b.counters)
     );
   };
 
@@ -481,6 +490,10 @@ export function useAchievements() {
             ok = (ctx.historyViewedCount ?? stats.historyViewedCount) >= c.count;
             break;
 
+          case "counter":
+            ok = (ctx.counters?.[c.key] ?? stats.counters[c.key] ?? 0) >= c.value;
+            break;
+
           case "custom":
             if (c.key === "achievements_50_percent") {
               const total = Math.max(1, ACHIEVEMENTS.length - 1);
@@ -529,7 +542,7 @@ export function useAchievements() {
         setRecent(newlyUnlocked);
       }
     },
-    [isUnlocked, stats.runsPlayed, stats.seedRuns, user]
+    [isUnlocked, stats, unlocked.length, user]
   );
 
   useEffect(() => {

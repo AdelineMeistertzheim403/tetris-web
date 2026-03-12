@@ -9,15 +9,29 @@ export function usePixelProtocolViewport() {
 
   useEffect(() => {
     const updateViewport = () => {
-      const measuredWidth = gameViewportRef.current?.clientWidth ?? VIEWPORT_W;
-      const measuredHeight = gameViewportRef.current?.clientHeight ?? WORLD_H;
+      const bounds = gameViewportRef.current?.getBoundingClientRect();
+      const measuredWidth = bounds?.width ?? gameViewportRef.current?.clientWidth ?? VIEWPORT_W;
+      const measuredHeight =
+        bounds?.height ?? gameViewportRef.current?.clientHeight ?? WORLD_H;
       setViewportWidth(viewportWorldWidth(measuredWidth));
       setViewportHeight(measuredHeight);
     };
 
     updateViewport();
+    const observedElement = gameViewportRef.current;
+    const resizeObserver =
+      observedElement && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => {
+            updateViewport();
+          })
+        : null;
+
+    if (resizeObserver && observedElement) {
+      resizeObserver.observe(observedElement);
+    }
     window.addEventListener("resize", updateViewport);
     return () => {
+      resizeObserver?.disconnect();
       window.removeEventListener("resize", updateViewport);
     };
   }, []);
