@@ -74,6 +74,7 @@ export default function PixelProtocolPage() {
   const customCompletionKeyRef = useRef<string>("");
   const countedCommunityPlayRef = useRef<string>("");
   const countedPortalRef = useRef<string>("");
+  const countedCampaignWinRef = useRef<string>("");
   const previousCollectedRef = useRef(0);
 
   useEffect(() => {
@@ -405,6 +406,42 @@ export default function PixelProtocolPage() {
     isCommunityLevel,
     isCustomLevel,
     level.id,
+    runtime.status,
+    updateStats,
+  ]);
+
+  useEffect(() => {
+    if (runtime.status !== "won" || isCommunityLevel || isCustomLevel || isLocalLevel) return;
+
+    const winKey = `campaign:${level.id}:${Math.round(runtime.startedAt)}`;
+    if (countedCampaignWinRef.current === winKey) return;
+    countedCampaignWinRef.current = winKey;
+
+    const next = updateStats((prev) => ({
+      ...prev,
+      counters: {
+        ...prev.counters,
+        campaign_level_complete: (prev.counters.campaign_level_complete ?? 0) + 1,
+      },
+    }));
+
+    checkAchievements({
+      mode: "PIXEL_PROTOCOL",
+      counters: {
+        campaign_level_complete: next.counters.campaign_level_complete,
+      },
+      custom: {
+        no_damage_level: runtime.player.hp >= 3,
+      },
+    });
+  }, [
+    checkAchievements,
+    isCommunityLevel,
+    isCustomLevel,
+    isLocalLevel,
+    level.id,
+    runtime.player.hp,
+    runtime.startedAt,
     runtime.status,
     updateStats,
   ]);
