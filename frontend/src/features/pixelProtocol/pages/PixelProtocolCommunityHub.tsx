@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useAchievements } from "../../achievements/hooks/useAchievements";
 import {
   fetchPixelProtocolCommunityLevels,
   togglePixelProtocolCommunityLevelLike,
@@ -13,6 +14,7 @@ export default function PixelProtocolCommunityHub() {
   const PAGE_SIZE = 12;
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { checkAchievements, updateStats } = useAchievements();
   const [communityLevels, setCommunityLevels] = useState<PixelProtocolCommunityLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +50,21 @@ export default function PixelProtocolCommunityHub() {
     if (!user || level.isOwn) return;
     try {
       const result = await togglePixelProtocolCommunityLevelLike(level.id);
+      if (result.liked && !level.likedByMe) {
+        const next = updateStats((prev) => ({
+          ...prev,
+          counters: {
+            ...prev.counters,
+            likes_given: (prev.counters.likes_given ?? 0) + 1,
+          },
+        }));
+        checkAchievements({
+          mode: "PIXEL_PROTOCOL",
+          counters: {
+            likes_given: next.counters.likes_given,
+          },
+        });
+      }
       setCommunityLevels((current) =>
         [...current]
           .map((item) =>

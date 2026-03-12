@@ -3,12 +3,11 @@ import { useMemo, useState } from "react";
 import { useAchievements } from "../hooks/useAchievements";
 import "../../../styles/achievements.scss";
 import AchievementCard from "../components/AchievementCard";
-import type { AchievementGroup } from "../data/achievements";
-import type { GameMode } from "../../game/types/GameMode";
+import type { AchievementGroup, AchievementMode } from "../data/achievements";
 
 type Filter = "all" | "unlocked" | "locked";
 type GroupFilter = "all" | AchievementGroup;
-type ModeFilter = "all" | GameMode | "ALL";
+type ModeFilter = "all" | AchievementMode;
 
 export default function AchievementsPage() {
   const { achievements } = useAchievements();
@@ -33,6 +32,10 @@ export default function AchievementsPage() {
     "EDITOR",
     "BOT",
     "BOT_ADAPTIVE",
+    "CAMPAIGN",
+    "COMMUNITY",
+    "GAMEPLAY",
+    "LEGENDARY",
     "TETROMAZE",
     "TETROMAZE_SKILL",
     "TETROMAZE_POWER",
@@ -55,6 +58,10 @@ export default function AchievementsPage() {
     EDITOR: "Brickfall Solo - Editeur",
     BOT: "Mode Tetrobots",
     BOT_ADAPTIVE: "Mode Tetrobots Adaptatif",
+    CAMPAIGN: "Pixel Protocol - Campagne",
+    COMMUNITY: "Pixel Protocol - Communauté",
+    GAMEPLAY: "Pixel Protocol - Gameplay",
+    LEGENDARY: "Succès légendaires",
     TETROMAZE: "Tetromaze - Progression",
     TETROMAZE_SKILL: "Tetromaze - Skill",
     TETROMAZE_POWER: "Tetromaze - Power Play",
@@ -66,8 +73,10 @@ export default function AchievementsPage() {
     SECRETS: "Succès secrets",
   };
 
-  const modeOrder: Array<GameMode | "ALL"> = [
+  const modeOrder: AchievementMode[] = [
     "ALL",
+    "GLOBAL",
+    "EDITOR",
     "CLASSIQUE",
     "SPRINT",
     "VERSUS",
@@ -76,10 +85,13 @@ export default function AchievementsPage() {
     "ROGUELIKE_VERSUS",
     "PUZZLE",
     "TETROMAZE",
+    "PIXEL_PROTOCOL",
   ];
 
-  const modeLabels: Record<GameMode | "ALL", string> = {
+  const modeLabels: Record<AchievementMode, string> = {
     ALL: "Tous modes",
+    GLOBAL: "Global",
+    EDITOR: "Editeur",
     CLASSIQUE: "Classique",
     SPRINT: "Sprint",
     VERSUS: "Versus",
@@ -89,6 +101,7 @@ export default function AchievementsPage() {
     ROGUELIKE_VERSUS: "Roguelike Versus",
     PUZZLE: "Puzzle",
     TETROMAZE: "Tetromaze",
+    PIXEL_PROTOCOL: "Pixel Protocol",
   };
 
   const filtered = useMemo(() => {
