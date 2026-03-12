@@ -20,7 +20,18 @@ export type AchievementGroup =
   | "TETROMAZE"
   | "TETROMAZE_SKILL"
   | "TETROMAZE_POWER"
-  | "TETROBOTS";
+  | "TETROBOTS"
+  | "CAMPAIGN"
+  | "COMMUNITY"
+  | "GAMEPLAY"
+  | "LEGENDARY";
+
+export type AchievementMode =
+  | GameMode
+  | "ALL"
+  | "EDITOR"
+  | "GLOBAL"
+  | "PIXEL_PROTOCOL";
 
 export type AchievementCondition =
   | { type: "runs_played"; count: number }
@@ -40,6 +51,7 @@ export type AchievementCondition =
   | { type: "seed_used"; seed: string }
   | { type: "same_seed_runs"; count: number }
   | { type: "history_viewed"; count: number }
+  | { type: "counter"; key: string; value: number }
   | { type: "custom"; key: string }; // pour les cas ultra spécifiques
 
 export type Achievement = {
@@ -49,7 +61,7 @@ export type Achievement = {
   icon: string;
 
   secret?: boolean;
-  mode?: GameMode | "ALL";
+  mode?: AchievementMode;
   group?: AchievementGroup;
 
   condition: AchievementCondition;
@@ -1575,4 +1587,267 @@ export const ACHIEVEMENTS: Achievement[] = [
   group: "SECRETS",
   condition: { type: "custom", key: "tm_capture_3" },
 },
+// ─────────────────────────────
+// PIXEL PROTOCOLE — SECRETS
+// ─────────────────────────────
+{
+  id: "campaign-first-level",
+  name: "Premier Fragment",
+  description: "Terminer le premier niveau de la campagne",
+  icon: "campaign_1",
+  mode: "PIXEL_PROTOCOL",
+  group: "CAMPAIGN",
+  condition: { type: "counter", key: "campaign_level_complete", value: 1 },
+},
+
+{
+  id: "campaign-10-levels",
+  name: "Explorateur du Protocole",
+  description: "Terminer 10 niveaux de la campagne",
+  icon: "campaign_10",
+  mode: "PIXEL_PROTOCOL",
+  group: "CAMPAIGN",
+  condition: { type: "counter", key: "campaign_level_complete", value: 10 },
+},
+{
+  id: "campaign-20-levels",
+  name: "Archiviste du Protocole",
+  description: "Terminer  la campagne",
+  icon: "campaign_20",
+  mode: "PIXEL_PROTOCOL",
+  group: "CAMPAIGN",
+  condition: { type: "counter", key: "campaign_level_complete", value: 20 },
+},
+
+{
+  id: "skill-no-damage",
+  name: "Fantôme du Grid",
+  description: "Terminer un niveau sans perdre de vie",
+  icon: "skill_ghost",
+  mode: "PIXEL_PROTOCOL",
+  group: "CAMPAIGN",
+  condition: { type: "custom", key: "no_damage_level" },
+},
+
+{
+  id: "editor-first-level",
+  name: "Architecte du Grid",
+  description: "Créer ton premier niveau",
+  icon: "editor_create",
+  mode: "EDITOR",
+  group: "EDITOR",
+  condition: { type: "counter", key: "levels_created", value: 1 },
+},
+
+{
+  id: "editor-10-levels",
+  name: "Architecte Confirmé",
+  description: "Créer 10 niveaux",
+  icon: "editor_10",
+  mode: "EDITOR",
+  group: "EDITOR",
+  condition: { type: "counter", key: "levels_created", value: 10 },
+},
+
+{
+  id: "editor-20-levels",
+  name: "Maître Constructeur",
+  description: "Créer 20 niveaux",
+  icon: "editor_master",
+  mode: "EDITOR",
+  group: "EDITOR",
+  condition: { type: "counter", key: "levels_created", value: 20 },
+},
+
+{
+  id: "publish-first",
+  name: "Connexion au Réseau",
+  description: "Publier ton premier niveau",
+  icon: "publish_1",
+  mode: "EDITOR",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "levels_published", value: 1 },
+},
+
+{
+  id: "publish-10",
+  name: "Diffuseur de Protocoles",
+  description: "Publier 10 niveaux",
+  icon: "publish_10",
+  mode: "EDITOR",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "levels_published", value: 10 },
+},
+
+{
+  id: "likes-10",
+  name: "Signal Positif",
+  description: "Recevoir 10 likes sur tes niveaux",
+  icon: "likes_10",
+  mode: "EDITOR",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "level_likes_received", value: 10 },
+},
+
+{
+  id: "likes-100",
+  name: "Star du Grid",
+  description: "Recevoir 100 likes sur tes niveaux",
+  icon: "likes_100",
+  mode: "EDITOR",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "level_likes_received", value: 100 },
+},
+
+{
+  id: "play-community-10",
+  name: "Explorateur du Réseau",
+  description: "Jouer 10 niveaux créés par la communauté",
+  icon: "community_play",
+  mode: "PIXEL_PROTOCOL",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "community_levels_played", value: 10 },
+},
+
+{
+  id: "play-community-50",
+  name: "Testeur Officiel",
+  description: "Jouer 50 niveaux de la communauté",
+  icon: "community_50",
+  mode: "PIXEL_PROTOCOL",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "community_levels_played", value: 50 },
+},
+
+{
+  id: "legend-architect",
+  name: "Architecte Légendaire",
+  description: "Créer un niveau avec plus de 1000 parties jouées",
+  icon: "legend_architect",
+  mode: "EDITOR",
+  group: "LEGENDARY",
+  condition: { type: "custom", key: "level_1000_plays" },
+},
+
+{
+  id: "legend-viral",
+  name: "Niveau Viral",
+  description: "Recevoir 50 likes sur un niveau",
+  icon: "legend_viral",
+  mode: "EDITOR",
+  group: "LEGENDARY",
+  condition: { type: "custom", key: "level_50_likes" },
+},
+
+{
+  id: "orbs-first",
+  name: "Premier Fragment de Donnée",
+  description: "Ramasser ton premier Data Orb",
+  icon: "orb_1",
+  mode: "PIXEL_PROTOCOL",
+  group: "GAMEPLAY",
+  condition: { type: "counter", key: "data_orbs_collected", value: 1 },
+},
+
+{
+  id: "orbs-50",
+  name: "Collecteur de Données",
+  description: "Ramasser 50 Data Orbs",
+  icon: "orb_50",
+  mode: "PIXEL_PROTOCOL",
+  group: "GAMEPLAY",
+  condition: { type: "counter", key: "data_orbs_collected", value: 50 },
+},
+
+{
+  id: "orbs-200",
+  name: "Archiviste Numérique",
+  description: "Ramasser 200 Data Orbs",
+  icon: "orb_200",
+  mode: "PIXEL_PROTOCOL",
+  group: "GAMEPLAY",
+  condition: { type: "counter", key: "data_orbs_collected", value: 200 },
+},
+
+{
+  id: "portal-first",
+  name: "Accès Autorisé",
+  description: "Activer un portail de sortie",
+  icon: "portal_1",
+  mode: "PIXEL_PROTOCOL",
+  group: "GAMEPLAY",
+  condition: { type: "counter", key: "portals_opened", value: 1 },
+},
+
+{
+  id: "portal-50",
+  name: "Traverseur de Réseaux",
+  description: "Activer 20 portails",
+  icon: "portal_50",
+  mode: "PIXEL_PROTOCOL",
+  group: "GAMEPLAY",
+  condition: { type: "counter", key: "portals_opened", value: 20 },
+},
+
+{
+  id: "world-first",
+  name: "Bâtisseur de Monde",
+  description: "Créer ton premier monde décoratif",
+  icon: "world_1",
+  mode: "EDITOR",
+  group: "EDITOR",
+  condition: { type: "counter", key: "worlds_created", value: 1 },
+},
+
+{
+  id: "world-5",
+  name: "Architecte de Dimensions",
+  description: "Créer 5 mondes décoratifs",
+  icon: "world_5",
+  mode: "EDITOR",
+  group: "EDITOR",
+  condition: { type: "counter", key: "worlds_created", value: 5 },
+},
+
+{
+  id: "like-given",
+  name: "Appréciation Numérique",
+  description: "Liker un niveau de la communauté",
+  icon: "like_given",
+  mode: "PIXEL_PROTOCOL",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "likes_given", value: 1 },
+},
+
+{
+  id: "like-given-50",
+  name: "Curateur du Réseau",
+  description: "Liker 50 niveaux",
+  icon: "like_50",
+  mode: "PIXEL_PROTOCOL",
+  group: "COMMUNITY",
+  condition: { type: "counter", key: "likes_given", value: 50 },
+},
+
+{
+  id: "level-100-plays",
+  name: "Niveau Populaire",
+  description: "Un de tes niveaux atteint 100 parties",
+  icon: "level_100",
+  mode: "EDITOR",
+  group: "COMMUNITY",
+  condition: { type: "custom", key: "level_100_plays" },
+},
+
+{
+  id: "grid-master",
+  name: "Maître du Grid",
+  description: "Terminer la campagne et créer 10 niveaux",
+  icon: "grid_master",
+  mode: "PIXEL_PROTOCOL",
+  group: "LEGENDARY",
+  condition: { type: "custom", key: "grid_master" },
+},
+
+
 ];

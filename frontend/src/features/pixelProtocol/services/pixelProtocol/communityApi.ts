@@ -80,3 +80,24 @@ export async function togglePixelProtocolCommunityLevelLike(
       : 0,
   };
 }
+
+export async function recordPixelProtocolCommunityLevelPlay(
+  publishedId: number
+): Promise<{ playCount: number }> {
+  const res = await fetch(`${API_URL}/pixel-protocol/community-levels/${publishedId}/play`, {
+    method: "POST",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur comptage partie niveau Pixel Protocol"));
+  }
+
+  const data = (await res.json()) as { playCount?: unknown };
+  return {
+    playCount: Number.isFinite(data.playCount)
+      ? Math.max(0, Math.floor(data.playCount as number))
+      : 0,
+  };
+}

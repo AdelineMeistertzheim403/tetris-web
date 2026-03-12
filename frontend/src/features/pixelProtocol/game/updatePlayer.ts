@@ -563,10 +563,12 @@ function resolvePlayerMovement({
   moveAxis("x", player.vx * dt);
   moveAxis("y", player.vy * dt);
   player.x = clamp(player.x, 0, level.worldWidth - player.w);
+  const playerCenterX = player.x + player.w / 2;
+  const maxCameraX = Math.max(0, level.worldWidth - viewportWidth);
   game.cameraX = clamp(
-    player.x - viewportWidth * 0.4,
+    playerCenterX - viewportWidth * 0.45,
     0,
-    Math.max(0, level.worldWidth - viewportWidth)
+    maxCameraX
   );
   updateCameraY(game, viewportHeight, level);
 }

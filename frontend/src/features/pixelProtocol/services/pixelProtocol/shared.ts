@@ -23,6 +23,7 @@ export type PixelProtocolCommunityLevel = {
   authorPseudo: string;
   isOwn: boolean;
   likeCount: number;
+  playCount: number;
   likedByMe: boolean;
   updatedAt?: string | null;
 };
@@ -113,6 +114,7 @@ export function isCommunityLevel(value: unknown): value is PixelProtocolCommunit
     typeof row.authorPseudo === "string" &&
     typeof row.isOwn === "boolean" &&
     Number.isFinite(row.likeCount) &&
+    Number.isFinite(row.playCount) &&
     typeof row.likedByMe === "boolean"
   );
 }

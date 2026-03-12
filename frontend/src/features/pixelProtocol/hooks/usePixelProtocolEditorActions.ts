@@ -63,6 +63,8 @@ type EditorActionState = {
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  onWorldTemplateCreated?: () => void;
+  onCommunityLevelPublished?: () => void;
 };
 
 export function usePixelProtocolEditorActions(state: EditorActionState) {
@@ -88,6 +90,8 @@ export function usePixelProtocolEditorActions(state: EditorActionState) {
     setStatus,
     setError,
     setLoading,
+    onWorldTemplateCreated,
+    onCommunityLevelPublished,
   } = state;
   const isWorldEditor = editorMode === "world";
 
@@ -256,6 +260,7 @@ export function usePixelProtocolEditorActions(state: EditorActionState) {
     async (forceActive?: boolean) => {
       if (isWorldEditor) {
         const world = worldTemplateFromLevel(draftLevel);
+        const isNewWorld = !worldTemplates.some((item) => item.id === world.id);
         const next = upsertPixelProtocolWorldTemplate(world);
         setWorldTemplates(next);
         setSelectedId(world.id);
@@ -269,6 +274,7 @@ export function usePixelProtocolEditorActions(state: EditorActionState) {
         } catch {
           setStatus("Monde custom sauvegarde localement.");
         }
+        if (isNewWorld) onWorldTemplateCreated?.();
         setError(null);
         return;
       }
@@ -371,6 +377,7 @@ export function usePixelProtocolEditorActions(state: EditorActionState) {
         next.sort((a, b) => b.likeCount - a.likeCount || b.id - a.id);
         return next;
       });
+      onCommunityLevelPublished?.();
       setStatus("Niveau publie dans la galerie des joueurs.");
       setError(null);
     } catch (err) {

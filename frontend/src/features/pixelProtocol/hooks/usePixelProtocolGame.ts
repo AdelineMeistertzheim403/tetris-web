@@ -135,13 +135,11 @@ export function usePixelProtocolGame(
               pushDialogue("player_speedrun", getNearestSpeaker(game));
             }
             pushDialogue("player_finish_level", getNearestSpeaker(game));
-            if (levelIndex < safeLevels.length - 1) {
-              game.message = "Portail actif: transfert vers le secteur suivant...";
-              setLevelIndex((current) => current + 1);
-            } else {
-              game.status = "won";
-              game.message = "TETRIX CORE neutralise. Le systeme est recompile.";
-            }
+            game.status = "won";
+            game.message =
+              levelIndex < safeLevels.length - 1
+                ? "Portail actif: secteur suivant pret."
+                : "TETRIX CORE neutralise. Le systeme est recompile.";
           },
           viewportHeight,
           viewportWidth,
@@ -279,9 +277,16 @@ export function usePixelProtocolGame(
     setRenderTick((v) => v + 1);
   };
 
+  const advanceLevel = () => {
+    if (levelIndex >= safeLevels.length - 1) return;
+    setLevelIndex((current) => Math.min(current + 1, safeLevels.length - 1));
+  };
+
   return {
+    advanceLevel,
     ability,
     unlockedSkills,
+    hasNextLevel: levelIndex < safeLevels.length - 1,
     gameViewportRef,
     level,
     levelIndex,

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ChangeEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PixelProtocolDraftPreview } from "../components/PixelProtocolDraftPreview";
 import { PixelProtocolEditorHeader } from "../components/PixelProtocolEditorHeader";
@@ -62,6 +62,8 @@ import {
 } from "../utils/communityCompletion";
 import { applyDragPreview, buildDecorationDuplicates } from "../editorDraftUtils";
 import { useAuth } from "../../auth/context/AuthContext";
+import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { readLocalPixelProtocolProgress } from "../utils/progress";
 import "../../../styles/pixel-protocol.css";
 import "../../../styles/pixel-protocol-editor.css";
 
@@ -73,6 +75,7 @@ export default function PixelProtocolEditor() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { checkAchievements, updateStats } = useAchievements();
   const editorMode: EditorMode = searchParams.get("mode") === "world" ? "world" : "level";
   const isAdmin = user?.role === "ADMIN";
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
@@ -325,6 +328,10 @@ export default function PixelProtocolEditor() {
     !isWorldEditor &&
     validation.isValid &&
     hasCompletedCurrentPixelProtocolLevel(draftLevel);
+  const ownPublishedLevels = useMemo(
+    () => communityLevels.filter((item) => item.isOwn),
+    [communityLevels]
+  );
   const {
     selectLevel,
     selectWorldTemplate,
@@ -356,7 +363,68 @@ export default function PixelProtocolEditor() {
     setStatus,
     setError,
     setLoading,
+    onWorldTemplateCreated: () => {
+      const next = updateStats((prev) => ({
+        ...prev,
+        counters: {
+          ...prev.counters,
+          worlds_created: (prev.counters.worlds_created ?? 0) + 1,
+        },
+      }));
+      checkAchievements({
+        mode: "EDITOR",
+        counters: {
+          worlds_created: next.counters.worlds_created,
+        },
+      });
+    },
+    onCommunityLevelPublished: () => {
+      const next = updateStats((prev) => ({
+        ...prev,
+        counters: {
+          ...prev.counters,
+          levels_published: (prev.counters.levels_published ?? 0) + 1,
+        },
+      }));
+      checkAchievements({
+        mode: "EDITOR",
+        counters: {
+          levels_published: next.counters.levels_published,
+        },
+      });
+    },
   });
+
+  useEffect(() => {
+    const totalLikesReceived = ownPublishedLevels.reduce(
+      (sum, item) => sum + item.likeCount,
+      0
+    );
+    const maxPlaysOnOneLevel = ownPublishedLevels.reduce(
+      (max, item) => Math.max(max, item.playCount),
+      0
+    );
+    const maxLikesOnOneLevel = ownPublishedLevels.reduce(
+      (max, item) => Math.max(max, item.likeCount),
+      0
+    );
+    const localProgress = readLocalPixelProtocolProgress();
+    const createdLevelsCount = levels.length;
+
+    checkAchievements({
+      mode: "EDITOR",
+      counters: {
+        level_likes_received: totalLikesReceived,
+      },
+      custom: {
+        level_100_plays: maxPlaysOnOneLevel >= 100,
+        level_1000_plays: maxPlaysOnOneLevel >= 1000,
+        level_50_likes: maxLikesOnOneLevel >= 50,
+        grid_master:
+          localProgress.highestLevel >= 20 && createdLevelsCount >= 10,
+      },
+    });
+  }, [checkAchievements, levels.length, ownPublishedLevels]);
 
   const handleRefresh = useCallback(() => {
     void refreshLevels();
