@@ -68,6 +68,20 @@ const JUMP_PROFILES: JumpProfile[] = [
   { jumpAtMs: 70, dashAtMs: 160, doubleJumpAtMs: 280 },
 ];
 
+function magneticAttachmentForRotation(rotation: 0 | 1 | 2 | 3): MagneticAttachment {
+  switch (rotation) {
+    case 1:
+      return "right";
+    case 2:
+      return "bottom";
+    case 3:
+      return "left";
+    case 0:
+    default:
+      return "top";
+  }
+}
+
 function rectBounds(blocks: Rect[]) {
   if (blocks.length === 0) return null;
   const left = Math.min(...blocks.map((block) => block.x));
@@ -107,18 +121,19 @@ function magneticSupportSamples(
   const blocks = platformBlocks(platform);
   const occupied = new Set(blocks.map((block) => `${block.x}:${block.y}`));
   const samples: Array<{ x: number; y: number; attachment: MagneticAttachment }> = [];
+  const allowedAttachment = magneticAttachmentForRotation(platform.currentRotation);
 
   for (const block of blocks) {
-    if (!occupied.has(`${block.x}:${block.y - TILE}`)) {
+    if (allowedAttachment === "top" && !occupied.has(`${block.x}:${block.y - TILE}`)) {
       samples.push({ x: block.x + 4, y: block.y - PLAYER_H, attachment: "top" });
     }
-    if (!occupied.has(`${block.x}:${block.y + TILE}`)) {
+    if (allowedAttachment === "bottom" && !occupied.has(`${block.x}:${block.y + TILE}`)) {
       samples.push({ x: block.x + 4, y: block.y + block.h, attachment: "bottom" });
     }
-    if (!occupied.has(`${block.x - TILE}:${block.y}`)) {
+    if (allowedAttachment === "left" && !occupied.has(`${block.x - TILE}:${block.y}`)) {
       samples.push({ x: block.x - PLAYER_W, y: block.y + 1, attachment: "left" });
     }
-    if (!occupied.has(`${block.x + TILE}:${block.y}`)) {
+    if (allowedAttachment === "right" && !occupied.has(`${block.x + TILE}:${block.y}`)) {
       samples.push({ x: block.x + block.w, y: block.y + 1, attachment: "right" });
     }
   }
