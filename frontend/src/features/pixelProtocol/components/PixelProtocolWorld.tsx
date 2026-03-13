@@ -117,6 +117,22 @@ export function PixelProtocolWorld({
           : runtime.player.gravityInvertedUntil > now
             ? 180
             : 0;
+  const magneticVisualOffsetX =
+    runtime.player.magneticAttachment === "left"
+      ? 3
+      : runtime.player.magneticAttachment === "right"
+        ? -3
+        : 0;
+  const magneticVisualOffsetY =
+    runtime.player.magneticAttachment === "top"
+      ? 3
+      : runtime.player.magneticAttachment === "bottom"
+        ? -3
+        : 0;
+  const renderedFacing =
+    runtime.player.magneticAttachment === "bottom"
+      ? (runtime.player.facing === 1 ? -1 : 1)
+      : runtime.player.facing;
 
   return (
     <section ref={gameViewportRef} className="pp-game">
@@ -284,15 +300,19 @@ export function PixelProtocolWorld({
           }`}
           style={{
             left: screenX(
-              runtime.player.x - (runtime.player.w * (PLAYER_VISUAL_SCALE - 1)) / 2
+              runtime.player.x -
+                (runtime.player.w * (PLAYER_VISUAL_SCALE - 1)) / 2 +
+                magneticVisualOffsetX
             ),
             top: screenY(
-              runtime.player.y - runtime.player.h * (PLAYER_VISUAL_SCALE - 1)
+              runtime.player.y -
+                runtime.player.h * (PLAYER_VISUAL_SCALE - 1) +
+                magneticVisualOffsetY
             ),
             width: scaled(runtime.player.w * PLAYER_VISUAL_SCALE),
             height: scaled(runtime.player.h * PLAYER_VISUAL_SCALE),
             backgroundImage: `url(${playerSprite})`,
-            transform: `scaleX(${runtime.player.facing}) rotate(${magneticRotation}deg)`,
+            transform: `rotate(${magneticRotation}deg) scaleX(${renderedFacing})`,
             zIndex: 3 + playerRunFrame,
           }}
         />
