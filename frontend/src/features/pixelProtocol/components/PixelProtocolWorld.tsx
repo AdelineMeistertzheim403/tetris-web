@@ -107,6 +107,16 @@ export function PixelProtocolWorld({
     }
     return undefined;
   };
+  const magneticRotation =
+    runtime.player.magneticAttachment === "bottom"
+      ? 180
+      : runtime.player.magneticAttachment === "left"
+        ? 90
+        : runtime.player.magneticAttachment === "right"
+          ? -90
+          : runtime.player.gravityInvertedUntil > now
+            ? 180
+            : 0;
 
   return (
     <section ref={gameViewportRef} className="pp-game">
@@ -282,10 +292,7 @@ export function PixelProtocolWorld({
             width: scaled(runtime.player.w * PLAYER_VISUAL_SCALE),
             height: scaled(runtime.player.h * PLAYER_VISUAL_SCALE),
             backgroundImage: `url(${playerSprite})`,
-            transform:
-              runtime.player.gravityInvertedUntil > now
-                ? `scaleX(${runtime.player.facing}) rotate(180deg)`
-                : `scaleX(${runtime.player.facing})`,
+            transform: `scaleX(${runtime.player.facing}) rotate(${magneticRotation}deg)`,
             zIndex: 3 + playerRunFrame,
           }}
         />

@@ -7,9 +7,16 @@ import {
 import type { PlatformDef, RuntimePlatform } from "../types";
 
 export function normalizePlatformDefinition(platform: PlatformDef): PlatformDef {
-  if (platform.type !== "moving") return platform;
+  const normalizedType = platform.type === "gravity" ? "magnetic" : platform.type;
+  if (normalizedType !== "moving") {
+    return {
+      ...platform,
+      type: normalizedType,
+    };
+  }
   return {
     ...platform,
+    type: normalizedType,
     moveAxis: platform.moveAxis === "y" ? "y" : MOVING_DEFAULT_AXIS,
     movePattern: platform.movePattern === "loop" ? "loop" : MOVING_DEFAULT_PATTERN,
     moveRangeTiles:

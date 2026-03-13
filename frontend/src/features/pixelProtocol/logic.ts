@@ -204,6 +204,7 @@ export function cloneLevel(level: LevelDef): GameRuntime {
       grappleAttachSide: null,
       groundPlatformId: null,
       groundedSurface: null,
+      magneticAttachment: null,
       gravityInvertedUntil: 0,
       corruptedUntil: 0,
       corruptedDamageCooldownUntil: 0,
