@@ -40,7 +40,6 @@ export const PLATFORM_TYPES: PlatformType[] = [
   "corrupted",
   "magnetic",
   "ice",
-  "gravity",
   "grapplable",
   "armored",
   "hackable",

@@ -1635,7 +1635,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   description: "Créer ton premier niveau",
   icon: "editor_create",
   mode: "PIXEL_PROTOCOL",
-  group: "EDITOR",
+  group: "COMMUNITY",
   condition: { type: "counter", key: "levels_created", value: 1 },
 },
 
@@ -1645,7 +1645,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   description: "Créer 10 niveaux",
   icon: "editor_10",
   mode: "PIXEL_PROTOCOL",
-  group: "EDITOR",
+  group: "COMMUNITY",
   condition: { type: "counter", key: "levels_created", value: 10 },
 },
 
@@ -1655,7 +1655,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   description: "Créer 20 niveaux",
   icon: "editor_master",
   mode: "PIXEL_PROTOCOL",
-  group: "EDITOR",
+  group: "COMMUNITY",
   condition: { type: "counter", key: "levels_created", value: 20 },
 },
 

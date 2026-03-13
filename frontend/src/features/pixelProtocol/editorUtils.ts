@@ -11,7 +11,7 @@ import {
   platformBlocks,
 } from "./logic";
 import { updatePlayer } from "./game/updatePlayer";
-import type { LevelDef, PlatformDef, Rect, RuntimePlatform } from "./types";
+import type { LevelDef, MagneticAttachment, PlatformDef, Rect, RuntimePlatform } from "./types";
 import { createRuntimePlatform } from "./utils/platformRuntime";
 
 const PLAYER_W = 24;
@@ -100,6 +100,32 @@ function topSupportSamples(platform: RuntimePlatform): Array<{ x: number; y: num
   return samples;
 }
 
+function magneticSupportSamples(
+  platform: RuntimePlatform
+): Array<{ x: number; y: number; attachment: MagneticAttachment }> {
+  if (platform.type !== "magnetic") return [];
+  const blocks = platformBlocks(platform);
+  const occupied = new Set(blocks.map((block) => `${block.x}:${block.y}`));
+  const samples: Array<{ x: number; y: number; attachment: MagneticAttachment }> = [];
+
+  for (const block of blocks) {
+    if (!occupied.has(`${block.x}:${block.y - TILE}`)) {
+      samples.push({ x: block.x + 4, y: block.y - PLAYER_H, attachment: "top" });
+    }
+    if (!occupied.has(`${block.x}:${block.y + TILE}`)) {
+      samples.push({ x: block.x + 4, y: block.y + block.h, attachment: "bottom" });
+    }
+    if (!occupied.has(`${block.x - TILE}:${block.y}`)) {
+      samples.push({ x: block.x - PLAYER_W, y: block.y + 1, attachment: "left" });
+    }
+    if (!occupied.has(`${block.x + TILE}:${block.y}`)) {
+      samples.push({ x: block.x + block.w, y: block.y + 1, attachment: "right" });
+    }
+  }
+
+  return samples;
+}
+
 function grappleSourceSamples(platform: RuntimePlatform) {
   const anchors = grappleAnchors([platform]);
   return anchors
@@ -115,15 +141,14 @@ function grappleSourceSamples(platform: RuntimePlatform) {
     });
 }
 
-function standsOnTarget(
-  player: { x: number; y: number; w: number; h: number },
-  blocks: Rect[]
+function isSupportedByTarget(
+  player: {
+    grounded: boolean;
+    groundPlatformId: string | null;
+  },
+  targetId: string
 ) {
-  const feetY = player.y + player.h;
-  return blocks.some((block) => {
-    const overlapsX = player.x < block.x + block.w && player.x + player.w > block.x;
-    return overlapsX && Math.abs(feetY - block.y) <= 2;
-  });
+  return player.grounded && player.groundPlatformId === targetId;
 }
 
 function edgeDistance(source: Rect[], target: Rect[]) {
@@ -185,17 +210,25 @@ function canReachPlatform(
 
   const starts =
     source.kind === "spawn"
-      ? [{ x: level.spawn.x, y: spawnY, grounded: spawnOnGround }]
+      ? [{ x: level.spawn.x, y: spawnY, grounded: spawnOnGround, magneticAttachment: null }]
       : [
           ...topSupportSamples(sourcePlatform!).map((sample) => ({
             x: sample.x,
             y: sample.y,
             grounded: true,
+            magneticAttachment: null,
+          })),
+          ...magneticSupportSamples(sourcePlatform!).map((sample) => ({
+            x: sample.x,
+            y: sample.y,
+            grounded: true,
+            magneticAttachment: sample.attachment,
           })),
           ...grappleSourceSamples(sourcePlatform!).map((sample) => ({
             x: sample.x,
             y: sample.y,
             grounded: false,
+            magneticAttachment: null,
           })),
         ];
 
@@ -241,6 +274,9 @@ function canReachPlatform(
       game.player.vx = 0;
       game.player.vy = 0;
       game.player.grounded = start.grounded;
+      game.player.groundPlatformId = source.kind === "platform" && start.grounded ? source.platformId : null;
+      game.player.groundedSurface = sourcePlatform?.type ?? null;
+      game.player.magneticAttachment = start.magneticAttachment;
       game.player.jumpsLeft = ability.extraAirJumps;
 
       let dashUsed = false;
@@ -294,7 +330,7 @@ function canReachPlatform(
         if (wantsDash) dashUsed = true;
         if (wantsJump && now > profile.jumpAtMs + 20) doubleJumpUsed = true;
 
-        if (standsOnTarget(game.player, targetBlocks)) {
+        if (isSupportedByTarget(game.player, targetId)) {
           return true;
         }
 
