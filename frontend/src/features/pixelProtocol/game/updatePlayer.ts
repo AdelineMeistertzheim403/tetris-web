@@ -59,6 +59,20 @@ type MagneticSurfaceTarget = {
   pointY: number;
 };
 
+function magneticAttachmentForRotation(rotation: 0 | 1 | 2 | 3): MagneticAttachment {
+  switch (rotation) {
+    case 1:
+      return "right";
+    case 2:
+      return "bottom";
+    case 3:
+      return "left";
+    case 0:
+    default:
+      return "top";
+  }
+}
+
 function gravityState(player: GameRuntime["player"], now: number): GravityState {
   switch (player.magneticAttachment) {
     case "bottom":
@@ -76,75 +90,84 @@ function gravityState(player: GameRuntime["player"], now: number): GravityState 
 
 function findNearestMagneticSurface(
   player: GameRuntime["player"],
-  blocks: Rect[]
+  game: GameRuntime
 ): MagneticSurfaceTarget | null {
   const playerCenterX = player.x + player.w / 2;
   const playerCenterY = player.y + player.h / 2;
+  const magneticBlocks = game.platforms
+    .filter((platform) => platform.type === "magnetic" && platform.active)
+    .flatMap((platform) =>
+      platformBlocks(platform).map((block) => ({
+        ...block,
+        allowedAttachment: magneticAttachmentForRotation(platform.currentRotation),
+      }))
+    );
   const occupied = new Set(
-    blocks
-      .filter((block) => block.type === "magnetic")
+    magneticBlocks
       .map((block) => `${block.x}:${block.y}`)
   );
   let best: MagneticSurfaceTarget | null = null;
 
-  for (const block of blocks) {
-    if (block.type !== "magnetic") continue;
-
-    const surfaces: Array<{
-      attachment: MagneticAttachment;
-      pointX: number;
-      pointY: number;
-      key: string;
-    }> = [
-      {
-        attachment: "top",
-        pointX: clamp(playerCenterX, block.x, block.x + block.w),
-        pointY: block.y,
-        key: `${block.x}:${block.y - TILE}`,
-      },
-      {
-        attachment: "bottom",
-        pointX: clamp(playerCenterX, block.x, block.x + block.w),
-        pointY: block.y + block.h,
-        key: `${block.x}:${block.y + TILE}`,
-      },
-      {
-        attachment: "left",
-        pointX: block.x,
-        pointY: clamp(playerCenterY, block.y, block.y + block.h),
-        key: `${block.x - TILE}:${block.y}`,
-      },
-      {
-        attachment: "right",
-        pointX: block.x + block.w,
-        pointY: clamp(playerCenterY, block.y, block.y + block.h),
-        key: `${block.x + TILE}:${block.y}`,
-      },
-    ];
-
-    for (const surface of surfaces) {
-      if (occupied.has(surface.key)) continue;
-      const dx = surface.pointX - playerCenterX;
-      const dy = surface.pointY - playerCenterY;
-      const distance = Math.hypot(dx, dy);
-      if (distance <= 1 || distance > MAGNETIC_PULL_RADIUS) continue;
-      if (!best || distance < best.distance) {
-        best = {
-          attachment: surface.attachment,
-          distance,
-          platformId: block.platformId ?? null,
-          pointX: surface.pointX,
-          pointY: surface.pointY,
-        };
+  for (const block of magneticBlocks) {
+    const surface = (() => {
+      switch (block.allowedAttachment) {
+        case "bottom":
+          return {
+            attachment: "bottom" as const,
+            pointX: clamp(playerCenterX, block.x, block.x + block.w),
+            pointY: block.y + block.h,
+            key: `${block.x}:${block.y + TILE}`,
+          };
+        case "left":
+          return {
+            attachment: "left" as const,
+            pointX: block.x,
+            pointY: clamp(playerCenterY, block.y, block.y + block.h),
+            key: `${block.x - TILE}:${block.y}`,
+          };
+        case "right":
+          return {
+            attachment: "right" as const,
+            pointX: block.x + block.w,
+            pointY: clamp(playerCenterY, block.y, block.y + block.h),
+            key: `${block.x + TILE}:${block.y}`,
+          };
+        case "top":
+        default:
+          return {
+            attachment: "top" as const,
+            pointX: clamp(playerCenterX, block.x, block.x + block.w),
+            pointY: block.y,
+            key: `${block.x}:${block.y - TILE}`,
+          };
       }
+    })();
+
+    if (occupied.has(surface.key)) continue;
+    const dx = surface.pointX - playerCenterX;
+    const dy = surface.pointY - playerCenterY;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= 1 || distance > MAGNETIC_PULL_RADIUS) continue;
+    if (!best || distance < best.distance) {
+      best = {
+        attachment: surface.attachment,
+        distance,
+        platformId: block.platformId ?? null,
+        pointX: surface.pointX,
+        pointY: surface.pointY,
+      };
     }
   }
 
   return best;
 }
 
-function applyMagneticPull(player: GameRuntime["player"], blocks: Rect[], dt: number) {
-  const best = findNearestMagneticSurface(player, blocks);
+function applyMagneticPull(
+  player: GameRuntime["player"],
+  game: GameRuntime,
+  dt: number
+) {
+  const best = findNearestMagneticSurface(player, game);
   if (!best) {
     if (!player.grounded || player.groundedSurface !== "magnetic") {
       player.magneticAttachment = null;
@@ -554,7 +577,7 @@ export function updatePlayer({
     }
   }
 
-  applyMagneticPull(player, blocks, dt);
+  applyMagneticPull(player, game, dt);
   const gravityAfterMagnet = gravityState(player, now);
   if (gravityAfterMagnet.axis === "y") {
     player.vy += GRAVITY * gravityAfterMagnet.sign * dt;
