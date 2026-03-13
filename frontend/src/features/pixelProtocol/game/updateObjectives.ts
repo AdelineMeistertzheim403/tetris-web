@@ -1,5 +1,7 @@
+import { PLAYER_LEVEL_HEAL, PLAYER_ORB_HEAL } from "../constants";
 import { levelTopPadding, rectIntersects } from "../logic";
 import type { GameRuntime, LevelDef, Rect } from "../types";
+import { healPlayer } from "./updatePlayer";
 
 export function collectCheckpoints(game: GameRuntime) {
   const playerRect: Rect = {
@@ -34,7 +36,8 @@ export function collectOrbs(game: GameRuntime) {
     if (rectIntersects(playerRect, orbRect)) {
       orb.taken = true;
       game.collected += 1;
-      game.message = "Data-Orb capture.";
+      healPlayer(game, PLAYER_ORB_HEAL);
+      game.message = "Data-Orb capture. Integrite restauree.";
     }
   }
 }
@@ -66,6 +69,7 @@ export function handlePortal({
   if (game.collected < level.requiredOrbs) {
     game.message = `Portail verrouille: ${game.collected}/${level.requiredOrbs} Data-Orbs`;
   } else {
+    healPlayer(game, PLAYER_LEVEL_HEAL);
     onAdvanceLevel();
   }
 }

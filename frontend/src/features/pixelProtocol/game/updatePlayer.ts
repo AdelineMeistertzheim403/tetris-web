@@ -13,6 +13,9 @@ import {
   JUMP,
   MAGNETIC_PULL_ACCEL,
   MAGNETIC_PULL_RADIUS,
+  PLAYER_CORRUPTED_DAMAGE,
+  PLAYER_MAX_HEALTH,
+  PLAYER_FALL_DAMAGE_THRESHOLD,
   SPEED,
   TILE,
 } from "../constants";
@@ -59,6 +62,44 @@ type MagneticSurfaceTarget = {
   pointY: number;
 };
 
+export function applyPlayerDamage(
+  game: GameRuntime,
+  now: number,
+  amount: number,
+  options?: {
+    invulnMs?: number;
+    message?: string;
+    breakMessage?: string;
+  }
+) {
+  const player = game.player;
+  if (amount <= 0 || player.hp <= 0) return false;
+
+  player.health = Math.max(0, player.health - amount);
+  player.invulnUntil = Math.max(player.invulnUntil, now + (options?.invulnMs ?? 800));
+
+  if (player.health > 0) {
+    if (options?.message) game.message = options.message;
+    return false;
+  }
+
+  player.hp = Math.max(0, player.hp - 1);
+  if (player.hp > 0) {
+    respawnPlayer(game, now, 1500);
+    player.health = player.maxHealth || PLAYER_MAX_HEALTH;
+    game.message = options?.breakMessage ?? "Integrity break. Recompilation du noyau.";
+  } else {
+    game.message = options?.breakMessage ?? "Pixel a ete desynchronise.";
+  }
+  return true;
+}
+
+export function healPlayer(game: GameRuntime, amount: number) {
+  if (amount <= 0) return;
+  const player = game.player;
+  player.health = Math.min(player.maxHealth || PLAYER_MAX_HEALTH, player.health + amount);
+}
+
 function magneticAttachmentForRotation(rotation: 0 | 1 | 2 | 3): MagneticAttachment {
   switch (rotation) {
     case 1:
@@ -85,6 +126,24 @@ function gravityState(player: GameRuntime["player"], now: number): GravityState 
       return { axis: "y", sign: 1 };
     default:
       return { axis: "y", sign: now < player.gravityInvertedUntil ? -1 : 1 };
+  }
+}
+
+function isAlignedToMagneticSurface(
+  player: GameRuntime["player"],
+  attachment: MagneticAttachment,
+  pointX: number,
+  pointY: number
+) {
+  switch (attachment) {
+    case "top":
+      return Math.abs(player.y + player.h - pointY) <= 4;
+    case "bottom":
+      return Math.abs(player.y - pointY) <= 4;
+    case "left":
+      return Math.abs(player.x + player.w - pointX) <= 4;
+    case "right":
+      return Math.abs(player.x - pointX) <= 4;
   }
 }
 
@@ -185,7 +244,12 @@ function applyMagneticPull(
 
   if (
     best.distance <= TILE * 0.72 ||
-    (player.grounded && player.groundPlatformId !== null && player.groundPlatformId === best.platformId)
+    (
+      player.grounded &&
+      player.groundPlatformId !== null &&
+      player.groundPlatformId === best.platformId &&
+      isAlignedToMagneticSurface(player, best.attachment, best.pointX, best.pointY)
+    )
   ) {
     player.magneticAttachment = best.attachment;
   } else if (!player.grounded || player.groundedSurface !== "magnetic") {
@@ -328,6 +392,7 @@ export function applyUnlockedSkills({
         player.magneticAttachment = null;
         player.jumpsLeft = target.jumpsLeft;
         player.hp = Math.max(player.hp, target.hp);
+        player.health = Math.max(player.health, target.health);
         player.invulnUntil = now + 900;
         player.timeBufferCooldownUntil = now + 7000;
         game.message = "Time Buffer active.";
@@ -681,7 +746,14 @@ function resolvePlayerMovement({
         player.jumpsLeft = ability.extraAirJumps;
 
         if (block.type === "magnetic") {
-          player.magneticAttachment = surfaceAttachment;
+          const supportPlatform = game.platforms.find(
+            (platform) => platform.id === block.platformId
+          );
+          const allowedAttachment = supportPlatform
+            ? magneticAttachmentForRotation(supportPlatform.currentRotation)
+            : null;
+          player.magneticAttachment =
+            allowedAttachment === surfaceAttachment ? surfaceAttachment : null;
         } else if (player.groundedSurface !== "magnetic") {
           player.magneticAttachment = null;
         }
@@ -713,10 +785,16 @@ function resolvePlayerMovement({
         if (block.type === "corrupted") {
           player.corruptedUntil = now + CORRUPTED_DURATION_MS;
           if (now >= player.corruptedDamageCooldownUntil) {
-            player.hp = Math.max(0, player.hp - 1);
+            applyPlayerDamage(game, now, PLAYER_CORRUPTED_DAMAGE, {
+              invulnMs: 350,
+              message: "Corruption active: integrite degradee.",
+              breakMessage: "Corruption critique. Recompilation du noyau.",
+            });
             player.corruptedDamageCooldownUntil = now + CORRUPTED_DAMAGE_COOLDOWN_MS;
           }
-          game.message = "Corruption active: performances degradees.";
+          if (player.hp > 0) {
+            game.message = "Corruption active: performances degradees.";
+          }
         }
         if (block.type === "gravity" && gravityAxis === "y") {
           const nextGravityInverted = grav.sign > 0;
@@ -773,6 +851,25 @@ function resolvePlayerMovement({
   player.groundedSurface = null;
   moveAxis(tangentialAxis, tangentialAxis === "x" ? player.vx * dt : player.vy * dt);
   moveAxis(gravityAxis, gravityAxis === "x" ? player.vx * dt : player.vy * dt);
+  if (!player.grounded) {
+    player.airborneStartY = Math.min(player.airborneStartY, player.y);
+  } else if (!wasGrounded && grav.axis === "y" && grav.sign > 0) {
+    const fallDistance = player.y - player.airborneStartY;
+    if (fallDistance > PLAYER_FALL_DAMAGE_THRESHOLD) {
+      const damage = Math.min(
+        70,
+        Math.max(12, Math.round((fallDistance - PLAYER_FALL_DAMAGE_THRESHOLD) / 3))
+      );
+      applyPlayerDamage(game, now, damage, {
+        invulnMs: 900,
+        message: "Chute violente. Integrite reduite.",
+        breakMessage: "Chute critique. Recompilation du noyau.",
+      });
+    }
+    player.airborneStartY = player.y;
+  } else if (player.grounded) {
+    player.airborneStartY = player.y;
+  }
   if (!player.grounded || player.groundedSurface !== "magnetic") {
     player.magneticAttachment = null;
   }
@@ -807,9 +904,10 @@ export function handleFloorAndRespawn(
   }
 
   if (player.y > worldHeight + 120 || player.y + player.h < -120) {
-    player.hp -= 1;
-    respawnPlayer(game, now, 1500);
-    game.message = "Recompilation du noyau...";
+    applyPlayerDamage(game, now, player.maxHealth || PLAYER_MAX_HEALTH, {
+      invulnMs: 1500,
+      breakMessage: "Recompilation du noyau...",
+    });
   }
 }
 
@@ -832,5 +930,6 @@ export function respawnPlayer(game: GameRuntime, now: number, invulnMs: number) 
   player.gravityInvertedUntil = 0;
   player.corruptedUntil = 0;
   player.corruptedDamageCooldownUntil = 0;
+  player.airborneStartY = player.y;
   player.invulnUntil = now + invulnMs;
 }

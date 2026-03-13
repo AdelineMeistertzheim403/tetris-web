@@ -1,7 +1,7 @@
-import { JUMP } from "../constants";
+import { ENEMY_CONTACT_DAMAGE, JUMP } from "../constants";
 import { clamp, findSupportTop, rectIntersects } from "../logic";
 import type { AbilityFlags, GameRuntime, Rect } from "../types";
-import { respawnPlayer } from "./updatePlayer";
+import { applyPlayerDamage } from "./updatePlayer";
 
 export function updateEnemies({
   ability,
@@ -49,11 +49,17 @@ export function updateEnemies({
         player.vy = -JUMP * 0.65;
         game.message = "Tetrobot neutralise.";
       } else {
-        player.hp = Math.max(0, player.hp - 1);
-        respawnPlayer(game, now, 1600);
-        game.message = ability.shield
-          ? "Bouclier sature. Reinitialisation d'urgence."
-          : "Impact critique.";
+        applyPlayerDamage(game, now, ENEMY_CONTACT_DAMAGE[enemy.kind], {
+          invulnMs: ability.shield ? 1400 : 900,
+          message: ability.shield
+            ? "Bouclier sature. Integrite preservee partiellement."
+            : "Impact ennemi. Integrite reduite.",
+          breakMessage: ability.shield
+            ? "Bouclier sature. Reinitialisation d'urgence."
+            : "Impact critique.",
+        });
+        player.vx = enemy.x < player.x ? 180 : -180;
+        player.vy = -JUMP * 0.28;
       }
     }
   }
