@@ -148,6 +148,21 @@ Frontend : `npm run dev`, `npm run build`, `npm run preview`, `npm run lint`.
 Script backend additionnel :
 - `npm run pixel-protocol:sync` : exporte les niveaux Pixel Protocol du front vers `backend/prisma/pixelProtocolLevels.json`.
 
+Script infra additionnel :
+- `./scripts/deploy-prod.sh` : nettoyage Docker safe (`builder prune` + `image prune`), vacuum des logs systemd, build backend pour maintenance, démarrage de `db`, migrations Prisma, `puzzle:sync`, rebuild complet de la stack prod, restart de `tetris-db` et `tetris-backend`, puis checks finaux.
+- Options utiles : `--no-clean-docker`, `--no-clean-journal`, `--no-restart`, `--no-no-cache`, `--no-puzzle-sync`, `--tail-logs`.
+- `./scripts/maintenance-weekly.sh` : maintenance légère hors déploiement, avec cleanup Docker safe et vacuum des logs.
+
+Cron recommandé sur le VPS :
+```cron
+0 4 * * 0 /bin/bash /chemin/vers/tetris-web/scripts/maintenance-weekly.sh >> /var/log/tetris-weekly-maintenance.log 2>&1
+```
+
+Exemple pour éditer le cron :
+```bash
+crontab -e
+```
+
 ## Succès & progression
 - Déblocage côté client + synchronisation serveur des succès.
 - Stats persistées en base pour la progression globale (ex: jours de connexion) via `UserAchievementStats`.
