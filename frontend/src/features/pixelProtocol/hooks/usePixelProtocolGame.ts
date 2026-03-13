@@ -95,7 +95,14 @@ export function usePixelProtocolGame(
   }, [options?.initialUnlockedSkills]);
 
   useEffect(() => {
-    runtimeRef.current = cloneLevel(level);
+    const previous = runtimeRef.current;
+    const nextRuntime = cloneLevel(level);
+    if (previous.status === "won") {
+      nextRuntime.player.hp = previous.player.hp;
+      nextRuntime.player.health = previous.player.health;
+      nextRuntime.player.maxHealth = previous.player.maxHealth;
+    }
+    runtimeRef.current = nextRuntime;
     idleSinceRef.current = null;
     jumpChainRef.current = 0;
     lastJumpAtRef.current = 0;

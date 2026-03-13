@@ -48,6 +48,7 @@ export function updateRuntime({
     grounded: game.player.grounded,
     jumpsLeft: game.player.jumpsLeft,
     hp: game.player.hp,
+    health: game.player.health,
   });
   game.history = game.history.filter((entry) => now - entry.at <= 2600);
 

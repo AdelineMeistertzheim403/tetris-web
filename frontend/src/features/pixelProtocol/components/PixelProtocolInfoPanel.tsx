@@ -18,6 +18,8 @@ type PixelProtocolInfoPanelProps = {
   message: string;
   collected: number;
   hp: number;
+  health: number;
+  maxHealth: number;
   unlockedSkills: PixelSkill[];
 };
 
@@ -28,6 +30,8 @@ export function PixelProtocolInfoPanel({
   message,
   collected,
   hp,
+  health,
+  maxHealth,
   unlockedSkills,
 }: PixelProtocolInfoPanelProps) {
   const parts = level.id.split("-");
@@ -44,6 +48,14 @@ export function PixelProtocolInfoPanel({
     ability.platformSpawn ? "Spawn" : null,
   ].filter(Boolean);
 
+  const healthRatio = maxHealth > 0 ? Math.max(0, Math.min(1, health / maxHealth)) : 0;
+  const healthColor =
+    healthRatio > 0.6
+      ? "#46ff9a"
+      : healthRatio > 0.3
+        ? "#ffe56a"
+        : "#ff7a66";
+
   return (
     <aside className="pp-panel">
       <header className="pp-header">
@@ -59,7 +71,20 @@ export function PixelProtocolInfoPanel({
       </header>
 
       <div className="pp-stats">
-        <span>HP: {hp}</span>
+        <div className="pp-healthBlock">
+          <span>Vies: {hp}</span>
+          <div className="pp-healthBar" aria-label={`Integrite ${health}/${maxHealth}`}>
+            <div
+              className="pp-healthBar__fill"
+              style={{
+                width: `${healthRatio * 100}%`,
+                background: `linear-gradient(90deg, ${healthColor} 0%, ${healthColor}dd 100%)`,
+                boxShadow: `0 0 10px ${healthColor}aa`,
+              }}
+            />
+          </div>
+          <span>Integrite: {health}/{maxHealth}</span>
+        </div>
         <span>
           Data-Orbs: {collected}/{level.requiredOrbs}
         </span>

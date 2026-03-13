@@ -16,6 +16,20 @@ import {
 } from "../logic";
 import type { DecorationDef, GameRuntime, LevelDef } from "../types";
 
+function magneticAttachmentForRotation(rotation: 0 | 1 | 2 | 3) {
+  switch (rotation) {
+    case 1:
+      return "right";
+    case 2:
+      return "bottom";
+    case 3:
+      return "left";
+    case 0:
+    default:
+      return "top";
+  }
+}
+
 function decorationParallaxRatio(layer: DecorationDef["layer"]) {
   switch (layer) {
     case "far":
@@ -117,18 +131,31 @@ export function PixelProtocolWorld({
           : runtime.player.gravityInvertedUntil > now
             ? 180
             : 0;
-  const magneticVisualOffsetX =
+  const playerVisualWidth = runtime.player.w * PLAYER_VISUAL_SCALE;
+  const playerVisualHeight = runtime.player.h * PLAYER_VISUAL_SCALE;
+  const isWallMagnetic =
+    runtime.player.magneticAttachment === "left" ||
+    runtime.player.magneticAttachment === "right";
+  const playerRotatedWidth =
+    isWallMagnetic ? playerVisualHeight : playerVisualWidth;
+  const playerRotatedHeight =
+    isWallMagnetic ? playerVisualWidth : playerVisualHeight;
+  const playerVisualCenterX =
     runtime.player.magneticAttachment === "left"
-      ? 3
+      ? runtime.player.x + runtime.player.w - playerRotatedWidth / 2
       : runtime.player.magneticAttachment === "right"
-        ? -3
-        : 0;
-  const magneticVisualOffsetY =
-    runtime.player.magneticAttachment === "top"
-      ? 3
+        ? runtime.player.x + playerRotatedWidth / 2
+        : runtime.player.x + runtime.player.w / 2;
+  const playerVisualCenterY =
+    runtime.player.magneticAttachment === null
+      ? runtime.player.y + runtime.player.h - playerVisualHeight / 2
+      : runtime.player.magneticAttachment === "top"
+      ? runtime.player.y + runtime.player.h - playerRotatedHeight / 2
       : runtime.player.magneticAttachment === "bottom"
-        ? -3
-        : 0;
+        ? runtime.player.y + playerRotatedHeight / 2
+        : runtime.player.y + runtime.player.h / 2;
+  const playerVisualLeft = playerVisualCenterX - playerVisualWidth / 2;
+  const playerVisualTop = playerVisualCenterY - playerVisualHeight / 2;
   const renderedFacing =
     runtime.player.magneticAttachment === "bottom"
       ? (runtime.player.facing === 1 ? -1 : 1)
@@ -205,6 +232,10 @@ export function PixelProtocolWorld({
             <div
               key={`${platform.id}-${index}-${platform.currentRotation}-${platform.active ? 1 : 0}`}
               className={`pp-platform ${PLATFORM_CLASS[platform.type]} ${
+                platform.type === "magnetic"
+                  ? `pp-platform--magnetic-face-${magneticAttachmentForRotation(platform.currentRotation)}`
+                  : ""
+              } ${
                 platform.temporary ? "pp-platform--temporary" : ""
               } ${
                 platform.active ? "" : "pp-platform--off"
@@ -299,20 +330,13 @@ export function PixelProtocolWorld({
             runtime.player.gravityInvertedUntil > now ? "pp-player--gravity-invert" : ""
           }`}
           style={{
-            left: screenX(
-              runtime.player.x -
-                (runtime.player.w * (PLAYER_VISUAL_SCALE - 1)) / 2 +
-                magneticVisualOffsetX
-            ),
-            top: screenY(
-              runtime.player.y -
-                runtime.player.h * (PLAYER_VISUAL_SCALE - 1) +
-                magneticVisualOffsetY
-            ),
-            width: scaled(runtime.player.w * PLAYER_VISUAL_SCALE),
-            height: scaled(runtime.player.h * PLAYER_VISUAL_SCALE),
+            left: screenX(playerVisualLeft),
+            top: screenY(playerVisualTop),
+            width: scaled(playerVisualWidth),
+            height: scaled(playerVisualHeight),
             backgroundImage: `url(${playerSprite})`,
             transform: `rotate(${magneticRotation}deg) scaleX(${renderedFacing})`,
+            transformOrigin: "center center",
             zIndex: 3 + playerRunFrame,
           }}
         />
