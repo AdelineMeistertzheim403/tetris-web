@@ -80,7 +80,7 @@ const HELP_SECTION_KEYWORDS: Record<HelpSectionId, string[]> = {
   validation: ["valide", "reachability", "liens", "preview", "spawn"],
   worlds: ["monde", "capacites", "double jump", "dash", "shield"],
   platforms: ["plateformes", "tetromino", "rotation", "type"],
-  "platform-types": ["stable", "bounce", "boost", "ice", "gravity", "grapplable"],
+  "platform-types": ["stable", "bounce", "boost", "ice", "magnetic", "grapplable"],
   "world-mode": ["decorations", "mode monde", "layers", "parallax"],
   "world-build": ["creer", "monde decoratif", "far", "mid", "near"],
   "world-json": ["json", "worldtemplate", "exemple", "svg_pack", "tileset"],
@@ -406,9 +406,8 @@ export default function PixelProtocolEditorHelp() {
             <li><strong>rotating</strong>: change de rotation automatiquement selon le delai configure.</li>
             <li><strong>glitch</strong>: plateforme piegee ou perturbante, plutot pour augmenter la pression.</li>
             <li><strong>corrupted</strong>: ralentit Pixel et applique un malus de corruption.</li>
-            <li><strong>magnetic</strong>: attire legerement Pixel pour faciliter les approches de saut.</li>
+            <li><strong>magnetic</strong>: attire Pixel vers ses faces exposees et permet de marcher sur les murs ou plafonds magnetiques.</li>
             <li><strong>ice</strong>: friction reduite, controle plus glissant.</li>
-            <li><strong>gravity</strong>: inverse temporairement la gravite du joueur.</li>
             <li><strong>grapplable</strong>: seul type qui accepte le <strong>Data Grapple</strong>. Utilise-le pour rendre les points d'accroche lisibles et intentionnels.</li>
             <li><strong>armored</strong>: variante plus robuste visuellement, utile pour marquer les zones solides.</li>
             <li><strong>hackable</strong>: liee aux capacites avancees des mondes plus tardifs.</li>

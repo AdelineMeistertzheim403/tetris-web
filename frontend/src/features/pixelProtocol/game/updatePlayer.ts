@@ -30,6 +30,7 @@ import type {
   GameRuntime,
   InputSnapshot,
   LevelDef,
+  MagneticAttachment,
   Rect,
 } from "../types";
 
@@ -45,30 +46,128 @@ type UpdatePlayerParams = {
   viewportWidth: number;
 };
 
-function gravityDirection(player: GameRuntime["player"], now: number) {
-  return now < player.gravityInvertedUntil ? -1 : 1;
+type GravityState = {
+  axis: "x" | "y";
+  sign: 1 | -1;
+};
+
+type MagneticSurfaceTarget = {
+  attachment: MagneticAttachment;
+  distance: number;
+  platformId: string | null;
+  pointX: number;
+  pointY: number;
+};
+
+function gravityState(player: GameRuntime["player"], now: number): GravityState {
+  switch (player.magneticAttachment) {
+    case "bottom":
+      return { axis: "y", sign: -1 };
+    case "left":
+      return { axis: "x", sign: 1 };
+    case "right":
+      return { axis: "x", sign: -1 };
+    case "top":
+      return { axis: "y", sign: 1 };
+    default:
+      return { axis: "y", sign: now < player.gravityInvertedUntil ? -1 : 1 };
+  }
 }
 
-function applyMagneticPull(player: GameRuntime["player"], blocks: Rect[], dt: number) {
+function findNearestMagneticSurface(
+  player: GameRuntime["player"],
+  blocks: Rect[]
+): MagneticSurfaceTarget | null {
   const playerCenterX = player.x + player.w / 2;
   const playerCenterY = player.y + player.h / 2;
-  let best: { dx: number; dy: number; distance: number } | null = null;
+  const occupied = new Set(
+    blocks
+      .filter((block) => block.type === "magnetic")
+      .map((block) => `${block.x}:${block.y}`)
+  );
+  let best: MagneticSurfaceTarget | null = null;
 
   for (const block of blocks) {
     if (block.type !== "magnetic") continue;
-    const dx = block.x + block.w / 2 - playerCenterX;
-    const dy = block.y + block.h / 2 - playerCenterY;
-    const distance = Math.hypot(dx, dy);
-    if (distance <= 1 || distance > MAGNETIC_PULL_RADIUS) continue;
-    if (!best || distance < best.distance) {
-      best = { dx, dy, distance };
+
+    const surfaces: Array<{
+      attachment: MagneticAttachment;
+      pointX: number;
+      pointY: number;
+      key: string;
+    }> = [
+      {
+        attachment: "top",
+        pointX: clamp(playerCenterX, block.x, block.x + block.w),
+        pointY: block.y,
+        key: `${block.x}:${block.y - TILE}`,
+      },
+      {
+        attachment: "bottom",
+        pointX: clamp(playerCenterX, block.x, block.x + block.w),
+        pointY: block.y + block.h,
+        key: `${block.x}:${block.y + TILE}`,
+      },
+      {
+        attachment: "left",
+        pointX: block.x,
+        pointY: clamp(playerCenterY, block.y, block.y + block.h),
+        key: `${block.x - TILE}:${block.y}`,
+      },
+      {
+        attachment: "right",
+        pointX: block.x + block.w,
+        pointY: clamp(playerCenterY, block.y, block.y + block.h),
+        key: `${block.x + TILE}:${block.y}`,
+      },
+    ];
+
+    for (const surface of surfaces) {
+      if (occupied.has(surface.key)) continue;
+      const dx = surface.pointX - playerCenterX;
+      const dy = surface.pointY - playerCenterY;
+      const distance = Math.hypot(dx, dy);
+      if (distance <= 1 || distance > MAGNETIC_PULL_RADIUS) continue;
+      if (!best || distance < best.distance) {
+        best = {
+          attachment: surface.attachment,
+          distance,
+          platformId: block.platformId ?? null,
+          pointX: surface.pointX,
+          pointY: surface.pointY,
+        };
+      }
     }
   }
 
-  if (!best) return;
+  return best;
+}
+
+function applyMagneticPull(player: GameRuntime["player"], blocks: Rect[], dt: number) {
+  const best = findNearestMagneticSurface(player, blocks);
+  if (!best) {
+    if (!player.grounded || player.groundedSurface !== "magnetic") {
+      player.magneticAttachment = null;
+    }
+    return;
+  }
+
+  const playerCenterX = player.x + player.w / 2;
+  const playerCenterY = player.y + player.h / 2;
+  const dx = best.pointX - playerCenterX;
+  const dy = best.pointY - playerCenterY;
   const strength = (1 - best.distance / MAGNETIC_PULL_RADIUS) * MAGNETIC_PULL_ACCEL;
-  player.vx += (best.dx / best.distance) * strength * dt;
-  player.vy += (best.dy / best.distance) * strength * dt * 0.78;
+  player.vx += (dx / best.distance) * strength * dt;
+  player.vy += (dy / best.distance) * strength * dt;
+
+  if (
+    best.distance <= TILE * 0.72 ||
+    (player.grounded && player.groundPlatformId !== null && player.groundPlatformId === best.platformId)
+  ) {
+    player.magneticAttachment = best.attachment;
+  } else if (!player.grounded || player.groundedSurface !== "magnetic") {
+    player.magneticAttachment = null;
+  }
 }
 
 export function applyHackPulse({
@@ -146,6 +245,7 @@ export function applyUnlockedSkills({
         player.grounded = false;
         player.groundPlatformId = null;
         player.groundedSurface = null;
+        player.magneticAttachment = null;
         game.message = "Data Grapple engage.";
       }
     }
@@ -202,6 +302,7 @@ export function applyUnlockedSkills({
         player.grounded = target.grounded;
         player.groundPlatformId = null;
         player.groundedSurface = null;
+        player.magneticAttachment = null;
         player.jumpsLeft = target.jumpsLeft;
         player.hp = Math.max(player.hp, target.hp);
         player.invulnUntil = now + 900;
@@ -265,7 +366,7 @@ export function updatePlayer({
   const player = game.player;
   const isOverclocked = now < player.overclockUntil;
   const corruptedActive = now < player.corruptedUntil;
-  const gravDir = gravityDirection(player, now);
+  const grav = gravityState(player, now);
   const isGrappling =
     player.grappleTargetX !== null &&
     player.grappleTargetY !== null &&
@@ -331,6 +432,7 @@ export function updatePlayer({
     player.grounded = false;
     player.groundPlatformId = null;
     player.groundedSurface = null;
+    player.magneticAttachment = null;
     resolvePlayerMovement({
       ability,
       blocks,
@@ -345,6 +447,7 @@ export function updatePlayer({
   }
 
   let targetVx = 0;
+  let targetVy = 0;
   if (player.grappleAttachSide) {
     const attachedPlatform = game.platforms.find((platform) => platform.id === player.groundPlatformId);
     if (!attachedPlatform) {
@@ -363,49 +466,83 @@ export function updatePlayer({
       player.groundedSurface = "grapplable";
       player.x = player.grappleAttachSide === "left" ? left - player.w : right;
       player.y = clamp(player.y, top - 6, bottom - player.h + 6);
+      player.magneticAttachment = null;
       updateCameraY(game, viewportHeight, level);
       return;
     }
   }
 
-  if (input.left) targetVx -= moveSpeed;
-  if (input.right) targetVx += moveSpeed;
+  if (grav.axis === "y") {
+    if (input.left) targetVx -= moveSpeed;
+    if (input.right) targetVx += moveSpeed;
+  } else {
+    const tangentialInput = (input.left ? 1 : 0) - (input.right ? 1 : 0);
+    targetVy = tangentialInput * moveSpeed * grav.sign;
+  }
   if (targetVx > 0) player.facing = 1;
   if (targetVx < 0) player.facing = -1;
 
   const isDashing = now < player.dashUntil;
   const onIce = player.grounded && player.groundedSurface === "ice";
   if (isDashing) {
-    player.vx = player.vx > 0 ? DASH_SPEED : -DASH_SPEED;
-    player.vy = gravDir > 0 ? Math.max(player.vy, -70) : Math.min(player.vy, 70);
+    if (grav.axis === "y") {
+      player.vx = player.vx > 0 ? DASH_SPEED : -DASH_SPEED;
+      player.vy = grav.sign > 0 ? Math.max(player.vy, -70) : Math.min(player.vy, 70);
+    } else {
+      player.vy = player.vy > 0 ? DASH_SPEED : -DASH_SPEED;
+      player.vx = grav.sign > 0 ? Math.max(player.vx, -70) : Math.min(player.vx, 70);
+    }
   } else {
     const accel = player.grounded ? (onIce ? ICE_GROUND_ACCEL : 1800) : 1200;
-    if (Math.abs(targetVx - player.vx) <= accel * dt) {
-      player.vx = targetVx;
+    if (grav.axis === "y") {
+      if (Math.abs(targetVx - player.vx) <= accel * dt) {
+        player.vx = targetVx;
+      } else {
+        player.vx += Math.sign(targetVx - player.vx) * accel * dt;
+      }
     } else {
-      player.vx += Math.sign(targetVx - player.vx) * accel * dt;
+      if (Math.abs(targetVy - player.vy) <= accel * dt) {
+        player.vy = targetVy;
+      } else {
+        player.vy += Math.sign(targetVy - player.vy) * accel * dt;
+      }
     }
   }
 
   if (input.wantDash && ability.airDash && now > player.dashCooldownUntil) {
-    const dir = input.right ? 1 : input.left ? -1 : player.vx >= 0 ? 1 : -1;
+    if (grav.axis === "y") {
+      const dir = input.right ? 1 : input.left ? -1 : player.vx >= 0 ? 1 : -1;
       player.vx = dir * DASH_SPEED;
-      player.vy = -gravDir * 20;
-      player.dashUntil = now + DASH_MS;
-      player.dashCooldownUntil = now + 1100;
+      player.vy = -grav.sign * 20;
+    } else {
+      const dir = input.right ? 1 : input.left ? -1 : player.vy <= 0 ? 1 : -1;
+      player.vy = -dir * DASH_SPEED * grav.sign;
+      player.vx = -grav.sign * 20;
+    }
+    player.dashUntil = now + DASH_MS;
+    player.dashCooldownUntil = now + 1100;
   } else if (input.wantDash && !ability.airDash) {
     game.message = "Dash verrouille jusqu'au monde 3.";
   }
 
   if (input.wantJump) {
     if (player.grounded) {
-      player.vy = -gravDir * jumpStrength;
+      if (grav.axis === "y") {
+        player.vy = -grav.sign * jumpStrength;
+      } else {
+        player.vx = -grav.sign * jumpStrength;
+      }
       player.grounded = false;
       player.groundPlatformId = null;
       player.groundedSurface = null;
+      player.magneticAttachment = null;
       player.jumpsLeft = ability.extraAirJumps;
     } else if (player.jumpsLeft > 0) {
-      player.vy = -gravDir * jumpStrength * 0.92;
+      if (grav.axis === "y") {
+        player.vy = -grav.sign * jumpStrength * 0.92;
+      } else {
+        player.vx = -grav.sign * jumpStrength * 0.92;
+      }
       player.jumpsLeft -= 1;
       player.grappleUntil = 0;
       player.grappleTargetX = null;
@@ -413,11 +550,17 @@ export function updatePlayer({
       player.grappleLandY = null;
       player.grapplePlatformId = null;
       player.grappleAttachSide = null;
+      player.magneticAttachment = null;
     }
   }
 
   applyMagneticPull(player, blocks, dt);
-  player.vy += GRAVITY * gravDir * dt;
+  const gravityAfterMagnet = gravityState(player, now);
+  if (gravityAfterMagnet.axis === "y") {
+    player.vy += GRAVITY * gravityAfterMagnet.sign * dt;
+  } else {
+    player.vx += GRAVITY * gravityAfterMagnet.sign * dt;
+  }
   resolvePlayerMovement({
     ability,
     blocks,
@@ -443,7 +586,15 @@ function resolvePlayerMovement({
   const player = game.player;
   const wasGrounded = player.grounded;
   const phaseShiftActive = now < player.phaseShiftUntil;
-  const gravDir = gravityDirection(player, now);
+  const grav = gravityState(player, now);
+  const gravityAxis = grav.axis;
+  const tangentialAxis = gravityAxis === "x" ? "y" : "x";
+  const alignToSurface = (block: Rect, attachment: MagneticAttachment) => {
+    if (attachment === "top") player.y = block.y - player.h;
+    if (attachment === "bottom") player.y = block.y + block.h;
+    if (attachment === "left") player.x = block.x - player.w;
+    if (attachment === "right") player.x = block.x + block.w;
+  };
 
   const moveAxis = (axis: "x" | "y", amount: number) => {
     if (axis === "x") player.x += amount;
@@ -469,90 +620,127 @@ function resolvePlayerMovement({
       if (!rectIntersects(playerRect, block)) continue;
 
       if (axis === "x") {
-        if (amount > 0) player.x = block.x - player.w;
-        else player.x = block.x + block.w;
-        playerRect.x = player.x;
-        player.vx = 0;
+        if (axis !== gravityAxis) {
+          if (amount > 0) player.x = block.x - player.w;
+          else player.x = block.x + block.w;
+          playerRect.x = player.x;
+          player.vx = 0;
+          continue;
+        }
       } else {
-        const movingTowardGravity = amount * gravDir > 0;
-        if (movingTowardGravity) {
-          if (gravDir > 0) player.y = block.y - player.h;
+        if (axis !== gravityAxis) {
+          if (amount > 0) player.y = block.y - player.h;
           else player.y = block.y + block.h;
           playerRect.y = player.y;
+          player.vy = 0;
+          continue;
+        }
+      }
+
+      const movingTowardGravity = amount * grav.sign > 0;
+      if (movingTowardGravity) {
+        const surfaceAttachment =
+          gravityAxis === "y"
+            ? grav.sign > 0
+              ? "top"
+              : "bottom"
+            : grav.sign > 0
+              ? "left"
+              : "right";
+        alignToSurface(block, surfaceAttachment);
+        playerRect.x = player.x;
+        playerRect.y = player.y;
+        if (gravityAxis === "y") player.vy = 0;
+        else player.vx = 0;
+        player.grounded = true;
+        player.groundPlatformId = block.platformId ?? null;
+        player.groundedSurface = block.type ?? null;
+        player.jumpsLeft = ability.extraAirJumps;
+
+        if (block.type === "magnetic") {
+          player.magneticAttachment = surfaceAttachment;
+        } else if (player.groundedSurface !== "magnetic") {
+          player.magneticAttachment = null;
+        }
+
+        const launchDir = -grav.sign;
+        if (block.type === "bounce" && gravityAxis === "y") {
+          player.vy = launchDir * (now < player.overclockUntil ? JUMP * 1.28 : JUMP * 1.16);
+          player.grounded = false;
+          player.groundPlatformId = null;
+          player.groundedSurface = null;
+          player.magneticAttachment = null;
+        }
+        if (block.type === "boost" && gravityAxis === "y") {
+          player.vy =
+            launchDir *
+            (now < player.overclockUntil
+              ? JUMP * BOOST_OVERCLOCK_MULTIPLIER
+              : JUMP * BOOST_JUMP_MULTIPLIER);
+          player.vx += player.facing * BOOST_HORIZONTAL_PUSH;
+          player.grounded = false;
+          player.groundPlatformId = null;
+          player.groundedSurface = null;
+          player.magneticAttachment = null;
+          game.message = "Boost vectoriel active.";
+        }
+        if (block.type === "glitch" && !wasGrounded) {
+          player.x += Math.random() < 0.5 ? -14 : 14;
+        }
+        if (block.type === "corrupted") {
+          player.corruptedUntil = now + CORRUPTED_DURATION_MS;
+          if (now >= player.corruptedDamageCooldownUntil) {
+            player.hp = Math.max(0, player.hp - 1);
+            player.corruptedDamageCooldownUntil = now + CORRUPTED_DAMAGE_COOLDOWN_MS;
+          }
+          game.message = "Corruption active: performances degradees.";
+        }
+        if (block.type === "gravity" && gravityAxis === "y") {
+          const nextGravityInverted = grav.sign > 0;
+          player.gravityInvertedUntil = nextGravityInverted
+            ? now + GRAVITY_FLIP_DURATION_MS
+            : 0;
           player.vy = 0;
           player.grounded = true;
           player.groundPlatformId = block.platformId ?? null;
           player.groundedSurface = block.type ?? null;
           player.jumpsLeft = ability.extraAirJumps;
-
-          const launchDir = -gravDir;
-          if (block.type === "bounce") {
-            player.vy = launchDir * (now < player.overclockUntil ? JUMP * 1.28 : JUMP * 1.16);
-            player.grounded = false;
-            player.groundPlatformId = null;
-            player.groundedSurface = null;
-          }
-          if (block.type === "boost") {
-            player.vy =
-              launchDir *
-              (now < player.overclockUntil
-                ? JUMP * BOOST_OVERCLOCK_MULTIPLIER
-                : JUMP * BOOST_JUMP_MULTIPLIER);
-            player.vx += player.facing * BOOST_HORIZONTAL_PUSH;
-            player.grounded = false;
-            player.groundPlatformId = null;
-            player.groundedSurface = null;
-            game.message = "Boost vectoriel active.";
-          }
-          if (block.type === "glitch" && !wasGrounded) {
-            player.x += Math.random() < 0.5 ? -14 : 14;
-          }
-          if (block.type === "corrupted") {
-            player.corruptedUntil = now + CORRUPTED_DURATION_MS;
-            if (now >= player.corruptedDamageCooldownUntil) {
-              player.hp = Math.max(0, player.hp - 1);
-              player.corruptedDamageCooldownUntil = now + CORRUPTED_DAMAGE_COOLDOWN_MS;
-            }
-            game.message = "Corruption active: performances degradees.";
-          }
-          if (block.type === "gravity") {
-            const nextGravityInverted = gravDir > 0;
-            player.gravityInvertedUntil = nextGravityInverted
-              ? now + GRAVITY_FLIP_DURATION_MS
-              : 0;
-            player.vy = 0;
-            player.grounded = true;
-            player.groundPlatformId = block.platformId ?? null;
-            player.groundedSurface = block.type ?? null;
-            player.jumpsLeft = ability.extraAirJumps;
-            if (nextGravityInverted) {
-              player.y = block.y + block.h;
-            } else {
-              player.y = block.y - player.h;
-            }
-            playerRect.y = player.y;
-            game.message = nextGravityInverted
-              ? "Polarite gravitationnelle inversee."
-              : "Polarite gravitationnelle restauree.";
-          }
-          if (block.type === "unstable") {
-            const platform = game.platforms.find(
-              (candidate) => candidate.id === block.platformId
-            );
-            if (platform && platform.unstableDropAt === 0) {
-              platform.unstableDropAt = now + 850;
-            }
-          }
-        } else {
-          if (gravDir > 0) {
+          player.magneticAttachment = null;
+          if (nextGravityInverted) {
             player.y = block.y + block.h;
-            player.vy = Math.max(0, player.vy);
           } else {
             player.y = block.y - player.h;
-            player.vy = Math.min(0, player.vy);
           }
           playerRect.y = player.y;
+          game.message = nextGravityInverted
+            ? "Polarite gravitationnelle inversee."
+            : "Polarite gravitationnelle restauree.";
         }
+        if (block.type === "unstable") {
+          const platform = game.platforms.find(
+            (candidate) => candidate.id === block.platformId
+          );
+          if (platform && platform.unstableDropAt === 0) {
+            platform.unstableDropAt = now + 850;
+          }
+        }
+      } else {
+        const oppositeAttachment =
+          gravityAxis === "y"
+            ? grav.sign > 0
+              ? "bottom"
+              : "top"
+            : grav.sign > 0
+              ? "right"
+              : "left";
+        alignToSurface(block, oppositeAttachment);
+        if (gravityAxis === "y") {
+          player.vy = grav.sign > 0 ? Math.max(0, player.vy) : Math.min(0, player.vy);
+        } else {
+          player.vx = grav.sign > 0 ? Math.max(0, player.vx) : Math.min(0, player.vx);
+        }
+        playerRect.x = player.x;
+        playerRect.y = player.y;
       }
     }
   };
@@ -560,8 +748,11 @@ function resolvePlayerMovement({
   player.grounded = false;
   player.groundPlatformId = null;
   player.groundedSurface = null;
-  moveAxis("x", player.vx * dt);
-  moveAxis("y", player.vy * dt);
+  moveAxis(tangentialAxis, tangentialAxis === "x" ? player.vx * dt : player.vy * dt);
+  moveAxis(gravityAxis, gravityAxis === "x" ? player.vx * dt : player.vy * dt);
+  if (!player.grounded || player.groundedSurface !== "magnetic") {
+    player.magneticAttachment = null;
+  }
   player.x = clamp(player.x, 0, level.worldWidth - player.w);
   const playerCenterX = player.x + player.w / 2;
   const maxCameraX = Math.max(0, level.worldWidth - viewportWidth);
@@ -614,6 +805,7 @@ export function respawnPlayer(game: GameRuntime, now: number, invulnMs: number) 
   player.grounded = false;
   player.groundPlatformId = null;
   player.groundedSurface = null;
+  player.magneticAttachment = null;
   player.gravityInvertedUntil = 0;
   player.corruptedUntil = 0;
   player.corruptedDamageCooldownUntil = 0;

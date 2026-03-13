@@ -104,6 +104,7 @@ export type PlatformType =
   | "armored"
   | "hackable";
 export type EnemyKind = "rookie" | "pulse" | "apex";
+export type MagneticAttachment = "top" | "bottom" | "left" | "right";
 export type PixelSkill =
   | "DATA_GRAPPLE"
   | "OVERJUMP"
@@ -260,6 +261,7 @@ export type Player = {
   grappleAttachSide: "left" | "right" | null;
   groundPlatformId: string | null;
   groundedSurface: PlatformType | null;
+  magneticAttachment: MagneticAttachment | null;
   gravityInvertedUntil: number;
   corruptedUntil: number;
   corruptedDamageCooldownUntil: number;

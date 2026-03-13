@@ -26,8 +26,12 @@ log "Cleaning unused docker images"
 run docker image prune -af
 
 if command -v journalctl >/dev/null 2>&1; then
-  log "Vacuuming old journal logs"
-  run journalctl --vacuum-time=7d || true
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    log "Vacuuming old journal logs"
+    run journalctl --vacuum-time=7d || true
+  else
+    log "Skipping journal vacuum (root privileges required)"
+  fi
 fi
 
 log "Disk usage after cleanup"
