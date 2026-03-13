@@ -546,6 +546,8 @@ export default function PixelProtocolPage() {
           message={runtime.message}
           collected={runtime.collected}
           hp={runtime.player.hp}
+          health={runtime.player.health}
+          maxHealth={runtime.player.maxHealth}
         />
 
         <div className="pp-stage">

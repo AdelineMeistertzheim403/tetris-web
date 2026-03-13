@@ -19,6 +19,11 @@ export const CORRUPTED_DAMAGE_COOLDOWN_MS = 2100;
 export const GRAVITY_FLIP_DURATION_MS = 2200;
 export const MAGNETIC_PULL_RADIUS = 250;
 export const MAGNETIC_PULL_ACCEL = 480;
+export const PLAYER_MAX_HEALTH = 100;
+export const PLAYER_ORB_HEAL = 20;
+export const PLAYER_LEVEL_HEAL = 35;
+export const PLAYER_CORRUPTED_DAMAGE = 14;
+export const PLAYER_FALL_DAMAGE_THRESHOLD = 140;
 export const MOVING_DEFAULT_AXIS = "x";
 export const MOVING_DEFAULT_PATTERN = "pingpong";
 export const MOVING_DEFAULT_RANGE_TILES = 4;
@@ -57,6 +62,12 @@ export const ENEMY_SPRITES: Record<
     run: "/sprites_pixel_protocole/tetrobots/apex/apex_run.png",
     scale: APEX_VISUAL_SCALE,
   },
+};
+
+export const ENEMY_CONTACT_DAMAGE: Record<EnemyKind, number> = {
+  rookie: 10,
+  pulse: 20,
+  apex: 30,
 };
 
 export const PLATFORM_CLASS: Record<PlatformType, string> = {

@@ -242,6 +242,8 @@ export type Player = {
   grounded: boolean;
   jumpsLeft: number;
   hp: number;
+  health: number;
+  maxHealth: number;
   dashUntil: number;
   dashCooldownUntil: number;
   invulnUntil: number;
@@ -265,6 +267,7 @@ export type Player = {
   gravityInvertedUntil: number;
   corruptedUntil: number;
   corruptedDamageCooldownUntil: number;
+  airborneStartY: number;
 };
 
 // Les plateformes runtime portent un etat temporaire qui ne doit jamais revenir dans les donnees de niveau.
@@ -303,6 +306,7 @@ export type PlayerHistoryEntry = {
   grounded: boolean;
   jumpsLeft: number;
   hp: number;
+  health: number;
 };
 
 export type GameRuntime = {

@@ -48,6 +48,8 @@ export function PixelProtocolDraftPreview({
           message={runtime.message}
           collected={runtime.collected}
           hp={runtime.player.hp}
+          health={runtime.player.health}
+          maxHealth={runtime.player.maxHealth}
           unlockedSkills={[]}
         />
         <PixelProtocolWorld
