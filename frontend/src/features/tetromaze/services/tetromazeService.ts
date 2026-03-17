@@ -16,6 +16,18 @@ export type TetromazeProgress = {
   levelScores: Record<string, number>;
 };
 
+export type TetromazeCommunityLevel = {
+  id: number;
+  level: TetromazeLevel;
+  authorId: number;
+  authorPseudo: string;
+  isOwn: boolean;
+  likeCount: number;
+  playCount: number;
+  likedByMe: boolean;
+  updatedAt?: string | null;
+};
+
 export type SaveTetromazeProgressPayload = {
   highestLevel?: number;
   currentLevel?: number;
@@ -46,6 +58,39 @@ function normalizeProgress(data: TetromazeProgressResponse): TetromazeProgress {
   }
 
   return { highestLevel, currentLevel, levelScores };
+}
+
+function isTetromazeCommunityLevel(value: unknown): value is TetromazeCommunityLevel {
+  if (!value || typeof value !== "object") return false;
+  const row = value as TetromazeCommunityLevel;
+  return (
+    Number.isFinite(row.id) &&
+    Boolean(normalizeTetromazeLevel(row.level)) &&
+    Number.isFinite(row.authorId) &&
+    typeof row.authorPseudo === "string" &&
+    typeof row.isOwn === "boolean" &&
+    Number.isFinite(row.likeCount) &&
+    Number.isFinite(row.playCount) &&
+    typeof row.likedByMe === "boolean"
+  );
+}
+
+function parseCommunityLevelsPayload(data: unknown): TetromazeCommunityLevel[] {
+  const arr = Array.isArray(data)
+    ? data
+    : data && typeof data === "object" && Array.isArray((data as { levels?: unknown[] }).levels)
+      ? (data as { levels: unknown[] }).levels
+      : [];
+
+  return arr
+    .filter(isTetromazeCommunityLevel)
+    .map((item) => ({
+      ...item,
+      level: normalizeTetromazeLevel(item.level) as TetromazeLevel,
+      likeCount: Math.max(0, Math.floor(item.likeCount)),
+      playCount: Math.max(0, Math.floor(item.playCount)),
+      updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : null,
+    }));
 }
 
 export async function fetchTetromazeProgress(): Promise<TetromazeProgress> {
@@ -144,4 +189,96 @@ export async function deleteTetromazeCustomLevel(levelId: string): Promise<void>
   if (!res.ok) {
     throw new Error(await parseError(res, "Erreur suppression niveau custom Tetromaze"));
   }
+}
+
+export async function fetchTetromazeCommunityLevels(): Promise<TetromazeCommunityLevel[]> {
+  const res = await fetch(`${API_URL}/tetromaze/community-levels`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur chargement niveaux joueurs Tetromaze"));
+  }
+
+  return parseCommunityLevelsPayload(await res.json());
+}
+
+export async function fetchTetromazeCommunityLevel(
+  publishedId: number
+): Promise<TetromazeCommunityLevel> {
+  const res = await fetch(`${API_URL}/tetromaze/community-levels/${publishedId}`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur chargement niveau joueur Tetromaze"));
+  }
+
+  const data = (await res.json()) as { level?: unknown };
+  if (isTetromazeCommunityLevel(data.level)) {
+    return {
+      ...data.level,
+      level: normalizeTetromazeLevel(data.level.level) as TetromazeLevel,
+      updatedAt: typeof data.level.updatedAt === "string" ? data.level.updatedAt : null,
+    };
+  }
+  throw new Error("Niveau joueur Tetromaze invalide");
+}
+
+export async function publishTetromazeCommunityLevel(
+  levelId: string
+): Promise<TetromazeCommunityLevel> {
+  const res = await fetch(`${API_URL}/tetromaze/community-levels`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+    body: JSON.stringify({ levelId }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur publication niveau Tetromaze"));
+  }
+
+  const data = (await res.json()) as { level?: unknown };
+  if (isTetromazeCommunityLevel(data.level)) {
+    return {
+      ...data.level,
+      level: normalizeTetromazeLevel(data.level.level) as TetromazeLevel,
+      updatedAt: typeof data.level.updatedAt === "string" ? data.level.updatedAt : null,
+    };
+  }
+  throw new Error("Publication Tetromaze invalide");
+}
+
+export async function toggleTetromazeCommunityLevelLike(
+  publishedId: number
+): Promise<{ liked: boolean; likeCount: number }> {
+  const res = await fetch(`${API_URL}/tetromaze/community-levels/${publishedId}/like`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeader(),
+    },
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Erreur vote niveau Tetromaze"));
+  }
+
+  const data = (await res.json()) as { liked?: unknown; likeCount?: unknown };
+  return {
+    liked: Boolean(data.liked),
+    likeCount: Number.isFinite(data.likeCount)
+      ? Math.max(0, Math.floor(data.likeCount as number))
+      : 0,
+  };
 }

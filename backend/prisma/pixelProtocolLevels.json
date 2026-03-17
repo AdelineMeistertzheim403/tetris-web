@@ -140,37 +140,44 @@
       {
         "id": "o1",
         "x": 199,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 359,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 679,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1031,
-        "y": 364
+        "y": 364,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1415,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1831,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2311,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -351,52 +358,69 @@
       {
         "id": "o1",
         "x": 199,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 391,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1159,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1319,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1511,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 1959,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2183,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
+      },
+      {
+        "id": "s1",
+        "x": 1511,
+        "y": 236,
+        "affinity": "blue",
+        "grantsSkill": "OVERJUMP"
       },
       {
         "id": "o7b",
         "x": 2439,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2887,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -583,47 +607,56 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 359,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 839,
-        "y": 364
+        "y": 364,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 967,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1415,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 1639,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 1831,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 2343,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -814,52 +847,62 @@
       {
         "id": "o1",
         "x": 199,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 487,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 711,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 935,
-        "y": 364
+        "y": 364,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1159,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1479,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2023,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2279,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 2631,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3175,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -1060,57 +1103,68 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 359,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 583,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 807,
-        "y": 364
+        "y": 364,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1031,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1351,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 1863,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2119,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 2471,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 2983,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 3207,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -1314,42 +1368,50 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 391,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1063,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1543,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 2055,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2567,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 3079,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -1434,7 +1496,7 @@
         "tetromino": "O",
         "x": 31,
         "y": 11,
-        "type": "stable"
+        "type": "grapplable"
       },
       {
         "id": "p6",
@@ -1453,43 +1515,42 @@
       {
         "id": "p7",
         "tetromino": "T",
-        "x": 49,
+        "x": 48,
         "y": 9,
-        "type": "rotating",
-        "rotateEveryMs": 2050
+        "type": "grapplable"
       },
       {
         "id": "p8",
         "tetromino": "L",
-        "x": 57,
+        "x": 55,
         "y": 8,
-        "type": "glitch"
+        "type": "grapplable"
       },
       {
         "id": "p9",
         "tetromino": "I",
-        "x": 65,
+        "x": 63,
         "y": 7,
-        "type": "stable"
+        "type": "grapplable"
       },
       {
         "id": "p9b",
         "tetromino": "I",
-        "x": 69,
+        "x": 67,
         "y": 7,
-        "type": "stable"
+        "type": "grapplable"
       },
       {
         "id": "p10",
         "tetromino": "S",
-        "x": 75,
+        "x": 71,
         "y": 6,
-        "type": "unstable"
+        "type": "grapplable"
       },
       {
         "id": "p11",
         "tetromino": "T",
-        "x": 84,
+        "x": 79,
         "y": 5,
         "type": "rotating",
         "rotateEveryMs": 1900
@@ -1497,16 +1558,16 @@
       {
         "id": "p12",
         "tetromino": "I",
-        "x": 92,
+        "x": 87,
         "y": 6,
-        "type": "stable"
+        "type": "grapplable"
       },
       {
         "id": "p12b",
         "tetromino": "I",
-        "x": 96,
+        "x": 91,
         "y": 6,
-        "type": "stable"
+        "type": "grapplable"
       }
     ],
     "checkpoints": [
@@ -1536,47 +1597,77 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 359,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1127,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1383,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 2151,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2471,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2887,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
+      },
+      {
+        "id": "s0",
+        "x": 1799,
+        "y": 268,
+        "affinity": "blue",
+        "grantsSkill": "DATA_GRAPPLE"
+      },
+      {
+        "id": "s1",
+        "x": 3143,
+        "y": 140,
+        "affinity": "blue",
+        "grantsSkill": "OVERCLOCK_MODE"
+      },
+      {
+        "id": "s2",
+        "x": 2375,
+        "y": 204,
+        "affinity": "purple",
+        "grantsSkill": "TIME_BUFFER"
       },
       {
         "id": "o9",
         "x": 3527,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -1602,10 +1693,10 @@
       },
       {
         "id": "e3",
-        "kind": "pulse",
+        "kind": "rookie",
         "x": 2432,
         "y": 198,
-        "vx": 108,
+        "vx": 92,
         "minX": 2400,
         "maxX": 2630,
         "stunnedUntil": 0
@@ -1773,52 +1864,62 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 455,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 711,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1223,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1511,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1959,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2279,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2631,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3079,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3751,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -2012,57 +2113,68 @@
       {
         "id": "o1",
         "x": 199,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 423,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 679,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 935,
-        "y": 364
+        "y": 364,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1191,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1479,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2279,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2631,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3111,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3815,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 4103,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -2273,62 +2385,74 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 359,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1127,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1415,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1735,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2215,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2567,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 2919,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3399,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 4103,
-        "y": 76
+        "y": 76,
+        "affinity": "standard"
       },
       {
         "id": "o12",
         "x": 4391,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -2538,47 +2662,56 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 391,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1127,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1639,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1895,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2407,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2919,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3431,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -2764,52 +2897,70 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 455,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 711,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1255,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1543,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1863,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2343,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2663,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
-        "x": 3303,
-        "y": 140
+        "x": 3591,
+        "y": 172,
+        "affinity": "standard"
       },
       {
-        "id": "o10",
-        "x": 3591,
-        "y": 172
+        "id": "s1",
+        "x": 3303,
+        "y": 140,
+        "affinity": "purple",
+        "grantsSkill": "PHASE_SHIFT"
+      },
+      {
+        "id": "s2",
+        "x": 2119,
+        "y": 236,
+        "affinity": "green",
+        "grantsSkill": "PLATFORM_SPAWN"
       }
     ],
     "enemies": [
@@ -3002,57 +3153,68 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 391,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 647,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1191,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1479,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1799,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2279,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2599,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3239,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3527,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 4167,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -3253,62 +3415,74 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 487,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 743,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1287,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1575,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1895,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2375,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2695,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3335,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3623,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 4071,
-        "y": 76
+        "y": 76,
+        "affinity": "standard"
       },
       {
         "id": "o12",
         "x": 4391,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -3526,67 +3700,80 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 359,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1159,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1447,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1767,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2247,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2567,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 2887,
-        "y": 172
+        "y": 172,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3207,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 3495,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o12",
         "x": 4263,
-        "y": 44
+        "y": 44,
+        "affinity": "standard"
       },
       {
         "id": "o13",
         "x": 4679,
-        "y": 76
+        "y": 76,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -3812,52 +3999,62 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 391,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1063,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1511,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1767,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 2023,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2535,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3047,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3559,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -4059,57 +4256,69 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 423,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 647,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1159,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1415,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1671,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 1959,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2407,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3015,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o10",
-        "x": 3303,
-        "y": 172
+        "x": 3975,
+        "y": 108,
+        "affinity": "standard"
       },
       {
-        "id": "o11",
-        "x": 3975,
-        "y": 108
+        "id": "s1",
+        "x": 3303,
+        "y": 172,
+        "affinity": "red",
+        "grantsSkill": "PULSE_SHOCK"
       }
     ],
     "enemies": [
@@ -4318,62 +4527,74 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 391,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1127,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1383,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1639,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 1927,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2375,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 2983,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3271,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 3559,
-        "y": 76
+        "y": 76,
+        "affinity": "standard"
       },
       {
         "id": "o12",
         "x": 4423,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -4606,67 +4827,80 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 423,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 679,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1191,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1447,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1703,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 1991,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2439,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 3047,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3335,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 3623,
-        "y": 76
+        "y": 76,
+        "affinity": "standard"
       },
       {
         "id": "o12",
         "x": 4327,
-        "y": 12
+        "y": 12,
+        "affinity": "standard"
       },
       {
         "id": "o13",
         "x": 4711,
-        "y": 44
+        "y": 44,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -4921,72 +5155,86 @@
       {
         "id": "o1",
         "x": 167,
-        "y": 460
+        "y": 460,
+        "affinity": "standard"
       },
       {
         "id": "o2",
         "x": 359,
-        "y": 428
+        "y": 428,
+        "affinity": "standard"
       },
       {
         "id": "o3",
         "x": 615,
-        "y": 396
+        "y": 396,
+        "affinity": "standard"
       },
       {
         "id": "o4",
         "x": 1127,
-        "y": 332
+        "y": 332,
+        "affinity": "standard"
       },
       {
         "id": "o5",
         "x": 1383,
-        "y": 300
+        "y": 300,
+        "affinity": "standard"
       },
       {
         "id": "o6",
         "x": 1639,
-        "y": 268
+        "y": 268,
+        "affinity": "standard"
       },
       {
         "id": "o7",
         "x": 1927,
-        "y": 236
+        "y": 236,
+        "affinity": "standard"
       },
       {
         "id": "o8",
         "x": 2375,
-        "y": 204
+        "y": 204,
+        "affinity": "standard"
       },
       {
         "id": "o9",
         "x": 2983,
-        "y": 140
+        "y": 140,
+        "affinity": "standard"
       },
       {
         "id": "o10",
         "x": 3271,
-        "y": 108
+        "y": 108,
+        "affinity": "standard"
       },
       {
         "id": "o11",
         "x": 3559,
-        "y": 76
+        "y": 76,
+        "affinity": "standard"
       },
       {
         "id": "o12",
         "x": 4263,
-        "y": 12
+        "y": 12,
+        "affinity": "standard"
       },
       {
         "id": "o13",
         "x": 4679,
-        "y": -20
+        "y": -20,
+        "affinity": "standard"
       },
       {
         "id": "o14",
         "x": 5031,
-        "y": -20
+        "y": -20,
+        "affinity": "standard"
       }
     ],
     "enemies": [
@@ -5031,5 +5279,295 @@
         "stunnedUntil": 0
       }
     ]
+  },
+  {
+    "id": "w99-1",
+    "world": 99,
+    "name": "Camera Runway",
+    "worldWidth": 13440,
+    "requiredOrbs": 1,
+    "spawn": {
+      "x": 96,
+      "y": 450
+    },
+    "portal": {
+      "x": 13260,
+      "y": 468
+    },
+    "platforms": [
+      {
+        "id": "cam1",
+        "tetromino": "I",
+        "x": 24,
+        "y": 13,
+        "type": "stable"
+      },
+      {
+        "id": "cam1b",
+        "tetromino": "I",
+        "x": 28,
+        "y": 13,
+        "type": "stable"
+      },
+      {
+        "id": "cam2",
+        "tetromino": "I",
+        "x": 52,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "cam2b",
+        "tetromino": "I",
+        "x": 56,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "cam3",
+        "tetromino": "I",
+        "x": 80,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "cam3b",
+        "tetromino": "I",
+        "x": 84,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "cam4",
+        "tetromino": "I",
+        "x": 108,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "cam4b",
+        "tetromino": "I",
+        "x": 112,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "cam5",
+        "tetromino": "I",
+        "x": 136,
+        "y": 10,
+        "type": "stable"
+      },
+      {
+        "id": "cam5b",
+        "tetromino": "I",
+        "x": 140,
+        "y": 10,
+        "type": "stable"
+      },
+      {
+        "id": "cam6",
+        "tetromino": "I",
+        "x": 164,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "cam6b",
+        "tetromino": "I",
+        "x": 168,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "cam7",
+        "tetromino": "I",
+        "x": 192,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "cam7b",
+        "tetromino": "I",
+        "x": 196,
+        "y": 6,
+        "type": "stable"
+      },
+      {
+        "id": "cam8",
+        "tetromino": "I",
+        "x": 220,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "cam8b",
+        "tetromino": "I",
+        "x": 224,
+        "y": 12,
+        "type": "stable"
+      },
+      {
+        "id": "cam9",
+        "tetromino": "I",
+        "x": 248,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "cam9b",
+        "tetromino": "I",
+        "x": 252,
+        "y": 9,
+        "type": "stable"
+      },
+      {
+        "id": "cam10",
+        "tetromino": "I",
+        "x": 276,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "cam10b",
+        "tetromino": "I",
+        "x": 280,
+        "y": 7,
+        "type": "stable"
+      },
+      {
+        "id": "cam11",
+        "tetromino": "I",
+        "x": 304,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "cam11b",
+        "tetromino": "I",
+        "x": 308,
+        "y": 11,
+        "type": "stable"
+      },
+      {
+        "id": "cam12",
+        "tetromino": "I",
+        "x": 332,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "cam12b",
+        "tetromino": "I",
+        "x": 336,
+        "y": 8,
+        "type": "stable"
+      },
+      {
+        "id": "cam13",
+        "tetromino": "I",
+        "x": 360,
+        "y": 5,
+        "type": "stable"
+      },
+      {
+        "id": "cam13b",
+        "tetromino": "I",
+        "x": 364,
+        "y": 5,
+        "type": "stable"
+      },
+      {
+        "id": "cam14",
+        "tetromino": "I",
+        "x": 392,
+        "y": 3,
+        "type": "stable"
+      },
+      {
+        "id": "cam14b",
+        "tetromino": "I",
+        "x": 396,
+        "y": 3,
+        "type": "stable"
+      },
+      {
+        "id": "cam14c",
+        "tetromino": "I",
+        "x": 400,
+        "y": 3,
+        "type": "stable"
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "camc1",
+        "x": 1290,
+        "y": 502,
+        "spawnX": 1284,
+        "spawnY": 514
+      },
+      {
+        "id": "camc2",
+        "x": 3850,
+        "y": 502,
+        "spawnX": 3844,
+        "spawnY": 514
+      },
+      {
+        "id": "camc3",
+        "x": 6410,
+        "y": 502,
+        "spawnX": 6404,
+        "spawnY": 514
+      },
+      {
+        "id": "camc4",
+        "x": 8970,
+        "y": 502,
+        "spawnX": 8964,
+        "spawnY": 514
+      },
+      {
+        "id": "camc5",
+        "x": 11530,
+        "y": 502,
+        "spawnX": 11524,
+        "spawnY": 514
+      }
+    ],
+    "orbs": [
+      {
+        "id": "camo1",
+        "x": 263,
+        "y": 460,
+        "affinity": "standard"
+      },
+      {
+        "id": "camo2",
+        "x": 3079,
+        "y": 236,
+        "affinity": "standard"
+      },
+      {
+        "id": "camo3",
+        "x": 6663,
+        "y": 332,
+        "affinity": "standard"
+      },
+      {
+        "id": "camo4",
+        "x": 10247,
+        "y": 204,
+        "affinity": "standard"
+      },
+      {
+        "id": "camo5",
+        "x": 12839,
+        "y": 44,
+        "affinity": "standard"
+      }
+    ],
+    "enemies": []
   }
 ]

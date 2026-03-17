@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createElement,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ACHIEVEMENTS,
   type Achievement,
@@ -202,7 +211,20 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
   };
 };
 
-export function useAchievements() {
+type UseAchievementsValue = {
+  achievements: Array<Achievement & { unlocked: boolean; unlockedAt?: number }>;
+  unlockedIds: string[];
+  stats: AchievementStats;
+  recentUnlocks: Achievement[];
+  clearRecent: () => void;
+  updateStats: (updater: (prev: AchievementStats) => AchievementStats) => AchievementStats;
+  registerRun: (seed?: string) => { runsPlayed: number; sameSeedRuns: number };
+  checkAchievements: (ctx: AchievementContext) => void;
+};
+
+const AchievementsContext = createContext<UseAchievementsValue | null>(null);
+
+function useAchievementsValue(): UseAchievementsValue {
   const { user } = useAuth();
   const [unlocked, setUnlocked] = useState<AchievementState[]>([]);
   const [recent, setRecent] = useState<Achievement[]>([]);
@@ -211,6 +233,7 @@ export function useAchievements() {
     return rawStats ? mergeStats(JSON.parse(rawStats)) : DEFAULT_STATS;
   });
   const statsRef = useRef(stats);
+  const unlockedRef = useRef(unlocked);
 
   const areArraysEqual = (a: string[], b: string[]) => {
     if (a === b) return true;
@@ -329,6 +352,10 @@ export function useAchievements() {
   }, [stats]);
 
   useEffect(() => {
+    unlockedRef.current = unlocked;
+  }, [unlocked]);
+
+  useEffect(() => {
     if (!user) return;
     let active = true;
 
@@ -363,8 +390,8 @@ export function useAchievements() {
   }, [user]);
 
   const isUnlocked = useCallback(
-    (id: string) => unlocked.some((a) => a.id === id),
-    [unlocked]
+    (id: string) => unlockedRef.current.some((a) => a.id === id),
+    []
   );
 
   // Met à jour les stats locales (et persiste) via un updater fonctionnel.
@@ -409,6 +436,8 @@ export function useAchievements() {
   const checkAchievements = useCallback(
     (ctx: AchievementContext) => {
       const newlyUnlocked: Achievement[] = [];
+      const currentStats = statsRef.current;
+      const currentUnlockedCount = unlockedRef.current.length;
 
       for (const achievement of ACHIEVEMENTS) {
         if (isUnlocked(achievement.id)) continue;
@@ -421,7 +450,7 @@ export function useAchievements() {
 
         switch (c.type) {
           case "runs_played":
-            ok = (ctx.runsPlayed ?? stats.runsPlayed) >= c.count;
+            ok = (ctx.runsPlayed ?? currentStats.runsPlayed) >= c.count;
             break;
 
           case "score_reached":
@@ -483,24 +512,24 @@ export function useAchievements() {
           case "same_seed_runs":
             ok =
               (ctx.sameSeedRuns ??
-                (ctx.seed ? stats.seedRuns[ctx.seed] ?? 0 : 0)) >= c.count;
+                (ctx.seed ? currentStats.seedRuns[ctx.seed] ?? 0 : 0)) >= c.count;
             break;
 
           case "history_viewed":
-            ok = (ctx.historyViewedCount ?? stats.historyViewedCount) >= c.count;
+            ok = (ctx.historyViewedCount ?? currentStats.historyViewedCount) >= c.count;
             break;
 
           case "counter":
-            ok = (ctx.counters?.[c.key] ?? stats.counters[c.key] ?? 0) >= c.value;
+            ok = (ctx.counters?.[c.key] ?? currentStats.counters[c.key] ?? 0) >= c.value;
             break;
 
           case "custom":
             if (c.key === "achievements_50_percent") {
               const total = Math.max(1, ACHIEVEMENTS.length - 1);
-              ok = unlocked.length / total >= 0.5;
+              ok = currentUnlockedCount / total >= 0.5;
             } else if (c.key === "achievements_100_percent") {
               const total = Math.max(1, ACHIEVEMENTS.length - 1);
-              ok = unlocked.length >= total;
+              ok = currentUnlockedCount >= total;
             } else {
               ok = Boolean(ctx.custom?.[c.key]);
             }
@@ -516,13 +545,17 @@ export function useAchievements() {
       }
 
       if (newlyUnlocked.length) {
-        setUnlocked((prev) => [
-          ...prev,
-          ...newlyUnlocked.map((a) => ({
-            id: a.id,
-            unlockedAt: Date.now(),
-          })),
-        ]);
+        setUnlocked((prev) => {
+          const next = [
+            ...prev,
+            ...newlyUnlocked.map((a) => ({
+              id: a.id,
+              unlockedAt: Date.now(),
+            })),
+          ];
+          unlockedRef.current = next;
+          return next;
+        });
 
         if (user) {
           unlockAchievements(
@@ -542,7 +575,7 @@ export function useAchievements() {
         setRecent(newlyUnlocked);
       }
     },
-    [isUnlocked, stats, unlocked.length, user]
+    [isUnlocked, user]
   );
 
   useEffect(() => {
@@ -575,7 +608,7 @@ export function useAchievements() {
     return () => {
       active = false;
     };
-  }, [checkAchievements, updateStats, user]);
+  }, [user]);
 
   // ─────────────────────────────
   // API
@@ -597,4 +630,17 @@ export function useAchievements() {
     registerRun,
     checkAchievements,
   };
+}
+
+export function AchievementsProvider({ children }: { children: ReactNode }) {
+  const value = useAchievementsValue();
+  return createElement(AchievementsContext.Provider, { value }, children);
+}
+
+export function useAchievements() {
+  const value = useContext(AchievementsContext);
+  if (!value) {
+    throw new Error("useAchievements must be used within AchievementsProvider");
+  }
+  return value;
 }

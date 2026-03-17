@@ -7,6 +7,7 @@ import {
   CORRUPTED_SPEED_FACTOR,
   DASH_MS,
   DASH_SPEED,
+  ENEMY_STUN_DURATION_MS,
   GRAVITY,
   GRAVITY_FLIP_DURATION_MS,
   ICE_GROUND_ACCEL,
@@ -272,7 +273,7 @@ export function applyHackPulse({
   const player = game.player;
   for (const enemy of game.enemies) {
     if (Math.abs(enemy.x - player.x) < 150 && Math.abs(enemy.y - player.y) < 90) {
-      enemy.stunnedUntil = now + 1700;
+      enemy.stunnedUntil = now + ENEMY_STUN_DURATION_MS[enemy.kind];
     }
   }
   for (const platform of game.platforms) {

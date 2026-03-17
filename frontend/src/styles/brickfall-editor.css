@@ -1,18 +1,11 @@
 .brickfall-editor {
   min-height: 100vh;
   padding: 1.5rem 0 2rem;
+  color: #ffdce9;
 }
 
 .brickfall-editor-shell {
   width: min(1700px, 94vw);
-  margin: 0 auto;
-}
-
-.brickfall-editor-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.2rem;
 }
 
 .brickfall-editor-columns {
@@ -26,35 +19,126 @@
   min-height: 100%;
 }
 
+.brickfall-editor .pp-editor-shell {
+  background:
+    radial-gradient(1200px 480px at 10% 0%, rgba(74, 12, 86, 0.55) 0%, transparent 60%),
+    radial-gradient(1000px 420px at 90% 30%, rgba(115, 28, 86, 0.45) 0%, transparent 65%),
+    linear-gradient(180deg, #130815 0%, #08040d 100%);
+}
+
+.brickfall-editor .pp-editor-head,
+.brickfall-editor .pp-editor-panel {
+  border-color: rgba(255, 117, 173, 0.22);
+  background: rgba(20, 8, 24, 0.8);
+  box-shadow: inset 0 0 18px rgba(255, 123, 0, 0.1);
+}
+
+.brickfall-editor .pp-editor-head h1,
+.brickfall-editor .pp-editor-panel h2 {
+  color: #ffb77f;
+  text-shadow: 0 0 10px rgba(255, 123, 0, 0.3);
+}
+
+.brickfall-editor .pp-editor-head p,
+.brickfall-editor .pp-editor-muted,
+.brickfall-editor .pp-editor-level-meta {
+  color: #f4bfd0;
+}
+
+.brickfall-editor-head {
+  align-items: flex-start;
+}
+
+.brickfall-editor-head-main {
+  display: grid;
+  gap: 12px;
+  flex: 1 1 520px;
+}
+
+.brickfall-editor-head-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+}
+
 .brickfall-editor-grid-card {
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding: 1rem;
+  overflow: auto;
 }
 
 .brickfall-editor-grid {
-  border: 1px solid #243247;
-  box-shadow: inset 0 0 0 1px rgba(211, 107, 255, 0.1);
+  display: grid;
+  width: max-content;
+  border: 1px solid rgba(255, 117, 173, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(211, 107, 255, 0.1),
+    0 0 24px rgba(255, 123, 0, 0.08);
+  background:
+    linear-gradient(180deg, rgba(10, 5, 14, 0.94), rgba(17, 8, 21, 0.94));
+}
+
+.brickfall-editor-cell {
+  cursor: pointer;
+  border: 1px solid rgba(255, 184, 223, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(8, 47, 73, 0.65);
 }
 
 .brickfall-editor-main-actions {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
+}
+
+.brickfall-editor-label {
+  font-size: 0.65rem;
+  color: #f4bfd0;
+}
+
+.brickfall-editor-input {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(255, 117, 173, 0.3);
+  background: rgba(9, 5, 14, 0.82);
+  color: #ffe6f1;
+  font-size: 0.7rem;
+}
+
+.brickfall-editor-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.7rem;
+  color: #ffe6f1;
+}
+
+.brickfall-editor-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.brickfall-editor-type-btn {
+  padding: 0.7rem;
+  border: 1px solid rgba(255, 117, 173, 0.3);
+  background: rgba(9, 5, 14, 0.82);
+  color: #ffdce9;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.62rem;
+}
+
+.brickfall-editor-type-btn.is-active {
+  box-shadow:
+    0 0 0 1px rgba(250, 204, 21, 0.24),
+    0 0 18px rgba(250, 204, 21, 0.18);
 }
 
 .brickfall-editor-icon-btn {
   width: 50px;
   height: 50px;
-  border: 1px solid #d946ef;
-  border-radius: 8px;
-  background: rgba(10, 3, 24, 0.92);
-  color: #ffd6ff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
 }
 
 .brickfall-editor-icon-btn i {
@@ -79,17 +163,33 @@
   width: 100%;
 }
 
-.brickfall-editor-icon-btn:hover {
-  box-shadow: 0 0 10px rgba(217, 70, 239, 0.35);
+.brickfall-editor-status,
+.brickfall-editor-empty {
+  font-size: 0.68rem;
+  color: #ffd7aa;
 }
 
-.brickfall-editor-icon-btn--danger {
-  border-color: #ef4444;
-  color: #fecaca;
+.brickfall-editor-error {
+  font-size: 0.68rem;
+  color: #ffb2a6;
 }
 
-.brickfall-editor-icon-btn--danger:hover {
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+.brickfall-editor-side-title {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.brickfall-editor-levels {
+  max-height: 620px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.brickfall-editor-level-card {
+  border-color: rgba(255, 117, 173, 0.28);
+  background: rgba(13, 7, 18, 0.82);
 }
 
 @media (max-width: 1440px) {
@@ -109,5 +209,13 @@
     flex-direction: column;
     gap: 0.8rem;
     align-items: flex-start;
+  }
+
+  .brickfall-editor-head-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .brickfall-editor-type-grid {
+    grid-template-columns: 1fr;
   }
 }

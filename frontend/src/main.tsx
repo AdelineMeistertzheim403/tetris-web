@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./features/auth/context/AuthContext";
+import { AchievementsProvider } from "./features/achievements/hooks/useAchievements";
 import { SettingsProvider } from "./features/settings/context/SettingsContext";
 import "./index.css"; // si tu as Tailwind
 import "./styles/perks.scss";
@@ -12,9 +13,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       {/* Providers globaux : settings d’UI + auth utilisateur */}
       <AuthProvider>
-        <SettingsProvider>
-          <App />
-        </SettingsProvider>
+        <AchievementsProvider>
+          <SettingsProvider>
+            <App />
+          </SettingsProvider>
+        </AchievementsProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

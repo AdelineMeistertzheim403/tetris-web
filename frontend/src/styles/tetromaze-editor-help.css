@@ -1,58 +1,43 @@
 .tetromaze-editor-help {
-  min-height: 100vh;
-  background: radial-gradient(circle at top, rgba(86, 189, 255, 0.2), transparent 38%), #060b16;
+  background:
+    radial-gradient(circle at top, rgba(86, 189, 255, 0.22), transparent 38%),
+    radial-gradient(circle at 82% 12%, rgba(142, 255, 192, 0.1), transparent 28%),
+    #060b16;
   color: #def4ff;
-  padding: 1.3rem 0;
 }
 
-.tetromaze-editor-help-shell {
-  width: min(980px, 94vw);
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.tetromaze-editor-help-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tetromaze-editor-help-head h1 {
+.tetromaze-editor-help .pp-editor-help-head h1 {
   color: #facc15;
-  font-size: 1.1rem;
 }
 
-.tetromaze-editor-help-card {
-  padding: 0.8rem;
+.tetromaze-editor-help .pp-editor-help-search,
+.tetromaze-editor-help .pp-editor-help-card,
+.tetromaze-editor-help .pp-editor-help-quick-link {
+  border-color: rgba(47, 220, 255, 0.28);
+  background: rgba(8, 17, 31, 0.8);
+  box-shadow: inset 0 0 18px rgba(12, 167, 255, 0.12);
 }
 
-.tetromaze-editor-help-card h2 {
-  color: #90dcff;
-  font-size: 0.82rem;
-  margin-bottom: 0.5rem;
+.tetromaze-editor-help .pp-editor-help-card summary {
+  background: rgba(7, 15, 30, 0.88);
+  border-bottom-color: rgba(47, 220, 255, 0.14);
 }
 
-.tetromaze-editor-help-card ul,
-.tetromaze-editor-help-card ol {
-  display: flex;
-  flex-direction: column;
-  gap: 0.42rem;
-  font-size: 0.68rem;
-  color: #cbe8f7;
-  margin: 0;
-  padding-left: 1rem;
+.tetromaze-editor-help .pp-editor-help-card.is-highlighted,
+.tetromaze-editor-help .pp-editor-help-quick-link.is-active {
+  border-color: rgba(250, 204, 21, 0.72);
+  box-shadow:
+    inset 0 0 18px rgba(12, 167, 255, 0.12),
+    0 0 0 1px rgba(250, 204, 21, 0.16);
 }
 
-.tetromaze-editor-help-card strong {
-  color: #e6f8ff;
+.tetromaze-editor-help .pp-editor-help-search input {
+  border-color: rgba(143, 230, 255, 0.18);
+  background: rgba(7, 18, 33, 0.55);
+  color: #def4ff;
 }
 
-@media (max-width: 720px) {
-  .tetromaze-editor-help-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
+.tetromaze-editor-help .pp-editor-help-search__count,
+.tetromaze-editor-help .pp-editor-help-card strong {
+  color: #fff6cf;
 }
