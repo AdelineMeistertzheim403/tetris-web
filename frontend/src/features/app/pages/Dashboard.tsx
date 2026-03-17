@@ -1,41 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
-import { useEffect, useRef, useState } from "react";
-import { getLeaderboard, getMyScores } from "../../game/services/scoreService";
-import type { GameMode } from "../../game/types/GameMode";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactElement } from "react";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import "../../../styles/dashboard.scss";
-
-type UserScore = {
-  id: number;
-  value: number;
-  level: number;
-  lines: number;
-  createdAt: string;
-  mode: GameMode;
-};
-
-type VersusRow = {
-  id: number;
-  matchId?: string | null;
-  winnerPseudo?: string | null;
-  player1: { pseudo: string; score: number; lines: number; wins: number; losses: number; userId?: number | null };
-  player2: { pseudo: string; score: number; lines: number; wins: number; losses: number; userId?: number | null };
-  createdAt?: string;
-};
-
-type BrickfallLeaderboardRow = {
-  userId: number | null;
-  pseudo: string;
-  wins: number;
-  losses: number;
-  architectGames: number;
-  demolisherGames: number;
-  architectWins: number;
-  demolisherWins: number;
-  rankScore: number;
-  winRate: number;
-};
 
 type ModeCard = {
   title: string;
@@ -51,6 +19,44 @@ type DashboardChatLine = {
   bot: DashboardBot;
   text: string;
 };
+
+type DashboardActionIconName = "resume" | "hub" | "editor" | "gallery";
+
+type ShortcutButton = {
+  label: string;
+  tooltip: string;
+  icon: DashboardActionIconName;
+  action: () => void;
+};
+
+function DashboardActionIcon({ name }: { name: DashboardActionIconName }) {
+  const iconMap: Record<DashboardActionIconName, ReactElement> = {
+    resume: (
+      <path d="M12 2a10 10 0 1 0 7.1 2.9 1 1 0 1 0-1.4 1.4A8 8 0 1 1 12 4v3l4-4-4-4z" />
+    ),
+    hub: (
+      <path d="M3 5a2 2 0 0 1 2-2h4v4H5v4H3zm12-2h4a2 2 0 0 1 2 2v6h-2V7h-4zm4 12v4a2 2 0 0 1-2 2h-6v-2h6v-4zM9 21H5a2 2 0 0 1-2-2v-4h2v4h4zm1-12h4v4h-4zm-5 5h4v4H5zm10 0h4v4h-4z" />
+    ),
+    editor: (
+      <path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zm14.71-9.04a1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-1.42 0l-1.46 1.46 3.75 3.75z" />
+    ),
+    gallery: (
+      <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14H4zm2 2v10h12V7zm1 8 3-4 2 3 2-2 3 3z" />
+    ),
+  };
+
+  return (
+    <svg
+      className="dashboard-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+      fill="currentColor"
+    >
+      {iconMap[name]}
+    </svg>
+  );
+}
 
 const CHATBOT_AVATARS: Record<DashboardBot, string> = {
   rookie: "/Tetromaze/rookie.png",
@@ -150,54 +156,89 @@ const CHAT_RARE = [
   "Ce n’est que le début.",
 ];
 
+const TETROBOT_TIPS: Record<DashboardBot, string[]> = {
+  rookie: [
+    "Reprends une session courte sur ton mode prefere pour conserver le rythme.",
+    "Quand tu bloques, change juste de mode pendant dix minutes puis reviens.",
+    "Un petit objectif clair vaut mieux qu'une longue session brouillonne.",
+    "Teste un niveau joueur simple avant de repartir sur une campagne difficile.",
+    "Si tu rates souvent au meme endroit, ralentis une partie et observe juste ton erreur.",
+  ],
+  pulse: [
+    "Ton meilleur levier de progression reste d'alterner campagne, editeur et contenu joueur.",
+    "Concentre-toi sur un seul indicateur a la fois: vitesse, precision ou lecture du terrain.",
+    "Une rotation de modes bien choisie t'evitera de plafonner trop vite.",
+    "Quand tes resultats baissent, reduis le rythme et vise une execution plus propre.",
+    "Analyse d'abord les patterns qui reviennent, ensuite seulement la vitesse.",
+  ],
+  apex: [
+    "Si tu veux vraiment progresser, attaque les succes que tu repousses depuis trop longtemps.",
+    "Le confort ne t'apprend rien. Choisis le mode que tu evites.",
+    "Tu n'as pas besoin d'une longue session, tu as besoin d'une session plus exigeante.",
+    "Arrete de rejouer tes points forts. Travaille ce qui te coute des parties.",
+    "La progression commence quand tu cesses d'ignorer tes faiblesses evidentes.",
+  ],
+};
+
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)] as T;
 }
 
+function readLocalBrickfallProgress() {
+  try {
+    const raw = localStorage.getItem("brickfall-solo-campaign-progress-v1");
+    const parsed = Number.parseInt(raw ?? "1", 10);
+    return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function readLocalTetromazeProgress() {
+  try {
+    const raw = localStorage.getItem("tetromaze-campaign-progress-v1");
+    if (!raw) return { highestLevel: 1, currentLevel: 1 };
+    const parsed = JSON.parse(raw) as { highestLevel?: number; currentLevel?: number };
+    return {
+      highestLevel: Math.max(1, Math.floor(parsed.highestLevel ?? 1)),
+      currentLevel: Math.max(1, Math.floor(parsed.currentLevel ?? 1)),
+    };
+  } catch {
+    return { highestLevel: 1, currentLevel: 1 };
+  }
+}
+
+function readLocalPixelProtocolProgress() {
+  try {
+    const raw = localStorage.getItem("pixel-protocol-progress-v1");
+    if (!raw) return { highestLevel: 1, currentLevel: 1 };
+    const parsed = JSON.parse(raw) as { highestLevel?: number; currentLevel?: number };
+    return {
+      highestLevel: Math.max(1, Math.floor(parsed.highestLevel ?? 1)),
+      currentLevel: Math.max(1, Math.floor(parsed.currentLevel ?? 1)),
+    };
+  } catch {
+    return { highestLevel: 1, currentLevel: 1 };
+  }
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, logoutUser } = useAuth();
-  const { stats } = useAchievements();
-  const [scores, setScores] = useState<Array<UserScore | VersusRow | BrickfallLeaderboardRow>>([]);
-  const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<GameMode>("CLASSIQUE");
-  const [tab, setTab] = useState<"modes" | "scores">("modes");
-  const [showVersusChoice, setShowVersusChoice] = useState(false);
-  const [showRoguelikeVersusChoice, setShowRoguelikeVersusChoice] = useState(false);
+  const { user } = useAuth();
+  const { stats, achievements, recentUnlocks } = useAchievements();
   const [chatLine, setChatLine] = useState<DashboardChatLine>({
     bot: "rookie",
     text: "Initialisation du flux Tétrobots...",
   });
   const chatTimerRef = useRef<number | null>(null);
   const inactiveRef = useRef(false);
-  const soloModes: ModeCard[] = [
+  const modeCards: ModeCard[] = [
     {
-      title: "Classique",
-      desc: "Le mode original pour scorer.",
-      path: "/game",
-      accent: "from-[#0b001a] to-[#1a0033]",
-      image: "/Game_Mode/classique.png",
-    },
-    {
-      title: "Sprint",
-      desc: "Fais le meilleur temps sur 40 lignes.",
-      path: "/sprint",
-      accent: "from-[#001a12] to-[#003329]",
-      image: "/Game_Mode/sprint.png",
-    },
-    {
-      title: "Roguelike",
-      desc: "Perks, mutations et synergies.",
-      path: "/roguelike",
-      accent: "from-[#12001a] to-[#2a003d]",
-      image: "/Game_Mode/roguelike.png",
-    },
-    {
-      title: "Puzzle",
-      desc: "Plateaux fixes et objectifs précis.",
-      path: "/puzzle",
-      accent: "from-[#1a1200] to-[#332400]",
-      image: "/Game_Mode/puzzle.png",
+      title: "Mode Tetris",
+      desc: "Classique, sprint, roguelike, puzzle et versus.",
+      path: "/tetris-hub",
+      accent: "from-[#130018] to-[#2b0a45]",
+      image: "/Game_Mode/tetris.png",
     },
     {
       title: "Brickfall Solo",
@@ -221,28 +262,6 @@ export default function Dashboard() {
       image: "/Game_Mode/pixel_protocole.png",
     },
   ];
-  const versusModes: ModeCard[] = [
-    {
-      title: "Versus",
-      desc: "Affronte d'autres joueurs.",
-      path: "/versus",
-      accent: "from-[#1a0010] to-[#33001f]",
-      image: "/Game_Mode/versus.png",
-    },
-    {
-      title: "Roguelike Versus",
-      desc: "Roguelike compétitif en 1v1.",
-      path: "/roguelike-versus",
-      accent: "from-[#0d1a1a] to-[#0c2b33]",
-      image: "/Game_Mode/roguelike-versus.png",
-    },
-  ];
-
-  const handleLogout = async () => {
-    // Déconnexion + retour à l'accueil.
-    await logoutUser();
-    navigate("/");
-  };
 
   useEffect(() => {
     const now = Date.now();
@@ -329,108 +348,212 @@ export default function Dashboard() {
     stats.versusWins,
   ]);
 
-  useEffect(() => {
-    if (tab !== "scores") return;
-    setLoading(true);
-    async function fetchScores() {
-      try {
-        if (mode === "VERSUS" || mode === "ROGUELIKE_VERSUS") {
-          // En modes PVP: on filtre les matchs où le joueur est impliqué.
-          const data = await getLeaderboard(mode);
-          const mine = (data as VersusRow[]).filter(
-            (row) =>
-              row.player1?.pseudo === user?.pseudo ||
-              row.player2?.pseudo === user?.pseudo ||
-              row.player1?.userId === user?.id ||
-              row.player2?.userId === user?.id
-          );
-          setScores(mine);
-        } else if (mode === "BRICKFALL_VERSUS") {
-          const data = await getLeaderboard(mode);
-          const mine = (data as BrickfallLeaderboardRow[]).filter(
-            (row) => row.userId === user?.id || row.pseudo === user?.pseudo
-          );
-          setScores(mine);
-        } else {
-          // En solo: on récupère uniquement les scores du joueur.
-          const data = await getMyScores(mode);
-          // tri différent selon le mode
-          const sorted =
-            mode === "SPRINT"
-              ? data.sort((a: any, b: any) => a.value - b.value) // plus rapide = mieux
-              : data.sort((a: any, b: any) => b.value - a.value);
-          setScores(sorted.slice(0, 10));
-        }
-      } catch (err) {
-        console.error("Erreur de chargement des scores:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
+  const brickfallProgress = useMemo(() => readLocalBrickfallProgress(), []);
+  const tetromazeProgress = useMemo(() => readLocalTetromazeProgress(), []);
+  const pixelProtocolProgress = useMemo(() => readLocalPixelProtocolProgress(), []);
+  const unlockedCount = achievements.filter((achievement) => achievement.unlocked).length;
+  const visitedModes = Object.values(stats.modesVisited).filter(Boolean).length;
 
-    fetchScores();
-  }, [mode, tab, user]);
+  const quickResume = useMemo(() => {
+    if (pixelProtocolProgress.currentLevel > 1) {
+      return {
+        title: "Pixel Protocol",
+        detail: `Checkpoint campagne: niveau ${pixelProtocolProgress.currentLevel}`,
+        action: () => navigate(`/pixel-protocol/play?level=${pixelProtocolProgress.currentLevel}`),
+        secondary: () => navigate("/pixel-protocol"),
+        primaryLabel: "Reprendre",
+        secondaryLabel: "Voir le hub",
+      };
+    }
+    if (tetromazeProgress.currentLevel > 1) {
+      return {
+        title: "Tetromaze",
+        detail: `Checkpoint campagne: niveau ${tetromazeProgress.currentLevel}`,
+        action: () => navigate(`/tetromaze/play?level=${tetromazeProgress.currentLevel}`),
+        secondary: () => navigate("/tetromaze"),
+        primaryLabel: "Reprendre",
+        secondaryLabel: "Voir le hub",
+      };
+    }
+    if (brickfallProgress > 1) {
+      return {
+        title: "Brickfall Solo",
+        detail: `Checkpoint campagne: niveau ${brickfallProgress}`,
+        action: () => navigate(`/brickfall-solo/play?level=${brickfallProgress}`),
+        secondary: () => navigate("/brickfall-solo"),
+        primaryLabel: "Reprendre",
+        secondaryLabel: "Voir le hub",
+      };
+    }
+    return {
+      title: "Mode Tetris",
+      detail: "Aucune progression recente detectee, repars sur le hub central.",
+      action: () => navigate("/tetris-hub"),
+      secondary: () => navigate("/tetris-hub"),
+      primaryLabel: "Ouvrir le hub",
+      secondaryLabel: "Explorer les modes",
+    };
+  }, [
+    brickfallProgress,
+    navigate,
+    pixelProtocolProgress.currentLevel,
+    tetromazeProgress.currentLevel,
+  ]);
+
+  const achievementFocus = useMemo(() => {
+    const items = [
+      {
+        label: "Modes visites",
+        value: `${visitedModes}/9`,
+        hint: visitedModes >= 9 ? "Tous les modes ont deja ete visites." : "Continue d'explorer les hubs.",
+      },
+      {
+        label: "Succes debloques",
+        value: `${unlockedCount}/${achievements.length}`,
+        hint: unlockedCount >= Math.ceil(achievements.length / 2)
+          ? "Tu approches du 100%."
+          : "Encore de quoi debloquer pas mal de succes.",
+      },
+      {
+        label: "Tetromaze",
+        value: `${stats.tetromazeWins} victoire${stats.tetromazeWins > 1 ? "s" : ""}`,
+        hint: stats.tetromazeWins >= 1 ? "Continue a augmenter tes escapes." : "Une premiere victoire debloquera du contenu de progression.",
+      },
+    ];
+    return items;
+  }, [achievements.length, stats.tetromazeWins, unlockedCount, visitedModes]);
+
+  const recentActivity = useMemo(() => {
+    const items = [
+      recentUnlocks[0]
+        ? `Succes recent: ${recentUnlocks[0].name}`
+        : `Succes debloques: ${unlockedCount}`,
+      `Brickfall Solo: monde ${Math.max(1, stats.brickfallSoloBestWorld)} atteint`,
+      `Tetromaze: ${stats.tetromazeEscapesTotal} esquive${stats.tetromazeEscapesTotal > 1 ? "s" : ""} reussie${stats.tetromazeEscapesTotal > 1 ? "s" : ""}`,
+      `Pixel Protocol: checkpoint niveau ${pixelProtocolProgress.currentLevel}`,
+    ];
+    return items;
+  }, [
+    pixelProtocolProgress.currentLevel,
+    recentUnlocks,
+    stats.brickfallSoloBestWorld,
+    stats.tetromazeEscapesTotal,
+    unlockedCount,
+  ]);
+
+  const tetrobotTip = useMemo(() => pickRandom(TETROBOT_TIPS[chatLine.bot]), [chatLine.bot]);
+
+  const editorShortcuts: ShortcutButton[] = [
+    {
+      label: "Editeur Brickfall Solo",
+      tooltip: "Ouvrir l'editeur de niveaux Brickfall Solo.",
+      icon: "editor",
+      action: () => navigate("/brickfall-editor"),
+    },
+    {
+      label: "Editeur Tetromaze",
+      tooltip: "Ouvrir l'editeur de niveaux Tetromaze.",
+      icon: "editor",
+      action: () => navigate("/tetromaze/editor"),
+    },
+    {
+      label: "Editeur Pixel Protocol",
+      tooltip: "Ouvrir l'editeur de niveaux Pixel Protocol.",
+      icon: "editor",
+      action: () => navigate("/pixel-protocol/editor"),
+    },
+  ];
+
+  const communityShortcuts: ShortcutButton[] = [
+    {
+      label: "Galerie Brickfall Solo",
+      tooltip: "Explorer les niveaux publies par la communaute Brickfall Solo.",
+      icon: "gallery",
+      action: () => navigate("/brickfall-solo/community"),
+    },
+    {
+      label: "Galerie Tetromaze",
+      tooltip: "Explorer les niveaux publies par la communaute Tetromaze.",
+      icon: "gallery",
+      action: () => navigate("/tetromaze/community"),
+    },
+    {
+      label: "Galerie Pixel Protocol",
+      tooltip: "Explorer les niveaux publies par la communaute Pixel Protocol.",
+      icon: "gallery",
+      action: () => navigate("/pixel-protocol/community"),
+    },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col text-pink-300 font-['Press_Start_2P'] py-10 px-10">
-      <div className="relative mb-8">
-        {user ? (
-          <p className="text-2xl md:text-3xl text-pink-400 text-center">
-            Bienvenue <span className="text-yellow-300">{user.pseudo}</span> !
-          </p>
-        ) : (
-          <p className="text-red-400 text-center">Utilisateur non trouvé</p>
-        )}
+    <div className="min-h-screen flex flex-col text-pink-300 font-['Press_Start_2P'] py-4 px-2 md:px-3 overflow-x-hidden">
+      <div className="dashboard-top-row">
+        <section className="dashboard-chatbot" aria-live="polite">
+          <img
+            src={CHATBOT_AVATARS[chatLine.bot]}
+            alt={CHATBOT_NAMES[chatLine.bot]}
+            className="dashboard-chatbot__avatar"
+            loading="lazy"
+          />
+          <div className="dashboard-chatbot__body">
+            {user ? (
+              <p className="dashboard-chatbot__welcome">
+                Bienvenue <span>{user.pseudo}</span> !
+              </p>
+            ) : (
+              <p className="dashboard-chatbot__welcome">Bienvenue pilote !</p>
+            )}
+            <p
+              className="dashboard-chatbot__name"
+              style={{ color: CHATBOT_COLORS[chatLine.bot] }}
+            >
+              {CHATBOT_NAMES[chatLine.bot]}
+            </p>
+            <p className="dashboard-chatbot__text">{chatLine.text}</p>
+          </div>
+        </section>
 
-        {user && (
-          <button
-            onClick={handleLogout}
-            className="bg-pink-600 hover:bg-pink-500 px-4 py-2 rounded-lg text-white border-2 border-yellow-400 hover:scale-105 transition-transform shadow-[0_0_15px_#ff00ff] absolute right-0 top-0"
-          >
-            Se déconnecter
-          </button>
-        )}
+        <section className="dashboard-panel dashboard-panel--tip">
+          <p className="dashboard-panel__eyebrow">Conseil Tetrobots</p>
+          <h2>Analyse du jour</h2>
+          <p className="dashboard-tip">{tetrobotTip}</p>
+        </section>
+
+        <section className="dashboard-resume">
+          <div className="dashboard-resume__copy">
+            <p className="dashboard-panel__eyebrow">Action rapide</p>
+            <h2>Reprendre la ou tu t'es arrete</h2>
+            <p className="dashboard-resume__title">{quickResume.title}</p>
+            <p className="dashboard-resume__text">{quickResume.detail}</p>
+          </div>
+          <div className="dashboard-resume__actions">
+            <button
+              className="dashboard-cta dashboard-cta--primary"
+              onClick={quickResume.action}
+              data-tooltip="Relancer directement ton dernier point de reprise."
+              aria-label="Reprendre la progression"
+            >
+              <DashboardActionIcon name="resume" />
+            </button>
+            <button
+              className="dashboard-cta"
+              onClick={quickResume.secondary}
+              data-tooltip="Ouvrir le hub correspondant pour choisir une autre entree."
+              aria-label="Voir le hub"
+            >
+              <DashboardActionIcon name="hub" />
+            </button>
+          </div>
+        </section>
       </div>
 
-      <section className="dashboard-chatbot" aria-live="polite">
-        <img
-          src={CHATBOT_AVATARS[chatLine.bot]}
-          alt={CHATBOT_NAMES[chatLine.bot]}
-          className="dashboard-chatbot__avatar"
-          loading="lazy"
-        />
-        <div className="dashboard-chatbot__body">
-          <p
-            className="dashboard-chatbot__name"
-            style={{ color: CHATBOT_COLORS[chatLine.bot] }}
-          >
-            {CHATBOT_NAMES[chatLine.bot]}
-          </p>
-          <p className="dashboard-chatbot__text">{chatLine.text}</p>
-        </div>
-      </section>
-
-      <div className="flex gap-4 mb-8 justify-center">
-        {(["modes", "scores"] as const).map((item) => (
-          <button
-            key={item}
-            onClick={() => setTab(item)}
-            className={`px-4 py-2 rounded-lg border-2 text-sm ${tab === item
-                ? "bg-pink-600 border-pink-300 text-white"
-                : "bg-black/40 border-pink-700 text-pink-300"
-              }`}
-          >
-            {item === "modes" ? "Modes de jeux" : "Meilleurs scores"}
-          </button>
-        ))}
-      </div>
-
-      {tab === "modes" && (
-        <div className="mode-sections">
-          <section className="mode-section">
-            <h2 className="mode-section__title">Mode Solo</h2>
-            <div className="mode-card-grid mode-card-grid--solo">
-              {soloModes.map((modeCard) => (
+      <div className="dashboard-grid">
+        <div className="dashboard-col">
+          <section className="dashboard-panel dashboard-panel--modes">
+            <p className="dashboard-panel__eyebrow">Modes</p>
+            <h2>Choisir une destination</h2>
+            <div className="mode-card-grid mode-card-grid--dashboard">
+              {modeCards.map((modeCard) => (
                 <button
                   key={modeCard.title}
                   onClick={() => navigate(modeCard.path)}
@@ -452,259 +575,98 @@ export default function Dashboard() {
               ))}
             </div>
           </section>
-          <section className="mode-section">
-            <h2 className="mode-section__title">Mode Versus</h2>
-            <div className="mode-card-grid mode-card-grid--versus">
-              {versusModes.map((modeCard) => (
-                <button
-                  key={modeCard.title}
-                  onClick={() => {
-                    if (modeCard.path === "/versus") {
-                      setShowVersusChoice(true);
-                      return;
-                    }
-                    if (modeCard.path === "/roguelike-versus") {
-                      setShowRoguelikeVersusChoice(true);
-                      return;
-                    }
-                    navigate(modeCard.path);
-                  }}
-                  className={`mode-card bg-gradient-to-b ${modeCard.accent}`}
-                >
-                  <div className="mode-card__icon">
-                    <img
-                      src={modeCard.image}
-                      alt={modeCard.title}
-                      className="mode-card__image"
-                      loading="lazy"
-                    />
+
+          <section className="dashboard-panel dashboard-panel--focus">
+            <p className="dashboard-panel__eyebrow">Succes en progression</p>
+            <h2>Ce que tu peux viser maintenant</h2>
+            <div className="dashboard-focus-list">
+              {achievementFocus.map((item) => (
+                <div key={item.label} className="dashboard-focus-card">
+                  <div className="dashboard-focus-card__top">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
                   </div>
-                  <div className="mode-card__content">
-                    <h3>{modeCard.title}</h3>
-                    <p>{modeCard.desc}</p>
-                  </div>
-                </button>
+                  <p>{item.hint}</p>
+                </div>
               ))}
             </div>
           </section>
-        </div>
-      )}
-
-      {showVersusChoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-xl rounded-xl border-2 border-pink-500 bg-[#130212] p-6 text-left shadow-[0_0_20px_#ff00ff]">
-            <h2 className="text-xl text-yellow-300 mb-4">Mode Versus</h2>
-            <p className="text-sm text-gray-200 mb-6">
-              Choisis ton type de duel avant de lancer la partie.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                className="retro-btn text-left"
-                onClick={() => {
-                  setShowVersusChoice(false);
-                  navigate("/versus?queue=bot");
-                }}
-              >
-                Solo vs Tetrobots
-              </button>
-              <button
-                className="retro-btn text-left"
-                onClick={() => {
-                  setShowVersusChoice(false);
-                  navigate("/versus?queue=pvp");
-                }}
-              >
-                Joueur vs Joueur
-              </button>
-              <button
-                className="retro-btn text-left"
-                onClick={() => setShowVersusChoice(false)}
-              >
-                Annuler
-              </button>
+          <section className="dashboard-panel dashboard-panel--progress">
+            <p className="dashboard-panel__eyebrow">Progression</p>
+            <h2>Etat des campagnes</h2>
+            <div className="dashboard-progress-list">
+              <div className="dashboard-progress-item">
+                <span>Mode Tetris</span>
+                <strong>Hub central disponible</strong>
+              </div>
+              <div className="dashboard-progress-item">
+                <span>Brickfall Solo</span>
+                <strong>Niveau {brickfallProgress}</strong>
+              </div>
+              <div className="dashboard-progress-item">
+                <span>Tetromaze</span>
+                <strong>Niveau {tetromazeProgress.currentLevel} / max {tetromazeProgress.highestLevel}</strong>
+              </div>
+              <div className="dashboard-progress-item">
+                <span>Pixel Protocol</span>
+                <strong>Niveau {pixelProtocolProgress.currentLevel} / max {pixelProtocolProgress.highestLevel}</strong>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
-      )}
+      </div>
 
-      {showRoguelikeVersusChoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-xl rounded-xl border-2 border-pink-500 bg-[#130212] p-6 text-left shadow-[0_0_20px_#ff00ff]">
-            <h2 className="text-xl text-yellow-300 mb-4">Mode Roguelike Versus</h2>
-            <p className="text-sm text-gray-200 mb-6">
-              Choisis ton type de duel avant de lancer la partie.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                className="retro-btn text-left"
-                onClick={() => {
-                  setShowRoguelikeVersusChoice(false);
-                  navigate("/roguelike-versus?queue=bot");
-                }}
-              >
-                Solo vs Tetrobots
-              </button>
-              <button
-                className="retro-btn text-left"
-                onClick={() => {
-                  setShowRoguelikeVersusChoice(false);
-                  navigate("/roguelike-versus?queue=pvp");
-                }}
-              >
-                Joueur vs Joueur
-              </button>
-              <button
-                className="retro-btn text-left"
-                onClick={() => setShowRoguelikeVersusChoice(false)}
-              >
-                Annuler
-              </button>
-            </div>
+      <div className="dashboard-bottom-grid">
+        <section className="dashboard-panel dashboard-panel--activity">
+          <p className="dashboard-panel__eyebrow">Activite recente</p>
+          <h2>Derniers signaux</h2>
+          <div className="dashboard-activity-list">
+            {recentActivity.map((item) => (
+              <div key={item} className="dashboard-activity-item">
+                {item}
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        </section>
 
-      {tab === "scores" && (
-        <>
-          <div className="mb-8">
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value as GameMode)}
-              className="retro-select border-4 border-pink-500 bg-black text-yellow-300 px-6 py-3 rounded-xl cursor-pointer hover:shadow-[0_0_25px_#ff00ff] focus:outline-none focus:ring-4 focus:ring-pink-500/70 transition-all duration-300"
-            >
-              <option value="CLASSIQUE"> Mode Classique</option>
-              <option value="SPRINT"> Mode Sprint</option>
-              <option value="VERSUS"> Mode Versus</option>
-              <option value="ROGUELIKE_VERSUS"> Mode Roguelike Versus</option>
-            </select>
+        <section className="dashboard-panel dashboard-panel--create">
+          <p className="dashboard-panel__eyebrow">Creer</p>
+          <h2>Raccourcis editeurs</h2>
+          <div className="dashboard-shortcuts">
+            {editorShortcuts.map((shortcut) => (
+              <button
+                key={shortcut.label}
+                className="dashboard-shortcut dashboard-shortcut--wide"
+                onClick={shortcut.action}
+                data-tooltip={shortcut.tooltip}
+                aria-label={shortcut.label}
+              >
+                <DashboardActionIcon name={shortcut.icon} />
+                <span>{shortcut.label}</span>
+              </button>
+            ))}
           </div>
+        </section>
 
-          {loading ? (
-            <p className="text-yellow-400 mt-6">Chargement des scores...</p>
-          ) : scores.length === 0 ? (
-            <p className="text-gray-400 mt-6">Aucun score enregistré pour ce mode.</p>
-          ) : (
-            <div className="mt-2 w-full max-w-4xl">
-              <h2 className="text-2xl text-yellow-400 mb-4 text-center">
-                🏆 Tes 10 meilleurs scores — {mode}
-              </h2>
-              {mode === "BRICKFALL_VERSUS" ? (
-                <table className="w-full border border-pink-500 rounded-lg bg-black bg-opacity-60 text-center bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-[0_0_20px_#ff00ff]">
-                  <thead>
-                    <tr className="text-yellow-400 border-b border-pink-500">
-                      <th className="py-2">#</th>
-                      <th>Pseudo</th>
-                      <th>V/D total</th>
-                      <th>Wins Architecte</th>
-                      <th>Wins Démolisseur</th>
-                      <th>Rang</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(scores as BrickfallLeaderboardRow[]).map((row, i) => (
-                      <tr
-                        key={`${row.userId ?? "anon"}-${row.pseudo}`}
-                        className="hover:bg-pink-900/30 transition border-b border-pink-700"
-                      >
-                        <td className="py-2 text-pink-300">{i + 1}</td>
-                        <td className="text-white font-bold">{row.pseudo}</td>
-                        <td className="text-white">{row.wins}V / {row.losses}D</td>
-                        <td className="text-cyan-300">{row.architectWins}</td>
-                        <td className="text-green-300">{row.demolisherWins}</td>
-                        <td className="text-yellow-300 font-bold">{row.rankScore}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : mode === "VERSUS" || mode === "ROGUELIKE_VERSUS" ? (
-                <table className="w-full border border-pink-500 rounded-lg bg-black bg-opacity-60 text-center bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-[0_0_20px_#ff00ff]">
-                  <thead>
-                    <tr className="text-yellow-400 border-b border-pink-500">
-                      <th className="py-2">#</th>
-                      <th>Adversaire</th>
-                      <th>Résultat</th>
-                      <th>Score / Lignes</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(scores as VersusRow[]).map((row, i) => {
-                      const isP1 =
-                        row.player1?.pseudo === user?.pseudo ||
-                        row.player1?.userId === user?.id;
-                      const me = isP1 ? row.player1 : row.player2;
-                      const opp = isP1 ? row.player2 : row.player1;
-                      const outcome = row.winnerPseudo
-                        ? row.winnerPseudo === me?.pseudo
-                          ? "Victoire"
-                          : "Défaite"
-                        : "Égalité";
-                      return (
-                        <tr
-                          key={row.id}
-                          className="hover:bg-pink-900/30 transition border-b border-pink-700"
-                        >
-                          <td className="py-2 text-pink-300">{i + 1}</td>
-                          <td className="text-white font-bold">{opp?.pseudo ?? "?"}</td>
-                          <td
-                            className={
-                              outcome === "Victoire"
-                                ? "text-green-300"
-                                : outcome === "Défaite"
-                                  ? "text-red-300"
-                                  : "text-yellow-300"
-                            }
-                          >
-                            {outcome} {me ? `(${me.wins}V / ${me.losses}D)` : ""}
-                          </td>
-                          <td className="text-white">
-                            {me?.score ?? 0} pts / {me?.lines ?? 0} lignes
-                          </td>
-                          <td className="text-xs text-gray-400">
-                            {row.createdAt
-                              ? new Date(row.createdAt).toLocaleDateString("fr-FR")
-                              : "-"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <table className="w-full border border-pink-500 rounded-lg bg-black bg-opacity-60 text-center bg-gradient-to-b from-[#0b001a] to-[#1a0033] shadow-[0_0_20px_#ff00ff]">
-                  <thead>
-                    <tr className="text-yellow-400 border-b border-pink-500">
-                      <th className="py-2">#</th>
-                      <th>{mode === "SPRINT" ? "Temps (s)" : "Score"}</th>
-                      {mode === "CLASSIQUE" && <th>Niveau</th>}
-                      <th>Lignes</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(scores as UserScore[]).map((s, i) => (
-                      <tr
-                        key={s.id}
-                        className="hover:bg-pink-900/30 transition border-b border-pink-700"
-                      >
-                        <td className="py-2 text-pink-300">{i + 1}</td>
-                        <td className="text-white font-bold">
-                          {mode === "SPRINT" ? `${s.value}s` : s.value}
-                        </td>
-                        {mode === "CLASSIQUE" && <td>{s.level}</td>}
-                        <td>{s.lines}</td>
-                        <td className="text-xs text-gray-400">
-                          {new Date(s.createdAt).toLocaleDateString("fr-FR")}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-        </>
-      )}
+        <section className="dashboard-panel dashboard-panel--community">
+          <p className="dashboard-panel__eyebrow">Communaute</p>
+          <h2>Explorer les niveaux joueurs</h2>
+          <div className="dashboard-shortcuts">
+            {communityShortcuts.map((shortcut) => (
+              <button
+                key={shortcut.label}
+                className="dashboard-shortcut dashboard-shortcut--wide"
+                onClick={shortcut.action}
+                data-tooltip={shortcut.tooltip}
+                aria-label={shortcut.label}
+              >
+                <DashboardActionIcon name={shortcut.icon} />
+                <span>{shortcut.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
