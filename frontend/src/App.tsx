@@ -18,6 +18,7 @@ import BrickfallSolo from "./features/brickfallSolo/pages/BrickfallSolo";
 import BrickfallSoloPlay from "./features/brickfallSolo/pages/BrickfallSoloPlay";
 import BrickfallEditor from "./features/brickfallSolo/pages/BrickfallEditor";
 import BrickfallEditorHelp from "./features/brickfallSolo/pages/BrickfallEditorHelp";
+import BrickfallSoloCommunityHub from "./features/brickfallSolo/pages/BrickfallSoloCommunityHub";
 import AchievementsPage from "./features/achievements/pages/AchievementsPage";
 import Settings from "./features/settings/pages/Settings";
 import PuzzleSelect from "./features/puzzle/pages/PuzzleSelect";
@@ -26,6 +27,7 @@ import TetromazePage from "./features/tetromaze/pages/TetromazePage";
 import TetromazeHub from "./features/tetromaze/pages/TetromazeHub";
 import TetromazeEditor from "./features/tetromaze/pages/TetromazeEditor";
 import TetromazeEditorHelp from "./features/tetromaze/pages/TetromazeEditorHelp";
+import TetromazeCommunityHub from "./features/tetromaze/pages/TetromazeCommunityHub";
 import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
@@ -70,6 +72,7 @@ function App() {
           <Route path="/sprint" element={<Sprint />} />
           <Route path="/versus" element={<Versus />} />
           <Route path="/brickfall-solo" element={<BrickfallSolo />} />
+          <Route path="/brickfall-solo/community" element={<BrickfallSoloCommunityHub />} />
           <Route path="/brickfall-solo/play" element={<BrickfallSoloPlay />} />
           <Route path="/brickfall-editor" element={<BrickfallEditor />} />
           <Route path="/brickfall/help/editor" element={<BrickfallEditorHelp />} />
@@ -80,6 +83,7 @@ function App() {
           <Route path="/puzzle" element={<PuzzleSelect />} />
           <Route path="/puzzle/:id" element={<PuzzleRun />} />
           <Route path="/tetromaze" element={<TetromazeHub />} />
+          <Route path="/tetromaze/community" element={<TetromazeCommunityHub />} />
           <Route path="/tetromaze/play" element={<TetromazePage />} />
           <Route path="/tetromaze/editor" element={<TetromazeEditor />} />
           <Route path="/tetromaze/help/editor" element={<TetromazeEditorHelp />} />

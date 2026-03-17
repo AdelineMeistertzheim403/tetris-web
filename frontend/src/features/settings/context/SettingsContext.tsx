@@ -112,6 +112,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const loadedUserIdRef = useRef<number | null>(null);
   const canPersistRemoteRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRemoteSnapshotRef = useRef<string | null>(null);
 
   const setSettings = useCallback((next: Settings) => {
     setSettingsState(next);
@@ -184,7 +185,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .then((remoteSettings) => {
         if (cancelled) return;
         if (remoteSettings) {
-          setSettingsState(mergeSettings(remoteSettings));
+          const merged = mergeSettings(remoteSettings);
+          lastRemoteSnapshotRef.current = JSON.stringify(merged);
+          setSettingsState(merged);
+        } else {
+          lastRemoteSnapshotRef.current = JSON.stringify(settings);
         }
       })
       .catch(() => {
@@ -205,15 +210,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const userId = typeof user?.id === "number" ? user.id : null;
     if (!userId || !canPersistRemoteRef.current) return;
 
+    const serializedSettings = JSON.stringify(settings);
+    if (lastRemoteSnapshotRef.current === serializedSettings) return;
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      saveUserSettings(settings).catch(() => {
-        // fallback localStorage seulement
-      });
+      saveUserSettings(settings)
+        .then(() => {
+          lastRemoteSnapshotRef.current = serializedSettings;
+        })
+        .catch(() => {
+          // fallback localStorage seulement
+        });
     }, 300);
 
     return () => {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../auth/context/AuthContext";
 import BrickfallBoard from "../../brickfallVersus/components/BrickfallBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
 import { BRICKFALL_BALANCE } from "../../brickfallVersus/config/balance";
@@ -12,10 +13,14 @@ import {
   getCampaignLevel,
 } from "../data/campaignLevels";
 import {
+  fetchBrickfallSoloCommunityLevel,
   fetchBrickfallSoloCustomLevels,
   fetchBrickfallSoloProgress,
   saveBrickfallSoloProgress,
+  toggleBrickfallSoloCommunityLevelLike,
+  type BrickfallSoloCommunityLevel,
 } from "../services/brickfallSoloService";
+import { markBrickfallSoloCustomLevelCompleted } from "../utils/communityCompletion";
 import "../../../styles/roguelike.css";
 import "../../../styles/brickfall-solo-play.css";
 
@@ -125,6 +130,7 @@ function formatDebuff(value: string): string {
 export default function BrickfallSoloPlay() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { checkAchievements, updateStats } = useAchievements();
   const startLives = BRICKFALL_BALANCE.demolisher.startLives;
   const [levelIndex, setLevelIndex] = useState(1);
@@ -143,6 +149,10 @@ export default function BrickfallSoloPlay() {
   const [spawnType, setSpawnType] = useState<SpawnType | null>(null);
   const [spawnToken, setSpawnToken] = useState(0);
   const [isCustomLevel, setIsCustomLevel] = useState(false);
+  const [communityLevel, setCommunityLevel] = useState<BrickfallSoloCommunityLevel | null>(null);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityError, setCommunityError] = useState<string | null>(null);
+  const [communityLikeBusy, setCommunityLikeBusy] = useState(false);
   const [roundNote, setRoundNote] = useState<string | null>(null);
   const [savedCampaignLevel, setSavedCampaignLevel] = useState(() => readLocalProgress());
   const visitedRef = useRef(false);
@@ -153,6 +163,7 @@ export default function BrickfallSoloPlay() {
 
   const worldStage = useMemo(() => toWorldStage(levelIndex), [levelIndex]);
   const customParam = searchParams.get("custom");
+  const communityParam = searchParams.get("community");
   const levelParamRaw = searchParams.get("level");
   const levelParam = levelParamRaw ? clamp(Number.parseInt(levelParamRaw, 10) || 1, 1, TOTAL_LEVELS) : null;
   const specialBlocks = useMemo(
@@ -181,6 +192,7 @@ export default function BrickfallSoloPlay() {
         ),
     [level.bricks]
   );
+  const isCommunityLevel = Boolean(communityLevel);
   const guaranteedDropBlocks = useMemo(
     () =>
       level.bricks
@@ -235,6 +247,30 @@ export default function BrickfallSoloPlay() {
       let checkpoint = readLocalProgress();
       setSavedCampaignLevel(checkpoint);
 
+      const requestedCommunityId = Number.parseInt(communityParam ?? "", 10);
+      if (Number.isFinite(requestedCommunityId) && requestedCommunityId > 0) {
+        if (!cancelled) {
+          setCommunityLoading(true);
+          setCommunityError(null);
+        }
+        try {
+          const remoteCommunityLevel = await fetchBrickfallSoloCommunityLevel(requestedCommunityId);
+          if (cancelled) return;
+          setCommunityLevel(remoteCommunityLevel);
+          setCommunityLoading(false);
+          loadLevel(1, remoteCommunityLevel.level);
+          return;
+        } catch (err) {
+          if (!cancelled) {
+            setCommunityLevel(null);
+            setCommunityLoading(false);
+            setCommunityError(err instanceof Error ? err.message : "Niveau joueur introuvable");
+            navigate("/brickfall-solo");
+          }
+          return;
+        }
+      }
+
       try {
         const remoteLevels = await fetchBrickfallSoloCustomLevels();
         levels = mergeCustomLevels(remoteLevels);
@@ -252,6 +288,8 @@ export default function BrickfallSoloPlay() {
 
       if (cancelled) return;
       setSavedCampaignLevel(checkpoint);
+      setCommunityLevel(null);
+      setCommunityError(null);
 
       if (customParam) {
         const fromParam = levels.find((lvl) => lvl.id === customParam) ?? findCustomLevel(customParam);
@@ -274,7 +312,7 @@ export default function BrickfallSoloPlay() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customParam, levelParam]);
+  }, [communityParam, customParam, levelParam, navigate]);
 
   useEffect(() => {
     if (!debuffUntil) return;
@@ -300,12 +338,12 @@ export default function BrickfallSoloPlay() {
     if (status !== "playing") return;
     const durationMs = Date.now() - levelStartRef.current;
     const noMiss = lives >= startLives;
-    const campaignClear = levelIndex >= TOTAL_LEVELS && !isCustomLevel;
-    const worldOneClear = !isCustomLevel && levelIndex >= LEVELS_PER_WORLD;
+    const campaignClear = levelIndex >= TOTAL_LEVELS && !isCustomLevel && !isCommunityLevel;
+    const worldOneClear = !isCustomLevel && !isCommunityLevel && levelIndex >= LEVELS_PER_WORLD;
 
     const next = updateStats((prev) => ({
       ...prev,
-      brickfallSoloLevelsCleared: prev.brickfallSoloLevelsCleared + (isCustomLevel ? 0 : 1),
+      brickfallSoloLevelsCleared: prev.brickfallSoloLevelsCleared + (isCustomLevel || isCommunityLevel ? 0 : 1),
       brickfallSoloBlocksDestroyed: prev.brickfallSoloBlocksDestroyed + destroyedThisLevel,
       brickfallSoloBestWorld: Math.max(prev.brickfallSoloBestWorld, worldStage.world),
       brickfallSoloCampaignCleared: prev.brickfallSoloCampaignCleared || campaignClear,
@@ -329,6 +367,10 @@ export default function BrickfallSoloPlay() {
       },
     });
 
+    if (isCustomLevel) {
+      markBrickfallSoloCustomLevelCompleted(level);
+    }
+
     if (campaignClear) {
       const capped = TOTAL_LEVELS;
       if (capped > savedCampaignLevel) {
@@ -340,7 +382,7 @@ export default function BrickfallSoloPlay() {
       return;
     }
 
-    if (!isCustomLevel) {
+    if (!isCustomLevel && !isCommunityLevel) {
       const unlocked = clamp(levelIndex + 1, 1, TOTAL_LEVELS);
       if (unlocked > savedCampaignLevel) {
         setSavedCampaignLevel(unlocked);
@@ -355,12 +397,44 @@ export default function BrickfallSoloPlay() {
     );
   };
 
+  const handleCommunityLike = async () => {
+    if (!user || !communityLevel || communityLevel.isOwn || communityLikeBusy) return;
+    setCommunityLikeBusy(true);
+    try {
+      const result = await toggleBrickfallSoloCommunityLevelLike(communityLevel.id);
+      setCommunityLevel({
+        ...communityLevel,
+        likedByMe: result.liked,
+        likeCount: result.likeCount,
+      });
+      setCommunityError(null);
+    } catch (err) {
+      setCommunityError(err instanceof Error ? err.message : "Vote impossible");
+    } finally {
+      setCommunityLikeBusy(false);
+    }
+  };
+
+  if (communityLoading) {
+    return (
+      <div className="brickfall-solo-play font-['Press_Start_2P']">
+        <h1 className="text-3xl text-yellow-400 mb-3 text-center">Brickfall Solo</h1>
+        <p className="text-xs text-cyan-200 mb-5 text-center">Chargement du niveau joueur...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="brickfall-solo-play font-['Press_Start_2P']">
       <h1 className="text-3xl text-yellow-400 mb-3 text-center">Brickfall Solo</h1>
       <p className="text-xs text-cyan-200 mb-5 text-center">
         {level.name} - Blocs restants: {remainingBlocks} - Vies: {lives}
       </p>
+      {communityLevel && (
+        <p className="text-xs text-pink-200 mb-3 text-center">
+          Niveau joueur par {communityLevel.authorPseudo} - {communityLevel.likeCount} like{communityLevel.likeCount > 1 ? "s" : ""}
+        </p>
+      )}
 
       <div className="brickfall-solo-play-layout">
         <aside className="panel brickfall-solo-play-hud text-left text-xs">
@@ -368,7 +442,7 @@ export default function BrickfallSoloPlay() {
           <div className="brickfall-solo-hud-line">Monde: <span>{worldStage.world}</span></div>
           <div className="brickfall-solo-hud-line">Niveau: <span>{worldStage.stage}</span></div>
           <div className="brickfall-solo-hud-line">Progression: <span>{Math.min(levelIndex, TOTAL_LEVELS)}/{TOTAL_LEVELS}</span></div>
-          <div className="brickfall-solo-hud-line">Sauvegarde: <span>{savedCampaignLevel}</span></div>
+          {!communityLevel && <div className="brickfall-solo-hud-line">Sauvegarde: <span>{savedCampaignLevel}</span></div>}
           <div className="brickfall-solo-hud-line">
             Bonus actifs:
             <span>
@@ -449,10 +523,19 @@ export default function BrickfallSoloPlay() {
         <div className="text-center text-yellow-300">
           <h2 className="text-2xl mb-4">Niveau termine</h2>
           <div className="flex gap-3 justify-center">
+            {communityLevel && (
+              <button
+                className="retro-btn"
+                onClick={() => void handleCommunityLike()}
+                disabled={!user || communityLevel.isOwn || communityLikeBusy}
+              >
+                {communityLevel.isOwn ? "Ton niveau" : communityLevel.likedByMe ? "Retirer like" : "Liker"}
+              </button>
+            )}
             <button
               className="retro-btn"
               onClick={() => {
-                if (isCustomLevel) {
+                if (isCustomLevel || communityLevel) {
                   loadLevel(levelIndex, level);
                   return;
                 }
@@ -463,13 +546,14 @@ export default function BrickfallSoloPlay() {
             >
               {isCustomLevel ? "Rejouer custom" : "Niveau suivant"}
             </button>
-            <button className="retro-btn" onClick={() => loadLevel(levelIndex, isCustomLevel ? level : null)}>
+            <button className="retro-btn" onClick={() => loadLevel(levelIndex, isCustomLevel || isCommunityLevel ? level : null)}>
               Rejouer
             </button>
             <button className="retro-btn" onClick={() => navigate("/brickfall-solo")}>
               Quitter
             </button>
           </div>
+          {communityError && <p className="mt-3 text-xs text-red-300">{communityError}</p>}
         </div>
       </FullScreenOverlay>
 

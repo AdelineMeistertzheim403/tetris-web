@@ -45,23 +45,32 @@ export const PLAYER_JUMP_SPRITE = "/sprites_pixel_protocole/pixel/pixel_jump.png
 
 export const ENEMY_SPRITES: Record<
   EnemyKind,
-  { idle: string; run: string; scale: number }
+  { idle: string; run: string; stun: string; scale: number }
 > = {
   rookie: {
     idle: "/sprites_pixel_protocole/tetrobots/rookie/rookie_iddle.png",
     run: "/sprites_pixel_protocole/tetrobots/rookie/rookie_run.png",
+    stun: "/sprites_pixel_protocole/tetrobots/rookie/rookie_stun.png",
     scale: ROOKIE_VISUAL_SCALE,
   },
   pulse: {
     idle: "/sprites_pixel_protocole/tetrobots/pulse/pulse_iddle.png",
     run: "/sprites_pixel_protocole/tetrobots/pulse/pulse_run.png",
+    stun: "/sprites_pixel_protocole/tetrobots/pulse/pulse_stun.png",
     scale: PULSE_VISUAL_SCALE,
   },
   apex: {
     idle: "/sprites_pixel_protocole/tetrobots/apex/apex_iddle.png",
     run: "/sprites_pixel_protocole/tetrobots/apex/apex_run.png",
+    stun: "/sprites_pixel_protocole/tetrobots/apex/apex_stun.png",
     scale: APEX_VISUAL_SCALE,
   },
+};
+
+export const ENEMY_STUN_DURATION_MS: Record<EnemyKind, number> = {
+  rookie: 2200,
+  pulse: 1800,
+  apex: 1400,
 };
 
 export const ENEMY_CONTACT_DAMAGE: Record<EnemyKind, number> = {

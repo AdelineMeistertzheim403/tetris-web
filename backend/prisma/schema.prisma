@@ -34,7 +34,11 @@ model User {
   tetromazeProgress TetromazeProgress?
   pixelProtocolProgress PixelProtocolProgress?
   brickfallSoloCustomLevels BrickfallSoloCustomLevel[]
+  brickfallSoloPublishedLevels BrickfallSoloPublishedLevel[]
+  brickfallSoloPublishedLevelLikes BrickfallSoloPublishedLevelLike[]
   tetromazeCustomLevels TetromazeCustomLevel[]
+  tetromazePublishedLevels TetromazePublishedLevel[]
+  tetromazePublishedLevelLikes TetromazePublishedLevelLike[]
   pixelProtocolCustomLevels PixelProtocolCustomLevel[]
   pixelProtocolWorldTemplates PixelProtocolWorldTemplate[]
   pixelProtocolPublishedLevels PixelProtocolPublishedLevel[]
@@ -264,6 +268,36 @@ model BrickfallSoloCustomLevel {
   @@index([userId, updatedAt])
 }
 
+model BrickfallSoloPublishedLevel {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  levelId    String
+  name       String
+  playCount  Int      @default(0)
+  definition Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+  likes      BrickfallSoloPublishedLevelLike[]
+
+  @@unique([userId, levelId])
+  @@index([updatedAt])
+}
+
+model BrickfallSoloPublishedLevelLike {
+  id               Int      @id @default(autoincrement())
+  publishedLevelId Int
+  userId           Int
+  createdAt        DateTime @default(now())
+
+  publishedLevel   BrickfallSoloPublishedLevel @relation(fields: [publishedLevelId], references: [id])
+  user             User                        @relation(fields: [userId], references: [id])
+
+  @@unique([publishedLevelId, userId])
+  @@index([userId, createdAt])
+}
+
 model TetromazeCustomLevel {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -276,6 +310,36 @@ model TetromazeCustomLevel {
 
   @@unique([userId, levelId])
   @@index([userId, updatedAt])
+}
+
+model TetromazePublishedLevel {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  levelId    String
+  name       String
+  playCount  Int      @default(0)
+  definition Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+  likes      TetromazePublishedLevelLike[]
+
+  @@unique([userId, levelId])
+  @@index([updatedAt])
+}
+
+model TetromazePublishedLevelLike {
+  id               Int      @id @default(autoincrement())
+  publishedLevelId Int
+  userId           Int
+  createdAt        DateTime @default(now())
+
+  publishedLevel   TetromazePublishedLevel @relation(fields: [publishedLevelId], references: [id])
+  user             User                    @relation(fields: [userId], references: [id])
+
+  @@unique([publishedLevelId, userId])
+  @@index([userId, createdAt])
 }
 
 model PixelProtocolCustomLevel {
