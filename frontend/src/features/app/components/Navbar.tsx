@@ -1,9 +1,15 @@
 // Composant UI Navbar.tsx.
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logoutUser } = useAuth();
+
+  const handleLogout = async () => {
+    await logoutUser();
+    navigate("/");
+  };
 
   return (
     <nav
@@ -59,8 +65,18 @@ export default function Navbar() {
       {/* 🔹 Section droite */}
       <div className="flex items-center gap-6">
         {user ? (
-          <span className="text-3xl text-pink-400 hover:text-yellow-400 transition duration-300
-                   drop-shadow-[0_0_6px_rgba(255,0,150,0.5)] relative neon-link">{user.pseudo}</span>
+          <>
+            <span className="text-3xl text-pink-400 hover:text-yellow-400 transition duration-300 drop-shadow-[0_0_6px_rgba(255,0,150,0.5)] relative neon-link">
+              {user.pseudo}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="neon-link text-pink-400"
+              type="button"
+            >
+              Déconnexion
+            </button>
+          </>
         ) : (
           <Link to="/login" className="neon-link text-pink-400">
             Connexion
