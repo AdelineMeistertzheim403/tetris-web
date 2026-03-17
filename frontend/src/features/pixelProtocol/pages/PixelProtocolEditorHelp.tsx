@@ -353,6 +353,7 @@ export default function PixelProtocolEditorHelp() {
             <li>En <strong>Mode niveau</strong>, regle d'abord les <strong>Dimensions gameplay</strong>, puis choisis un monde dans <strong>Monde decoratif</strong>.</li>
             <li>Place ensuite le spawn, le portail et les elements de gameplay sur cette base visuelle.</li>
             <li>Teste regulierement le niveau avec "Tester le niveau" puis corrige les alertes de validation.</li>
+            <li>Pour publier un niveau joueur, tu dois finir la version exacte du layout que tu veux envoyer dans la galerie.</li>
           </ol>
         </HelpSection>
 
@@ -551,6 +552,7 @@ export default function PixelProtocolEditorHelp() {
             <span><i className="fa-solid fa-file-arrow-up" /> importe un monde JSON dans le mode monde</span>
             <span><i className="fa-solid fa-file-arrow-down" /> exporte le monde courant en JSON</span>
             <span><i className="fa-solid fa-vial-circle-check" /> lance un test local du niveau</span>
+            <span><i className="fa-solid fa-users" /> publie un niveau joueur dans la galerie communautaire</span>
             <span><i className="fa-solid fa-play" /> joue le niveau custom selectionne</span>
             <span><i className="fa-solid fa-cubes" /> ajoute une nouvelle plateforme</span>
             <span><i className="fa-solid fa-flag" /> ajoute un checkpoint</span>
@@ -568,6 +570,9 @@ export default function PixelProtocolEditorHelp() {
             <li><strong>Ouvrir editeur custom</strong> ou <strong>editeur admin</strong>: ouvre maintenant un choix entre <strong>Mode niveau</strong> et <strong>Mode monde</strong>.</li>
             <li><strong>Mondes custom</strong>: le hub affiche aussi la liste des mondes sauvegardes et permet d'ouvrir directement l'un d'eux en edition.</li>
             <li><strong>Mode monde admin</strong>: il existe aussi, mais reste base sur le meme stockage local des mondes decoratifs si aucun backend dedie n'est branche.</li>
+            <li><strong>Galerie joueurs</strong>: le hub expose directement les niveaux publies par la communaute.</li>
+            <li><strong>Publication custom</strong>: un niveau joueur custom peut etre publie seulement apres un clear valide de cette version exacte.</li>
+            <li><strong>Likes</strong>: les joueurs peuvent liker un niveau publie depuis la galerie ou l'ecran de fin du niveau communautaire.</li>
           </ul>
         </HelpSection>
 
@@ -587,6 +592,7 @@ export default function PixelProtocolEditorHelp() {
             <li>Si un ennemi semble injuste, reduis sa zone min/max X ou eloigne-le d'un saut critique.</li>
             <li>Si le portail est impossible a atteindre, ajoute une plateforme d'approche ou baisse son altitude.</li>
             <li>Si le niveau parait correct mais ne se joue pas bien, lance la preview et ajuste les ecarts en conditions reelles.</li>
+            <li>Si la publication est refusee, rejoue d'abord le niveau courant et assure-toi qu'il s'agit bien de la meme version que celle sauvegardee.</li>
           </ul>
         </HelpSection>
       </div>

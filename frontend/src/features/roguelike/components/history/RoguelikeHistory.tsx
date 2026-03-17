@@ -6,6 +6,7 @@ import { ALL_PERKS } from "../../data/perks";
 import { SYNERGIES } from "../../data/synergies";
 import { MUTATIONS } from "../../data/mutations";
 import { useAchievements } from "../../../achievements/hooks/useAchievements";
+import { useAuth } from "../../../auth/context/AuthContext";
 import { formatScore } from "../../utils/formatScore";
 import {
   mutationIconPath,
@@ -75,12 +76,21 @@ function StatusBadge({ status }: { status: RoguelikeRunHistoryItem["status"] }) 
 
 export default function RoguelikeHistory() {
   const { checkAchievements, updateStats } = useAchievements();
+  const { user, loading: authLoading } = useAuth();
   const [runs, setRuns] = useState<RoguelikeRunHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setRuns([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     // Chargement initial de l'historique (une seule fois côté UI).
     let mounted = true;
     (async () => {
@@ -96,7 +106,7 @@ export default function RoguelikeHistory() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [authLoading, user]);
 
   useEffect(() => {
     // Tracking "vue d'historique" pour les succès de progression.

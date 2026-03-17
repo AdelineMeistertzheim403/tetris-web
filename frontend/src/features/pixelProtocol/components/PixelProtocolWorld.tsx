@@ -294,20 +294,23 @@ export function PixelProtocolWorld({
 
         {runtime.enemies.map((enemy) => {
           const enemyRunFrame = Math.floor(now / 300) % 2;
-          const enemyIsRunning = Math.abs(enemy.vx) > 0 && enemy.stunnedUntil <= now;
+          const enemyIsStunned = enemy.stunnedUntil > now;
+          const enemyIsRunning = Math.abs(enemy.vx) > 0 && !enemyIsStunned;
           const enemyConfig = ENEMY_SPRITES[enemy.kind];
-          const enemySprite = enemyIsRunning
-            ? enemyRunFrame === 0
-              ? enemyConfig.idle
-              : enemyConfig.run
-            : enemyConfig.idle;
+          const enemySprite = enemyIsStunned
+            ? enemyConfig.stun
+            : enemyIsRunning
+              ? enemyRunFrame === 0
+                ? enemyConfig.idle
+                : enemyConfig.run
+              : enemyConfig.idle;
           const enemyVisualSize = 26 * enemyConfig.scale;
 
           return (
             <div
               key={enemy.id}
               className={`pp-enemy pp-enemy--sprite ${
-                enemy.stunnedUntil > now ? "pp-enemy--stunned" : ""
+                enemyIsStunned ? "pp-enemy--stunned" : ""
               }`}
               style={{
                 left: screenX(enemy.x - (enemyVisualSize - 26) / 2),

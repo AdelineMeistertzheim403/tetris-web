@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { useAuth } from "../../auth/context/AuthContext";
 import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
 import {
   getTetromazeCampaignLevel,
@@ -8,12 +9,16 @@ import {
   toWorldStage,
 } from "../data/campaignLevels";
 import {
+  fetchTetromazeCommunityLevel,
   fetchTetromazeCustomLevels,
   fetchTetromazeProgress,
   saveTetromazeProgress,
+  toggleTetromazeCommunityLevelLike,
+  type TetromazeCommunityLevel,
   type TetromazeProgress,
 } from "../services/tetromazeService";
 import { findTetromazeCustomLevel, mergeTetromazeCustomLevels } from "../utils/customLevels";
+import { markTetromazeCustomLevelCompleted } from "../utils/communityCompletion";
 import {
   canMoveTo,
   chooseRandom,
@@ -733,11 +738,16 @@ export default function TetromazePage() {
   const visitedRef = useRef(false);
   const spritesRef = useRef<SpriteStore | null>(null);
   const { updateStats, checkAchievements } = useAchievements();
+  const { user } = useAuth();
 
   const [assetsReady, setAssetsReady] = useState(false);
   const [state, setState] = useState<GameState>(() => createInitialState("CLASSIC", level));
   const [savedProgress, setSavedProgress] = useState<TetromazeProgress>(() => readLocalProgress());
   const [isCustomLevel, setIsCustomLevel] = useState(false);
+  const [communityLevel, setCommunityLevel] = useState<TetromazeCommunityLevel | null>(null);
+  const [communityError, setCommunityError] = useState<string | null>(null);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityLikeBusy, setCommunityLikeBusy] = useState(false);
   const [renderTick, setRenderTick] = useState(0);
   const [chatLines, setChatLines] = useState<ChatState>({
     rookie: null,
@@ -766,6 +776,7 @@ export default function TetromazePage() {
   );
   const worldStage = useMemo(() => toWorldStage(levelIndex), [levelIndex]);
   const customParam = searchParams.get("custom");
+  const communityParam = searchParams.get("community");
   const levelParam = searchParams.get("level");
   const levelPowerupTypes = useMemo(() => {
     const seen = new Set<TetromazeOrbType>();
@@ -777,6 +788,7 @@ export default function TetromazePage() {
     }
     return ordered;
   }, [level.powerOrbs]);
+  const isCommunityLevel = Boolean(communityLevel);
 
   const pushChatLine = (
     event: TetromazeEvent,
@@ -841,6 +853,34 @@ export default function TetromazePage() {
     let cancelled = false;
     const bootstrap = async () => {
       const localProgress = readLocalProgress();
+      const requestedCommunityId = Number.parseInt(communityParam ?? "", 10);
+      if (Number.isFinite(requestedCommunityId) && requestedCommunityId > 0) {
+        if (!cancelled) {
+          setCommunityLoading(true);
+          setCommunityError(null);
+        }
+        try {
+          const remoteCommunityLevel = await fetchTetromazeCommunityLevel(requestedCommunityId);
+          if (cancelled) return;
+          setCommunityLevel(remoteCommunityLevel);
+          setIsCustomLevel(false);
+          setSavedProgress(localProgress);
+          setLevelIndex(1);
+          setLevel(remoteCommunityLevel.level);
+          setState(createInitialState("CLASSIC", remoteCommunityLevel.level));
+          setCommunityLoading(false);
+          return;
+        } catch (err) {
+          if (!cancelled) {
+            setCommunityLevel(null);
+            setCommunityError(err instanceof Error ? err.message : "Niveau joueur introuvable");
+            setCommunityLoading(false);
+            navigate("/tetromaze");
+          }
+          return;
+        }
+      }
+
       if (customParam) {
         let customLevel = findTetromazeCustomLevel(customParam);
         if (!customLevel) {
@@ -858,6 +898,8 @@ export default function TetromazePage() {
         }
         if (cancelled) return;
         setIsCustomLevel(true);
+        setCommunityLevel(null);
+        setCommunityError(null);
         setSavedProgress(localProgress);
         setLevelIndex(1);
         setLevel(customLevel);
@@ -880,6 +922,8 @@ export default function TetromazePage() {
       if (cancelled) return;
       writeLocalProgress(merged);
       setIsCustomLevel(false);
+      setCommunityLevel(null);
+      setCommunityError(null);
       setSavedProgress(merged);
 
       const requestedLevel = levelParam ? clampLevelIndex(Number.parseInt(levelParam, 10) || merged.currentLevel) : merged.currentLevel;
@@ -895,7 +939,7 @@ export default function TetromazePage() {
     return () => {
       cancelled = true;
     };
-  }, [customParam, levelParam, navigate]);
+  }, [communityParam, customParam, levelParam, navigate]);
 
   useEffect(() => {
     // Précharge les sprites pour éviter le clignotement au premier rendu canvas.
@@ -1927,8 +1971,11 @@ export default function TetromazePage() {
     if (outcomeSavedRef.current === outcomeKey) return;
     outcomeSavedRef.current = outcomeKey;
 
-    if (isCustomLevel) {
+    if (isCustomLevel || isCommunityLevel) {
       if (state.status === "won") {
+        if (isCustomLevel) {
+          markTetromazeCustomLevelCompleted(level);
+        }
         const nextStats = updateStats((old) => ({
           ...old,
           tetromazeWins: old.tetromazeWins + 1,
@@ -1978,7 +2025,25 @@ export default function TetromazePage() {
         },
       });
     }
-  }, [checkAchievements, isCustomLevel, level, levelIndex, state.lives, state.score, state.startedAt, state.status, updateStats]);
+  }, [checkAchievements, isCommunityLevel, isCustomLevel, level, levelIndex, state.lives, state.score, state.startedAt, state.status, updateStats]);
+
+  const handleCommunityLike = async () => {
+    if (!user || !communityLevel || communityLevel.isOwn || communityLikeBusy) return;
+    setCommunityLikeBusy(true);
+    try {
+      const result = await toggleTetromazeCommunityLevelLike(communityLevel.id);
+      setCommunityLevel({
+        ...communityLevel,
+        likedByMe: result.liked,
+        likeCount: result.likeCount,
+      });
+      setCommunityError(null);
+    } catch (err) {
+      setCommunityError(err instanceof Error ? err.message : "Vote impossible");
+    } finally {
+      setCommunityLikeBusy(false);
+    }
+  };
 
   const message =
     state.status === "won"
@@ -1992,6 +2057,21 @@ export default function TetromazePage() {
   const bestScoreCurrentLevel = savedProgress.levelScores[String(levelIndex)] ?? 0;
   const isEndScreenVisible = state.status === "won" || state.status === "lost";
 
+  if (communityLoading) {
+    return (
+      <div className="tetromaze-page">
+        <header className="tetromaze-head">
+          <h1>Tetromaze</h1>
+        </header>
+        <div className="tetromaze-main">
+          <section className="tetromaze-panel">
+            <p>Chargement du niveau joueur...</p>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="tetromaze-page">
       <header className="tetromaze-head">
@@ -2003,18 +2083,26 @@ export default function TetromazePage() {
           <section className="tetromaze-panel">
             <div className="tetromaze-meta">
               <div>
-                {isCustomLevel
+                {communityLevel
+                  ? `Mode: Niveau joueur par ${communityLevel.authorPseudo}`
+                  : isCustomLevel
                   ? "Mode: Niveau custom"
                   : `Campagne: Monde ${worldStage.world} - Niveau ${worldStage.stage}`}
               </div>
-              {!isCustomLevel && <div>Progression: {levelIndex}/{TETROMAZE_TOTAL_LEVELS}</div>}
+              {!isCustomLevel && !isCommunityLevel && <div>Progression: {levelIndex}/{TETROMAZE_TOTAL_LEVELS}</div>}
               <div>{level.name ?? `Tetromaze ${levelIndex}`}</div>
+              {communityLevel && (
+                <div>
+                  Likes: {communityLevel.likeCount}
+                  {communityLevel.likedByMe ? " (deja like)" : ""}
+                </div>
+              )}
               <div>Mode: {state.mode === "CLASSIC" ? "Classique Maze" : "Survie 120s"}</div>
               <div>Vies: {state.lives}/3</div>
               <div>Score: {state.score}</div>
-              {!isCustomLevel && <div>Meilleur score niveau: {bestScoreCurrentLevel}</div>}
+              {!isCustomLevel && !isCommunityLevel && <div>Meilleur score niveau: {bestScoreCurrentLevel}</div>}
               <div>Data Orbs: {state.dataOrbs.size}</div>
-              {!isCustomLevel && (
+              {!isCustomLevel && !isCommunityLevel && (
                 <div>Sauvegarde: niveau {savedProgress.currentLevel} (max {savedProgress.highestLevel})</div>
               )}
               {state.mode === "SURVIVAL" && <div>Temps: {timer}s</div>}
@@ -2154,7 +2242,20 @@ export default function TetromazePage() {
                 <h2>Niveau termine</h2>
                 <p>Score: {state.score}</p>
                 <div className="tetromaze-end-actions">
-                  {!isCustomLevel && (
+                  {communityLevel && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCommunityLike()}
+                      disabled={!user || communityLevel.isOwn || communityLikeBusy}
+                    >
+                      {communityLevel.isOwn
+                        ? "Ton niveau"
+                        : communityLevel.likedByMe
+                          ? "Retirer like"
+                          : "Liker"}
+                    </button>
+                  )}
+                  {!isCustomLevel && !isCommunityLevel && (
                     <button
                       type="button"
                       onClick={goToNextLevel}
@@ -2167,9 +2268,10 @@ export default function TetromazePage() {
                     Rejouer le niveau
                   </button>
                   <button type="button" onClick={quitTetromaze}>
-                    {isCustomLevel ? "Retour hub" : "Quitter"}
+                    {isCustomLevel || isCommunityLevel ? "Retour hub" : "Quitter"}
                   </button>
                 </div>
+                {communityLevel && communityError && <p>{communityError}</p>}
               </>
             ) : (
               <>

@@ -5,20 +5,64 @@
 }
 
 .tetromaze-editor-shell {
-  width: 95vw;
-  margin: 0 auto;
+  width: min(1700px, 95vw);
+}
+
+.tetromaze-editor .pp-editor-shell {
+  background:
+    radial-gradient(1200px 480px at 10% 0%, rgba(10, 42, 63, 0.52) 0%, transparent 60%),
+    radial-gradient(1000px 420px at 90% 30%, rgba(38, 60, 92, 0.36) 0%, transparent 65%),
+    linear-gradient(180deg, #050b1b 0%, #03050f 100%);
+}
+
+.tetromaze-editor .pp-editor-head,
+.tetromaze-editor .pp-editor-panel {
+  border-color: #2fdcff44;
+  background: rgba(8, 17, 31, 0.8);
+  box-shadow: inset 0 0 18px rgba(12, 167, 255, 0.12);
+}
+
+.tetromaze-editor .pp-editor-head h1,
+.tetromaze-editor .pp-editor-panel h2 {
+  color: #7de8ff;
+}
+
+.tetromaze-editor .pp-editor-head p,
+.tetromaze-editor .pp-editor-level-meta {
+  color: #9ad2e7;
 }
 
 .tetromaze-editor-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.8rem;
+  align-items: flex-start;
 }
 
-.tetromaze-editor-head h1 {
-  font-size: 1.1rem;
-  color: #facc15;
+.tetromaze-editor-head-main {
+  display: grid;
+  gap: 12px;
+  flex: 1 1 520px;
+}
+
+.tetromaze-editor-head-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.tetromaze-editor-head-fields label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.65rem;
+  color: #9ad2e7;
+}
+
+.tetromaze-editor-head-fields input {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(47, 220, 255, 0.3);
+  background: rgba(9, 5, 14, 0.82);
+  color: #def4ff;
+  font-size: 0.7rem;
+  font-family: inherit;
 }
 
 .tetromaze-editor-columns {
@@ -47,12 +91,13 @@
 .tetromaze-editor-side input,
 .tetromaze-editor-side select {
   width: 100%;
-  border: 1px solid #2e6aa1;
-  border-radius: 8px;
-  background: rgba(2, 13, 31, 0.9);
+  border: 1px solid rgba(47, 220, 255, 0.22);
+  border-radius: 0;
+  background: rgba(5, 12, 24, 0.9);
   color: #d6f5ff;
   font-size: 0.72rem;
   padding: 0.45rem;
+  font-family: inherit;
 }
 
 .tetromaze-editor-inline {
@@ -71,7 +116,7 @@
 }
 
 .tetromaze-editor-divider {
-  border-top: 1px solid #1f3f60;
+  border-top: 1px solid rgba(47, 220, 255, 0.18);
   padding-top: 0.55rem;
 }
 
@@ -79,25 +124,35 @@
   overflow: auto;
 }
 
+.tetromaze-editor-accent-btn {
+  border: 1px solid #63f3a088;
+  background: rgba(5, 12, 24, 0.88);
+  color: #8effc0;
+  padding: 0.8rem 1rem;
+  font-size: 0.64rem;
+  font-family: inherit;
+}
+
 .tetromaze-editor-toolbar {
   display: flex;
   gap: 0.45rem;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   margin-bottom: 0.65rem;
 }
 
 .tetromaze-editor-toolbtn {
   width:80px;
   height: 80px;
-  border: 1px solid rgba(46, 106, 161, 0.55);
-  border-radius: 10px;
-  background: rgba(5, 18, 39, 0.85);
+  border: 1px solid #2fdcff66;
+  border-radius: 0;
+  background: rgba(5, 12, 24, 0.88);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   cursor: pointer;
+  box-shadow: inset 0 0 14px rgba(12, 167, 255, 0.1);
 }
 
 .tetromaze-editor-toolbtn img {
@@ -108,7 +163,9 @@
 
 .tetromaze-editor-toolbtn.is-active {
   border-color: #facc15;
-  box-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+  box-shadow:
+    inset 0 0 14px rgba(250, 204, 21, 0.14),
+    0 0 12px rgba(250, 204, 21, 0.22);
 }
 
 .tetromaze-editor-grid {
@@ -122,7 +179,7 @@
 .tetromaze-editor-cell {
   width: 35px;
   height: 35px;
-  border: 1px solid rgba(46, 106, 161, 0.55);
+  border: 1px solid rgba(47, 220, 255, 0.28);
   padding: 0;
   margin: 0;
   line-height: 1;
@@ -143,13 +200,8 @@
 }
 
 .tetromaze-editor-level-card {
-  border: 1px solid #2b6ea5;
-  border-radius: 8px;
-  padding: 0.45rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.7rem;
+  border-color: rgba(47, 220, 255, 0.26);
+  background: rgba(5, 12, 24, 0.74);
 }
 
 .tetromaze-editor-sub {
@@ -163,23 +215,18 @@
 }
 
 .tetromaze-editor-top-actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.4rem;
-  align-items: center;
+  display: block;
+}
+
+.tetromaze-editor-side-intro {
+  font-size: 0.62rem;
+  color: #9ad2e7;
+  line-height: 1.5;
 }
 
 .tetromaze-editor-icon-btn {
   width: 50px;
   height: 50px;
-  border: 1px solid #2b6ea5;
-  border-radius: 8px;
-  background: rgba(7, 23, 46, 0.9);
-  color: #d6f2ff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
 }
 
 .tetromaze-editor-icon-btn i {
@@ -188,7 +235,7 @@
 
 .tetromaze-editor-main-actions {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
@@ -206,19 +253,6 @@
   justify-self: center;
 }
 
-.tetromaze-editor-icon-btn:hover {
-  box-shadow: 0 0 8px rgba(105, 203, 255, 0.35);
-}
-
-.tetromaze-editor-icon-btn--danger {
-  border-color: #b34d4d;
-  color: #ffd0d0;
-}
-
-.tetromaze-editor-icon-btn--danger:hover {
-  box-shadow: 0 0 8px rgba(255, 96, 96, 0.35);
-}
-
 .tetromaze-editor-empty,
 .tetromaze-editor-error {
   font-size: 0.68rem;
@@ -234,6 +268,10 @@
   }
 
   .tetromaze-editor-shell {
-    width: 96vw;
+    width: min(96vw, 1700px);
+  }
+
+  .tetromaze-editor-head-fields {
+    grid-template-columns: 1fr;
   }
 }

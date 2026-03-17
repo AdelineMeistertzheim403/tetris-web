@@ -1,3 +1,5 @@
+import { getAuthHeader } from "../../auth/services/authService";
+
 export type RoguelikeStoredMutation = {
   id: string;
   stacks: number;
@@ -84,6 +86,7 @@ export async function startRoguelikeRun(seed: string, state: RoguelikeInitialSta
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ seed, state }),
     credentials: "include",
@@ -102,8 +105,15 @@ export async function startRoguelikeRun(seed: string, state: RoguelikeInitialSta
 export async function getCurrentRoguelikeRun(): Promise<RoguelikeRunStateServer | null> {
 
   const res = await fetch(`${API_URL}/roguelike/run/current`, {
+    headers: {
+      ...getAuthHeader(),
+    },
     credentials: "include",
   });
+
+  if (res.status === 401 || res.status === 403) {
+    return null;
+  }
 
   if (!res.ok) {
     throw new Error("Erreur lors de la récupération de la run en cours");
@@ -127,6 +137,7 @@ export async function checkpointRoguelikeRun(
     headers: {
       "Content-Type": "application/json",
       "X-Run-Token": runToken,
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ ...payload, runToken }),
     credentials: "include",
@@ -165,6 +176,7 @@ export async function endRoguelikeRun(
     headers: {
       "Content-Type": "application/json",
       "X-Run-Token": runToken,
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ status, runToken }),
     credentials: "include",
@@ -207,8 +219,15 @@ export async function getRoguelikeLeaderboard(): Promise<RoguelikeLeaderboardIte
 export async function getMyRoguelikeRuns(): Promise<RoguelikeRunHistoryItem[]> {
 
   const res = await fetch(`${API_URL}/roguelike/runs/me`, {
+    headers: {
+      ...getAuthHeader(),
+    },
     credentials: "include",
   });
+
+  if (res.status === 401 || res.status === 403) {
+    return [];
+  }
 
   if (!res.ok) {
     throw new Error("Erreur lors de la récupération de l'historique roguelike");

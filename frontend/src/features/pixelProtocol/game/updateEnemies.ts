@@ -1,4 +1,4 @@
-import { ENEMY_CONTACT_DAMAGE, JUMP } from "../constants";
+import { ENEMY_CONTACT_DAMAGE, ENEMY_STUN_DURATION_MS, JUMP } from "../constants";
 import { clamp, findSupportTop, rectIntersects } from "../logic";
 import type { AbilityFlags, GameRuntime, Rect } from "../types";
 import { applyPlayerDamage } from "./updatePlayer";
@@ -45,7 +45,7 @@ export function updateEnemies({
     if (rectIntersects(playerRect, enemyRect) && now > player.invulnUntil && !phaseShiftActive) {
       const stomp = player.vy > 80 && player.y + player.h - 6 < enemy.y;
       if (stomp) {
-        enemy.stunnedUntil = now + 1400;
+        enemy.stunnedUntil = now + ENEMY_STUN_DURATION_MS[enemy.kind];
         player.vy = -JUMP * 0.65;
         game.message = "Tetrobot neutralise.";
       } else {

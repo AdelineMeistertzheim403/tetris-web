@@ -1,5 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL;
 const AUTH_TOKEN_KEY = "tetris-auth-token";
+let currentUserRequest: Promise<any> | null = null;
+let currentUserCache: any = undefined;
 
 export function getAuthToken(): string | null {
   try {
@@ -13,9 +15,13 @@ export function setAuthToken(token: string | null) {
   try {
     if (!token) {
       localStorage.removeItem(AUTH_TOKEN_KEY);
+      currentUserCache = null;
+      currentUserRequest = null;
       return;
     }
     localStorage.setItem(AUTH_TOKEN_KEY, token);
+    currentUserCache = undefined;
+    currentUserRequest = null;
   } catch {
     // no-op
   }
@@ -71,16 +77,32 @@ export async function logout() {
 
 // Récupère l'utilisateur courant (null si non authentifié).
 export async function getCurrentUser() {
-  const res = await fetch(`${API_URL}/auth/me`, {
-    headers: {
-      ...getAuthHeader(),
-    },
-    credentials: "include",
-  });
-  if (res.status === 401 || res.status === 403) {
-    setAuthToken(null);
-    return null;
+  if (currentUserCache !== undefined) {
+    return currentUserCache;
   }
-  if (!res.ok) throw new Error("Erreur lors de la recuperation du profil");
-  return res.json();
+
+  if (!currentUserRequest) {
+    currentUserRequest = fetch(`${API_URL}/auth/me`, {
+      headers: {
+        ...getAuthHeader(),
+      },
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (res.status === 401 || res.status === 403) {
+          setAuthToken(null);
+          currentUserCache = null;
+          return null;
+        }
+        if (!res.ok) throw new Error("Erreur lors de la recuperation du profil");
+        const user = await res.json();
+        currentUserCache = user;
+        return user;
+      })
+      .finally(() => {
+        currentUserRequest = null;
+      });
+  }
+
+  return currentUserRequest;
 }

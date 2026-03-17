@@ -2,6 +2,7 @@ import { getAuthHeader } from "../../auth/services/authService";
 import type { Settings } from "../types/Settings";
 
 const API_URL = import.meta.env.VITE_API_URL;
+let settingsRequest: Promise<Settings | null> | null = null;
 
 type SettingsResponse = {
   settings?: Settings | null;
@@ -17,21 +18,29 @@ const parseError = async (res: Response, fallback: string) => {
 };
 
 export async function fetchUserSettings(): Promise<Settings | null> {
-  const res = await fetch(`${API_URL}/auth/settings`, {
-    method: "GET",
-    headers: {
-      ...getAuthHeader(),
-    },
-    credentials: "include",
-  });
+  if (!settingsRequest) {
+    settingsRequest = fetch(`${API_URL}/auth/settings`, {
+      method: "GET",
+      headers: {
+        ...getAuthHeader(),
+      },
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (res.status === 401 || res.status === 403) return null;
+        if (!res.ok) {
+          throw new Error(await parseError(res, "Erreur chargement parametres utilisateur"));
+        }
 
-  if (res.status === 401 || res.status === 403) return null;
-  if (!res.ok) {
-    throw new Error(await parseError(res, "Erreur chargement parametres utilisateur"));
+        const data = (await res.json()) as SettingsResponse;
+        return data.settings ?? null;
+      })
+      .finally(() => {
+        settingsRequest = null;
+      });
   }
 
-  const data = (await res.json()) as SettingsResponse;
-  return data.settings ?? null;
+  return settingsRequest;
 }
 
 export async function saveUserSettings(settings: Settings): Promise<void> {
