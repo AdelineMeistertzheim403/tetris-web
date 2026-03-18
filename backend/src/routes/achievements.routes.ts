@@ -102,7 +102,10 @@ router.get("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
         tetrobotProgression: true,
         tetrobotXpLedger: true,
         tetrobotAffinityLedger: true,
+        playerLongTermMemory: true,
+        tetrobotMemories: true,
         lastTetrobotLevelUp: true,
+        activeTetrobotChallenge: true,
       },
     });
 
@@ -111,7 +114,10 @@ router.get("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
       tetrobotProgression: stats?.tetrobotProgression ?? {},
       tetrobotXpLedger: stats?.tetrobotXpLedger ?? {},
       tetrobotAffinityLedger: stats?.tetrobotAffinityLedger ?? {},
+      playerLongTermMemory: stats?.playerLongTermMemory ?? {},
+      tetrobotMemories: stats?.tetrobotMemories ?? {},
       lastTetrobotLevelUp: stats?.lastTetrobotLevelUp ?? null,
+      activeTetrobotChallenge: stats?.activeTetrobotChallenge ?? null,
     });
   } catch (err) {
     logger.error({ err }, "Erreur chargement stats achievements");
@@ -139,10 +145,15 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
       tetrobotProgression = {},
       tetrobotXpLedger = {},
       tetrobotAffinityLedger = {},
+      playerLongTermMemory = {},
+      tetrobotMemories = {},
       lastTetrobotLevelUp = null,
+      activeTetrobotChallenge = null,
     } = parsed.data;
     const serializedLevelUp =
       lastTetrobotLevelUp === null ? Prisma.JsonNull : lastTetrobotLevelUp;
+    const serializedChallenge =
+      activeTetrobotChallenge === null ? Prisma.JsonNull : activeTetrobotChallenge;
 
     await prisma.userAchievementStats.upsert({
       where: { userId },
@@ -151,7 +162,10 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
         tetrobotProgression,
         tetrobotXpLedger,
         tetrobotAffinityLedger,
+        playerLongTermMemory,
+        tetrobotMemories,
         lastTetrobotLevelUp: serializedLevelUp,
+        activeTetrobotChallenge: serializedChallenge,
       },
       create: {
         userId,
@@ -159,7 +173,10 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
         tetrobotProgression,
         tetrobotXpLedger,
         tetrobotAffinityLedger,
+        playerLongTermMemory,
+        tetrobotMemories,
         lastTetrobotLevelUp: serializedLevelUp,
+        activeTetrobotChallenge: serializedChallenge,
       },
     });
 

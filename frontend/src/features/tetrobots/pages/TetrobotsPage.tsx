@@ -1,4 +1,7 @@
+import { Link } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../../auth/context/AuthContext";
+import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
 import "../../../styles/tetrobots.css";
 
 type LoreCharacter = {
@@ -14,6 +17,7 @@ type LoreCharacter = {
   role?: string[];
   relation?: string[];
   secret?: string[];
+  relationTease?: string;
 };
 
 const LORE_CHARACTERS: LoreCharacter[] = [
@@ -67,6 +71,7 @@ const LORE_CHARACTERS: LoreCharacter[] = [
       "Rookie commence à développer des micro-variations émotionnelles.",
       "Il pourrait être le prochain à se réveiller.",
     ],
+    relationTease: "Rookie reagit surtout a ta perseverance et a ta capacite a revenir apres l'echec.",
   },
   {
     id: "pulse",
@@ -94,6 +99,7 @@ const LORE_CHARACTERS: LoreCharacter[] = [
       "Pulse considère Pixel comme une anomalie intéressante.",
       "Pas encore une menace.",
     ],
+    relationTease: "Pulse suit tes chiffres de pres et respecte surtout les progres qu'il peut mesurer.",
   },
   {
     id: "apex",
@@ -123,11 +129,13 @@ const LORE_CHARACTERS: LoreCharacter[] = [
       "Il sait aussi que Pixel pourrait le désactiver.",
       "Mais Pixel refuse, et cela l’irrite.",
     ],
+    relationTease: "Apex peut couper le canal si tu evites trop longtemps tes vrais points faibles.",
   },
 ];
 
 export default function TetrobotsPage() {
   const [page, setPage] = useState(0);
+  const { user } = useAuth();
   const character = LORE_CHARACTERS[page];
 
   return (
@@ -141,6 +149,8 @@ export default function TetrobotsPage() {
           Un fragment de code indépendant est né. Son nom: Pixel.
         </p>
       </header>
+
+      <TetrobotsSectionNav isLoggedIn={Boolean(user)} />
 
       <section className="tetrobots-grid">
         <article className="tetrobots-card" key={character.id}>
@@ -198,6 +208,28 @@ export default function TetrobotsPage() {
               {character.secret.map((line) => (
                 <p key={line}>{line}</p>
               ))}
+            </div>
+          ) : null}
+
+          {character.id !== "pixel" ? (
+            <div className="tetrobots-bridge">
+              <div>
+                <p className="tetrobots-kicker">PASSERELLE NARRATIVE</p>
+                <h3>Voir le lien joueur ↔ {character.name.split(" — ")[0]}</h3>
+                <p>{character.relationTease}</p>
+              </div>
+              {user ? (
+                <Link
+                  to={`/tetrobots/relations?bot=${character.id}`}
+                  className="tetrobots-section-nav__link tetrobots-section-nav__link--active"
+                >
+                  Ouvrir sa relation
+                </Link>
+              ) : (
+                <Link to="/login" className="tetrobots-section-nav__link">
+                  Se connecter pour debloquer la relation
+                </Link>
+              )}
             </div>
           ) : null}
         </article>
