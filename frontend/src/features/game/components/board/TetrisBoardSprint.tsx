@@ -6,7 +6,10 @@ import { getScoreRunToken, saveScore } from "../../services/scoreService";
 import { useAuth } from "../../../auth/context/AuthContext";
 import { useSettings } from "../../../settings/context/SettingsContext";
 import { useTetrisGame } from "../../hooks/useTetrisGame";
-import { useAchievements } from "../../../achievements/hooks/useAchievements";
+import {
+  useAchievements,
+  type PlayerMistakeKey,
+} from "../../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../types/GameMode";
 import { useLineClearFx } from "../../hooks/useLineClearFx";
 import StatCard from "../../../../shared/components/ui/cards/StatCard";
@@ -22,7 +25,7 @@ export default function TetrisBoardSprint() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { checkAchievements, updateStats } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
   const [countdown, setCountdown] = useState<number | null>(3);
   const visitedRef = useRef(false);
   // Refs pour stats/achievements sans re-render.
@@ -216,6 +219,9 @@ export default function TetrisBoardSprint() {
 
     const noHold = holdCountRef.current === 0;
     const noHardDrop = hardDropCountRef.current === 0;
+    const mistakes: PlayerMistakeKey[] = [];
+    if (!completedRun) mistakes.push("top_out" as const);
+    if (lines < TARGET_LINES * 0.5 && durationMs >= 2 * 60 * 1000) mistakes.push("slow" as const);
     const next = updateStats((prev) => ({
       ...prev,
       scoredModes: {
@@ -226,6 +232,13 @@ export default function TetrisBoardSprint() {
       noHoldRuns: prev.noHoldRuns + (completedRun && noHold ? 1 : 0),
       hardDropCount: prev.hardDropCount + hardDropCountRef.current,
     }));
+
+    recordPlayerBehavior({
+      mode: "SPRINT",
+      won: completedRun,
+      durationMs,
+      mistakes,
+    });
 
     checkAchievements({
       mode: "SPRINT",

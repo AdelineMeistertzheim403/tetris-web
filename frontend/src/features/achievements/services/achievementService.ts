@@ -2,7 +2,15 @@
 import { getAuthHeader } from "../../auth/services/authService";
 const API_URL = import.meta.env.VITE_API_URL;
 let unlockedAchievementsRequest: Promise<{ id: string; unlockedAt: number }[]> | null = null;
-let achievementStatsRequest: Promise<{ loginDays: string[] }> | null = null;
+let achievementStatsRequest: Promise<AchievementStatsPayload> | null = null;
+
+export type AchievementStatsPayload = {
+  loginDays: string[];
+  tetrobotProgression?: Record<string, unknown>;
+  tetrobotXpLedger?: Record<string, unknown>;
+  tetrobotAffinityLedger?: Record<string, unknown>;
+  lastTetrobotLevelUp?: Record<string, unknown> | null;
+};
 
 export type AchievementUnlockPayload = {
   id: string;
@@ -57,7 +65,7 @@ export async function unlockAchievements(
   }
 }
 
-export async function fetchAchievementStats(): Promise<{ loginDays: string[] }> {
+export async function fetchAchievementStats(): Promise<AchievementStatsPayload> {
   if (!achievementStatsRequest) {
     achievementStatsRequest = fetch(`${API_URL}/achievements/stats`, {
       headers: {
@@ -71,7 +79,13 @@ export async function fetchAchievementStats(): Promise<{ loginDays: string[] }> 
         }
 
         const data = await res.json();
-        return { loginDays: data.loginDays ?? [] };
+        return {
+          loginDays: data.loginDays ?? [],
+          tetrobotProgression: data.tetrobotProgression ?? {},
+          tetrobotXpLedger: data.tetrobotXpLedger ?? {},
+          tetrobotAffinityLedger: data.tetrobotAffinityLedger ?? {},
+          lastTetrobotLevelUp: data.lastTetrobotLevelUp ?? null,
+        };
       })
       .finally(() => {
         achievementStatsRequest = null;
@@ -81,7 +95,7 @@ export async function fetchAchievementStats(): Promise<{ loginDays: string[] }> 
   return achievementStatsRequest;
 }
 
-export async function saveAchievementStats(loginDays: string[]): Promise<void> {
+export async function saveAchievementStats(payload: AchievementStatsPayload): Promise<void> {
   const res = await fetch(`${API_URL}/achievements/stats`, {
     method: "POST",
     credentials: "include",
@@ -89,7 +103,7 @@ export async function saveAchievementStats(loginDays: string[]): Promise<void> {
       "Content-Type": "application/json",
       ...getAuthHeader(),
     },
-    body: JSON.stringify({ loginDays }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {

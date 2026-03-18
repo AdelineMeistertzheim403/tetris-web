@@ -6,7 +6,10 @@ import TetrisBoard from "../../game/components/board/TetrisBoard";
 import OpponentBoard from "../../game/components/board/OpponentBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
 import { saveVersusMatch } from "../../game/services/scoreService";
-import { useAchievements } from "../../achievements/hooks/useAchievements";
+import {
+  useAchievements,
+  type PlayerMistakeKey,
+} from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
 import {
   TETROBOTS_PERSONALITIES,
@@ -85,7 +88,7 @@ function useMarkVersusVisited() {
 
 function VersusPvp() {
   const { user } = useAuth();
-  const { checkAchievements, updateStats } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
   const [chosenMatchId, setChosenMatchId] = useState<string | undefined>(undefined);
   const startTimeRef = useRef<number | null>(null);
@@ -194,6 +197,10 @@ function VersusPvp() {
     const noHold = holdCountRef.current === 0;
     const noHardDrop = hardDropCountRef.current === 0;
     const level = levelRef.current;
+    const mistakes: PlayerMistakeKey[] = [];
+    if (!win && maxStackHeightRef.current >= RED_ZONE_HEIGHT) mistakes.push("top_out" as const);
+    if (maxStackHeightRef.current >= RED_ZONE_HEIGHT - 1) mistakes.push("unsafe_stack" as const);
+    if (durationMs >= 8 * 60 * 1000 && myResult.score < oppResult.score) mistakes.push("slow" as const);
     let sameScoreTwice = false;
 
     const next = updateStats((prev) => {
@@ -217,6 +224,13 @@ function VersusPvp() {
         hardDropCount: prev.hardDropCount + hardDropCountRef.current,
         lastScore: myResult.score,
       };
+    });
+
+    recordPlayerBehavior({
+      mode: "VERSUS",
+      won: win,
+      durationMs,
+      mistakes,
     });
 
     checkAchievements({
@@ -247,7 +261,7 @@ function VersusPvp() {
     });
 
     finalizedRef.current = true;
-  }, [matchOver, results, slot, updateStats, checkAchievements]);
+  }, [matchOver, results, slot, updateStats, checkAchievements, recordPlayerBehavior]);
 
   if (startReady) {
     const myResult = results?.find((r) => r.slot === slot) ?? null;
@@ -465,7 +479,7 @@ function VersusPvp() {
 
 function VersusTetrobots() {
   const { user } = useAuth();
-  const { checkAchievements, updateStats } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
   const [roundSeed, setRoundSeed] = useState(() => `tetrobots-${Date.now()}`);
   const [roundKey, setRoundKey] = useState(0);
   const [started, setStarted] = useState(false);
@@ -788,6 +802,11 @@ function VersusTetrobots() {
     const wonVsRookie = win && botPersonalityId === "rookie";
     const wonVsBalanced = win && botPersonalityId === "balanced";
     const wonVsApex = win && botPersonalityId === "apex";
+    const mistakes: PlayerMistakeKey[] = [];
+    if (playerHoles >= 4) mistakes.push("holes" as const);
+    if (!win && maxStackHeightRef.current >= RED_ZONE_HEIGHT) mistakes.push("top_out" as const);
+    if (redZoneRate >= 0.3) mistakes.push("unsafe_stack" as const);
+    if (durationMs >= 8 * 60 * 1000 && !win) mistakes.push("slow" as const);
     if (wonVsRookie) botPersonalityWinsRef.current.add("rookie");
     if (wonVsBalanced) botPersonalityWinsRef.current.add("balanced");
     if (wonVsApex) botPersonalityWinsRef.current.add("apex");
@@ -818,6 +837,13 @@ function VersusTetrobots() {
         hardDropCount: prev.hardDropCount + hardDropCountRef.current,
         lastScore: playerResult.score,
       };
+    });
+
+    recordPlayerBehavior({
+      mode: "VERSUS",
+      won: win,
+      durationMs,
+      mistakes,
     });
 
     checkAchievements({
@@ -912,7 +938,7 @@ function VersusTetrobots() {
       });
 
     finalizedRef.current = true;
-  }, [botPersonalityId, botResult, checkAchievements, matchOver, playerResult, updateStats]);
+  }, [botPersonalityId, botResult, checkAchievements, matchOver, playerResult, recordPlayerBehavior, updateStats]);
 
   useEffect(() => {
     if (!matchOver || !playerResult || !botResult || !user || hasSavedResult) return;

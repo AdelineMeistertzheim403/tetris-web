@@ -180,6 +180,10 @@ export const achievementUnlockSchema = z.object({
 
 export const achievementStatsSchema = z.object({
   loginDays: z.array(z.string().trim().min(1).max(10)).max(400),
+  tetrobotProgression: z.record(z.string(), z.any()).optional(),
+  tetrobotXpLedger: z.record(z.string(), z.any()).optional(),
+  tetrobotAffinityLedger: z.record(z.string(), z.any()).optional(),
+  lastTetrobotLevelUp: z.record(z.string(), z.any()).nullable().optional(),
 });
 
 export const puzzleAttemptSchema = z.object({

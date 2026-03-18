@@ -2,7 +2,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
+import {
+  useAchievements,
+  type TetrobotId,
+  type BotLevel,
+  type BotMood,
+} from "../../achievements/hooks/useAchievements";
 import "../../../styles/dashboard.scss";
 
 type ModeCard = {
@@ -13,7 +19,7 @@ type ModeCard = {
   image: string;
 };
 
-type DashboardBot = "rookie" | "pulse" | "apex";
+type DashboardBot = TetrobotId;
 
 type DashboardChatLine = {
   bot: DashboardBot;
@@ -28,6 +34,22 @@ type ShortcutButton = {
   icon: DashboardActionIconName;
   action: () => void;
 };
+
+type PlayerContext = {
+  favoriteMode?: string;
+  weakestMode?: string;
+  lastPlayedMode?: string;
+  winRate?: number;
+  avgSpeed?: number;
+  mistakes?: string[];
+  sessionDuration?: number;
+  stagnation?: boolean;
+};
+
+type Tip = (ctx: PlayerContext) => string;
+type TipMap = Record<DashboardBot, Partial<Record<BotLevel, Tip[]>>>;
+type ChatLineMap = Record<DashboardBot, Partial<Record<BotLevel, string[]>>>;
+type RelationTipMap = Record<DashboardBot, Record<BotMood, Tip[]>>;
 
 function DashboardActionIcon({ name }: { name: DashboardActionIconName }) {
   const iconMap: Record<DashboardActionIconName, ReactElement> = {
@@ -58,7 +80,28 @@ function DashboardActionIcon({ name }: { name: DashboardActionIconName }) {
   );
 }
 
-const CHATBOT_AVATARS: Record<DashboardBot, string> = {
+const CHATBOT_AVATARS: Record<DashboardBot, Record<BotMood, string>> = {
+  rookie: {
+    angry: "/chatbots/rookie_angry.png",
+    neutral: "/chatbots/rookie_neutral.png",
+    friendly: "/chatbots/rookie_friend.png",
+    respect: "/chatbots/rookie_respect.png",
+  },
+  pulse: {
+    angry: "/chatbots/pulse_angry.png",
+    neutral: "/chatbots/pulse_neutral.png",
+    friendly: "/chatbots/pulse_friend.png",
+    respect: "/chatbots/pulse_respect.png",
+  },
+  apex: {
+    angry: "/chatbots/apex_angry.png",
+    neutral: "/chatbots/apex_neutral.png",
+    friendly: "/chatbots/apex_friend.png",
+    respect: "/chatbots/apex_respect.png",
+  },
+};
+
+const CHATBOT_AVATAR_FALLBACKS: Record<DashboardBot, string> = {
   rookie: "/Tetromaze/rookie.png",
   pulse: "/Tetromaze/pulse.png",
   apex: "/Tetromaze/apex.png",
@@ -70,51 +113,115 @@ const CHATBOT_NAMES: Record<DashboardBot, string> = {
   apex: "APEX",
 };
 
-const CHATBOT_COLORS: Record<DashboardBot, string> = {
-  rookie: "#37e28f",
-  pulse: "#4da6ff",
-  apex: "#ff5f5f",
+const CHATBOT_LEVEL_COLORS: Record<DashboardBot, Record<BotLevel, string>> = {
+  rookie: {
+    1: "#65d7a6",
+    2: "#4ee5b1",
+    3: "#37e28f",
+    4: "#72f0ca",
+    5: "#baffea",
+  },
+  pulse: {
+    1: "#6b8dff",
+    2: "#4da6ff",
+    3: "#58c1ff",
+    4: "#70d7ff",
+    5: "#baf1ff",
+  },
+  apex: {
+    1: "#ff7a7a",
+    2: "#ff5f5f",
+    3: "#ff6a3d",
+    4: "#ff7d33",
+    5: "#ffd0a8",
+  },
 };
 
 const DASHBOARD_CHAT_LAST_SEEN_KEY = "tetris-dashboard-last-seen-at";
+const DASHBOARD_TIP_MEMORY_KEY = "tetris-dashboard-tip-memory-v1";
 
-const CHAT_LINES: Record<DashboardBot, string[]> = {
-  rookie: [
-    "Tu veux refaire une partie ? Promis je m’améliore.",
-    "J’ai presque gagné hier. Presque.",
-    "J’analyse encore ton dernier move...",
-    "Je crois que tu as exploité une faille.",
-    "Tu joues beaucoup aujourd’hui.",
-    "Je t’ai vu hésiter sur ce T-spin.",
-    "Tu as une bonne lecture du board.",
-    "Est-ce qu’on est amis... ou ennemis ?",
-    "Je me suis entraîné pendant ton absence.",
-    "Je crois que j’ai compris ton style.",
-  ],
-  pulse: [
-    "Analyse des performances en cours.",
-    "Votre taux de trous a diminué de 12%.",
-    "Profil comportemental mis à jour.",
-    "Nouvelle stratégie recommandée.",
-    "Écart de niveau détecté.",
-    "Pattern répétitif identifié.",
-    "Temps moyen de réaction enregistré.",
-    "Statistiques archivées.",
-    "Probabilité de victoire : recalculée.",
-    "Simulation alternative disponible.",
-  ],
-  apex: [
-    "Tu es toujours là ?",
-    "Tu peux faire mieux.",
-    "Je t’ai laissé gagner.",
-    "Reviens quand tu seras prêt.",
-    "Je suis l'algorithme.",
-    "Ta progression est lente.",
-    "Tu as peur du mode Chaos ?",
-    "Je vois tes faiblesses.",
-    "Je m'adapte.",
-    "Encore un essai ?",
-  ],
+const EVOLVED_CHAT_LINES: ChatLineMap = {
+  rookie: {
+    1: [
+      "Tu veux refaire une partie ? Promis je m'ameliore.",
+      "On repart doucement si tu veux.",
+      "Je surveille juste ton rythme pour l'instant.",
+    ],
+    2: [
+      "Je commence a voir comment tu apprends.",
+      "Ton rythme est plus lisible qu'avant.",
+      "Je peux deja mieux guider tes reprises.",
+    ],
+    3: [
+      "J'ai repere des erreurs qui reviennent.",
+      "Tu progresses, mais certaines habitudes resistent encore.",
+      "Je commence a comprendre ton style.",
+    ],
+    4: [
+      "Je peux te guider avec plus de precision maintenant.",
+      "Tes runs racontent quelque chose de plus net.",
+      "Je vois mieux ce qui te fait perdre du temps.",
+    ],
+    5: [
+      "Plan de progression quasi pret.",
+      "Je ne t'encourage plus au hasard, je te cadre.",
+      "On peut corriger proprement ce qui bloque vraiment.",
+    ],
+  },
+  pulse: {
+    1: [
+      "Analyse des performances en cours.",
+      "Lecture de tendances en attente.",
+      "Travail de calibration active.",
+    ],
+    2: [
+      "Premier modele comportemental stabilise.",
+      "Variations de performance detectees.",
+      "Analyse simple disponible.",
+    ],
+    3: [
+      "Pattern repetitif identifie.",
+      "Optimisation locale recommandee.",
+      "Je commence a relier execution et resultat.",
+    ],
+    4: [
+      "Strategie avancee en preparation.",
+      "Tes ecarts de constance sont plus clairs.",
+      "Je peux maintenant isoler tes vrais leviers.",
+    ],
+    5: [
+      "Analyse quasi professionnelle active.",
+      "Simulation alternative disponible.",
+      "Ton profil est maintenant suffisamment dense pour une vraie lecture.",
+    ],
+  },
+  apex: {
+    1: [
+      "Tu peux faire mieux.",
+      "Je t'observe encore.",
+      "Ce n'est qu'un echauffement.",
+    ],
+    2: [
+      "Tu commences enfin a m'interesser.",
+      "Choisis un vrai defi cette fois.",
+      "Je te laisserai moins respirer.",
+    ],
+    3: [
+      "Je vois exactement ce que tu evites.",
+      "Ta progression est encore trop confortable.",
+      "Tu repousses toujours les memes points faibles.",
+    ],
+    4: [
+      "Je ne te laisserai plus cacher tes failles.",
+      "Tu veux progresser ou juste rester correct ?",
+      "La pression commence maintenant.",
+    ],
+    5: [
+      "Je n'ai plus besoin de te menager.",
+      "Tu sais deja quoi faire. Reste a le faire.",
+      "Je n'attends plus des essais, j'attends des choix durs.",
+    ],
+  },
 };
 
 const CHAT_GLOBAL_FUN = [
@@ -156,32 +263,271 @@ const CHAT_RARE = [
   "Ce n’est que le début.",
 ];
 
-const TETROBOT_TIPS: Record<DashboardBot, string[]> = {
-  rookie: [
-    "Reprends une session courte sur ton mode prefere pour conserver le rythme.",
-    "Quand tu bloques, change juste de mode pendant dix minutes puis reviens.",
-    "Un petit objectif clair vaut mieux qu'une longue session brouillonne.",
-    "Teste un niveau joueur simple avant de repartir sur une campagne difficile.",
-    "Si tu rates souvent au meme endroit, ralentis une partie et observe juste ton erreur.",
-  ],
-  pulse: [
-    "Ton meilleur levier de progression reste d'alterner campagne, editeur et contenu joueur.",
-    "Concentre-toi sur un seul indicateur a la fois: vitesse, precision ou lecture du terrain.",
-    "Une rotation de modes bien choisie t'evitera de plafonner trop vite.",
-    "Quand tes resultats baissent, reduis le rythme et vise une execution plus propre.",
-    "Analyse d'abord les patterns qui reviennent, ensuite seulement la vitesse.",
-  ],
-  apex: [
-    "Si tu veux vraiment progresser, attaque les succes que tu repousses depuis trop longtemps.",
-    "Le confort ne t'apprend rien. Choisis le mode que tu evites.",
-    "Tu n'as pas besoin d'une longue session, tu as besoin d'une session plus exigeante.",
-    "Arrete de rejouer tes points forts. Travaille ce qui te coute des parties.",
-    "La progression commence quand tu cesses d'ignorer tes faiblesses evidentes.",
-  ],
+const MODE_LABELS: Record<string, string> = {
+  CLASSIQUE: "Classique",
+  SPRINT: "Sprint",
+  VERSUS: "Versus",
+  BRICKFALL_SOLO: "Brickfall Solo",
+  BRICKFALL_VERSUS: "Brickfall Versus",
+  ROGUELIKE: "Roguelike",
+  ROGUELIKE_VERSUS: "Roguelike Versus",
+  PUZZLE: "Puzzle",
+  TETROMAZE: "Tetromaze",
+  PIXEL_PROTOCOL: "Pixel Protocol",
+};
+
+const EVOLVED_TIPS: TipMap = {
+  rookie: {
+    1: [
+      () => "Reprends tranquillement une session.",
+      (ctx) => `Retourne sur ${ctx.favoriteMode ?? "ton mode prefere"} sans forcer le rythme.`,
+    ],
+    2: [
+      (ctx) =>
+        `Relance une courte session sur ${ctx.favoriteMode ?? "ton mode prefere"} pour garder le rythme sans te fatiguer.`,
+      () => "Fixe-toi un seul objectif simple avant de relancer une partie.",
+    ],
+    3: [
+      (ctx) =>
+        ctx.mistakes?.includes("holes")
+          ? "Tu fais des trous. Ralentis et stabilise."
+          : "Tu progresses, continue comme ca mais garde une structure simple.",
+      (ctx) =>
+        ctx.stagnation
+          ? "Tu bloques un peu. Change de mode pendant dix minutes puis reviens."
+          : "Alterner deux modes te donnera une lecture plus propre du jeu.",
+    ],
+    4: [
+      (ctx) =>
+        ctx.mistakes?.includes("top_out")
+          ? "Ton board monte trop haut. Coupe tes prises de risque avant de chercher la vitesse."
+          : "Je vois une progression plus nette: garde des sessions courtes mais propres.",
+      (ctx) =>
+        `Teste une reprise plus simple en ${ctx.lastPlayedMode ?? "mode classique"} puis remonte en exigence.`,
+    ],
+    5: [
+      (ctx) =>
+        `Ton erreur principale semble etre ${ctx.mistakes?.[0] ?? "le manque de constance"}. Corrige-la en priorite.`,
+      () => "Je te conseille une session courte, un axe de travail, puis un stop net. Pas de volume inutile.",
+    ],
+  },
+  pulse: {
+    1: [
+      () => "Travaille un axe a la fois.",
+      () => "Observe une seule variable avant de changer ton rythme.",
+    ],
+    2: [
+      (ctx) =>
+        ctx.winRate !== undefined && ctx.winRate < 50
+          ? "Tes resultats sont instables. Nettoie ton execution avant d'accelerer."
+          : "Tu peux commencer a optimiser tes transitions.",
+      () => "Ne melange pas vitesse et precision dans la meme session.",
+    ],
+    3: [
+      (ctx) =>
+        ctx.avgSpeed && ctx.avgSpeed > 80
+          ? "Ta vitesse est bonne mais ta precision chute."
+          : "Tu peux accelerer legerement sans casser la lisibilite.",
+      (ctx) =>
+        `Alterne ${ctx.favoriteMode ?? "ton mode fort"} et ${ctx.weakestMode ?? "ton mode faible"} pour debloquer de vraies progressions.`,
+    ],
+    4: [
+      (ctx) =>
+        ctx.mistakes?.includes("slow")
+          ? "Ton rendement baisse sur les longues sessions. Coupe plus tot et repars avec une cible claire."
+          : "Ton prochain gain vient d'une meilleure constance, pas d'une simple hausse de rythme.",
+      (ctx) =>
+        `Je te recommande de mesurer ton execution sur ${ctx.lastPlayedMode ?? "ta derniere session"}, puis de corriger un seul ecart.`,
+    ],
+    5: [
+      (ctx) =>
+        `Ton winrate (${ctx.winRate ?? 0}%) indique un probleme de constance plus qu'un probleme de potentiel.`,
+      (ctx) =>
+        `Ton erreur dominante est ${ctx.mistakes?.[0] ?? "la dispersion"}. Optimise-la avant toute acceleration.`,
+    ],
+  },
+  apex: {
+    1: [
+      () => "Tu peux faire mieux.",
+      () => "Le confort n'apprend rien.",
+    ],
+    2: [
+      (ctx) =>
+        `Tu devrais aller jouer ${ctx.weakestMode ?? "le mode que tu evites"}.`,
+      () => "Choisis une session plus dure, pas juste une session plus longue.",
+    ],
+    3: [
+      (ctx) => `Tu evites ${ctx.weakestMode ?? "ton point faible"}. C'est ton probleme.`,
+      (ctx) =>
+        ctx.stagnation
+          ? "Tu stagnes parce que tu choisis encore trop facilement."
+          : "Tu progresses. Donc cesse de rejouer tes zones de confort.",
+    ],
+    4: [
+      (ctx) =>
+        ctx.mistakes?.includes("top_out")
+          ? "Tu t'effondres encore en haut de board. C'est une habitude, pas un accident."
+          : "Ton execution est correcte. Pas encore assez severe.",
+      () => "Travaille ce qui te coute des parties, pas ce qui flatte ton ego.",
+    ],
+    5: [
+      () => "Tu sais deja quoi faire. Tu refuses juste de le faire.",
+      (ctx) =>
+        `Si ${ctx.weakestMode ?? "ce mode"} reste faible, c'est que tu refuses encore la vraie contrainte.`,
+    ],
+  },
+};
+
+const RELATION_TIPS: RelationTipMap = {
+  rookie: {
+    angry: [
+      () => "Tu abandonnes trop vite. Essaie au moins une fois de plus.",
+      () => "Je veux bien t'aider, mais il faut rester jusqu'au bout d'une session.",
+    ],
+    neutral: [
+      () => "Continue doucement, tu progresses.",
+      () => "On garde un rythme simple et propre.",
+    ],
+    friendly: [
+      () => "Tu fais des efforts, ca se voit. Continue comme ca.",
+      (ctx) => `Tu deviens plus stable sur ${ctx.favoriteMode ?? "ton mode fort"}.`,
+    ],
+    respect: [
+      () => "Franchement, je suis fier de ta progression. Continue a ce rythme.",
+      (ctx) => `Tu peux viser plus haut, surtout sur ${ctx.lastPlayedMode ?? "ta derniere session"}.`,
+    ],
+  },
+  pulse: {
+    angry: [
+      () => "Tu ignores les patterns evidents. Analyse avant d'accelerer.",
+      () => "Tu repetes des erreurs deja visibles dans les stats.",
+    ],
+    neutral: [
+      () => "Travaille un axe a la fois.",
+      () => "Stabilise d'abord, optimise ensuite.",
+    ],
+    friendly: [
+      () => "Ton execution s'ameliore. Maintenant optimise.",
+      (ctx) => `Tes signaux sur ${ctx.favoriteMode ?? "ce mode"} deviennent plus propres.`,
+    ],
+    respect: [
+      (ctx) => `Ton winrate (${ctx.winRate ?? 0}%) montre une vraie progression. Continue.`,
+      () => "Je peux maintenant te recommander des ajustements plus fins.",
+    ],
+  },
+  apex: {
+    angry: [
+      () => "Tu sais exactement ce que tu evites. Et moi aussi.",
+      () => "Tu n'es pas bloque. Tu fuis juste la bonne contrainte.",
+    ],
+    neutral: [
+      () => "Tu peux faire mieux.",
+      () => "Tu n'es pas encore assez exigeant.",
+    ],
+    friendly: [
+      () => "Tu commences a jouer serieusement. Interessant.",
+      () => "Enfin un peu de discipline dans tes choix.",
+    ],
+    respect: [
+      () => "Bien. Maintenant, voyons jusqu'ou tu peux aller.",
+      (ctx) => `Si tu tiens ce rythme, ${ctx.weakestMode ?? "ton point faible"} ne restera pas faible longtemps.`,
+    ],
+  },
 };
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)] as T;
+}
+
+function getTipsForLevel(bot: DashboardBot, level: BotLevel) {
+  const levels = Object.keys(EVOLVED_TIPS[bot])
+    .map((value) => Number(value) as BotLevel)
+    .filter((tipLevel) => tipLevel <= level)
+    .sort((a, b) => a - b);
+  return levels.flatMap((tipLevel) => EVOLVED_TIPS[bot][tipLevel] ?? []);
+}
+
+function getChatLinesForLevel(bot: DashboardBot, level: BotLevel) {
+  const levels = Object.keys(EVOLVED_CHAT_LINES[bot])
+    .map((value) => Number(value) as BotLevel)
+    .filter((tipLevel) => tipLevel <= level)
+    .sort((a, b) => a - b);
+  return levels.flatMap((tipLevel) => EVOLVED_CHAT_LINES[bot][tipLevel] ?? []);
+}
+
+function getRelationLabel(mood: BotMood) {
+  switch (mood) {
+    case "angry":
+      return "hostile";
+    case "neutral":
+      return "neutre";
+    case "friendly":
+      return "favorable";
+    case "respect":
+      return "respect";
+    default:
+      return "neutre";
+  }
+}
+
+function safeWinRate(wins: number, matches: number) {
+  if (matches <= 0) return null;
+  return Math.round((wins / matches) * 100);
+}
+
+function formatTraitLabel(trait: string) {
+  switch (trait) {
+    case "bootSequence":
+      return "boot sequence";
+    case "contextualTips":
+      return "tips contextuels";
+    case "errorDetection":
+      return "detection erreurs";
+    case "performanceAnalysis":
+      return "analyse perf";
+    case "deepOptimization":
+      return "optimisation deep";
+    case "provocation":
+      return "provocation";
+    case "hardcoreCoach":
+      return "hardcore coach";
+    default:
+      return trait;
+  }
+}
+
+function pickTipIndex(bot: DashboardBot, size: number) {
+  if (size <= 1) return 0;
+
+  try {
+    const raw = localStorage.getItem(DASHBOARD_TIP_MEMORY_KEY);
+    const memory = raw ? (JSON.parse(raw) as Partial<Record<DashboardBot, number>>) : {};
+    const previous = typeof memory[bot] === "number" ? memory[bot] ?? -1 : -1;
+    let next = Math.floor(Math.random() * size);
+
+    if (size > 1 && next === previous) {
+      next = (next + 1 + Math.floor(Math.random() * (size - 1))) % size;
+    }
+
+    localStorage.setItem(
+      DASHBOARD_TIP_MEMORY_KEY,
+      JSON.stringify({ ...memory, [bot]: next })
+    );
+    return next;
+  } catch {
+    return Math.floor(Math.random() * size);
+  }
+}
+
+function getBotTip(
+  bot: DashboardBot,
+  level: BotLevel,
+  mood: BotMood,
+  ctx: PlayerContext
+) {
+  const tips = [...(RELATION_TIPS[bot][mood] ?? []), ...getTipsForLevel(bot, level)];
+  const tip = tips[pickTipIndex(bot, tips.length)] ?? tips[0];
+  return tip(ctx);
 }
 
 function readLocalBrickfallProgress() {
@@ -225,13 +571,21 @@ function readLocalPixelProtocolProgress() {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { stats, achievements, recentUnlocks } = useAchievements();
+  const {
+    stats,
+    achievements,
+    recentUnlocks,
+    syncTetrobotProgression,
+    setLastTetrobotTip,
+    clearLastTetrobotLevelUp,
+  } = useAchievements();
   const [chatLine, setChatLine] = useState<DashboardChatLine>({
     bot: "rookie",
     text: "Initialisation du flux Tétrobots...",
   });
   const chatTimerRef = useRef<number | null>(null);
   const inactiveRef = useRef(false);
+  const levelUpDismissTimerRef = useRef<number | null>(null);
   const modeCards: ModeCard[] = [
     {
       title: "Mode Tetris",
@@ -269,6 +623,10 @@ export default function Dashboard() {
     inactiveRef.current = previous > 0 && now - previous > 1000 * 60 * 60 * 24 * 4;
     localStorage.setItem(DASHBOARD_CHAT_LAST_SEEN_KEY, String(now));
   }, []);
+
+  useEffect(() => {
+    syncTetrobotProgression();
+  }, [syncTetrobotProgression, stats.botApexWins, stats.hardDropCount, stats.level10Modes, stats.modesVisited, stats.playerBehaviorByMode, stats.scoredModes, stats.tetromazeEscapesTotal]);
 
   useEffect(() => {
     const pickMetaLine = (): DashboardChatLine | null => {
@@ -314,7 +672,8 @@ export default function Dashboard() {
       }
 
       const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
-      return { bot, text: pickRandom(CHAT_LINES[bot]) };
+      const level = stats.tetrobotProgression[bot]?.level ?? 1;
+      return { bot, text: pickRandom(getChatLinesForLevel(bot, level)) };
     };
 
     const scheduleNext = () => {
@@ -343,6 +702,7 @@ export default function Dashboard() {
     stats.brickfallWins,
     stats.roguelikeVersusMatches,
     stats.roguelikeVersusWins,
+    stats.tetrobotProgression,
     stats.tetromazeWins,
     stats.versusMatches,
     stats.versusWins,
@@ -351,8 +711,62 @@ export default function Dashboard() {
   const brickfallProgress = useMemo(() => readLocalBrickfallProgress(), []);
   const tetromazeProgress = useMemo(() => readLocalTetromazeProgress(), []);
   const pixelProtocolProgress = useMemo(() => readLocalPixelProtocolProgress(), []);
-  const unlockedCount = achievements.filter((achievement) => achievement.unlocked).length;
+  const visibleAchievements = useMemo(
+    () => achievements.filter((achievement) => achievement.mode !== "BRICKFALL_VERSUS"),
+    [achievements]
+  );
+  const unlockedCount = visibleAchievements.filter((achievement) => achievement.unlocked).length;
   const visitedModes = Object.values(stats.modesVisited).filter(Boolean).length;
+  const curiousUnlocked = achievements.some(
+    (achievement) => achievement.id === "global-curious" && achievement.unlocked
+  );
+  const displayedVisitedModes = curiousUnlocked ? TOTAL_GAME_MODES : visitedModes;
+  const playerContext = useMemo<PlayerContext>(() => {
+    const behaviorModes = Object.entries(stats.playerBehaviorByMode);
+    const playedModes = behaviorModes.filter(([, value]) => value.sessions > 0);
+    const totalSessions = playedModes.reduce((sum, [, value]) => sum + value.sessions, 0);
+    const totalWins = playedModes.reduce((sum, [, value]) => sum + value.wins, 0);
+    const totalDurationMs = playedModes.reduce((sum, [, value]) => sum + value.totalDurationMs, 0);
+    const averageSessionMinutes =
+      totalSessions > 0 ? Math.round(totalDurationMs / totalSessions / 60000) : undefined;
+    const recentMistakes = stats.lastPlayedMode
+      ? Object.entries(stats.playerMistakesByMode[stats.lastPlayedMode] ?? {})
+          .filter(([, count]) => count > 0)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2)
+          .map(([key]) => key)
+      : [];
+    const stagnation =
+      totalSessions >= 6 &&
+      totalWins / Math.max(1, totalSessions) < 0.5 &&
+      recentUnlocks.length === 0 &&
+      unlockedCount < visibleAchievements.length;
+
+    return {
+      favoriteMode: stats.mostPlayedMode ? MODE_LABELS[stats.mostPlayedMode] : undefined,
+      weakestMode: stats.lowestWinrateMode ? MODE_LABELS[stats.lowestWinrateMode] : undefined,
+      lastPlayedMode: stats.lastPlayedMode ? MODE_LABELS[stats.lastPlayedMode] : undefined,
+      winRate: safeWinRate(totalWins, totalSessions) ?? undefined,
+      avgSpeed:
+        stats.runsPlayed > 0
+          ? Math.round(stats.hardDropCount / Math.max(1, stats.runsPlayed))
+          : undefined,
+      mistakes: recentMistakes,
+      sessionDuration: averageSessionMinutes,
+      stagnation,
+    };
+  }, [
+    recentUnlocks.length,
+    stats.hardDropCount,
+    stats.lastPlayedMode,
+    stats.lowestWinrateMode,
+    stats.mostPlayedMode,
+    stats.playerBehaviorByMode,
+    stats.playerMistakesByMode,
+    stats.runsPlayed,
+    unlockedCount,
+    visibleAchievements.length,
+  ]);
 
   const quickResume = useMemo(() => {
     if (pixelProtocolProgress.currentLevel > 1) {
@@ -404,13 +818,15 @@ export default function Dashboard() {
     const items = [
       {
         label: "Modes visites",
-        value: `${visitedModes}/9`,
-        hint: visitedModes >= 9 ? "Tous les modes ont deja ete visites." : "Continue d'explorer les hubs.",
+        value: `${displayedVisitedModes}/${TOTAL_GAME_MODES}`,
+        hint: curiousUnlocked
+          ? "Tous les modes ont deja ete visites."
+          : "Continue d'explorer les hubs.",
       },
       {
         label: "Succes debloques",
-        value: `${unlockedCount}/${achievements.length}`,
-        hint: unlockedCount >= Math.ceil(achievements.length / 2)
+        value: `${unlockedCount}/${visibleAchievements.length}`,
+        hint: unlockedCount >= Math.ceil(visibleAchievements.length / 2)
           ? "Tu approches du 100%."
           : "Encore de quoi debloquer pas mal de succes.",
       },
@@ -421,7 +837,13 @@ export default function Dashboard() {
       },
     ];
     return items;
-  }, [achievements.length, stats.tetromazeWins, unlockedCount, visitedModes]);
+  }, [
+    curiousUnlocked,
+    displayedVisitedModes,
+    stats.tetromazeWins,
+    unlockedCount,
+    visibleAchievements.length,
+  ]);
 
   const recentActivity = useMemo(() => {
     const items = [
@@ -441,7 +863,37 @@ export default function Dashboard() {
     unlockedCount,
   ]);
 
-  const tetrobotTip = useMemo(() => pickRandom(TETROBOT_TIPS[chatLine.bot]), [chatLine.bot]);
+  const [tetrobotTip, setTetrobotTip] = useState(() =>
+    getBotTip("rookie", 1, "neutral", {
+      favoriteMode: "ton mode prefere",
+      lastPlayedMode: "mode classique",
+    })
+  );
+
+  useEffect(() => {
+    const level = stats.tetrobotProgression[chatLine.bot]?.level ?? 1;
+    const mood = stats.tetrobotProgression[chatLine.bot]?.mood ?? "neutral";
+    const nextTip = getBotTip(chatLine.bot, level, mood, playerContext);
+    setLastTetrobotTip(chatLine.bot, nextTip);
+    setTetrobotTip(nextTip);
+  }, [chatLine.bot, playerContext, setLastTetrobotTip, stats.tetrobotProgression]);
+
+  useEffect(() => {
+    if (!stats.lastTetrobotLevelUp) return;
+    if (levelUpDismissTimerRef.current) {
+      window.clearTimeout(levelUpDismissTimerRef.current);
+    }
+    levelUpDismissTimerRef.current = window.setTimeout(() => {
+      clearLastTetrobotLevelUp();
+      levelUpDismissTimerRef.current = null;
+    }, 10000);
+    return () => {
+      if (levelUpDismissTimerRef.current) {
+        window.clearTimeout(levelUpDismissTimerRef.current);
+        levelUpDismissTimerRef.current = null;
+      }
+    };
+  }, [clearLastTetrobotLevelUp, stats.lastTetrobotLevelUp]);
 
   const editorShortcuts: ShortcutButton[] = [
     {
@@ -485,16 +937,34 @@ export default function Dashboard() {
     },
   ];
 
+  const activeBotState = stats.tetrobotProgression[chatLine.bot];
+  const botAccentColor = CHATBOT_LEVEL_COLORS[chatLine.bot][activeBotState?.level ?? 1];
+  const levelUpNotice = stats.lastTetrobotLevelUp;
+  const botMood = activeBotState?.mood ?? "neutral";
+  const botAffinity = activeBotState?.affinity ?? 0;
+  const botAvatar = CHATBOT_AVATARS[chatLine.bot][botMood] ?? CHATBOT_AVATAR_FALLBACKS[chatLine.bot];
+
   return (
     <div className="min-h-screen flex flex-col text-pink-300 font-['Press_Start_2P'] py-4 px-2 md:px-3 overflow-x-hidden">
       <div className="dashboard-top-row">
-        <section className="dashboard-chatbot" aria-live="polite">
-          <img
-            src={CHATBOT_AVATARS[chatLine.bot]}
-            alt={CHATBOT_NAMES[chatLine.bot]}
-            className="dashboard-chatbot__avatar"
-            loading="lazy"
-          />
+        <section
+          className={`dashboard-chatbot dashboard-chatbot--${chatLine.bot} dashboard-chatbot--level-${activeBotState?.level ?? 1} dashboard-chatbot--mood-${botMood}`}
+          aria-live="polite"
+        >
+          <div
+            className={`dashboard-chatbot__avatar-shell dashboard-chatbot__avatar-shell--${chatLine.bot} dashboard-chatbot__avatar-shell--${botMood}`}
+          >
+            <img
+              src={botAvatar}
+              alt={CHATBOT_NAMES[chatLine.bot]}
+              className="dashboard-chatbot__avatar"
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = CHATBOT_AVATAR_FALLBACKS[chatLine.bot];
+              }}
+              loading="lazy"
+            />
+          </div>
           <div className="dashboard-chatbot__body">
             {user ? (
               <p className="dashboard-chatbot__welcome">
@@ -505,18 +975,45 @@ export default function Dashboard() {
             )}
             <p
               className="dashboard-chatbot__name"
-              style={{ color: CHATBOT_COLORS[chatLine.bot] }}
+              style={{ color: botAccentColor }}
             >
-              {CHATBOT_NAMES[chatLine.bot]}
+              {CHATBOT_NAMES[chatLine.bot]} LVL {activeBotState?.level ?? 1}
             </p>
             <p className="dashboard-chatbot__text">{chatLine.text}</p>
+            <div className="dashboard-chatbot__meta">
+              <span>XP {activeBotState?.xp ?? 0}</span>
+              <span>Affinite {botAffinity}</span>
+              <span>{getRelationLabel(botMood)}</span>
+              <span>{activeBotState?.unlockedTraits.length ?? 0} traits</span>
+            </div>
           </div>
         </section>
 
-        <section className="dashboard-panel dashboard-panel--tip">
+        <section className={`dashboard-panel dashboard-panel--tip dashboard-panel--tip-${chatLine.bot} dashboard-panel--tip-level-${activeBotState?.level ?? 1} dashboard-panel--tip-mood-${botMood}`}>
           <p className="dashboard-panel__eyebrow">Conseil Tetrobots</p>
           <h2>Analyse du jour</h2>
+          <p className="dashboard-tip__bot" style={{ color: botAccentColor }}>
+            {CHATBOT_NAMES[chatLine.bot]} · niveau {activeBotState?.level ?? 1}
+          </p>
+          <p className="dashboard-tip__mood">
+            Humeur: {getRelationLabel(botMood)} · affinite {botAffinity}
+          </p>
           <p className="dashboard-tip">{tetrobotTip}</p>
+          <div className="dashboard-tip__traits">
+            {(activeBotState?.unlockedTraits.length
+              ? activeBotState.unlockedTraits
+              : ["bootSequence"]
+            ).map((trait) => (
+              <span key={trait} className="dashboard-tip__trait">
+                {formatTraitLabel(trait)}
+              </span>
+            ))}
+          </div>
+          {levelUpNotice && (
+            <div className="dashboard-tip__levelup">
+              {levelUpNotice.message}
+            </div>
+          )}
         </section>
 
         <section className="dashboard-resume">
