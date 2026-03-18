@@ -30,6 +30,7 @@ import TetromazeEditor from "./features/tetromaze/pages/TetromazeEditor";
 import TetromazeEditorHelp from "./features/tetromaze/pages/TetromazeEditorHelp";
 import TetromazeCommunityHub from "./features/tetromaze/pages/TetromazeCommunityHub";
 import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
+import TetrobotsHelpPage from "./features/tetrobots/pages/TetrobotsHelpPage";
 import TetrobotsRelationsPage from "./features/tetrobots/pages/TetrobotsRelationsPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
@@ -107,6 +108,7 @@ function App() {
           />
           <Route path="/pixel-protocol/help/editor" element={<PixelProtocolEditorHelp />} />
           <Route path="/tetrobots" element={<TetrobotsPage />} />
+          <Route path="/tetrobots/help" element={<TetrobotsHelpPage />} />
           <Route path="/tetrobots/relations" element={<TetrobotsRelationsPage />} />
           <Route path="/achievements" element={<AchievementsPage />} />
           <Route path="/settings" element={<Settings />} />
