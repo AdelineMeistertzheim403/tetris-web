@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   type BotMemoryEntry,
   type TetrobotId,
@@ -98,6 +99,9 @@ export default function TetrobotRelationsPanel({
             Lis ce qu&apos;ils pensent de toi, ce dont ils se souviennent, et ce qu&apos;il faut
             faire pour gagner leur confiance.
           </p>
+          <Link to="/tetrobots/help" className="tetrobots-help-link">
+            Comprendre les Tetrobots
+          </Link>
         </div>
         <div className="tetrobots-relations__scores">
           <div>

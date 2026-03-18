@@ -54,7 +54,14 @@ type DashboardRelationChoice = {
     | "dismiss";
 };
 
-type DashboardActionIconName = "resume" | "hub" | "editor" | "gallery";
+type DashboardActionIconName =
+  | "resume"
+  | "hub"
+  | "editor"
+  | "gallery"
+  | "relation"
+  | "message"
+  | "help";
 
 type ShortcutButton = {
   label: string;
@@ -92,6 +99,15 @@ function DashboardActionIcon({ name }: { name: DashboardActionIconName }) {
     ),
     gallery: (
       <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14H4zm2 2v10h12V7zm1 8 3-4 2 3 2-2 3 3z" />
+    ),
+    relation: (
+      <path d="M7 6h10a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-3l-4 3v-3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3zm1 4h8v2H8zm0-3h6v2H8z" />
+    ),
+    message: (
+      <path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-5l-4 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2 4h10v2H7zm0 4h7v2H7z" />
+    ),
+    help: (
+      <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15h-1.5v-1.5H12zm1.72-6.22-.67.46A1.92 1.92 0 0 0 12 12.9V13h-1.5v-.26a2.94 2.94 0 0 1 1.27-2.72l.92-.63a1.43 1.43 0 0 0 .66-1.18 1.85 1.85 0 0 0-3.69.11H8.15a3.35 3.35 0 1 1 6.69-.2 2.79 2.79 0 0 1-1.12 2.66z" />
     ),
   };
 
@@ -1426,23 +1442,36 @@ export default function Dashboard() {
               </div>
             ) : null}
             <div className="dashboard-chatbot__actions">
-              <button
-                type="button"
-                className="dashboard-chatbot__link"
-                onClick={() => navigate(`/tetrobots/relations?bot=${chatLine.bot}`)}
-              >
-                Voir la relation complete
+                <button
+                  type="button"
+                  className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--relation"
+                  onClick={() => navigate(`/tetrobots/relations?bot=${chatLine.bot}`)}
+                  data-tooltip="Voir la relation complete de ce Tetrobot."
+                  aria-label="Voir la relation complete"
+                >
+                <DashboardActionIcon name="relation" />
               </button>
               {latestRelationEvent &&
               Date.now() - latestRelationEvent.createdAt <= 1000 * 60 * 60 * 24 ? (
                 <button
                   type="button"
-                  className="dashboard-chatbot__ghost-link"
+                  className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--message"
                   onClick={() => openRelationPopup(latestRelationEvent)}
+                  data-tooltip="Rouvrir la derniere scene relationnelle recente."
+                  aria-label="Rouvrir le dernier message"
                 >
-                  Rouvrir le dernier message
+                  <DashboardActionIcon name="message" />
                 </button>
               ) : null}
+              <button
+                type="button"
+                className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--help"
+                onClick={() => navigate("/tetrobots/help")}
+                data-tooltip="Comprendre l'XP, l'affinite, l'humeur et les defis des Tetrobots."
+                aria-label="Comprendre les Tetrobots"
+              >
+                <DashboardActionIcon name="help" />
+              </button>
             </div>
           </div>
         </section>

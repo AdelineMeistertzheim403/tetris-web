@@ -1,0 +1,343 @@
+import { useEffect, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "../../auth/context/AuthContext";
+import { useAchievements } from "../../achievements/hooks/useAchievements";
+import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
+import "../../../styles/tetrobots.css";
+
+const HELP_UI_STORAGE_KEY = "tetrobots-help-ui-v1";
+const HELP_SECTION_IDS = [
+  "system",
+  "xp",
+  "affinity",
+  "mood",
+  "memory",
+  "apex",
+] as const;
+
+type HelpSectionId = (typeof HELP_SECTION_IDS)[number];
+type HelpSectionState = Record<HelpSectionId, boolean>;
+
+const HELP_SECTION_ICONS: Record<HelpSectionId, string> = {
+  system: "fa-microchip",
+  xp: "fa-star",
+  affinity: "fa-heart",
+  mood: "fa-face-smile",
+  memory: "fa-brain",
+  apex: "fa-triangle-exclamation",
+};
+
+const HELP_SECTION_TITLES: Record<HelpSectionId, string> = {
+  system: "Fonctionnement general",
+  xp: "Gagner de l'XP",
+  affinity: "Faire monter ou baisser l'affinite",
+  mood: "Comprendre les humeurs",
+  memory: "Memoire long terme",
+  apex: "Refus d'Apex et defis",
+};
+
+const XP_RULES = [
+  {
+    bot: "Rookie",
+    gain: [
+      "jouer regulierement",
+      "revenir apres des echecs",
+      "faire des sessions utiles meme courtes",
+    ],
+  },
+  {
+    bot: "Pulse",
+    gain: [
+      "ameliorer des stats mesurables",
+      "gagner plus souvent",
+      "corriger des erreurs identifiees",
+    ],
+  },
+  {
+    bot: "Apex",
+    gain: [
+      "tester des modes exigeants",
+      "travailler ton mode faible",
+      "assumer des choix difficiles au lieu du confort",
+    ],
+  },
+];
+
+const AFFINITY_RULES = [
+  {
+    bot: "Rookie",
+    positive: ["regularite", "perseverance", "retour apres echec"],
+    negative: ["abandon rapide", "rage quit", "session sans intention"],
+  },
+  {
+    bot: "Pulse",
+    positive: ["progression visible", "correction methodique", "lecture des patterns"],
+    negative: ["repetition des memes erreurs", "jeu brouillon", "absence d'analyse"],
+  },
+  {
+    bot: "Apex",
+    positive: ["travail du point faible", "courage", "discipline"],
+    negative: ["zone de confort", "esquive du mode faible", "fuite du challenge"],
+  },
+];
+
+function defaultHelpSectionState(): HelpSectionState {
+  return Object.fromEntries(HELP_SECTION_IDS.map((id) => [id, id === "system"])) as HelpSectionState;
+}
+
+function readHelpSectionState(): HelpSectionState {
+  if (typeof window === "undefined") return defaultHelpSectionState();
+  try {
+    const raw = window.localStorage.getItem(HELP_UI_STORAGE_KEY);
+    if (!raw) return defaultHelpSectionState();
+    const parsed = JSON.parse(raw) as Partial<HelpSectionState>;
+    const defaults = defaultHelpSectionState();
+    return Object.fromEntries(
+      HELP_SECTION_IDS.map((id) => [id, parsed[id] ?? defaults[id]])
+    ) as HelpSectionState;
+  } catch {
+    return defaultHelpSectionState();
+  }
+}
+
+function HelpSection({
+  id,
+  open,
+  onToggle,
+  children,
+}: {
+  id: HelpSectionId;
+  open: boolean;
+  onToggle: (id: HelpSectionId) => void;
+  children: ReactNode;
+}) {
+  return (
+    <details id={`help-${id}`} className="tetrobots-help-card" open={open}>
+      <summary
+        onClick={(event) => {
+          event.preventDefault();
+          onToggle(id);
+        }}
+      >
+        <span className="tetrobots-help-card__summary-label">
+          <i className={`fa-solid ${HELP_SECTION_ICONS[id]}`} aria-hidden="true" />
+          {HELP_SECTION_TITLES[id]}
+        </span>
+        <i
+          className={`fa-solid ${open ? "fa-chevron-up" : "fa-chevron-down"}`}
+          aria-hidden="true"
+        />
+      </summary>
+      {open ? <div className="tetrobots-help-card__body">{children}</div> : null}
+    </details>
+  );
+}
+
+export default function TetrobotsHelpPage() {
+  const location = useLocation();
+  const { user } = useAuth();
+  const { stats } = useAchievements();
+  const challenge = stats.activeTetrobotChallenge;
+  const [sections, setSections] = useState<HelpSectionState>(() => readHelpSectionState());
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(HELP_UI_STORAGE_KEY, JSON.stringify(sections));
+  }, [sections]);
+
+  useEffect(() => {
+    const hash = location.hash.replace(/^#/, "");
+    if (!hash) return;
+    const targetId = HELP_SECTION_IDS.find((id) => id === hash || `help-${id}` === hash);
+    if (!targetId) return;
+    setSections((current) => ({ ...current, [targetId]: true }));
+    const timer = window.setTimeout(() => {
+      document.getElementById(`help-${targetId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [location.hash]);
+
+  const toggleSection = (id: HelpSectionId) => {
+    setSections((current) => {
+      const nextOpen = !current[id];
+      if (typeof window !== "undefined") {
+        const nextHash = nextOpen ? `#${id}` : "";
+        window.history.replaceState(null, "", `${location.pathname}${nextHash}`);
+      }
+      return { ...current, [id]: nextOpen };
+    });
+  };
+
+  const setAllSections = (open: boolean) => {
+    setSections(
+      Object.fromEntries(HELP_SECTION_IDS.map((id) => [id, open])) as HelpSectionState
+    );
+  };
+
+  return (
+    <main className="tetrobots-page">
+      <header className="tetrobots-hero">
+        <p className="tetrobots-kicker">AIDE</p>
+        <h1>GUIDE DES TETROBOTS</h1>
+        <p>
+          Comprends comment les Tetrobots evoluent, ce qui leur fait gagner de l&apos;XP,
+          comment leur affinite change, et pourquoi Apex peut parfois te couper le canal.
+        </p>
+      </header>
+
+      <TetrobotsSectionNav isLoggedIn={Boolean(user)} />
+
+      <section className="tetrobots-help">
+        <div className="tetrobots-help__toolbar">
+          <p className="tetrobots-kicker">RUBRIQUES</p>
+          <div className="tetrobots-help__toolbar-actions">
+            <button
+              type="button"
+              className="tetrobots-help__icon-btn"
+              title="Tout ouvrir"
+              aria-label="Tout ouvrir"
+              onClick={() => setAllSections(true)}
+            >
+              <i className="fa-solid fa-angles-down" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="tetrobots-help__icon-btn"
+              title="Tout fermer"
+              aria-label="Tout fermer"
+              onClick={() => setAllSections(false)}
+            >
+              <i className="fa-solid fa-angles-up" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        <div className="tetrobots-help__quick-links" aria-label="Acces rapides">
+          {HELP_SECTION_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              className={`tetrobots-help__quick-link ${sections[id] ? "is-active" : ""}`}
+              onClick={() => {
+                setSections((current) => ({ ...current, [id]: true }));
+                if (typeof window !== "undefined") {
+                  window.history.replaceState(null, "", `${location.pathname}#${id}`);
+                }
+                window.setTimeout(() => {
+                  document.getElementById(`help-${id}`)?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }, 50);
+              }}
+            >
+              <i className={`fa-solid ${HELP_SECTION_ICONS[id]}`} aria-hidden="true" />
+              <span>{HELP_SECTION_TITLES[id]}</span>
+            </button>
+          ))}
+        </div>
+
+        <HelpSection id="system" open={sections.system} onToggle={toggleSection}>
+          <p className="tetrobots-kicker">SYSTEME</p>
+          <ul>
+            <li>Chaque bot a un niveau, de l&apos;XP, une affinite et une humeur.</li>
+            <li>Leur progression suit tes vraies habitudes de jeu, pas seulement ta derniere partie.</li>
+            <li>Ils memorisent des erreurs recurrentes, des retours apres echec et des comportements d&apos;evitement.</li>
+            <li>Le dashboard et le centre de liaison affichent ensuite leurs reactions, conseils et souvenirs.</li>
+          </ul>
+        </HelpSection>
+
+        <HelpSection id="xp" open={sections.xp} onToggle={toggleSection}>
+          <p className="tetrobots-kicker">XP</p>
+          {XP_RULES.map((rule) => (
+            <div key={rule.bot} className="tetrobots-help__rule">
+              <h3>{rule.bot}</h3>
+              <ul>
+                {rule.gain.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </HelpSection>
+
+        <HelpSection id="affinity" open={sections.affinity} onToggle={toggleSection}>
+          <p className="tetrobots-kicker">AFFINITE</p>
+          {AFFINITY_RULES.map((rule) => (
+            <div key={rule.bot} className="tetrobots-help__rule">
+              <h3>{rule.bot}</h3>
+              <p>Fait gagner:</p>
+              <ul>
+                {rule.positive.map((item) => (
+                  <li key={`${rule.bot}-pos-${item}`}>{item}</li>
+                ))}
+              </ul>
+              <p>Fait perdre:</p>
+              <ul>
+                {rule.negative.map((item) => (
+                  <li key={`${rule.bot}-neg-${item}`}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </HelpSection>
+
+        <HelpSection id="mood" open={sections.mood} onToggle={toggleSection}>
+          <p className="tetrobots-kicker">HUMEUR</p>
+          <ul>
+            <li>`angry`: le bot est agace, plus sec, parfois plus dur.</li>
+            <li>`neutral`: il observe encore ou reste prudent.</li>
+            <li>`friendly`: il commence a soutenir et guider plus clairement.</li>
+            <li>`respect`: tu as gagne une vraie forme de confiance.</li>
+          </ul>
+        </HelpSection>
+
+        <HelpSection id="memory" open={sections.memory} onToggle={toggleSection}>
+          <p className="tetrobots-kicker">MEMOIRE</p>
+          <ul>
+            <li>tes erreurs qui reviennent souvent</li>
+            <li>les modes que tu evites trop longtemps</li>
+            <li>tes progressions nettes et tes come-backs</li>
+            <li>tes sessions courageuses ou au contraire tes fuites</li>
+          </ul>
+        </HelpSection>
+
+        <HelpSection id="apex" open={sections.apex} onToggle={toggleSection}>
+          <div className="tetrobots-help__apex-block">
+            <p className="tetrobots-kicker">APEX</p>
+            <ul>
+              <li>si ton affinite avec lui tombe trop bas</li>
+              <li>si tu evites trop longtemps ton mode faible</li>
+              <li>si tu quittes les sessions avant d&apos;affronter la vraie contrainte</li>
+            </ul>
+            <p>
+              Quand ca arrive, Apex peut proposer un defi temporaire. Si tu l&apos;acceptes et que tu
+              le completes sans fuir, tu recuperes de l&apos;affinite, de l&apos;XP et il peut rouvrir le canal.
+            </p>
+            {challenge ? (
+              <div className="tetrobots-help__challenge">
+                <h3>Defi actif detecte</h3>
+                <p>{challenge.title}</p>
+                <p>{challenge.description}</p>
+                <p>
+                  Etat: {challenge.status} · progression {challenge.progress}/{challenge.targetCount}
+                </p>
+              </div>
+            ) : (
+              <div className="tetrobots-help__challenge">
+                <h3>Defi temporaire</h3>
+                <p>
+                  Aucun defi actif pour l&apos;instant. Si Apex verrouille le canal, surveille le dashboard:
+                  une mini scene peut proposer d&apos;accepter son epreuve.
+                </p>
+              </div>
+            )}
+          </div>
+        </HelpSection>
+      </section>
+    </main>
+  );
+}
