@@ -35,7 +35,7 @@ export default function Login() {
         },
       });
       // Persiste les login days côté backend, fallback silencieux en local.
-      saveAchievementStats(next.loginDays).catch(() => {});
+      saveAchievementStats({ loginDays: next.loginDays }).catch(() => {});
       navigate("/dashboard");
     } catch (err) {
       setError("Email ou mot de passe invalide");

@@ -1,4 +1,5 @@
 import { Router, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { verifyToken, AuthRequest } from "../middleware/auth.middleware";
 import prisma from "../prisma/client";
 import { logger } from "../logger";
@@ -96,10 +97,22 @@ router.get("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
 
     const stats = await prisma.userAchievementStats.findUnique({
       where: { userId },
-      select: { loginDays: true },
+      select: {
+        loginDays: true,
+        tetrobotProgression: true,
+        tetrobotXpLedger: true,
+        tetrobotAffinityLedger: true,
+        lastTetrobotLevelUp: true,
+      },
     });
 
-    res.json({ loginDays: stats?.loginDays ?? [] });
+    res.json({
+      loginDays: stats?.loginDays ?? [],
+      tetrobotProgression: stats?.tetrobotProgression ?? {},
+      tetrobotXpLedger: stats?.tetrobotXpLedger ?? {},
+      tetrobotAffinityLedger: stats?.tetrobotAffinityLedger ?? {},
+      lastTetrobotLevelUp: stats?.lastTetrobotLevelUp ?? null,
+    });
   } catch (err) {
     logger.error({ err }, "Erreur chargement stats achievements");
     res.status(500).json({ error: "Erreur serveur" });
@@ -121,12 +134,33 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const { loginDays } = parsed.data;
+    const {
+      loginDays,
+      tetrobotProgression = {},
+      tetrobotXpLedger = {},
+      tetrobotAffinityLedger = {},
+      lastTetrobotLevelUp = null,
+    } = parsed.data;
+    const serializedLevelUp =
+      lastTetrobotLevelUp === null ? Prisma.JsonNull : lastTetrobotLevelUp;
 
     await prisma.userAchievementStats.upsert({
       where: { userId },
-      update: { loginDays },
-      create: { userId, loginDays },
+      update: {
+        loginDays,
+        tetrobotProgression,
+        tetrobotXpLedger,
+        tetrobotAffinityLedger,
+        lastTetrobotLevelUp: serializedLevelUp,
+      },
+      create: {
+        userId,
+        loginDays,
+        tetrobotProgression,
+        tetrobotXpLedger,
+        tetrobotAffinityLedger,
+        lastTetrobotLevelUp: serializedLevelUp,
+      },
     });
 
     res.json({ success: true });

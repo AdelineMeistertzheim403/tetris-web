@@ -1,10 +1,33 @@
 import { useEffect, useRef } from "react";
 import TetrisBoard from "../components/board/TetrisBoard";
-import { useAchievements } from "../../achievements/hooks/useAchievements";
+import {
+  useAchievements,
+  type PlayerMistakeKey,
+} from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../types/GameMode";
 
+function countBoardHoles(board: number[][]) {
+  if (!board.length) return 0;
+  const rows = board.length;
+  const cols = board[0]?.length ?? 0;
+  let holes = 0;
+
+  for (let x = 0; x < cols; x += 1) {
+    let seenBlock = false;
+    for (let y = 0; y < rows; y += 1) {
+      if (board[y][x] !== 0) {
+        seenBlock = true;
+      } else if (seenBlock) {
+        holes += 1;
+      }
+    }
+  }
+
+  return holes;
+}
+
 export default function Game() {
-  const { checkAchievements, updateStats } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
   // Refs pour tracker la run sans déclencher de re-render.
   const startTimeRef = useRef<number | null>(null);
   const holdCountRef = useRef(0);
@@ -15,6 +38,7 @@ export default function Game() {
   const maxStackHeightRef = useRef(0);
   const levelRef = useRef(1);
   const visitedRef = useRef(false);
+  const boardRef = useRef<number[][]>([]);
 
   const resetRunTracking = () => {
     // Remise à zéro des compteurs de run.
@@ -74,6 +98,7 @@ export default function Game() {
         }}
         onBoardUpdate={(board) => {
           // Détecte la hauteur max pour les succès "demi plateau".
+          boardRef.current = board;
           const rows = board.length;
           let topFilled = rows;
           for (let y = 0; y < rows; y += 1) {
@@ -104,6 +129,12 @@ export default function Game() {
           const noHold = holdCountRef.current === 0;
           const noHardDrop = hardDropCountRef.current === 0;
           const level = levelRef.current;
+          const mistakes: PlayerMistakeKey[] = [];
+          const holeCount = countBoardHoles(boardRef.current);
+          if (holeCount >= 3) mistakes.push("holes" as const);
+          if (maxStackHeightRef.current >= 16) mistakes.push("unsafe_stack" as const);
+          if (maxStackHeightRef.current >= 18) mistakes.push("top_out" as const);
+          if (durationMs >= 8 * 60 * 1000 && score < 2500) mistakes.push("slow" as const);
           let sameScoreTwice = false;
 
           const next = updateStats((prev) => {
@@ -123,6 +154,13 @@ export default function Game() {
               hardDropCount: prev.hardDropCount + hardDropCountRef.current,
               lastScore: score,
             };
+          });
+
+          recordPlayerBehavior({
+            mode: "CLASSIQUE",
+            won: false,
+            durationMs,
+            mistakes,
           });
 
           checkAchievements({

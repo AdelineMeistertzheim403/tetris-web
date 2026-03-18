@@ -737,7 +737,7 @@ export default function TetromazePage() {
   const movementActiveRef = useRef(false);
   const visitedRef = useRef(false);
   const spritesRef = useRef<SpriteStore | null>(null);
-  const { updateStats, checkAchievements } = useAchievements();
+  const { updateStats, checkAchievements, recordPlayerBehavior } = useAchievements();
   const { user } = useAuth();
 
   const [assetsReady, setAssetsReady] = useState(false);
@@ -2000,6 +2000,15 @@ export default function TetromazePage() {
 
     if (state.status === "won") {
       const elapsedMs = Math.max(0, Date.now() - state.startedAt);
+      recordPlayerBehavior({
+        mode: "TETROMAZE",
+        won: true,
+        durationMs: elapsedMs,
+        mistakes: [
+          ...(state.lives < 3 ? (["damage_taken"] as const) : []),
+          ...(elapsedMs > 60_000 ? (["slow"] as const) : []),
+        ],
+      });
       const nextStats = updateStats((old) => ({
         ...old,
         tetromazeWins: old.tetromazeWins + 1,
@@ -2017,6 +2026,12 @@ export default function TetromazePage() {
         },
       });
     } else {
+      recordPlayerBehavior({
+        mode: "TETROMAZE",
+        won: false,
+        durationMs: Math.max(0, Date.now() - state.startedAt),
+        mistakes: ["top_out", ...(state.lives < 3 ? (["damage_taken"] as const) : [])],
+      });
       checkAchievements({
         mode: "TETROMAZE",
         custom: {
