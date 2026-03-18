@@ -81,6 +81,149 @@
   gap: 16px;
 }
 
+.tetrobots-help {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.tetrobots-help__toolbar,
+.tetrobots-help-card {
+  border: 1px solid #325f9d;
+  border-radius: 14px;
+  background: rgba(8, 13, 27, 0.88);
+  padding: 16px;
+}
+
+.tetrobots-help__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tetrobots-help__toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tetrobots-help__icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(97, 146, 214, 0.3);
+  background: rgba(9, 17, 33, 0.82);
+  color: #dff3ff;
+  cursor: pointer;
+}
+
+.tetrobots-help__quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tetrobots-help__quick-link {
+  border: 1px solid rgba(97, 146, 214, 0.34);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(8, 13, 27, 0.82);
+  color: #9ccfff;
+  font-size: 0.54rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.tetrobots-help__quick-link.is-active {
+  border-color: rgba(255, 210, 127, 0.72);
+  color: #fff0b8;
+  box-shadow: 0 0 18px rgba(255, 210, 127, 0.16);
+}
+
+.tetrobots-help-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tetrobots-help-card summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+}
+
+.tetrobots-help-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.tetrobots-help-card__summary-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffe39d;
+  font-size: 0.66rem;
+}
+
+.tetrobots-help-card__body {
+  padding: 0 16px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.tetrobots-help-card__body h3 {
+  margin: 0;
+  color: #9fd3ff;
+  font-size: 0.66rem;
+}
+
+.tetrobots-help-card__body p,
+.tetrobots-help-card__body li {
+  margin: 0;
+  font-size: 0.58rem;
+  line-height: 1.7;
+}
+
+.tetrobots-help-card__body ul {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 6px;
+}
+
+.tetrobots-help__rule {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgba(97, 146, 214, 0.16);
+  padding-top: 12px;
+}
+
+.tetrobots-help__rule:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.tetrobots-help__apex-block {
+  display: grid;
+  gap: 12px;
+}
+
+.tetrobots-help__challenge {
+  border: 1px solid rgba(255, 210, 127, 0.24);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 104, 104, 0.12), transparent 32%),
+    rgba(20, 15, 9, 0.56);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
 .tetrobots-relations__head {
   border: 1px solid #325f9d;
   border-radius: 14px;
@@ -101,6 +244,21 @@
   margin: 0;
   font-size: 0.6rem;
   line-height: 1.7;
+}
+
+.tetrobots-help-link {
+  display: inline-flex;
+  margin-top: 12px;
+  color: #ffe39d;
+  font-size: 0.54rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 227, 157, 0.4);
+}
+
+.tetrobots-help-link:hover {
+  color: #fff4cf;
+  text-decoration-color: rgba(255, 244, 207, 0.6);
 }
 
 .tetrobots-relations__scores {
@@ -459,6 +617,10 @@
   .tetrobots-relations__grid,
   .tetrobots-memory {
     grid-template-columns: 1fr;
+  }
+
+  .tetrobots-help__toolbar {
+    display: grid;
   }
 
   .tetrobots-relations__head {

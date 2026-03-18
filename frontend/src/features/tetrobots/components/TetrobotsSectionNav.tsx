@@ -16,6 +16,14 @@ export default function TetrobotsSectionNav({ isLoggedIn }: TetrobotsSectionNavP
       >
         Profils
       </NavLink>
+      <NavLink
+        to="/tetrobots/help"
+        className={({ isActive }) =>
+          `tetrobots-section-nav__link${isActive ? " tetrobots-section-nav__link--active" : ""}`
+        }
+      >
+        Aide
+      </NavLink>
       {isLoggedIn ? (
         <NavLink
           to="/tetrobots/relations"

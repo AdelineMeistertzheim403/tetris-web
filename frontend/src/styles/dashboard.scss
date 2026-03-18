@@ -520,76 +520,61 @@
 
 .dashboard-chatbot__actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
 }
 
-.dashboard-chatbot__link {
-  border: 1px solid rgba(132, 200, 255, 0.3);
-  border-radius: 999px;
-  background: rgba(8, 18, 36, 0.7);
-  color: #d8ecff;
-  padding: 8px 12px;
-  font-size: 0.52rem;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: transform 140ms ease, border-color 140ms ease, color 140ms ease,
-    box-shadow 140ms ease, background 140ms ease;
+.dashboard-shortcut.dashboard-chatbot__icon-action {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex: 0 0 auto;
 }
 
-.dashboard-chatbot__ghost-link {
-  border: 0;
-  background: transparent;
-  color: #8ec2ff;
-  padding: 6px 2px;
-  font-size: 0.48rem;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: rgba(142, 194, 255, 0.4);
-  text-underline-offset: 3px;
+.dashboard-shortcut.dashboard-chatbot__icon-action .dashboard-icon {
+  width: 1.28rem;
+  height: 1.28rem;
 }
 
-.dashboard-chatbot__link:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 220, 126, 0.46);
-  color: #fff0c6;
-  box-shadow: 0 0 16px rgba(255, 220, 126, 0.12);
+.dashboard-shortcut.dashboard-chatbot__icon-action--relation {
+  background: rgba(14, 34, 54, 0.92);
+  color: #7fd2ff;
+  border-color: rgba(127, 210, 255, 0.38);
+  box-shadow: 0 0 12px rgba(127, 210, 255, 0.12);
 }
 
-.dashboard-chatbot__ghost-link:hover {
-  color: #fff0c6;
-  text-decoration-color: rgba(255, 220, 126, 0.56);
+.dashboard-shortcut.dashboard-chatbot__icon-action--message {
+  background: rgba(44, 20, 44, 0.92);
+  color: #ffb0e6;
+  border-color: rgba(255, 176, 230, 0.38);
+  box-shadow: 0 0 12px rgba(255, 176, 230, 0.1);
 }
 
-.dashboard-chatbot--mood-angry .dashboard-chatbot__link {
-  border-color: rgba(255, 110, 110, 0.38);
+.dashboard-shortcut.dashboard-chatbot__icon-action--help {
+  background: rgba(46, 34, 16, 0.92);
+  color: #ffe39d;
+  border-color: rgba(255, 227, 157, 0.4);
+  box-shadow: 0 0 12px rgba(255, 227, 157, 0.12);
+}
+
+.dashboard-shortcut.dashboard-chatbot__icon-action:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.dashboard-chatbot--mood-angry .dashboard-shortcut.dashboard-chatbot__icon-action {
+  border-color: rgba(255, 110, 110, 0.32);
   color: #ffd3d3;
-}
-
-.dashboard-chatbot--mood-angry .dashboard-chatbot__ghost-link {
-  color: #ffb0b0;
-  text-decoration-color: rgba(255, 176, 176, 0.4);
 }
 
 .dashboard-chatbot--mood-angry .dashboard-chatbot__relation-summary {
   color: #ffd0d0;
 }
 
-.dashboard-chatbot--mood-respect .dashboard-chatbot__link {
+.dashboard-chatbot--mood-respect .dashboard-shortcut.dashboard-chatbot__icon-action {
   border-color: rgba(255, 220, 138, 0.46);
   color: #fff0c6;
   background: rgba(34, 24, 9, 0.42);
-}
-
-.dashboard-chatbot--mood-respect .dashboard-chatbot__ghost-link {
-  color: #ffe9b0;
-  text-decoration-color: rgba(255, 233, 176, 0.45);
 }
 
 .dashboard-chatbot--mood-respect .dashboard-chatbot__relation-summary {
@@ -757,8 +742,8 @@
 }
 
 .dashboard-icon {
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 1.08rem;
+  height: 1.08rem;
 }
 
 .dashboard-shortcut .dashboard-icon,
@@ -1337,6 +1322,10 @@
   .dashboard-cta,
   .dashboard-shortcut {
     width: 100%;
+  }
+
+  .dashboard-shortcut.dashboard-chatbot__icon-action {
+    width: 36px;
   }
 
   .dashboard-progress-item {
