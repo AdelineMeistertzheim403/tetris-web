@@ -131,7 +131,7 @@ export default function BrickfallSoloPlay() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const { checkAchievements, updateStats } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
   const startLives = BRICKFALL_BALANCE.demolisher.startLives;
   const [levelIndex, setLevelIndex] = useState(1);
   const [level, setLevel] = useState<BrickfallLevel>(() => getCampaignLevel(1));
@@ -350,6 +350,16 @@ export default function BrickfallSoloPlay() {
       brickfallSoloEditorWins: prev.brickfallSoloEditorWins + (isCustomLevel ? 1 : 0),
       scoredModes: { ...prev.scoredModes, BRICKFALL_SOLO: true },
     }));
+
+    recordPlayerBehavior({
+      mode: "BRICKFALL_SOLO",
+      won: true,
+      durationMs,
+      mistakes: [
+        ...(noMiss ? [] : (["damage_taken"] as const)),
+        ...(durationMs > 60_000 ? (["slow"] as const) : []),
+      ],
+    });
 
     checkAchievements({
       mode: "BRICKFALL_SOLO",

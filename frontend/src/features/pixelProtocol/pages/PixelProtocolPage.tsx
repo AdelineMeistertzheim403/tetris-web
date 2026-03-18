@@ -47,7 +47,7 @@ function clamp(value: number, min: number, max: number) {
 export default function PixelProtocolPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { checkAchievements, updateStats } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
   const [searchParams] = useSearchParams();
   const { levels, loading, error, usingFallback } = usePixelProtocolLevels();
   const customId = searchParams.get("custom");
@@ -75,6 +75,7 @@ export default function PixelProtocolPage() {
   const countedCommunityPlayRef = useRef<string>("");
   const countedPortalRef = useRef<string>("");
   const countedCampaignWinRef = useRef<string>("");
+  const countedBehaviorOutcomeRef = useRef<string>("");
   const previousCollectedRef = useRef(0);
 
   useEffect(() => {
@@ -444,6 +445,43 @@ export default function PixelProtocolPage() {
     runtime.startedAt,
     runtime.status,
     updateStats,
+  ]);
+
+  useEffect(() => {
+    if (runtime.status !== "won" && runtime.status !== "lost") return;
+
+    const levelKey = isCommunityLevel
+      ? `community:${communityLevel?.id ?? "unknown"}`
+      : isCustomLevel
+        ? `custom:${customLevel?.id ?? level.id}`
+        : `campaign:${level.id}`;
+    const outcomeKey = `${levelKey}:${runtime.status}:${Math.round(runtime.startedAt)}`;
+    if (countedBehaviorOutcomeRef.current === outcomeKey) return;
+    countedBehaviorOutcomeRef.current = outcomeKey;
+
+    recordPlayerBehavior({
+      mode: "PIXEL_PROTOCOL",
+      won: runtime.status === "won",
+      durationMs: runtime.startedAt ? Math.max(0, Date.now() - runtime.startedAt) : undefined,
+      mistakes: [
+        ...(runtime.player.hp < runtime.player.maxHealth ? (["damage_taken"] as const) : []),
+        ...(runtime.status === "lost" ? (["top_out"] as const) : []),
+        ...(runtime.startedAt && Date.now() - runtime.startedAt > 90_000
+          ? (["slow"] as const)
+          : []),
+      ],
+    });
+  }, [
+    communityLevel?.id,
+    customLevel?.id,
+    isCommunityLevel,
+    isCustomLevel,
+    level.id,
+    recordPlayerBehavior,
+    runtime.player.hp,
+    runtime.player.maxHealth,
+    runtime.startedAt,
+    runtime.status,
   ]);
 
   if (isCommunityLevel && communityLoading) {

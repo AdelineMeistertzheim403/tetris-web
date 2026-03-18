@@ -32,7 +32,7 @@ export default function PuzzleRun() {
   const [puzzle, setPuzzle] = useState<PuzzleDefinition | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { updateStats, checkAchievements } = useAchievements();
+  const { updateStats, checkAchievements, recordPlayerBehavior } = useAchievements();
   const [runKey, setRunKey] = useState(0);
   const [movesUsed, setMovesUsed] = useState(0);
   const [piecesPlaced, setPiecesPlaced] = useState(0);
@@ -200,6 +200,15 @@ export default function PuzzleRun() {
 
     const completedCount = next.puzzleCompletedIds.length;
     const attemptsForPuzzle = next.puzzleAttemptsById[puzzle.id] ?? 0;
+    recordPlayerBehavior({
+      mode: "PUZZLE",
+      won: true,
+      durationMs: runDurationMs ?? undefined,
+      mistakes: [
+        ...(invalidMovesRef.current > 0 ? (["misread"] as const) : []),
+        ...(runDurationMs !== null && runDurationMs > 45_000 ? (["slow"] as const) : []),
+      ],
+    });
     checkAchievements({
       mode: "PUZZLE",
       custom: {
@@ -230,6 +239,7 @@ export default function PuzzleRun() {
     linesCleared,
     movesUsed,
     puzzle,
+    recordPlayerBehavior,
     status,
     totalPuzzles,
     updateStats,
@@ -256,6 +266,20 @@ export default function PuzzleRun() {
       },
     });
   }, [checkAchievements, id, puzzle, status, updateStats]);
+
+  useEffect(() => {
+    if (status !== "failed") return;
+    if (!puzzle) return;
+    recordPlayerBehavior({
+      mode: "PUZZLE",
+      won: false,
+      durationMs: runStartRef.current !== null ? Date.now() - runStartRef.current : undefined,
+      mistakes: [
+        "misread",
+        ...(failureReason ? (["top_out"] as const) : []),
+      ],
+    });
+  }, [failureReason, puzzle, recordPlayerBehavior, status]);
 
   useEffect(() => {
     if (!puzzle || !id) return;
