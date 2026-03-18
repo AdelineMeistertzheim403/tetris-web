@@ -183,7 +183,10 @@ export const achievementStatsSchema = z.object({
   tetrobotProgression: z.record(z.string(), z.any()).optional(),
   tetrobotXpLedger: z.record(z.string(), z.any()).optional(),
   tetrobotAffinityLedger: z.record(z.string(), z.any()).optional(),
+  playerLongTermMemory: z.record(z.string(), z.any()).optional(),
+  tetrobotMemories: z.record(z.string(), z.any()).optional(),
   lastTetrobotLevelUp: z.record(z.string(), z.any()).nullable().optional(),
+  activeTetrobotChallenge: z.record(z.string(), z.any()).nullable().optional(),
 });
 
 export const puzzleAttemptSchema = z.object({

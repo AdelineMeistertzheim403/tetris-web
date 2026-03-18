@@ -8,6 +8,8 @@ import {
   type TetrobotId,
   type BotLevel,
   type BotMood,
+  type TetrobotChallengeState,
+  getApexTrustState,
 } from "../../achievements/hooks/useAchievements";
 import "../../../styles/dashboard.scss";
 
@@ -24,6 +26,32 @@ type DashboardBot = TetrobotId;
 type DashboardChatLine = {
   bot: DashboardBot;
   text: string;
+};
+
+type DashboardRelationEventTone = "neutral" | "positive" | "warning" | "levelup";
+
+type DashboardRelationEvent = {
+  id: string;
+  label: string;
+  text: string;
+  tone: DashboardRelationEventTone;
+  bot: DashboardBot;
+  createdAt: number;
+};
+
+type DashboardRelationSceneLine = {
+  speaker: "system" | DashboardBot;
+  text: string;
+};
+
+type DashboardRelationChoice = {
+  label: string;
+  action:
+    | "open_relation"
+    | "open_weak_mode"
+    | "open_tetris_hub"
+    | "accept_challenge"
+    | "dismiss";
 };
 
 type DashboardActionIconName = "resume" | "hub" | "editor" | "gallery";
@@ -139,6 +167,7 @@ const CHATBOT_LEVEL_COLORS: Record<DashboardBot, Record<BotLevel, string>> = {
 
 const DASHBOARD_CHAT_LAST_SEEN_KEY = "tetris-dashboard-last-seen-at";
 const DASHBOARD_TIP_MEMORY_KEY = "tetris-dashboard-tip-memory-v1";
+const DASHBOARD_RELATION_POPUP_SEEN_KEY = "tetris-dashboard-relation-popup-seen-v1";
 
 const EVOLVED_CHAT_LINES: ChatLineMap = {
   rookie: {
@@ -274,6 +303,19 @@ const MODE_LABELS: Record<string, string> = {
   PUZZLE: "Puzzle",
   TETROMAZE: "Tetromaze",
   PIXEL_PROTOCOL: "Pixel Protocol",
+};
+
+const MODE_ROUTE_MAP: Partial<Record<string, string>> = {
+  CLASSIQUE: "/game",
+  SPRINT: "/sprint",
+  VERSUS: "/versus",
+  BRICKFALL_SOLO: "/brickfall-solo",
+  BRICKFALL_VERSUS: "/brickfall-versus",
+  ROGUELIKE: "/roguelike",
+  ROGUELIKE_VERSUS: "/roguelike-versus",
+  PUZZLE: "/puzzle",
+  TETROMAZE: "/tetromaze",
+  PIXEL_PROTOCOL: "/pixel-protocol",
 };
 
 const EVOLVED_TIPS: TipMap = {
@@ -470,6 +512,228 @@ function getRelationLabel(mood: BotMood) {
   }
 }
 
+function getDashboardRelationSummary(
+  bot: DashboardBot,
+  mood: BotMood,
+  affinity: number,
+  apexTrustState: ReturnType<typeof getApexTrustState>
+) {
+  if (bot === "rookie") {
+    if (affinity >= 50) return "Rookie commence a te faire confiance.";
+    if (affinity >= 10) return "Rookie te suit encore, mais attend plus de regularite.";
+    if (affinity <= -30) return "Rookie doute de ta facon d'apprendre sous pression.";
+    return "Rookie t'observe encore avec prudence.";
+  }
+
+  if (bot === "pulse") {
+    if (affinity >= 50) return "Pulse valide enfin des progres qu'il juge mesurables.";
+    if (affinity >= 10) return "Pulse analyse tes runs avec un interet methodique.";
+    if (affinity <= -30) return "Pulse voit encore trop d'erreurs repetees sans correction nette.";
+    return "Pulse reste en phase de lecture et de verification.";
+  }
+
+  if (apexTrustState === "refusing") {
+    return "Apex coupe le canal jusqu'a preuve de discipline.";
+  }
+  if (apexTrustState === "cold") {
+    return "Apex se mefie encore de toi et attend un vrai effort.";
+  }
+  if (affinity >= 50) return "Apex commence a reconnaitre un vrai courage de progression.";
+  if (affinity >= 10) return "Apex surveille si tu assumes enfin tes faiblesses.";
+  if (affinity <= -30) return "Apex te juge encore trop attache a tes zones de confort.";
+  return mood === "angry"
+    ? "Apex se crispe a la moindre esquive."
+    : "Apex attend toujours une preuve utile.";
+}
+
+function getDashboardRelationEvent(
+  bot: DashboardBot,
+  memories: Array<{ id?: string; type: string; text: string; createdAt?: number }> = [],
+  levelUpNotice?: { bot: TetrobotId; level: BotLevel; message: string; at: number } | null
+): DashboardRelationEvent | null {
+  if (levelUpNotice?.bot === bot) {
+    return {
+      id: `levelup-${levelUpNotice.bot}-${levelUpNotice.level}-${levelUpNotice.at}`,
+      label: "Evolution",
+      text: levelUpNotice.message,
+      tone: "levelup",
+      bot,
+      createdAt: levelUpNotice.at,
+    };
+  }
+
+  const latestMemory = memories[0];
+  if (!latestMemory) return null;
+
+  if (latestMemory.type === "trust_rebuild") {
+    return {
+      id: latestMemory.id ?? `memory-${bot}-trust-rebuild`,
+      label: "Canal retabli",
+      text: latestMemory.text,
+      tone: "positive",
+      bot,
+      createdAt: latestMemory.createdAt ?? Date.now(),
+    };
+  }
+
+  if (latestMemory.type === "trust_break") {
+    return {
+      id: latestMemory.id ?? `memory-${bot}-trust-break`,
+      label: "Canal verrouille",
+      text: latestMemory.text,
+      tone: "warning",
+      bot,
+      createdAt: latestMemory.createdAt ?? Date.now(),
+    };
+  }
+
+  if (latestMemory.type === "player_progress" || latestMemory.type === "player_comeback") {
+    return {
+      id: latestMemory.id ?? `memory-${bot}-progress`,
+      label: "Souvenir recent",
+      text: latestMemory.text,
+      tone: "positive",
+      bot,
+      createdAt: latestMemory.createdAt ?? Date.now(),
+    };
+  }
+
+  return {
+    id: latestMemory.id ?? `memory-${bot}-observation`,
+    label: "Observation",
+    text: latestMemory.text,
+    tone: "neutral",
+    bot,
+    createdAt: latestMemory.createdAt ?? Date.now(),
+  };
+}
+
+function getDashboardRelationScene(event: DashboardRelationEvent): DashboardRelationSceneLine[] {
+  if (event.tone === "levelup") {
+    if (event.bot === "rookie") {
+      return [
+        { speaker: "system", text: "Signal de croissance detecte." },
+        { speaker: "rookie", text: "Je commence vraiment a mieux te comprendre." },
+        { speaker: "rookie", text: event.text },
+      ];
+    }
+    if (event.bot === "pulse") {
+      return [
+        { speaker: "system", text: "Nouveau palier analytique atteint." },
+        { speaker: "pulse", text: "Tes donnees sont enfin assez stables pour aller plus loin." },
+        { speaker: "pulse", text: event.text },
+      ];
+    }
+    return [
+      { speaker: "system", text: "Variation critique dans le protocole Apex." },
+      { speaker: "apex", text: "Tu as au moins fait assez pour retenir mon attention." },
+      { speaker: "apex", text: event.text },
+    ];
+  }
+
+  if (event.label === "Canal verrouille") {
+    return [
+      { speaker: "system", text: "Le centre de liaison degrade son acces." },
+      { speaker: "apex", text: "Non. Pas tant que tu contournes encore le vrai travail." },
+      { speaker: "apex", text: event.text },
+    ];
+  }
+
+  if (event.label === "Canal retabli") {
+    return [
+      { speaker: "system", text: "Le canal Apex repond de nouveau." },
+      { speaker: "apex", text: "Bien. Tu t'es enfin presente." },
+      { speaker: "apex", text: event.text },
+    ];
+  }
+
+  if (event.bot === "rookie") {
+    return [
+      { speaker: "system", text: "Souvenir relationnel archive." },
+      { speaker: "rookie", text: "Je l'ai remarque, oui." },
+      { speaker: "rookie", text: event.text },
+    ];
+  }
+
+  if (event.bot === "pulse") {
+    return [
+      { speaker: "system", text: "Lecture comportementale mise a jour." },
+      { speaker: "pulse", text: "Le signal est assez net pour etre retenu." },
+      { speaker: "pulse", text: event.text },
+    ];
+  }
+
+  return [
+    { speaker: "system", text: "Observation critique enregistree." },
+    { speaker: "apex", text: "Je note enfin quelque chose d'utile." },
+    { speaker: "apex", text: event.text },
+  ];
+}
+
+function getDashboardRelationChoices(
+  event: DashboardRelationEvent,
+  weakestMode?: string,
+  activeChallenge?: TetrobotChallengeState | null
+): DashboardRelationChoice[] {
+  if (event.label === "Canal verrouille") {
+    return [
+      {
+        label:
+          activeChallenge?.bot === "apex" && activeChallenge.status === "offered"
+            ? "J'accepte le defi"
+            : "Voir ma faiblesse actuelle",
+        action:
+          activeChallenge?.bot === "apex" && activeChallenge.status === "offered"
+            ? "accept_challenge"
+            : "open_weak_mode",
+      },
+      { label: "Ouvrir la relation", action: "open_relation" },
+    ];
+  }
+
+  if (event.label === "Canal retabli") {
+    return [
+      { label: "J'accepte le defi", action: "open_weak_mode" },
+      { label: "Ouvrir la relation", action: "open_relation" },
+    ];
+  }
+
+  if (event.tone === "levelup") {
+    return [
+      { label: "Voir ce qui change", action: "open_relation" },
+      {
+        label: weakestMode ? `Travailler ${MODE_LABELS[weakestMode] ?? weakestMode}` : "Ouvrir le hub",
+        action: weakestMode ? "open_weak_mode" : "open_tetris_hub",
+      },
+    ];
+  }
+
+  if (event.bot === "pulse") {
+    return [
+      {
+        label: weakestMode ? "Corriger mon point faible" : "Ouvrir le hub",
+        action: weakestMode ? "open_weak_mode" : "open_tetris_hub",
+      },
+      { label: "Ouvrir la relation", action: "open_relation" },
+    ];
+  }
+
+  if (event.bot === "rookie") {
+    return [
+      { label: "Ouvrir la relation", action: "open_relation" },
+      { label: "Continuer", action: "dismiss" },
+    ];
+  }
+
+  return [
+    {
+      label: weakestMode ? "Affronter ma faiblesse" : "Ouvrir le hub",
+      action: weakestMode ? "open_weak_mode" : "open_tetris_hub",
+    },
+    { label: "Ouvrir la relation", action: "open_relation" },
+  ];
+}
+
 function safeWinRate(wins: number, matches: number) {
   if (matches <= 0) return null;
   return Math.round((wins / matches) * 100);
@@ -578,14 +842,17 @@ export default function Dashboard() {
     syncTetrobotProgression,
     setLastTetrobotTip,
     clearLastTetrobotLevelUp,
+    acceptActiveTetrobotChallenge,
   } = useAchievements();
   const [chatLine, setChatLine] = useState<DashboardChatLine>({
     bot: "rookie",
     text: "Initialisation du flux Tétrobots...",
   });
+  const [relationPopup, setRelationPopup] = useState<DashboardRelationEvent | null>(null);
   const chatTimerRef = useRef<number | null>(null);
   const inactiveRef = useRef(false);
   const levelUpDismissTimerRef = useRef<number | null>(null);
+  const relationPopupTimerRef = useRef<number | null>(null);
   const modeCards: ModeCard[] = [
     {
       title: "Mode Tetris",
@@ -869,14 +1136,21 @@ export default function Dashboard() {
       lastPlayedMode: "mode classique",
     })
   );
+  const apexTrustState = getApexTrustState(
+    stats.playerLongTermMemory,
+    stats.tetrobotProgression.apex?.affinity ?? 0
+  );
 
   useEffect(() => {
     const level = stats.tetrobotProgression[chatLine.bot]?.level ?? 1;
     const mood = stats.tetrobotProgression[chatLine.bot]?.mood ?? "neutral";
-    const nextTip = getBotTip(chatLine.bot, level, mood, playerContext);
+    const nextTip =
+      chatLine.bot === "apex" && apexTrustState === "refusing"
+        ? "Non. Tu veux des conseils, mais tu refuses encore d'affronter ce qu'il faut travailler."
+        : getBotTip(chatLine.bot, level, mood, playerContext);
     setLastTetrobotTip(chatLine.bot, nextTip);
     setTetrobotTip(nextTip);
-  }, [chatLine.bot, playerContext, setLastTetrobotTip, stats.tetrobotProgression]);
+  }, [apexTrustState, chatLine.bot, playerContext, setLastTetrobotTip, stats.tetrobotProgression]);
 
   useEffect(() => {
     if (!stats.lastTetrobotLevelUp) return;
@@ -894,6 +1168,15 @@ export default function Dashboard() {
       }
     };
   }, [clearLastTetrobotLevelUp, stats.lastTetrobotLevelUp]);
+
+  useEffect(() => {
+    return () => {
+      if (relationPopupTimerRef.current) {
+        window.clearTimeout(relationPopupTimerRef.current);
+        relationPopupTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const editorShortcuts: ShortcutButton[] = [
     {
@@ -943,9 +1226,156 @@ export default function Dashboard() {
   const botMood = activeBotState?.mood ?? "neutral";
   const botAffinity = activeBotState?.affinity ?? 0;
   const botAvatar = CHATBOT_AVATARS[chatLine.bot][botMood] ?? CHATBOT_AVATAR_FALLBACKS[chatLine.bot];
+  const activeBotMemories = stats.tetrobotMemories[chatLine.bot] ?? [];
+  const relationSummary = getDashboardRelationSummary(
+    chatLine.bot,
+    botMood,
+    botAffinity,
+    apexTrustState
+  );
+  const relationEvent = getDashboardRelationEvent(chatLine.bot, activeBotMemories, levelUpNotice);
+  const relationScene = relationPopup ? getDashboardRelationScene(relationPopup) : [];
+  const relationChoices = relationPopup
+    ? getDashboardRelationChoices(
+        relationPopup,
+        stats.lowestWinrateMode ?? undefined,
+        stats.activeTetrobotChallenge
+      )
+    : [];
+  const latestRelationEvent = useMemo(() => {
+    return (["rookie", "pulse", "apex"] as const)
+      .map((bot) =>
+        getDashboardRelationEvent(
+          bot,
+          stats.tetrobotMemories[bot] ?? [],
+          stats.lastTetrobotLevelUp?.bot === bot ? stats.lastTetrobotLevelUp : null
+        )
+      )
+      .filter((event): event is DashboardRelationEvent => Boolean(event))
+      .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+  }, [stats.lastTetrobotLevelUp, stats.tetrobotMemories]);
+
+  const closeRelationPopup = () => {
+    setRelationPopup(null);
+    if (relationPopupTimerRef.current) {
+      window.clearTimeout(relationPopupTimerRef.current);
+      relationPopupTimerRef.current = null;
+    }
+  };
+
+  const openRelationPopup = (event: DashboardRelationEvent) => {
+    setRelationPopup(event);
+    if (relationPopupTimerRef.current) {
+      window.clearTimeout(relationPopupTimerRef.current);
+    }
+    relationPopupTimerRef.current = window.setTimeout(() => {
+      setRelationPopup(null);
+      relationPopupTimerRef.current = null;
+    }, 6500);
+  };
+
+  const handleRelationChoice = (choice: DashboardRelationChoice) => {
+    if (!relationPopup) return;
+
+    if (choice.action === "dismiss") {
+      closeRelationPopup();
+      return;
+    }
+
+    if (choice.action === "open_relation") {
+      closeRelationPopup();
+      navigate(`/tetrobots/relations?bot=${relationPopup.bot}`);
+      return;
+    }
+
+    if (choice.action === "open_tetris_hub") {
+      closeRelationPopup();
+      navigate("/tetris-hub");
+      return;
+    }
+
+    if (choice.action === "accept_challenge") {
+      acceptActiveTetrobotChallenge();
+      const weakestRoute = stats.lowestWinrateMode
+        ? MODE_ROUTE_MAP[stats.lowestWinrateMode]
+        : undefined;
+      closeRelationPopup();
+      navigate(weakestRoute ?? "/tetris-hub");
+      return;
+    }
+
+    const weakestRoute = stats.lowestWinrateMode
+      ? MODE_ROUTE_MAP[stats.lowestWinrateMode]
+      : undefined;
+    closeRelationPopup();
+    navigate(weakestRoute ?? "/tetris-hub");
+  };
+
+  useEffect(() => {
+    const latestEvent = latestRelationEvent;
+    if (!latestEvent) return;
+    if (Date.now() - latestEvent.createdAt > 1000 * 60 * 60 * 24) return;
+
+    try {
+      const seenId = localStorage.getItem(DASHBOARD_RELATION_POPUP_SEEN_KEY);
+      if (seenId === latestEvent.id) return;
+      localStorage.setItem(DASHBOARD_RELATION_POPUP_SEEN_KEY, latestEvent.id);
+    } catch {
+      // no-op
+    }
+
+    openRelationPopup(latestEvent);
+  }, [latestRelationEvent]);
 
   return (
     <div className="min-h-screen flex flex-col text-pink-300 font-['Press_Start_2P'] py-4 px-2 md:px-3 overflow-x-hidden">
+      {relationPopup ? (
+        <aside
+          className={`dashboard-relation-popup dashboard-relation-popup--${relationPopup.tone} dashboard-relation-popup--${relationPopup.bot}`}
+          aria-live="polite"
+        >
+          <div className="dashboard-relation-popup__head">
+            <p className="dashboard-relation-popup__eyebrow">
+              {CHATBOT_NAMES[relationPopup.bot]} · {relationPopup.label}
+            </p>
+            <button
+              type="button"
+              className="dashboard-relation-popup__close"
+              onClick={closeRelationPopup}
+              aria-label="Fermer l'evenement relationnel"
+            >
+              ×
+            </button>
+          </div>
+          <div className="dashboard-relation-popup__scene">
+            {relationScene.map((line, index) => (
+              <div
+                key={`${relationPopup.id}-${index}`}
+                className={`dashboard-relation-popup__line dashboard-relation-popup__line--${line.speaker}`}
+              >
+                <span className="dashboard-relation-popup__speaker">
+                  {line.speaker === "system" ? "SYSTEME" : CHATBOT_NAMES[line.speaker]}
+                </span>
+                <p>{line.text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="dashboard-relation-popup__actions">
+            {relationChoices.map((choice) => (
+              <button
+                key={`${relationPopup.id}-${choice.label}`}
+                type="button"
+                className={`dashboard-relation-popup__action${
+                  choice.action === "open_relation" ? " dashboard-relation-popup__action--primary" : ""
+                }`}
+                onClick={() => handleRelationChoice(choice)}
+              >
+                {choice.label}
+              </button>
+            ))}
+          </div>
+        </aside>
+      ) : null}
       <div className="dashboard-top-row">
         <section
           className={`dashboard-chatbot dashboard-chatbot--${chatLine.bot} dashboard-chatbot--level-${activeBotState?.level ?? 1} dashboard-chatbot--mood-${botMood}`}
@@ -985,6 +1415,34 @@ export default function Dashboard() {
               <span>Affinite {botAffinity}</span>
               <span>{getRelationLabel(botMood)}</span>
               <span>{activeBotState?.unlockedTraits.length ?? 0} traits</span>
+            </div>
+            <p className="dashboard-chatbot__relation-summary">{relationSummary}</p>
+            {relationEvent ? (
+              <div
+                className={`dashboard-chatbot__event dashboard-chatbot__event--${relationEvent.tone}`}
+              >
+                <span className="dashboard-chatbot__event-label">{relationEvent.label}</span>
+                <p>{relationEvent.text}</p>
+              </div>
+            ) : null}
+            <div className="dashboard-chatbot__actions">
+              <button
+                type="button"
+                className="dashboard-chatbot__link"
+                onClick={() => navigate(`/tetrobots/relations?bot=${chatLine.bot}`)}
+              >
+                Voir la relation complete
+              </button>
+              {latestRelationEvent &&
+              Date.now() - latestRelationEvent.createdAt <= 1000 * 60 * 60 * 24 ? (
+                <button
+                  type="button"
+                  className="dashboard-chatbot__ghost-link"
+                  onClick={() => openRelationPopup(latestRelationEvent)}
+                >
+                  Rouvrir le dernier message
+                </button>
+              ) : null}
             </div>
           </div>
         </section>
