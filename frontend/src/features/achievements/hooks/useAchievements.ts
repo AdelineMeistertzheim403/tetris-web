@@ -110,7 +110,70 @@ export type PlayerMistakeKey =
   | "slow"
   | "unsafe_stack"
   | "damage_taken"
-  | "misread";
+  | "misread"
+  | "panic_stack"
+  | "slow_decision"
+  | "greedy_play"
+  | "mode_avoidance"
+  | "inconsistent_precision";
+
+export type BotMemoryType =
+  | "player_progress"
+  | "player_failure"
+  | "player_avoidance"
+  | "player_comeback"
+  | "trust_break"
+  | "trust_rebuild";
+
+export type ApexTrustState = "open" | "warning" | "cold" | "refusing";
+
+export type MistakeMemory = {
+  key: PlayerMistakeKey;
+  count: number;
+  lastSeenAt: number;
+  severity: number;
+  trend: "up" | "down" | "stable";
+};
+
+export type PlayerLongTermMemory = {
+  recurringMistakes: MistakeMemory[];
+  avoidedModes: Record<string, number>;
+  strongestModes: Record<string, number>;
+  weakestModes: Record<string, number>;
+  rageQuitCount: number;
+  comebackCount: number;
+  consistencyScore: number;
+  courageScore: number;
+  disciplineScore: number;
+};
+
+export type BotMemoryEntry = {
+  id: string;
+  bot: TetrobotId;
+  type: BotMemoryType;
+  text: string;
+  importance: 1 | 2 | 3 | 4 | 5;
+  createdAt: number;
+};
+
+export type TetrobotChallengeState = {
+  id: string;
+  bot: TetrobotId;
+  kind: "apex_reconciliation";
+  status: "offered" | "active" | "completed";
+  title: string;
+  description: string;
+  targetMode: PlayerBehaviorMode | null;
+  targetCount: number;
+  progress: number;
+  rewardAffinity: number;
+  rewardXp: number;
+  startSessions: number;
+  startRageQuitCount: number;
+  createdAt: number;
+  acceptedAt: number | null;
+  resolvedAt: number | null;
+};
 
 type ModeBehaviorStats = {
   sessions: number;
@@ -121,6 +184,7 @@ type ModeBehaviorStats = {
 };
 
 type MistakeStats = Record<PlayerMistakeKey, number>;
+type MistakeLastSeenStats = Record<PlayerMistakeKey, number | null>;
 
 type PlayerBehaviorEvent = {
   mode: PlayerBehaviorMode;
@@ -219,6 +283,25 @@ const EMPTY_MISTAKE_STATS: MistakeStats = {
   unsafe_stack: 0,
   damage_taken: 0,
   misread: 0,
+  panic_stack: 0,
+  slow_decision: 0,
+  greedy_play: 0,
+  mode_avoidance: 0,
+  inconsistent_precision: 0,
+};
+
+const EMPTY_MISTAKE_LAST_SEEN: MistakeLastSeenStats = {
+  holes: null,
+  top_out: null,
+  slow: null,
+  unsafe_stack: null,
+  damage_taken: null,
+  misread: null,
+  panic_stack: null,
+  slow_decision: null,
+  greedy_play: null,
+  mode_avoidance: null,
+  inconsistent_precision: null,
 };
 
 const createBehaviorByMode = (): Record<PlayerBehaviorMode, ModeBehaviorStats> =>
@@ -239,6 +322,55 @@ const createMistakesByMode = (): Record<PlayerBehaviorMode, MistakeStats> =>
   Object.fromEntries(
     PLAYER_BEHAVIOR_MODES.map((mode) => [mode, { ...EMPTY_MISTAKE_STATS }])
   ) as Record<PlayerBehaviorMode, MistakeStats>;
+
+const createMistakeLastSeenByMode = (): Record<PlayerBehaviorMode, MistakeLastSeenStats> =>
+  Object.fromEntries(
+    PLAYER_BEHAVIOR_MODES.map((mode) => [mode, { ...EMPTY_MISTAKE_LAST_SEEN }])
+  ) as Record<PlayerBehaviorMode, MistakeLastSeenStats>;
+
+const DEFAULT_PLAYER_LONG_TERM_MEMORY: PlayerLongTermMemory = {
+  recurringMistakes: [],
+  avoidedModes: {},
+  strongestModes: {},
+  weakestModes: {},
+  rageQuitCount: 0,
+  comebackCount: 0,
+  consistencyScore: 0,
+  courageScore: 0,
+  disciplineScore: 0,
+};
+
+const createTetrobotMemories = (): Record<TetrobotId, BotMemoryEntry[]> => ({
+  rookie: [],
+  pulse: [],
+  apex: [],
+});
+
+function createApexChallenge(
+  mode: PlayerBehaviorMode,
+  modeSessions: number,
+  rageQuitCount: number
+): TetrobotChallengeState {
+  const now = Date.now();
+  return {
+    id: `apex-reconciliation-${mode}-${now}`,
+    bot: "apex",
+    kind: "apex_reconciliation",
+    status: "offered",
+    title: "Defi d'Apex",
+    description: `Joue 3 sessions utiles sur ${mode} sans rage quit pour rouvrir completement le canal.`,
+    targetMode: mode,
+    targetCount: 3,
+    progress: 0,
+    rewardAffinity: 24,
+    rewardXp: 30,
+    startSessions: modeSessions,
+    startRageQuitCount: rageQuitCount,
+    createdAt: now,
+    acceptedAt: null,
+    resolvedAt: null,
+  };
+}
 
 function getLevelFromXP(xp: number): BotLevel {
   if (xp < 50) return 1;
@@ -300,6 +432,15 @@ function updateAffinity(bot: TetrobotId, event: TetrobotAffinityEvent) {
   return 0;
 }
 
+export function getApexTrustState(memory: PlayerLongTermMemory, affinity: number): ApexTrustState {
+  if (affinity < -60) return "refusing";
+  if ((memory.avoidedModes.ROGUELIKE ?? 0) >= 5 || (memory.avoidedModes.PUZZLE ?? 0) >= 5) {
+    return "cold";
+  }
+  if (memory.rageQuitCount >= 3) return "warning";
+  return "open";
+}
+
 type AchievementStats = {
   runsPlayed: number;
   seedRuns: Record<string, number>;
@@ -352,13 +493,17 @@ type AchievementStats = {
   tetromazeCaptures: number;
   playerBehaviorByMode: Record<PlayerBehaviorMode, ModeBehaviorStats>;
   playerMistakesByMode: Record<PlayerBehaviorMode, MistakeStats>;
+  playerMistakeLastSeenByMode: Record<PlayerBehaviorMode, MistakeLastSeenStats>;
   lastPlayedMode: PlayerBehaviorMode | null;
   mostPlayedMode: PlayerBehaviorMode | null;
   lowestWinrateMode: PlayerBehaviorMode | null;
   tetrobotProgression: PlayerBotProgression;
   tetrobotXpLedger: TetrobotXpLedger;
   tetrobotAffinityLedger: TetrobotAffinityLedger;
+  playerLongTermMemory: PlayerLongTermMemory;
+  tetrobotMemories: Record<TetrobotId, BotMemoryEntry[]>;
   lastTetrobotLevelUp: TetrobotLevelUp;
+  activeTetrobotChallenge: TetrobotChallengeState | null;
   counters: Record<string, number>;
 };
 
@@ -448,13 +593,17 @@ const DEFAULT_STATS: AchievementStats = {
   tetromazeCaptures: 0,
   playerBehaviorByMode: createBehaviorByMode(),
   playerMistakesByMode: createMistakesByMode(),
+  playerMistakeLastSeenByMode: createMistakeLastSeenByMode(),
   lastPlayedMode: null,
   mostPlayedMode: null,
   lowestWinrateMode: null,
   tetrobotProgression: createBotProgression(),
   tetrobotXpLedger: { ...DEFAULT_TETROBOT_XP_LEDGER },
   tetrobotAffinityLedger: { ...DEFAULT_TETROBOT_AFFINITY_LEDGER },
+  playerLongTermMemory: { ...DEFAULT_PLAYER_LONG_TERM_MEMORY },
+  tetrobotMemories: createTetrobotMemories(),
   lastTetrobotLevelUp: null,
+  activeTetrobotChallenge: null,
   counters: {},
 };
 
@@ -490,6 +639,15 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
         ])
       ),
     } as Record<PlayerBehaviorMode, MistakeStats>,
+    playerMistakeLastSeenByMode: {
+      ...createMistakeLastSeenByMode(),
+      ...Object.fromEntries(
+        Object.entries(raw.playerMistakeLastSeenByMode ?? {}).map(([mode, seen]) => [
+          mode,
+          { ...EMPTY_MISTAKE_LAST_SEEN, ...seen },
+        ])
+      ),
+    } as Record<PlayerBehaviorMode, MistakeLastSeenStats>,
     tetrobotProgression: {
       ...createBotProgression(),
       ...Object.fromEntries(
@@ -511,7 +669,21 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
       ...DEFAULT_TETROBOT_AFFINITY_LEDGER,
       ...(raw.tetrobotAffinityLedger ?? {}),
     },
+    playerLongTermMemory: {
+      ...DEFAULT_PLAYER_LONG_TERM_MEMORY,
+      ...(raw.playerLongTermMemory ?? {}),
+      recurringMistakes:
+        (raw.playerLongTermMemory?.recurringMistakes as MistakeMemory[] | undefined) ?? [],
+    },
+    tetrobotMemories: {
+      ...createTetrobotMemories(),
+      ...Object.fromEntries(
+        Object.entries(raw.tetrobotMemories ?? {}).map(([bot, entries]) => [bot, entries ?? []])
+      ),
+    } as Record<TetrobotId, BotMemoryEntry[]>,
     lastTetrobotLevelUp: raw.lastTetrobotLevelUp ?? null,
+    activeTetrobotChallenge:
+      (raw.activeTetrobotChallenge as TetrobotChallengeState | null | undefined) ?? null,
     counters: { ...DEFAULT_STATS.counters, ...(raw.counters ?? {}) },
   };
 };
@@ -528,6 +700,7 @@ type UseAchievementsValue = {
   setLastTetrobotTip: (bot: TetrobotId, tip: string) => AchievementStats;
   setTetrobotMood: (bot: TetrobotId, affinity: number) => AchievementStats;
   clearLastTetrobotLevelUp: () => AchievementStats;
+  acceptActiveTetrobotChallenge: () => AchievementStats;
   registerRun: (seed?: string) => { runsPlayed: number; sameSeedRuns: number };
   checkAchievements: (ctx: AchievementContext) => void;
 };
@@ -610,6 +783,17 @@ function useAchievementsValue(): UseAchievementsValue {
       })
     );
 
+  const areMistakeLastSeenEqual = (
+    a: Record<PlayerBehaviorMode, MistakeLastSeenStats>,
+    b: Record<PlayerBehaviorMode, MistakeLastSeenStats>
+  ) =>
+    PLAYER_BEHAVIOR_MODES.every((mode) =>
+      Object.keys(EMPTY_MISTAKE_LAST_SEEN).every((key) => {
+        const typedKey = key as PlayerMistakeKey;
+        return a[mode][typedKey] === b[mode][typedKey];
+      })
+    );
+
   const areBotProgressionEqual = (a: PlayerBotProgression, b: PlayerBotProgression) =>
     TETROBOT_IDS.every((bot) => {
       const left = a[bot];
@@ -624,6 +808,11 @@ function useAchievementsValue(): UseAchievementsValue {
       );
     });
 
+  const areChallengesEqual = (
+    a: TetrobotChallengeState | null,
+    b: TetrobotChallengeState | null
+  ) => JSON.stringify(a) === JSON.stringify(b);
+
   const areTetrobotLevelUpsEqual = (a: TetrobotLevelUp, b: TetrobotLevelUp) => {
     if (a === b) return true;
     if (!a || !b) return false;
@@ -635,6 +824,12 @@ function useAchievementsValue(): UseAchievementsValue {
       areArraysEqual(a.unlockedTraits, b.unlockedTraits)
     );
   };
+
+  const areMemoriesEqual = (
+    a: Record<TetrobotId, BotMemoryEntry[]>,
+    b: Record<TetrobotId, BotMemoryEntry[]>
+  ) =>
+    TETROBOT_IDS.every((bot) => JSON.stringify(a[bot]) === JSON.stringify(b[bot]));
 
   const areStatsEqual = (a: AchievementStats, b: AchievementStats) => {
     if (a === b) return true;
@@ -690,13 +885,17 @@ function useAchievementsValue(): UseAchievementsValue {
       a.tetromazeCaptures === b.tetromazeCaptures &&
       areModeBehaviorStatsEqual(a.playerBehaviorByMode, b.playerBehaviorByMode) &&
       areMistakeStatsEqual(a.playerMistakesByMode, b.playerMistakesByMode) &&
+      areMistakeLastSeenEqual(a.playerMistakeLastSeenByMode, b.playerMistakeLastSeenByMode) &&
       a.lastPlayedMode === b.lastPlayedMode &&
       a.mostPlayedMode === b.mostPlayedMode &&
       a.lowestWinrateMode === b.lowestWinrateMode &&
       areBotProgressionEqual(a.tetrobotProgression, b.tetrobotProgression) &&
       areRecordNumbersEqual(a.tetrobotXpLedger, b.tetrobotXpLedger) &&
       areRecordNumbersEqual(a.tetrobotAffinityLedger, b.tetrobotAffinityLedger) &&
+      JSON.stringify(a.playerLongTermMemory) === JSON.stringify(b.playerLongTermMemory) &&
+      areMemoriesEqual(a.tetrobotMemories, b.tetrobotMemories) &&
       areTetrobotLevelUpsEqual(a.lastTetrobotLevelUp, b.lastTetrobotLevelUp) &&
+      areChallengesEqual(a.activeTetrobotChallenge, b.activeTetrobotChallenge) &&
       areRecordNumbersEqual(a.counters, b.counters)
     );
   };
@@ -820,14 +1019,29 @@ function useAchievementsValue(): UseAchievementsValue {
 
         const previousMistakes = prev.playerMistakesByMode[event.mode] ?? EMPTY_MISTAKE_STATS;
         const nextMistakes = { ...previousMistakes };
+        const previousLastSeen = prev.playerMistakeLastSeenByMode[event.mode] ?? EMPTY_MISTAKE_LAST_SEEN;
+        const nextLastSeen = { ...previousLastSeen };
         for (const mistake of event.mistakes ?? []) {
           nextMistakes[mistake] = (nextMistakes[mistake] ?? 0) + 1;
+          nextLastSeen[mistake] = now;
         }
 
         const playerMistakesByMode = {
           ...prev.playerMistakesByMode,
           [event.mode]: nextMistakes,
         };
+
+        const playerMistakeLastSeenByMode = {
+          ...prev.playerMistakeLastSeenByMode,
+          [event.mode]: nextLastSeen,
+        };
+
+        const estimatedRageQuit =
+          event.won === false && (event.durationMs ?? 0) > 0 && (event.durationMs ?? 0) < 90_000;
+        const comebackWin =
+          event.won === true &&
+          previousModeStats.losses > previousModeStats.wins &&
+          previousModeStats.sessions >= 2;
 
         const mostPlayedMode =
           [...PLAYER_BEHAVIOR_MODES]
@@ -856,9 +1070,17 @@ function useAchievementsValue(): UseAchievementsValue {
           ...prev,
           playerBehaviorByMode,
           playerMistakesByMode,
+          playerMistakeLastSeenByMode,
           lastPlayedMode: event.mode,
           mostPlayedMode,
           lowestWinrateMode,
+          counters: {
+            ...prev.counters,
+            rage_quit_estimate:
+              (prev.counters.rage_quit_estimate ?? 0) + (estimatedRageQuit ? 1 : 0),
+            comeback_estimate:
+              (prev.counters.comeback_estimate ?? 0) + (comebackWin ? 1 : 0),
+          },
         };
       }),
     [updateStats]
@@ -958,9 +1180,16 @@ function useAchievementsValue(): UseAchievementsValue {
           pulse: { ...prev.tetrobotProgression.pulse },
           apex: { ...prev.tetrobotProgression.apex },
         };
+        const memories: Record<TetrobotId, BotMemoryEntry[]> = {
+          rookie: [...prev.tetrobotMemories.rookie],
+          pulse: [...prev.tetrobotMemories.pulse],
+          apex: [...prev.tetrobotMemories.apex],
+        };
+        let activeTetrobotChallenge = prev.activeTetrobotChallenge;
 
         let lastLevelUp = prev.lastTetrobotLevelUp;
         let changed = false;
+        const now = Date.now();
 
         const applyXp = (bot: TetrobotId, xpGain: number) => {
           if (xpGain <= 0) return;
@@ -986,6 +1215,30 @@ function useAchievementsValue(): UseAchievementsValue {
               at: Date.now(),
             };
           }
+        };
+
+        const pushMemory = (
+          bot: TetrobotId,
+          type: BotMemoryType,
+          text: string,
+          importance: 1 | 2 | 3 | 4 | 5
+        ) => {
+          const current = memories[bot];
+          if (current.some((entry) => entry.text === text)) return;
+          changed = true;
+          memories[bot] = [
+            {
+              id: `${bot}-${type}-${now}-${current.length}`,
+              bot,
+              type,
+              text,
+              importance,
+              createdAt: now,
+            },
+            ...current,
+          ]
+            .sort((a, b) => b.createdAt - a.createdAt || b.importance - a.importance)
+            .slice(0, 8);
         };
 
         const applyAffinity = (
@@ -1025,10 +1278,240 @@ function useAchievementsValue(): UseAchievementsValue {
         applyAffinity("apex", "challenge_yourself", affinityDeltas.challenge_yourself);
         applyAffinity("apex", "avoid_weakness", affinityDeltas.avoid_weakness);
 
+        const totalPlayedModes = Object.entries(prev.playerBehaviorByMode).filter(
+          ([, value]) => value.sessions > 0
+        );
+        const strongestModes = Object.fromEntries(
+          [...totalPlayedModes]
+            .sort((a, b) => {
+              const left = a[1];
+              const right = b[1];
+              const leftRate = left.sessions > 0 ? left.wins / left.sessions : 0;
+              const rightRate = right.sessions > 0 ? right.wins / right.sessions : 0;
+              return rightRate - leftRate || right.sessions - left.sessions;
+            })
+            .slice(0, 3)
+            .map(([mode, value]) => [mode, value.wins])
+        );
+        const weakestModes = Object.fromEntries(
+          [...totalPlayedModes]
+            .sort((a, b) => {
+              const left = a[1];
+              const right = b[1];
+              const leftRate = left.sessions > 0 ? left.wins / left.sessions : 1;
+              const rightRate = right.sessions > 0 ? right.wins / right.sessions : 1;
+              return leftRate - rightRate || right.sessions - left.sessions;
+            })
+            .slice(0, 3)
+            .map(([mode, value]) => [mode, value.losses])
+        );
+        const avoidedModeEntries = PLAYER_BEHAVIOR_MODES.map(
+          (mode): [PlayerBehaviorMode, number] => {
+            const sessions = prev.playerBehaviorByMode[mode].sessions;
+            return [mode, Math.max(0, totalSessions - sessions)];
+          }
+        ).filter(([, count]) => count > 0);
+        const avoidedModes = Object.fromEntries(avoidedModeEntries);
+        const aggregatedMistakes = Object.keys(EMPTY_MISTAKE_STATS).map((key) => {
+          const typedKey = key as PlayerMistakeKey;
+          const count = PLAYER_BEHAVIOR_MODES.reduce(
+            (sum, mode) => sum + (prev.playerMistakesByMode[mode][typedKey] ?? 0),
+            0
+          );
+          const previousCount =
+            prev.playerLongTermMemory.recurringMistakes.find((entry) => entry.key === typedKey)
+              ?.count ?? count;
+          const lastSeenAt = PLAYER_BEHAVIOR_MODES.reduce((max, mode) => {
+            const seen = prev.playerMistakeLastSeenByMode[mode][typedKey] ?? 0;
+            return Math.max(max, seen ?? 0);
+          }, 0);
+          if (count <= 0 || lastSeenAt <= 0) return null;
+          return {
+            key: typedKey,
+            count,
+            lastSeenAt,
+            severity: Math.max(1, Math.min(5, Math.ceil(count / 3))),
+            trend: count > previousCount ? "up" : count < previousCount ? "down" : "stable",
+          } as MistakeMemory;
+        }).filter(Boolean) as MistakeMemory[];
+
+        const consistencyScore = Math.max(
+          0,
+          Math.min(100, Math.round((totalWins / Math.max(1, totalSessions)) * 100 - totalMistakes * 1.5))
+        );
+        const courageScore = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              ((prev.playerBehaviorByMode.ROGUELIKE.sessions +
+                prev.playerBehaviorByMode.ROGUELIKE_VERSUS.sessions +
+                prev.playerBehaviorByMode.PUZZLE.sessions) /
+                Math.max(1, totalSessions)) *
+                100
+            )
+          )
+        );
+        const disciplineScore = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              consistencyScore * 0.45 +
+                courageScore * 0.25 +
+                Math.max(0, 100 - affinityDeltas.repeat_mistake * 10) * 0.3
+            )
+          )
+        );
+        const playerLongTermMemory: PlayerLongTermMemory = {
+          recurringMistakes: aggregatedMistakes
+            .sort((a, b) => b.count - a.count || b.lastSeenAt - a.lastSeenAt)
+            .slice(0, 6),
+          avoidedModes,
+          strongestModes,
+          weakestModes,
+          rageQuitCount: prev.counters.rage_quit_estimate ?? 0,
+          comebackCount: prev.counters.comeback_estimate ?? 0,
+          consistencyScore,
+          courageScore,
+          disciplineScore,
+        };
+
+        if (affinityDeltas.play_regularly > 0) {
+          pushMemory(
+            "rookie",
+            "player_comeback",
+            "Tu es revenu apres plusieurs echecs sans abandonner.",
+            3
+          );
+        }
+        if (affinityDeltas.improve_stat > 0) {
+          pushMemory(
+            "pulse",
+            "player_progress",
+            "Ta progression recente est assez nette pour etre mesuree.",
+            4
+          );
+        }
+        if ((playerLongTermMemory.avoidedModes[prev.lowestWinrateMode ?? ""] ?? 0) >= 5) {
+          pushMemory(
+            "apex",
+            "player_avoidance",
+            `Tu evites encore ${prev.lowestWinrateMode ?? "ton point faible"}.`,
+            5
+          );
+        }
+        if (getApexTrustState(playerLongTermMemory, progression.apex.affinity) === "refusing") {
+          pushMemory(
+            "apex",
+            "trust_break",
+            "Je refuse de te conseiller tant que tu contournes le vrai travail.",
+            5
+          );
+        }
+        if (
+          getApexTrustState(playerLongTermMemory, progression.apex.affinity) === "open" &&
+          prev.tetrobotMemories.apex.some((entry) => entry.type === "trust_break")
+        ) {
+          pushMemory(
+            "apex",
+            "trust_rebuild",
+            "Bien. Tu t'es enfin presente. On peut reprendre.",
+            5
+          );
+        }
+
+        const apexTrustState = getApexTrustState(playerLongTermMemory, progression.apex.affinity);
+        if (
+          !activeTetrobotChallenge &&
+          prev.lowestWinrateMode &&
+          (apexTrustState === "refusing" || apexTrustState === "cold")
+        ) {
+          activeTetrobotChallenge = createApexChallenge(
+            prev.lowestWinrateMode,
+            prev.playerBehaviorByMode[prev.lowestWinrateMode].sessions,
+            prev.counters.rage_quit_estimate ?? 0
+          );
+          changed = true;
+        }
+
+        if (
+          activeTetrobotChallenge &&
+          activeTetrobotChallenge.bot === "apex" &&
+          activeTetrobotChallenge.status === "active" &&
+          activeTetrobotChallenge.targetMode
+        ) {
+          const modeSessions =
+            prev.playerBehaviorByMode[activeTetrobotChallenge.targetMode].sessions;
+          const rageQuitCount = prev.counters.rage_quit_estimate ?? 0;
+          const progress = Math.max(0, modeSessions - activeTetrobotChallenge.startSessions);
+          const nextProgress = Math.min(activeTetrobotChallenge.targetCount, progress);
+
+          if (nextProgress !== activeTetrobotChallenge.progress) {
+            activeTetrobotChallenge = {
+              ...activeTetrobotChallenge,
+              progress: nextProgress,
+            };
+            changed = true;
+          }
+
+          if (
+            nextProgress >= activeTetrobotChallenge.targetCount &&
+            rageQuitCount <= activeTetrobotChallenge.startRageQuitCount
+          ) {
+            const nextAffinity = clampAffinity(
+              progression.apex.affinity + activeTetrobotChallenge.rewardAffinity
+            );
+            progression.apex = {
+              ...progression.apex,
+              affinity: nextAffinity,
+              mood: getMood(nextAffinity),
+            };
+
+            const nextXp = progression.apex.xp + activeTetrobotChallenge.rewardXp;
+            const nextLevel = getLevelFromXP(nextXp);
+            const unlockedTraits = getUnlockedTraits("apex", nextLevel);
+            progression.apex = {
+              ...progression.apex,
+              xp: nextXp,
+              level: nextLevel,
+              unlockedTraits,
+            };
+            if (nextLevel > (prev.tetrobotProgression.apex.level ?? 1)) {
+              lastLevelUp = {
+                bot: "apex",
+                level: nextLevel,
+                unlockedTraits,
+                message:
+                  TETROBOT_LEVEL_UP_MESSAGES.apex[nextLevel] ??
+                  `apex evolue niveau ${nextLevel}.`,
+                at: Date.now(),
+              };
+            }
+
+            activeTetrobotChallenge = {
+              ...activeTetrobotChallenge,
+              status: "completed",
+              progress: activeTetrobotChallenge.targetCount,
+              resolvedAt: now,
+            };
+            pushMemory(
+              "apex",
+              "trust_rebuild",
+              "Tu as accepte le defi d'Apex et tu l'as termine sans fuir.",
+              5
+            );
+            changed = true;
+          }
+        }
+
         if (
           !changed &&
           areRecordNumbersEqual(prev.tetrobotXpLedger, nextLedger) &&
-          areRecordNumbersEqual(prev.tetrobotAffinityLedger, nextAffinityLedger)
+          areRecordNumbersEqual(prev.tetrobotAffinityLedger, nextAffinityLedger) &&
+          JSON.stringify(prev.playerLongTermMemory) === JSON.stringify(playerLongTermMemory) &&
+          areMemoriesEqual(prev.tetrobotMemories, memories) &&
+          areChallengesEqual(prev.activeTetrobotChallenge, activeTetrobotChallenge)
         ) {
           return prev;
         }
@@ -1038,7 +1521,10 @@ function useAchievementsValue(): UseAchievementsValue {
           tetrobotProgression: progression,
           tetrobotXpLedger: nextLedger,
           tetrobotAffinityLedger: nextAffinityLedger,
+          playerLongTermMemory,
+          tetrobotMemories: memories,
           lastTetrobotLevelUp: lastLevelUp,
+          activeTetrobotChallenge,
         };
       }),
     [updateStats]
@@ -1081,6 +1567,25 @@ function useAchievementsValue(): UseAchievementsValue {
         ...prev,
         lastTetrobotLevelUp: null,
       })),
+    [updateStats]
+  );
+
+  const acceptActiveTetrobotChallenge = useCallback(
+    () =>
+      updateStats((prev) => {
+        if (!prev.activeTetrobotChallenge || prev.activeTetrobotChallenge.status !== "offered") {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          activeTetrobotChallenge: {
+            ...prev.activeTetrobotChallenge,
+            status: "active",
+            acceptedAt: Date.now(),
+          },
+        };
+      }),
     [updateStats]
   );
 
@@ -1295,7 +1800,22 @@ function useAchievementsValue(): UseAchievementsValue {
               ...prev.tetrobotAffinityLedger,
               ...((remote.tetrobotAffinityLedger ?? {}) as Partial<TetrobotAffinityLedger>),
             },
+            playerLongTermMemory: {
+              ...prev.playerLongTermMemory,
+              ...((remote.playerLongTermMemory ?? {}) as Partial<PlayerLongTermMemory>),
+              recurringMistakes:
+                ((remote.playerLongTermMemory as Partial<PlayerLongTermMemory> | undefined)
+                  ?.recurringMistakes as MistakeMemory[] | undefined) ??
+                prev.playerLongTermMemory.recurringMistakes,
+            },
+            tetrobotMemories: {
+              ...prev.tetrobotMemories,
+              ...((remote.tetrobotMemories ?? {}) as Partial<Record<TetrobotId, BotMemoryEntry[]>>),
+            },
             lastTetrobotLevelUp: (remote.lastTetrobotLevelUp as TetrobotLevelUp | null) ?? prev.lastTetrobotLevelUp,
+            activeTetrobotChallenge:
+              (remote.activeTetrobotChallenge as TetrobotChallengeState | null | undefined) ??
+              prev.activeTetrobotChallenge,
           };
         });
         remoteStatsReadyRef.current = true;
@@ -1326,12 +1846,19 @@ function useAchievementsValue(): UseAchievementsValue {
       tetrobotProgression: stats.tetrobotProgression as unknown as Record<string, unknown>,
       tetrobotXpLedger: stats.tetrobotXpLedger as unknown as Record<string, unknown>,
       tetrobotAffinityLedger: stats.tetrobotAffinityLedger as unknown as Record<string, unknown>,
+      playerLongTermMemory: stats.playerLongTermMemory as unknown as Record<string, unknown>,
+      tetrobotMemories: stats.tetrobotMemories as unknown as Record<string, unknown>,
       lastTetrobotLevelUp: stats.lastTetrobotLevelUp as unknown as Record<string, unknown> | null,
+      activeTetrobotChallenge:
+        stats.activeTetrobotChallenge as unknown as Record<string, unknown> | null,
     }).catch(() => {});
   }, [
+    stats.activeTetrobotChallenge,
     stats.lastTetrobotLevelUp,
     stats.loginDays,
     stats.tetrobotAffinityLedger,
+    stats.playerLongTermMemory,
+    stats.tetrobotMemories,
     stats.tetrobotProgression,
     stats.tetrobotXpLedger,
     user,
@@ -1359,6 +1886,7 @@ function useAchievementsValue(): UseAchievementsValue {
     setLastTetrobotTip,
     setTetrobotMood,
     clearLastTetrobotLevelUp,
+    acceptActiveTetrobotChallenge,
     registerRun,
     checkAchievements,
   };

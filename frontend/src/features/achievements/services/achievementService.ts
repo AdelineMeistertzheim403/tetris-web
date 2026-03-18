@@ -9,7 +9,10 @@ export type AchievementStatsPayload = {
   tetrobotProgression?: Record<string, unknown>;
   tetrobotXpLedger?: Record<string, unknown>;
   tetrobotAffinityLedger?: Record<string, unknown>;
+  playerLongTermMemory?: Record<string, unknown>;
+  tetrobotMemories?: Record<string, unknown>;
   lastTetrobotLevelUp?: Record<string, unknown> | null;
+  activeTetrobotChallenge?: Record<string, unknown> | null;
 };
 
 export type AchievementUnlockPayload = {
@@ -84,7 +87,10 @@ export async function fetchAchievementStats(): Promise<AchievementStatsPayload> 
           tetrobotProgression: data.tetrobotProgression ?? {},
           tetrobotXpLedger: data.tetrobotXpLedger ?? {},
           tetrobotAffinityLedger: data.tetrobotAffinityLedger ?? {},
+          playerLongTermMemory: data.playerLongTermMemory ?? {},
+          tetrobotMemories: data.tetrobotMemories ?? {},
           lastTetrobotLevelUp: data.lastTetrobotLevelUp ?? null,
+          activeTetrobotChallenge: data.activeTetrobotChallenge ?? null,
         };
       })
       .finally(() => {

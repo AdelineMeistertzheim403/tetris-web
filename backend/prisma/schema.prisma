@@ -221,7 +221,10 @@ model UserAchievementStats {
   tetrobotProgression  Json     @default("{}")
   tetrobotXpLedger     Json     @default("{}")
   tetrobotAffinityLedger Json   @default("{}")
+  playerLongTermMemory Json     @default("{}")
+  tetrobotMemories     Json     @default("{}")
   lastTetrobotLevelUp  Json?
+  activeTetrobotChallenge Json?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
