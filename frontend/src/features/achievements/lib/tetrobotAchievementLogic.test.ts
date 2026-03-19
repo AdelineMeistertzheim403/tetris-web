@@ -9,18 +9,40 @@ import {
 function createStats(): AchievementDerivedStats {
   return {
     counters: {},
+    hardDropCount: 0,
     lastPlayedMode: null,
+    level10Modes: {
+      CLASSIQUE: false,
+      SPRINT: false,
+      VERSUS: false,
+      BRICKFALL_SOLO: false,
+      ROGUELIKE: false,
+      ROGUELIKE_VERSUS: false,
+      PUZZLE: false,
+      TETROMAZE: false,
+    },
     lowestWinrateMode: null,
+    modesVisited: {
+      CLASSIQUE: false,
+      SPRINT: false,
+      VERSUS: false,
+      BRICKFALL_SOLO: false,
+      ROGUELIKE: false,
+      ROGUELIKE_VERSUS: false,
+      PUZZLE: false,
+      TETROMAZE: false,
+    },
+    noHoldRuns: 0,
     playerBehaviorByMode: {
-      CLASSIQUE: { sessions: 0, wins: 0, losses: 0 },
-      SPRINT: { sessions: 0, wins: 0, losses: 0 },
-      VERSUS: { sessions: 0, wins: 0, losses: 0 },
-      BRICKFALL_SOLO: { sessions: 0, wins: 0, losses: 0 },
-      ROGUELIKE: { sessions: 0, wins: 0, losses: 0 },
-      ROGUELIKE_VERSUS: { sessions: 0, wins: 0, losses: 0 },
-      PUZZLE: { sessions: 0, wins: 0, losses: 0 },
-      TETROMAZE: { sessions: 0, wins: 0, losses: 0 },
-      PIXEL_PROTOCOL: { sessions: 0, wins: 0, losses: 0 },
+      CLASSIQUE: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      SPRINT: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      VERSUS: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      BRICKFALL_SOLO: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      ROGUELIKE: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      ROGUELIKE_VERSUS: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      PUZZLE: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      TETROMAZE: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
+      PIXEL_PROTOCOL: { sessions: 0, wins: 0, losses: 0, totalDurationMs: 0 },
     },
     playerLongTermMemory: {
       recurringMistakes: [],
@@ -47,6 +69,16 @@ function createStats(): AchievementDerivedStats {
         mode_avoidance: 0,
         inconsistent_precision: 0,
       },
+    },
+    scoredModes: {
+      CLASSIQUE: false,
+      SPRINT: false,
+      VERSUS: false,
+      BRICKFALL_SOLO: false,
+      ROGUELIKE: false,
+      ROGUELIKE_VERSUS: false,
+      PUZZLE: false,
+      TETROMAZE: false,
     },
     tetrobotAffinityLedger: {
       play_regularly: 0,
@@ -213,5 +245,35 @@ describe("tetrobotAchievementLogic", () => {
 
     expect(getDerivedCustomAchievementValue(stats, "tilt_detected", {})).toBe(true);
     expect(getDerivedCustomAchievementValue(stats, "critical_win", {})).toBe(true);
+  });
+
+  it("derives transversal playtime achievements from aggregated behavior duration", () => {
+    const stats = createStats();
+    stats.playerBehaviorByMode.PUZZLE.totalDurationMs = 120 * 60 * 1000;
+    stats.playerBehaviorByMode.BRICKFALL_SOLO.totalDurationMs = 190 * 60 * 1000;
+
+    expect(getDerivedCustomAchievementValue(stats, "playtime_60m", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "playtime_300m", {})).toBe(true);
+  });
+
+  it("derives transversal cumulative achievements from global stats", () => {
+    const stats = createStats();
+    stats.noHoldRuns = 10;
+    stats.hardDropCount = 50;
+    stats.level10Modes.CLASSIQUE = true;
+    stats.level10Modes.VERSUS = true;
+    stats.level10Modes.ROGUELIKE = true;
+    stats.modesVisited = Object.fromEntries(
+      Object.keys(stats.modesVisited).map((mode) => [mode, true])
+    ) as typeof stats.modesVisited;
+    stats.scoredModes = Object.fromEntries(
+      Object.keys(stats.scoredModes).map((mode) => [mode, true])
+    ) as typeof stats.scoredModes;
+
+    expect(getDerivedCustomAchievementValue(stats, "no_hold_runs_10", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "harddrop_50", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "level_10_three_modes", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "modes_visited_all", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "scored_all_modes", {})).toBe(true);
   });
 });
