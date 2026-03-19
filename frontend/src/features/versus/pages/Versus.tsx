@@ -230,6 +230,13 @@ function VersusPvp() {
         noHoldRuns: prev.noHoldRuns + (noHold ? 1 : 0),
         hardDropCount: prev.hardDropCount + hardDropCountRef.current,
         lastScore: myResult.score,
+        counters: {
+          ...prev.counters,
+          versus_perfect_wins:
+            (prev.counters.versus_perfect_wins ?? 0) + (perfectWin ? 1 : 0),
+          total_tetris_clears:
+            (prev.counters.total_tetris_clears ?? 0) + tetrisCountRef.current,
+        },
       };
     });
 
@@ -865,6 +872,35 @@ function VersusTetrobots() {
         noHoldRuns: prev.noHoldRuns + (noHold ? 1 : 0),
         hardDropCount: prev.hardDropCount + hardDropCountRef.current,
         lastScore: playerResult.score,
+        counters: {
+          ...prev.counters,
+          versus_perfect_wins:
+            (prev.counters.versus_perfect_wins ?? 0) + (perfectWin ? 1 : 0),
+          bot_rookie_wins:
+            (prev.counters.bot_rookie_wins ?? 0) + (wonVsRookie ? 1 : 0),
+          bot_balanced_wins:
+            (prev.counters.bot_balanced_wins ?? 0) + (wonVsBalanced ? 1 : 0),
+          bot_apex_wins_total:
+            (prev.counters.bot_apex_wins_total ?? 0) + (wonVsApex ? 1 : 0),
+          bot_perfect_wins:
+            (prev.counters.bot_perfect_wins ?? 0) + (perfectWin ? 1 : 0),
+          bot_under_60s_wins:
+            (prev.counters.bot_under_60s_wins ?? 0) +
+            (win && durationMs > 0 && durationMs < 60_000 ? 1 : 0),
+          bot_wins_after_blunder:
+            (prev.counters.bot_wins_after_blunder ?? 0) + (win && botBlunderRef.current ? 1 : 0),
+          bot_fewer_holes_wins:
+            (prev.counters.bot_fewer_holes_wins ?? 0) + (win && playerHoles < botHoles ? 1 : 0),
+          bot_all_personalities_session_max: Math.max(
+            prev.counters.bot_all_personalities_session_max ?? 0,
+            botPersonalityWinsRef.current.size
+          ),
+          bot_outscore_lines_apex_wins:
+            (prev.counters.bot_outscore_lines_apex_wins ?? 0) +
+            (wonVsApex && playerResult.lines > botResult.lines ? 1 : 0),
+          total_tetris_clears:
+            (prev.counters.total_tetris_clears ?? 0) + tetrisCountRef.current,
+        },
       };
     });
 

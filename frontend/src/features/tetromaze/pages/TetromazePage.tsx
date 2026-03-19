@@ -1476,6 +1476,13 @@ export default function TetromazePage() {
           old.tetromazeEscapesPulse + (escapedBot === "balanced" ? 1 : 0),
         tetromazeEscapesApex:
           old.tetromazeEscapesApex + (escapedBot === "apex" ? 1 : 0),
+        counters: {
+          ...old.counters,
+          tm_close_escape_count: Math.max(
+            old.counters.tm_close_escape_count ?? 0,
+            minDist <= 4 ? 1 : 0
+          ),
+        },
       }));
       checkAchievements({
         mode: "TETROMAZE",
@@ -1500,6 +1507,13 @@ export default function TetromazePage() {
     }
     wasMultiNearRef.current = multiNear;
     if (closeBots >= 3) {
+      updateStats((old) => ({
+        ...old,
+        counters: {
+          ...old.counters,
+          tm_encircled_count: Math.max(old.counters.tm_encircled_count ?? 0, 1),
+        },
+      }));
       checkAchievements({
         mode: "TETROMAZE",
         custom: { tm_encircled: true },
@@ -1531,6 +1545,10 @@ export default function TetromazePage() {
       const next = updateStats((old) => ({
         ...old,
         tetromazePowerUses: old.tetromazePowerUses + 1,
+        counters: {
+          ...old.counters,
+          tm_max_effects_run: Math.max(old.counters.tm_max_effects_run ?? 0, runEffectsRef.current),
+        },
       }));
       checkAchievements({
         mode: "TETROMAZE",
@@ -1547,6 +1565,13 @@ export default function TetromazePage() {
       const next = updateStats((old) => ({
         ...old,
         tetromazeCaptures: old.tetromazeCaptures + 1,
+        counters: {
+          ...old.counters,
+          tm_max_stunned_simultaneously: Math.max(
+            old.counters.tm_max_stunned_simultaneously ?? 0,
+            state.bots.filter((bot) => bot.respawnAt > now).length
+          ),
+        },
       }));
       checkAchievements({
         mode: "TETROMAZE",
@@ -1571,6 +1596,16 @@ export default function TetromazePage() {
       }
 
       if (undetectedStartRef.current && now - undetectedStartRef.current >= 30000) {
+        updateStats((old) => ({
+          ...old,
+          counters: {
+            ...old.counters,
+            tm_30s_undetected_count: Math.max(
+              old.counters.tm_30s_undetected_count ?? 0,
+              1
+            ),
+          },
+        }));
         checkAchievements({
           mode: "TETROMAZE",
           custom: { tm_30s_undetected: true },
@@ -1588,6 +1623,13 @@ export default function TetromazePage() {
         loopStartRef.current = null;
       }
       if (loopStartRef.current && now - loopStartRef.current >= 10000) {
+        updateStats((old) => ({
+          ...old,
+          counters: {
+            ...old.counters,
+            tm_loop_10s_count: Math.max(old.counters.tm_loop_10s_count ?? 0, 1),
+          },
+        }));
         checkAchievements({
           mode: "TETROMAZE",
           custom: { tm_loop_10s: true },
@@ -2014,6 +2056,19 @@ export default function TetromazePage() {
       const nextStats = updateStats((old) => ({
         ...old,
         tetromazeWins: old.tetromazeWins + 1,
+        counters: {
+          ...old.counters,
+          tm_world1_clear_count:
+            (old.counters.tm_world1_clear_count ?? 0) + (levelIndex >= 8 ? 1 : 0),
+          tm_campaign_clear_count:
+            (old.counters.tm_campaign_clear_count ?? 0) +
+            (levelIndex >= TETROMAZE_TOTAL_LEVELS ? 1 : 0),
+          tm_no_hit_wins:
+            (old.counters.tm_no_hit_wins ?? 0) + (runNoHitRef.current && state.lives === 3 ? 1 : 0),
+          tm_under_60s_wins:
+            (old.counters.tm_under_60s_wins ?? 0) + (elapsedMs <= 60000 ? 1 : 0),
+          tm_max_effects_run: Math.max(old.counters.tm_max_effects_run ?? 0, runEffectsRef.current),
+        },
       }));
       if (noDamage && elapsedMs <= 60_000) {
         recordTetrobotEvent({ type: "rookie_tip_followed" });

@@ -411,9 +411,21 @@ export default function PixelProtocolEditor() {
     const localProgress = readLocalPixelProtocolProgress();
     const createdLevelsCount = levels.length;
 
+    updateStats((prev) => ({
+      ...prev,
+      counters: {
+        ...prev.counters,
+        levels_created: Math.max(prev.counters.levels_created ?? 0, createdLevelsCount),
+        level_100_plays_best: Math.max(prev.counters.level_100_plays_best ?? 0, maxPlaysOnOneLevel),
+        level_1000_plays_best: Math.max(prev.counters.level_1000_plays_best ?? 0, maxPlaysOnOneLevel),
+        level_50_likes_best: Math.max(prev.counters.level_50_likes_best ?? 0, maxLikesOnOneLevel),
+      },
+    }));
+
     checkAchievements({
       mode: "EDITOR",
       counters: {
+        levels_created: Math.max(0, createdLevelsCount),
         level_likes_received: totalLikesReceived,
       },
       custom: {

@@ -173,24 +173,6 @@ export async function saveRoguelikeVersusMatch(payload: VersusMatchPayload) {
   return res.json();
 }
 
-// Sauvegarde un match Brickfall Versus (payload multi-joueurs + roles).
-export async function saveBrickfallVersusMatch(payload: VersusMatchPayload) {
-  const res = await fetch(`${API_URL}/scores/brickfall-versus-match`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Run-Token": await getScoreRunToken("BRICKFALL_VERSUS", payload.matchId),
-      ...getAuthHeader(),
-    },
-    body: JSON.stringify(payload),
-    credentials: "include",
-  });
-
-  if (!res.ok)
-    throw new Error("Erreur lors de l'enregistrement du match brickfall versus");
-  return res.json();
-}
-
 export async function getTetrobotsProfile() {
   const res = await fetch(`${API_URL}/scores/tetrobots-profile`, {
     headers: {

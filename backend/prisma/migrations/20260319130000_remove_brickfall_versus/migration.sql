@@ -1,0 +1,26 @@
+DROP TABLE IF EXISTS "BrickfallVersusMatch";
+
+DELETE FROM "Score"
+WHERE "mode" = 'BRICKFALL_VERSUS';
+
+ALTER TYPE "GameMode" RENAME TO "GameMode_old";
+
+CREATE TYPE "GameMode" AS ENUM (
+  'CLASSIQUE',
+  'SPRINT',
+  'VERSUS',
+  'ROGUELIKE_VERSUS'
+);
+
+ALTER TABLE "Score"
+ALTER COLUMN "mode" DROP DEFAULT;
+
+ALTER TABLE "Score"
+ALTER COLUMN "mode" TYPE "GameMode"
+USING ("mode"::text::"GameMode");
+
+ALTER TABLE "Score"
+ALTER COLUMN "mode" SET DEFAULT 'CLASSIQUE';
+
+DROP TYPE "GameMode_old";
+DROP TYPE IF EXISTS "BrickfallRole";

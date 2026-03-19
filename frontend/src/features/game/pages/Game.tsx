@@ -158,6 +158,21 @@ export default function Game() {
               noHoldRuns: prev.noHoldRuns + (noHold ? 1 : 0),
               hardDropCount: prev.hardDropCount + hardDropCountRef.current,
               lastScore: score,
+              counters: {
+                ...prev.counters,
+                classic_half_board_runs:
+                  (prev.counters.classic_half_board_runs ?? 0) +
+                  (maxStackHeightRef.current <= 10 ? 1 : 0),
+                classic_hold_under_3_runs:
+                  (prev.counters.classic_hold_under_3_runs ?? 0) +
+                  (holdCountRef.current < 3 ? 1 : 0),
+                classic_best_tetris_run: Math.max(
+                  prev.counters.classic_best_tetris_run ?? 0,
+                  tetrisCountRef.current
+                ),
+                total_tetris_clears:
+                  (prev.counters.total_tetris_clears ?? 0) + tetrisCountRef.current,
+              },
             };
           });
 

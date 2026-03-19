@@ -4,7 +4,6 @@ export type GameMode =
   | "SPRINT"
   | "VERSUS"
   | "BRICKFALL_SOLO"
-  | "BRICKFALL_VERSUS"
   | "ROGUELIKE"
   | "ROGUELIKE_VERSUS"
   | "PUZZLE"
@@ -15,7 +14,6 @@ export const GAME_MODES: GameMode[] = [
   "SPRINT",
   "VERSUS",
   "BRICKFALL_SOLO",
-  "BRICKFALL_VERSUS",
   "ROGUELIKE",
   "ROGUELIKE_VERSUS",
   "PUZZLE",

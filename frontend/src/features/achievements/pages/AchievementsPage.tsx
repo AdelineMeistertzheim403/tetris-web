@@ -14,10 +14,7 @@ export default function AchievementsPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [groupFilter, setGroupFilter] = useState<GroupFilter>("all");
   const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
-  const visibleAchievements = useMemo(
-    () => achievements.filter((a) => a.mode !== "BRICKFALL_VERSUS"),
-    [achievements]
-  );
+  const visibleAchievements = useMemo(() => achievements, [achievements]);
 
   // Ordre d'affichage explicite pour garder une lecture cohérente.
   const groupOrder: AchievementGroup[] = [
@@ -55,6 +52,7 @@ export default function AchievementsPage() {
     CLASSIQUE: "Mode Classique",
     SPRINT: "Mode Sprint",
     VERSUS: "Mode Versus",
+    BRICKFALL: "Brickfall",
     SOLO: "Brickfall Solo - Progression",
     SKILL: "Brickfall Solo - Skill",
     POWER: "Brickfall Solo - Power Play",
@@ -72,7 +70,6 @@ export default function AchievementsPage() {
     TETROMAZE_SKILL: "Tetromaze - Skill",
     TETROMAZE_POWER: "Tetromaze - Power Play",
     TETROBOTS: "Tetromaze - Tetrobots",
-    BRICKFALL: "Mode Brickfall Versus",
     ROGUELIKE: "Mode Roguelike",
     ROGUELIKE_VERSUS: "Mode Roguelike Versus",
     PUZZLE: "Mode Énigme",
@@ -102,7 +99,6 @@ export default function AchievementsPage() {
     SPRINT: "Sprint",
     VERSUS: "Versus",
     BRICKFALL_SOLO: "Brickfall Solo",
-    BRICKFALL_VERSUS: "Brickfall Versus",
     ROGUELIKE: "Roguelike",
     ROGUELIKE_VERSUS: "Roguelike Versus",
     PUZZLE: "Puzzle",
