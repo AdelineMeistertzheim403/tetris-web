@@ -6,9 +6,9 @@ import TetrisBoard from "../../game/components/board/TetrisBoard";
 import OpponentBoard from "../../game/components/board/OpponentBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
 import { saveVersusMatch } from "../../game/services/scoreService";
+import type { PlayerMistakeKey } from "../../achievements/types/tetrobots";
 import {
   useAchievements,
-  type PlayerMistakeKey,
 } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
 import {
@@ -88,7 +88,8 @@ function useMarkVersusVisited() {
 
 function VersusPvp() {
   const { user } = useAuth();
-  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
   const [chosenMatchId, setChosenMatchId] = useState<string | undefined>(undefined);
   const startTimeRef = useRef<number | null>(null);
@@ -202,9 +203,15 @@ function VersusPvp() {
     if (maxStackHeightRef.current >= RED_ZONE_HEIGHT - 1) mistakes.push("unsafe_stack" as const);
     if (durationMs >= 8 * 60 * 1000 && myResult.score < oppResult.score) mistakes.push("slow" as const);
     let sameScoreTwice = false;
+    let firstVersusScore = false;
+    let firstVersusLevel10 = false;
+    let firstVersusWin = false;
 
     const next = updateStats((prev) => {
       sameScoreTwice = prev.lastScore !== null && prev.lastScore === myResult.score;
+      firstVersusScore = myResult.score > 0 && !prev.scoredModes.VERSUS;
+      firstVersusLevel10 = level >= 10 && !prev.level10Modes.VERSUS;
+      firstVersusWin = win && prev.versusWins === 0;
       return {
         ...prev,
         versusMatches: prev.versusMatches + 1,
@@ -232,6 +239,13 @@ function VersusPvp() {
       durationMs,
       mistakes,
     });
+
+    if (win && mistakes.length === 0 && durationMs >= 60_000) {
+      recordTetrobotEvent({ type: "rookie_tip_followed" });
+    }
+    if (firstVersusScore || firstVersusLevel10 || firstVersusWin) {
+      recordTetrobotEvent({ type: "pulse_advice_success" });
+    }
 
     checkAchievements({
       mode: "VERSUS",
@@ -261,7 +275,15 @@ function VersusPvp() {
     });
 
     finalizedRef.current = true;
-  }, [matchOver, results, slot, updateStats, checkAchievements, recordPlayerBehavior]);
+  }, [
+    matchOver,
+    results,
+    slot,
+    updateStats,
+    checkAchievements,
+    recordPlayerBehavior,
+    recordTetrobotEvent,
+  ]);
 
   if (startReady) {
     const myResult = results?.find((r) => r.slot === slot) ?? null;
@@ -479,7 +501,8 @@ function VersusPvp() {
 
 function VersusTetrobots() {
   const { user } = useAuth();
-  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const [roundSeed, setRoundSeed] = useState(() => `tetrobots-${Date.now()}`);
   const [roundKey, setRoundKey] = useState(0);
   const [started, setStarted] = useState(false);
@@ -811,9 +834,15 @@ function VersusTetrobots() {
     if (wonVsBalanced) botPersonalityWinsRef.current.add("balanced");
     if (wonVsApex) botPersonalityWinsRef.current.add("apex");
     let sameScoreTwice = false;
+    let firstVersusScore = false;
+    let firstVersusLevel10 = false;
+    let firstBotWin = false;
 
     const next = updateStats((prev) => {
       sameScoreTwice = prev.lastScore !== null && prev.lastScore === playerResult.score;
+      firstVersusScore = playerResult.score > 0 && !prev.scoredModes.VERSUS;
+      firstVersusLevel10 = level >= 10 && !prev.level10Modes.VERSUS;
+      firstBotWin = win && prev.botWins === 0;
       return {
         ...prev,
         versusMatches: prev.versusMatches + 1,
@@ -845,6 +874,13 @@ function VersusTetrobots() {
       durationMs,
       mistakes,
     });
+
+    if (win && mistakes.length === 0 && !botBlunderRef.current) {
+      recordTetrobotEvent({ type: "rookie_tip_followed" });
+    }
+    if (firstVersusScore || firstVersusLevel10 || firstBotWin || wonVsApex) {
+      recordTetrobotEvent({ type: "pulse_advice_success" });
+    }
 
     checkAchievements({
       mode: "VERSUS",
@@ -938,7 +974,16 @@ function VersusTetrobots() {
       });
 
     finalizedRef.current = true;
-  }, [botPersonalityId, botResult, checkAchievements, matchOver, playerResult, recordPlayerBehavior, updateStats]);
+  }, [
+    botPersonalityId,
+    botResult,
+    checkAchievements,
+    matchOver,
+    playerResult,
+    recordPlayerBehavior,
+    recordTetrobotEvent,
+    updateStats,
+  ]);
 
   useEffect(() => {
     if (!matchOver || !playerResult || !botResult || !user || hasSavedResult) return;

@@ -137,4 +137,35 @@
     line-height: 1.4;
     overflow-wrap: anywhere;
   }
+
+  .achievement-progress {
+    margin-top: 12px;
+    text-align: left;
+  }
+
+  .achievement-progress__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: #f2c8ff;
+    margin-bottom: 6px;
+  }
+
+  .achievement-progress__bar {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: #2a1034;
+    overflow: hidden;
+    border: 1px solid #4d235d;
+  }
+
+  .achievement-progress__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff7de3 0%, #ffd166 100%);
+    box-shadow: 0 0 10px rgba(255, 125, 227, 0.55);
+  }
 }

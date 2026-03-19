@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import TetrisBoard from "../components/board/TetrisBoard";
+import type { PlayerMistakeKey } from "../../achievements/types/tetrobots";
 import {
   useAchievements,
-  type PlayerMistakeKey,
 } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../types/GameMode";
 
@@ -27,7 +27,8 @@ function countBoardHoles(board: number[][]) {
 }
 
 export default function Game() {
-  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   // Refs pour tracker la run sans déclencher de re-render.
   const startTimeRef = useRef<number | null>(null);
   const holdCountRef = useRef(0);
@@ -136,9 +137,13 @@ export default function Game() {
           if (maxStackHeightRef.current >= 18) mistakes.push("top_out" as const);
           if (durationMs >= 8 * 60 * 1000 && score < 2500) mistakes.push("slow" as const);
           let sameScoreTwice = false;
+          let reachedClassicScoreMilestone = false;
+          let reachedClassicLevelMilestone = false;
 
           const next = updateStats((prev) => {
             sameScoreTwice = prev.lastScore !== null && prev.lastScore === score;
+            reachedClassicScoreMilestone = score > 0 && !prev.scoredModes.CLASSIQUE;
+            reachedClassicLevelMilestone = level >= 10 && !prev.level10Modes.CLASSIQUE;
             return {
               ...prev,
               scoredModes: {
@@ -162,6 +167,13 @@ export default function Game() {
             durationMs,
             mistakes,
           });
+
+          if (mistakes.length === 0 && durationMs >= 60_000) {
+            recordTetrobotEvent({ type: "rookie_tip_followed" });
+          }
+          if (reachedClassicScoreMilestone || reachedClassicLevelMilestone) {
+            recordTetrobotEvent({ type: "pulse_advice_success" });
+          }
 
           checkAchievements({
             mode: "CLASSIQUE",

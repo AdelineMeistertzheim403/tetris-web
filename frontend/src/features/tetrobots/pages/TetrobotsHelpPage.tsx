@@ -136,7 +136,7 @@ function HelpSection({
 export default function TetrobotsHelpPage() {
   const location = useLocation();
   const { user } = useAuth();
-  const { stats } = useAchievements();
+  const { stats, recordTetrobotEvent } = useAchievements();
   const challenge = stats.activeTetrobotChallenge;
   const [sections, setSections] = useState<HelpSectionState>(() => readHelpSectionState());
 
@@ -163,6 +163,11 @@ export default function TetrobotsHelpPage() {
   const toggleSection = (id: HelpSectionId) => {
     setSections((current) => {
       const nextOpen = !current[id];
+      if (nextOpen) {
+        const bot =
+          id === "apex" ? "apex" : id === "memory" ? "pulse" : "rookie";
+        recordTetrobotEvent({ type: "tip_read", bot });
+      }
       if (typeof window !== "undefined") {
         const nextHash = nextOpen ? `#${id}` : "";
         window.history.replaceState(null, "", `${location.pathname}${nextHash}`);

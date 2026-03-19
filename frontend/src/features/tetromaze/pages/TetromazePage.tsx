@@ -737,7 +737,8 @@ export default function TetromazePage() {
   const movementActiveRef = useRef(false);
   const visitedRef = useRef(false);
   const spritesRef = useRef<SpriteStore | null>(null);
-  const { updateStats, checkAchievements, recordPlayerBehavior } = useAchievements();
+  const { updateStats, checkAchievements, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const { user } = useAuth();
 
   const [assetsReady, setAssetsReady] = useState(false);
@@ -2000,6 +2001,7 @@ export default function TetromazePage() {
 
     if (state.status === "won") {
       const elapsedMs = Math.max(0, Date.now() - state.startedAt);
+      const noDamage = state.lives === 3;
       recordPlayerBehavior({
         mode: "TETROMAZE",
         won: true,
@@ -2013,6 +2015,12 @@ export default function TetromazePage() {
         ...old,
         tetromazeWins: old.tetromazeWins + 1,
       }));
+      if (noDamage && elapsedMs <= 60_000) {
+        recordTetrobotEvent({ type: "rookie_tip_followed" });
+      }
+      if (nextStats.tetromazeWins === 1 || levelIndex >= 8 || (runNoHitRef.current && noDamage)) {
+        recordTetrobotEvent({ type: "pulse_advice_success" });
+      }
       checkAchievements({
         mode: "TETROMAZE",
         custom: {
@@ -2040,7 +2048,20 @@ export default function TetromazePage() {
         },
       });
     }
-  }, [checkAchievements, isCommunityLevel, isCustomLevel, level, levelIndex, state.lives, state.score, state.startedAt, state.status, updateStats]);
+  }, [
+    checkAchievements,
+    isCommunityLevel,
+    isCustomLevel,
+    level,
+    levelIndex,
+    recordPlayerBehavior,
+    recordTetrobotEvent,
+    state.lives,
+    state.score,
+    state.startedAt,
+    state.status,
+    updateStats,
+  ]);
 
   const handleCommunityLike = async () => {
     if (!user || !communityLevel || communityLevel.isOwn || communityLikeBusy) return;

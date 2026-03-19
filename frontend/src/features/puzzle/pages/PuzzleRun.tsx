@@ -32,7 +32,8 @@ export default function PuzzleRun() {
   const [puzzle, setPuzzle] = useState<PuzzleDefinition | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { updateStats, checkAchievements, recordPlayerBehavior } = useAchievements();
+  const { updateStats, checkAchievements, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const [runKey, setRunKey] = useState(0);
   const [movesUsed, setMovesUsed] = useState(0);
   const [piecesPlaced, setPiecesPlaced] = useState(0);
@@ -209,6 +210,12 @@ export default function PuzzleRun() {
         ...(runDurationMs !== null && runDurationMs > 45_000 ? (["slow"] as const) : []),
       ],
     });
+    if (invalidMovesRef.current === 0 && !holdUsed) {
+      recordTetrobotEvent({ type: "rookie_tip_followed" });
+    }
+    if (isOptimal || puzzle.difficulty === "hard" || puzzle.difficulty === "very hard") {
+      recordTetrobotEvent({ type: "pulse_advice_success" });
+    }
     checkAchievements({
       mode: "PUZZLE",
       custom: {
@@ -239,6 +246,7 @@ export default function PuzzleRun() {
     linesCleared,
     movesUsed,
     puzzle,
+    recordTetrobotEvent,
     recordPlayerBehavior,
     status,
     totalPuzzles,

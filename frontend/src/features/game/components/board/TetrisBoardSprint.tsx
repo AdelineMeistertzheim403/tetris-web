@@ -6,9 +6,9 @@ import { getScoreRunToken, saveScore } from "../../services/scoreService";
 import { useAuth } from "../../../auth/context/AuthContext";
 import { useSettings } from "../../../settings/context/SettingsContext";
 import { useTetrisGame } from "../../hooks/useTetrisGame";
+import type { PlayerMistakeKey } from "../../../achievements/types/tetrobots";
 import {
   useAchievements,
-  type PlayerMistakeKey,
 } from "../../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../types/GameMode";
 import { useLineClearFx } from "../../hooks/useLineClearFx";
@@ -25,7 +25,8 @@ export default function TetrisBoardSprint() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const [countdown, setCountdown] = useState<number | null>(3);
   const visitedRef = useRef(false);
   // Refs pour stats/achievements sans re-render.
@@ -222,16 +223,20 @@ export default function TetrisBoardSprint() {
     const mistakes: PlayerMistakeKey[] = [];
     if (!completedRun) mistakes.push("top_out" as const);
     if (lines < TARGET_LINES * 0.5 && durationMs >= 2 * 60 * 1000) mistakes.push("slow" as const);
-    const next = updateStats((prev) => ({
-      ...prev,
-      scoredModes: {
-        ...prev.scoredModes,
-        SPRINT: completedRun ? true : prev.scoredModes.SPRINT,
-      },
-      playtimeMs: prev.playtimeMs + durationMs,
-      noHoldRuns: prev.noHoldRuns + (completedRun && noHold ? 1 : 0),
-      hardDropCount: prev.hardDropCount + hardDropCountRef.current,
-    }));
+    let firstSprintCompletion = false;
+    const next = updateStats((prev) => {
+      firstSprintCompletion = completedRun && !prev.scoredModes.SPRINT;
+      return {
+        ...prev,
+        scoredModes: {
+          ...prev.scoredModes,
+          SPRINT: completedRun ? true : prev.scoredModes.SPRINT,
+        },
+        playtimeMs: prev.playtimeMs + durationMs,
+        noHoldRuns: prev.noHoldRuns + (completedRun && noHold ? 1 : 0),
+        hardDropCount: prev.hardDropCount + hardDropCountRef.current,
+      };
+    });
 
     recordPlayerBehavior({
       mode: "SPRINT",
@@ -239,6 +244,13 @@ export default function TetrisBoardSprint() {
       durationMs,
       mistakes,
     });
+
+    if (completedRun && mistakes.length === 0) {
+      recordTetrobotEvent({ type: "rookie_tip_followed" });
+    }
+    if (firstSprintCompletion || (completedRun && durationMs <= 3 * 60 * 1000)) {
+      recordTetrobotEvent({ type: "pulse_advice_success" });
+    }
 
     checkAchievements({
       mode: "SPRINT",
