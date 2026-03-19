@@ -116,6 +116,29 @@ const TETROBOT_LEVEL_UP_MESSAGES: Record<TetrobotId, Partial<Record<BotLevel, st
   },
 };
 
+export const BOT_LEVEL_XP_BANDS: Array<{
+  level: BotLevel;
+  minXp: number;
+  maxXpExclusive: number | null;
+}> = [
+  { level: 1, minXp: 0, maxXpExclusive: 50 },
+  { level: 2, minXp: 50, maxXpExclusive: 150 },
+  { level: 3, minXp: 150, maxXpExclusive: 300 },
+  { level: 4, minXp: 300, maxXpExclusive: 600 },
+  { level: 5, minXp: 600, maxXpExclusive: null },
+];
+
+export const MOOD_AFFINITY_BANDS: Array<{
+  mood: BotMood;
+  minAffinity: number;
+  maxAffinityExclusive: number | null;
+}> = [
+  { mood: "angry", minAffinity: -100, maxAffinityExclusive: -50 },
+  { mood: "neutral", minAffinity: -50, maxAffinityExclusive: 10 },
+  { mood: "friendly", minAffinity: 10, maxAffinityExclusive: 50 },
+  { mood: "respect", minAffinity: 50, maxAffinityExclusive: null },
+];
+
 function createApexChallenge(
   mode: PlayerBehaviorMode,
   modeSessions: number,
