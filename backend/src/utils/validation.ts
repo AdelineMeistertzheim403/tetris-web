@@ -163,6 +163,7 @@ export const achievementUnlockSchema = z.object({
 });
 
 export const achievementStatsSchema = z.object({
+  stats: z.record(z.string(), z.any()).optional(),
   loginDays: z.array(z.string().trim().min(1).max(10)).max(400).optional(),
   tetrobotProgression: z.record(z.string(), z.any()).optional(),
   tetrobotXpLedger: z.record(z.string(), z.any()).optional(),

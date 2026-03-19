@@ -88,6 +88,20 @@ const getTotalLosses = (stats: AchievementDerivedStats) =>
 const getTotalSessions = (stats: AchievementDerivedStats) =>
   Object.values(stats.playerBehaviorByMode).reduce((sum, mode) => sum + mode.sessions, 0);
 
+const getKnownBotCount = (stats: AchievementDerivedStats) =>
+  TETROBOT_IDS.filter((bot) => {
+    const state = stats.tetrobotProgression[bot];
+    return state.xp > 0 || Boolean(state.lastTip);
+  }).length;
+
+const getDetectedStyleCount = (stats: AchievementDerivedStats) =>
+  Object.values(stats.playerLongTermMemory.weakestModes ?? {}).filter(
+    (value) => typeof value === "number" && value > 0
+  ).length;
+
+const getMemoryDialogueCount = (stats: AchievementDerivedStats) =>
+  Object.values(stats.tetrobotMemories).filter((entries) => entries.length > 0).length;
+
 const getAggregatedMistakeCount = (
   stats: AchievementDerivedStats,
   keys: PlayerMistakeKey[]
@@ -153,10 +167,11 @@ export function getDerivedCustomAchievementValue(
         (stats.counters.apex_trust_restored_count ?? 0) > 0
       ) || (hasBotMemory(stats, "apex", "trust_break") && hasBotMemory(stats, "apex", "trust_rebuild"));
     case "met_all_bots":
-      return TETROBOT_IDS.every((bot) => {
-        const state = stats.tetrobotProgression[bot];
-        return state.xp > 0 || Boolean(state.lastTip);
-      });
+      return getKnownBotCount(stats) >= TETROBOT_IDS.length;
+    case "bot_memory_dialogue":
+      return getMemoryDialogueCount(stats) >= 1;
+    case "bot_detected_style":
+      return getDetectedStyleCount(stats) >= 1;
     case "negative_bot_reaction":
       return TETROBOT_IDS.some(
         (bot) =>

@@ -14,6 +14,55 @@ const normalizeLoginDays = (loginDays: string[]) =>
 const readLoginDays = (value: Prisma.JsonValue | null | undefined) =>
   Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 
+const readJsonObject = (value: Prisma.JsonValue | null | undefined) =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Prisma.JsonObject)
+    : {};
+
+const buildLegacyStatsSnapshot = (stats: {
+  loginDays: Prisma.JsonValue | null;
+  tetrobotProgression: Prisma.JsonValue | null;
+  tetrobotXpLedger: Prisma.JsonValue | null;
+  tetrobotAffinityLedger: Prisma.JsonValue | null;
+  playerLongTermMemory: Prisma.JsonValue | null;
+  tetrobotMemories: Prisma.JsonValue | null;
+  lastTetrobotLevelUp: Prisma.JsonValue | null;
+  activeTetrobotChallenge: Prisma.JsonValue | null;
+  statsSnapshot?: Prisma.JsonValue | null;
+}) => {
+  const snapshot = readJsonObject(stats.statsSnapshot);
+  return {
+    ...snapshot,
+    loginDays: Array.isArray(snapshot.loginDays)
+      ? snapshot.loginDays
+      : readLoginDays(stats.loginDays),
+    tetrobotProgression:
+      Object.keys(readJsonObject(stats.tetrobotProgression)).length > 0
+        ? readJsonObject(stats.tetrobotProgression)
+        : readJsonObject(snapshot.tetrobotProgression as Prisma.JsonValue),
+    tetrobotXpLedger:
+      Object.keys(readJsonObject(stats.tetrobotXpLedger)).length > 0
+        ? readJsonObject(stats.tetrobotXpLedger)
+        : readJsonObject(snapshot.tetrobotXpLedger as Prisma.JsonValue),
+    tetrobotAffinityLedger:
+      Object.keys(readJsonObject(stats.tetrobotAffinityLedger)).length > 0
+        ? readJsonObject(stats.tetrobotAffinityLedger)
+        : readJsonObject(snapshot.tetrobotAffinityLedger as Prisma.JsonValue),
+    playerLongTermMemory:
+      Object.keys(readJsonObject(stats.playerLongTermMemory)).length > 0
+        ? readJsonObject(stats.playerLongTermMemory)
+        : readJsonObject(snapshot.playerLongTermMemory as Prisma.JsonValue),
+    tetrobotMemories:
+      Object.keys(readJsonObject(stats.tetrobotMemories)).length > 0
+        ? readJsonObject(stats.tetrobotMemories)
+        : readJsonObject(snapshot.tetrobotMemories as Prisma.JsonValue),
+    lastTetrobotLevelUp:
+      stats.lastTetrobotLevelUp ?? snapshot.lastTetrobotLevelUp ?? null,
+    activeTetrobotChallenge:
+      stats.activeTetrobotChallenge ?? snapshot.activeTetrobotChallenge ?? null,
+  };
+};
+
 router.get("/", verifyToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -104,6 +153,7 @@ router.get("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
     const stats = await prisma.userAchievementStats.findUnique({
       where: { userId },
       select: {
+        statsSnapshot: true,
         loginDays: true,
         tetrobotProgression: true,
         tetrobotXpLedger: true,
@@ -116,7 +166,8 @@ router.get("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
     });
 
     res.json({
-      loginDays: stats?.loginDays ?? [],
+      stats: stats ? buildLegacyStatsSnapshot(stats) : {},
+      loginDays: stats ? readLoginDays(stats.loginDays) : [],
       tetrobotProgression: stats?.tetrobotProgression ?? {},
       tetrobotXpLedger: stats?.tetrobotXpLedger ?? {},
       tetrobotAffinityLedger: stats?.tetrobotAffinityLedger ?? {},
@@ -149,6 +200,7 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
     const existingStats = await prisma.userAchievementStats.findUnique({
       where: { userId },
       select: {
+        statsSnapshot: true,
         loginDays: true,
         tetrobotProgression: true,
         tetrobotXpLedger: true,
@@ -161,28 +213,60 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
     });
 
     const payload = parsed.data;
+    const statsSnapshot =
+      payload.stats ?? buildLegacyStatsSnapshot(existingStats ?? {
+        loginDays: [],
+        tetrobotProgression: {},
+        tetrobotXpLedger: {},
+        tetrobotAffinityLedger: {},
+        playerLongTermMemory: {},
+        tetrobotMemories: {},
+        lastTetrobotLevelUp: null,
+        activeTetrobotChallenge: null,
+        statsSnapshot: {},
+      });
     const loginDays = normalizeLoginDays([
       ...readLoginDays(existingStats?.loginDays),
       ...(payload.loginDays ?? []),
+      ...readLoginDays((payload.stats?.loginDays as Prisma.JsonValue | undefined) ?? []),
     ]);
     const tetrobotProgression =
-      payload.tetrobotProgression ?? existingStats?.tetrobotProgression ?? {};
+      payload.tetrobotProgression ??
+      (payload.stats?.tetrobotProgression as Prisma.JsonObject | undefined) ??
+      existingStats?.tetrobotProgression ??
+      {};
     const tetrobotXpLedger =
-      payload.tetrobotXpLedger ?? existingStats?.tetrobotXpLedger ?? {};
+      payload.tetrobotXpLedger ??
+      (payload.stats?.tetrobotXpLedger as Prisma.JsonObject | undefined) ??
+      existingStats?.tetrobotXpLedger ??
+      {};
     const tetrobotAffinityLedger =
-      payload.tetrobotAffinityLedger ?? existingStats?.tetrobotAffinityLedger ?? {};
+      payload.tetrobotAffinityLedger ??
+      (payload.stats?.tetrobotAffinityLedger as Prisma.JsonObject | undefined) ??
+      existingStats?.tetrobotAffinityLedger ??
+      {};
     const playerLongTermMemory =
-      payload.playerLongTermMemory ?? existingStats?.playerLongTermMemory ?? {};
+      payload.playerLongTermMemory ??
+      (payload.stats?.playerLongTermMemory as Prisma.JsonObject | undefined) ??
+      existingStats?.playerLongTermMemory ??
+      {};
     const tetrobotMemories =
-      payload.tetrobotMemories ?? existingStats?.tetrobotMemories ?? {};
+      payload.tetrobotMemories ??
+      (payload.stats?.tetrobotMemories as Prisma.JsonObject | undefined) ??
+      existingStats?.tetrobotMemories ??
+      {};
     const nextLevelUp = Object.prototype.hasOwnProperty.call(payload, "lastTetrobotLevelUp")
       ? payload.lastTetrobotLevelUp
+      : Object.prototype.hasOwnProperty.call(payload.stats ?? {}, "lastTetrobotLevelUp")
+        ? payload.stats?.lastTetrobotLevelUp ?? null
       : existingStats?.lastTetrobotLevelUp ?? null;
     const nextChallenge = Object.prototype.hasOwnProperty.call(
       payload,
       "activeTetrobotChallenge"
     )
       ? payload.activeTetrobotChallenge
+      : Object.prototype.hasOwnProperty.call(payload.stats ?? {}, "activeTetrobotChallenge")
+        ? payload.stats?.activeTetrobotChallenge ?? null
       : existingStats?.activeTetrobotChallenge ?? null;
     const serializedLevelUp =
       nextLevelUp === null ? Prisma.JsonNull : nextLevelUp;
@@ -192,6 +276,7 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
     await prisma.userAchievementStats.upsert({
       where: { userId },
       update: {
+        statsSnapshot,
         loginDays,
         tetrobotProgression,
         tetrobotXpLedger,
@@ -203,6 +288,7 @@ router.post("/stats", verifyToken, async (req: AuthRequest, res: Response) => {
       },
       create: {
         userId,
+        statsSnapshot,
         loginDays,
         tetrobotProgression,
         tetrobotXpLedger,

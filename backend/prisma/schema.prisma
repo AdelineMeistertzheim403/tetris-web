@@ -192,6 +192,7 @@ model UserAchievement {
 
 model UserAchievementStats {
   userId               Int      @id
+  statsSnapshot        Json     @default("{}")
   loginDays            Json     @default("[]")
   tetrobotProgression  Json     @default("{}")
   tetrobotXpLedger     Json     @default("{}")

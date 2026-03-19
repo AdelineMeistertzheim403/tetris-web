@@ -36,6 +36,7 @@ import type {
   TetrobotLevelUp,
   TetrobotXpLedger,
 } from "../types/tetrobots";
+import type { AchievementStats } from "../types/achievementStats";
 import {
   fetchUnlockedAchievements,
   fetchAchievementStats,
@@ -214,72 +215,6 @@ function clampAffinity(value: number) {
 }
 
 export const getApexTrustState = getApexTrustStateFromLogic;
-
-type AchievementStats = {
-  runsPlayed: number;
-  seedRuns: Record<string, number>;
-  loginDays: string[];
-  historyViewedCount: number;
-  modesVisited: Record<GameMode, boolean>;
-  level10Modes: Record<GameMode, boolean>;
-  scoredModes: Record<GameMode, boolean>;
-  playtimeMs: number;
-  noHoldRuns: number;
-  hardDropCount: number;
-  versusMatches: number;
-  versusWins: number;
-  versusWinStreak: number;
-  versusLinesSent: number;
-  botMatches: number;
-  botWins: number;
-  botWinStreak: number;
-  botApexWins: number;
-  roguelikeVersusMatches: number;
-  roguelikeVersusWins: number;
-  roguelikeVersusWinStreak: number;
-  roguelikeVersusLinesSent: number;
-  brickfallSoloLevelsCleared: number;
-  brickfallSoloBlocksDestroyed: number;
-  brickfallSoloBestWorld: number;
-  brickfallSoloCampaignCleared: boolean;
-  brickfallSoloEditorCreated: number;
-  brickfallSoloEditorWins: number;
-  brickfallMatches: number;
-  brickfallWins: number;
-  brickfallArchitectWins: number;
-  brickfallDemolisherWins: number;
-  lastScore: number | null;
-  puzzleCompletedIds: string[];
-  puzzleOptimalCount: number;
-  puzzleNoHoldCount: number;
-  puzzleSurviveCount: number;
-  puzzleFreeZonesTotal: number;
-  puzzleLinesTotal: number;
-  puzzleWinStreak: number;
-  puzzleAttemptsById: Record<string, number>;
-  tetromazeRuns: number;
-  tetromazeWins: number;
-  tetromazeEscapesTotal: number;
-  tetromazeEscapesRookie: number;
-  tetromazeEscapesPulse: number;
-  tetromazeEscapesApex: number;
-  tetromazePowerUses: number;
-  tetromazeCaptures: number;
-  playerBehaviorByMode: Record<PlayerBehaviorMode, ModeBehaviorStats>;
-  playerMistakesByMode: Record<PlayerBehaviorMode, MistakeStats>;
-  playerMistakeLastSeenByMode: Record<PlayerBehaviorMode, MistakeLastSeenStats>;
-  lastPlayedMode: PlayerBehaviorMode | null;
-  mostPlayedMode: PlayerBehaviorMode | null;
-  lowestWinrateMode: PlayerBehaviorMode | null;
-  tetrobotProgression: PlayerBotProgression;
-  tetrobotXpLedger: TetrobotXpLedger;
-  tetrobotAffinityLedger: TetrobotAffinityLedger;
-  playerLongTermMemory: PlayerLongTermMemory;
-  tetrobotMemories: Record<TetrobotId, BotMemoryEntry[]>;
-  lastTetrobotLevelUp: TetrobotLevelUp;
-  activeTetrobotChallenge: TetrobotChallengeState | null;
-  counters: Record<string, number>;
-};
 
 // Persistance locale des achievements + stats pour éviter un fetch constant.
 const STORAGE_KEY = "tetris-roguelike-achievements";
@@ -1845,6 +1780,18 @@ function useAchievementsValue(): UseAchievementsValue {
         const remote = await fetchAchievementStats();
         if (!active) return;
         const next = updateStats((prev) => {
+          if (remote.stats) {
+            return mergeStats({
+              ...prev,
+              ...remote.stats,
+              loginDays: mergeLoginDays(
+                prev.loginDays,
+                remote.loginDays,
+                Array.isArray(remote.stats.loginDays) ? remote.stats.loginDays : undefined
+              ),
+            });
+          }
+
           const loginDays = mergeLoginDays(prev.loginDays, remote.loginDays);
           return {
             ...prev,
@@ -1933,6 +1880,7 @@ function useAchievementsValue(): UseAchievementsValue {
     if (!remoteStatsReadyRef.current) return;
 
     saveAchievementStats({
+      stats: stats,
       loginDays: stats.loginDays,
       tetrobotProgression: stats.tetrobotProgression as unknown as Record<string, unknown>,
       tetrobotXpLedger: stats.tetrobotXpLedger as unknown as Record<string, unknown>,
