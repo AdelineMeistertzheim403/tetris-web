@@ -35,6 +35,7 @@ export type BehaviorSnapshot = Record<
     sessions: number;
     wins: number;
     losses: number;
+    totalDurationMs?: number;
   }
 >;
 
@@ -51,11 +52,16 @@ export type TetrobotAffinityLedgerSnapshot = {
 
 export type AchievementDerivedStats = {
   counters: Record<string, number>;
+  hardDropCount: number;
   lastPlayedMode: string | null;
+  level10Modes: Record<string, boolean>;
   lowestWinrateMode: string | null;
+  modesVisited: Record<string, boolean>;
+  noHoldRuns: number;
   playerBehaviorByMode: BehaviorSnapshot;
   playerLongTermMemory: PlayerLongTermMemory;
   playerMistakesByMode: MistakeSnapshot;
+  scoredModes: Record<string, boolean>;
   tetrobotAffinityLedger: TetrobotAffinityLedgerSnapshot;
   tetrobotMemories: Record<TetrobotId, BotMemoryEntry[]>;
   tetrobotProgression: TetrobotProgressionSnapshot;
@@ -87,6 +93,15 @@ const getTotalLosses = (stats: AchievementDerivedStats) =>
 
 const getTotalSessions = (stats: AchievementDerivedStats) =>
   Object.values(stats.playerBehaviorByMode).reduce((sum, mode) => sum + mode.sessions, 0);
+
+const getTotalPlaytimeMs = (stats: AchievementDerivedStats) =>
+  Object.values(stats.playerBehaviorByMode).reduce(
+    (sum, mode) => sum + Math.max(0, mode.totalDurationMs ?? 0),
+    0
+  );
+
+const countEnabled = (values: Record<string, boolean>) =>
+  Object.values(values).filter(Boolean).length;
 
 const getKnownBotCount = (stats: AchievementDerivedStats) =>
   TETROBOT_IDS.filter((bot) => {
@@ -138,6 +153,7 @@ export function getDerivedCustomAchievementValue(
   const pulse = stats.tetrobotProgression.pulse;
   const lowestMode = stats.lowestWinrateMode;
   const totalSessions = getTotalSessions(stats);
+  const totalPlaytimeMs = getTotalPlaytimeMs(stats);
   const totalLosses = getTotalLosses(stats);
   const totalWins = getTotalWins(stats);
   const panicMistakes = getAggregatedMistakeCount(stats, [
@@ -153,6 +169,20 @@ export function getDerivedCustomAchievementValue(
         (stats.tetrobotAffinityLedger.improve_stat > 0 && pulse.affinity >= 10);
     case "stable_winrate":
       return totalSessions >= 5 && stats.playerLongTermMemory.consistencyScore >= 60;
+    case "modes_visited_all":
+      return countEnabled(stats.modesVisited) >= Object.keys(stats.modesVisited).length;
+    case "no_hold_runs_10":
+      return stats.noHoldRuns >= 10;
+    case "harddrop_50":
+      return stats.hardDropCount >= 50;
+    case "level_10_three_modes":
+      return countEnabled(stats.level10Modes) >= 3;
+    case "scored_all_modes":
+      return countEnabled(stats.scoredModes) >= Object.keys(stats.scoredModes).length;
+    case "playtime_60m":
+      return totalPlaytimeMs >= 60 * 60 * 1000;
+    case "playtime_300m":
+      return totalPlaytimeMs >= 300 * 60 * 1000;
     case "played_weak_mode":
       return Boolean(
         lowestMode &&
