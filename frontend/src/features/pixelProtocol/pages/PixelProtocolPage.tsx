@@ -424,6 +424,8 @@ export default function PixelProtocolPage() {
       counters: {
         ...prev.counters,
         campaign_level_complete: (prev.counters.campaign_level_complete ?? 0) + 1,
+        no_damage_level_count:
+          (prev.counters.no_damage_level_count ?? 0) + (runtime.player.hp >= 3 ? 1 : 0),
       },
     }));
 

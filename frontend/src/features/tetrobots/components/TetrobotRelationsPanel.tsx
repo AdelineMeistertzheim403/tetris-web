@@ -40,7 +40,6 @@ const MODE_LABELS: Partial<Record<NonNullable<RelationsStats["lowestWinrateMode"
   SPRINT: "Sprint",
   VERSUS: "Versus",
   BRICKFALL_SOLO: "Brickfall Solo",
-  BRICKFALL_VERSUS: "Brickfall Versus",
   ROGUELIKE: "Roguelike",
   ROGUELIKE_VERSUS: "Roguelike Versus",
   PUZZLE: "Puzzle",
@@ -101,8 +100,6 @@ function getModeActionTarget(mode: RelationsStats["lowestWinrateMode"]) {
       return "/versus";
     case "BRICKFALL_SOLO":
       return "/brickfall-solo/play";
-    case "BRICKFALL_VERSUS":
-      return "/brickfall-versus";
     case "ROGUELIKE":
       return "/roguelike";
     case "ROGUELIKE_VERSUS":

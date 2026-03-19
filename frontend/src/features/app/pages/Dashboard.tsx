@@ -315,7 +315,6 @@ const MODE_LABELS: Record<string, string> = {
   SPRINT: "Sprint",
   VERSUS: "Versus",
   BRICKFALL_SOLO: "Brickfall Solo",
-  BRICKFALL_VERSUS: "Brickfall Versus",
   ROGUELIKE: "Roguelike",
   ROGUELIKE_VERSUS: "Roguelike Versus",
   PUZZLE: "Puzzle",
@@ -328,7 +327,6 @@ const MODE_ROUTE_MAP: Partial<Record<string, string>> = {
   SPRINT: "/sprint",
   VERSUS: "/versus",
   BRICKFALL_SOLO: "/brickfall-solo",
-  BRICKFALL_VERSUS: "/brickfall-versus",
   ROGUELIKE: "/roguelike",
   ROGUELIKE_VERSUS: "/roguelike-versus",
   PUZZLE: "/puzzle",
@@ -998,7 +996,7 @@ export default function Dashboard() {
   const tetromazeProgress = useMemo(() => readLocalTetromazeProgress(), []);
   const pixelProtocolProgress = useMemo(() => readLocalPixelProtocolProgress(), []);
   const visibleAchievements = useMemo(
-    () => achievements.filter((achievement) => achievement.mode !== "BRICKFALL_VERSUS"),
+    () => achievements,
     [achievements]
   );
   const unlockedCount = visibleAchievements.filter((achievement) => achievement.unlocked).length;

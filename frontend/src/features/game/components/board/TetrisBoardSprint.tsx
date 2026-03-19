@@ -235,6 +235,23 @@ export default function TetrisBoardSprint() {
         playtimeMs: prev.playtimeMs + durationMs,
         noHoldRuns: prev.noHoldRuns + (completedRun && noHold ? 1 : 0),
         hardDropCount: prev.hardDropCount + hardDropCountRef.current,
+        counters: {
+          ...prev.counters,
+          sprint_finishes: (prev.counters.sprint_finishes ?? 0) + (completedRun ? 1 : 0),
+          sprint_sub_5m_finishes:
+            (prev.counters.sprint_sub_5m_finishes ?? 0) +
+            (completedRun && durationMs <= 5 * 60 * 1000 ? 1 : 0),
+          sprint_sub_3m_finishes:
+            (prev.counters.sprint_sub_3m_finishes ?? 0) +
+            (completedRun && durationMs <= 3 * 60 * 1000 ? 1 : 0),
+          sprint_sub_2m_finishes:
+            (prev.counters.sprint_sub_2m_finishes ?? 0) +
+            (completedRun && durationMs <= 2 * 60 * 1000 ? 1 : 0),
+          sprint_no_hold_finishes:
+            (prev.counters.sprint_no_hold_finishes ?? 0) + (completedRun && noHold ? 1 : 0),
+          total_tetris_clears:
+            (prev.counters.total_tetris_clears ?? 0) + tetrisCountRef.current,
+        },
       };
     });
 

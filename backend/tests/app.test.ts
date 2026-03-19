@@ -40,6 +40,17 @@ const mockVersusMatches = [
   },
 ];
 
+const mockAchievementStatsRecord = {
+  loginDays: ["2026-03-01"],
+  tetrobotProgression: { pulse: { level: 3 } },
+  tetrobotXpLedger: { play_game: 12 },
+  tetrobotAffinityLedger: { play_regularly: 4 },
+  playerLongTermMemory: { consistencyScore: 10 },
+  tetrobotMemories: { pulse: [{ type: "tip", detail: "keep going" }] },
+  lastTetrobotLevelUp: { bot: "pulse", level: 3 },
+  activeTetrobotChallenge: { status: "active" },
+};
+
 const runTokenSecret =
   process.env.RUN_TOKEN_SECRET ||
   process.env.JWT_SECRET ||
@@ -84,6 +95,8 @@ vi.mock("../src/prisma/client", () => {
 
   const versusMatchFindFirst = vi.fn(() => null);
   const versusMatchFindMany = vi.fn(() => mockVersusMatches);
+  const userAchievementStatsFindUnique = vi.fn(() => mockAchievementStatsRecord);
+  const userAchievementStatsUpsert = vi.fn(({ create, update }) => ({ ...create, ...update }));
 
   const queryRaw = vi.fn(async (strings: TemplateStringsArray) => {
     const sql = strings[0] || "";
@@ -110,6 +123,10 @@ vi.mock("../src/prisma/client", () => {
         create: versusMatchCreate,
         findFirst: versusMatchFindFirst,
         findMany: versusMatchFindMany,
+      },
+      userAchievementStats: {
+        findUnique: userAchievementStatsFindUnique,
+        upsert: userAchievementStatsUpsert,
       },
       $queryRaw: queryRaw,
     },
@@ -211,5 +228,42 @@ describe("Scores routes", () => {
     expect(res.status).toBe(201);
     expect(res.body.player1Pseudo).toBe("neo");
     expect(res.body.winnerId).toBe(1);
+  });
+});
+
+describe("Achievements routes", () => {
+  const token = jwt.sign(
+    { id: mockUser.id, email: mockUser.email, pseudo: mockUser.pseudo },
+    process.env.JWT_SECRET || "super_secret_tetris_key_dev"
+  );
+
+  it("fusionne loginDays et preserve les autres stats lors d'une sauvegarde partielle", async () => {
+    const res = await request(app)
+      .post("/api/achievements/stats")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        loginDays: ["2026-03-19", "2026-03-01"],
+      });
+
+    expect(res.status).toBe(200);
+
+    const prisma = (await import("../src/prisma/client")).default as {
+      userAchievementStats: {
+        upsert: ReturnType<typeof vi.fn>;
+      };
+    };
+
+    expect(prisma.userAchievementStats.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          loginDays: ["2026-03-01", "2026-03-19"],
+          tetrobotProgression: mockAchievementStatsRecord.tetrobotProgression,
+          tetrobotXpLedger: mockAchievementStatsRecord.tetrobotXpLedger,
+          tetrobotAffinityLedger: mockAchievementStatsRecord.tetrobotAffinityLedger,
+          playerLongTermMemory: mockAchievementStatsRecord.playerLongTermMemory,
+          tetrobotMemories: mockAchievementStatsRecord.tetrobotMemories,
+        }),
+      })
+    );
   });
 });

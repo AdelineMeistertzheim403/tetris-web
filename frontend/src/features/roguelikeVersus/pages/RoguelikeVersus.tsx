@@ -2260,6 +2260,29 @@ function RoguelikeVersusTetrobots() {
         noHoldRuns: prev.noHoldRuns + (noHold ? 1 : 0),
         hardDropCount: prev.hardDropCount + hardDropCountRef.current,
         lastScore: playerResult.score,
+        counters: {
+          ...prev.counters,
+          rv_perfect_wins:
+            (prev.counters.rv_perfect_wins ?? 0) + (perfectWin ? 1 : 0),
+          rv_wins_after_bot_synergy:
+            (prev.counters.rv_wins_after_bot_synergy ?? 0) +
+            (win && botActivatedSynergyRef.current ? 1 : 0),
+          rv_apex_chaos_wins:
+            (prev.counters.rv_apex_chaos_wins ?? 0) +
+            (wonVsApex && botHadChaosRef.current ? 1 : 0),
+          rv_max_bombs_sent: Math.max(
+            prev.counters.rv_max_bombs_sent ?? 0,
+            bombsSentRef.current
+          ),
+          rv_more_mutations_than_bot_wins:
+            (prev.counters.rv_more_mutations_than_bot_wins ?? 0) +
+            (activeMutations.length > botMutations ? 1 : 0),
+          rv_apex_three_synergy_wins:
+            (prev.counters.rv_apex_three_synergy_wins ?? 0) +
+            (wonVsApex && playerMaxSynergyCountRef.current >= 3 ? 1 : 0),
+          total_tetris_clears:
+            (prev.counters.total_tetris_clears ?? 0) + tetrisCountRef.current,
+        },
       };
     });
 

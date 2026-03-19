@@ -13,6 +13,7 @@ import {
   type Achievement,
   type AchievementMode,
 } from "../data/achievements";
+import { PUZZLES } from "../../puzzle/data/puzzles";
 import type { GameMode } from "../../game/types/GameMode";
 import { useAuth } from "../../auth/context/AuthContext";
 import type {
@@ -46,6 +47,7 @@ import {
   getDerivedCounterValue,
   getDerivedCustomAchievementValue,
 } from "../lib/tetrobotAchievementLogic";
+import { hasReachedAchievementCompletionThreshold } from "../lib/achievementCompletion";
 import {
   getMood,
   syncTetrobotProgressionState,
@@ -88,7 +90,6 @@ const PLAYER_BEHAVIOR_MODES: PlayerBehaviorMode[] = [
   "SPRINT",
   "VERSUS",
   "BRICKFALL_SOLO",
-  "BRICKFALL_VERSUS",
   "ROGUELIKE",
   "ROGUELIKE_VERSUS",
   "PUZZLE",
@@ -200,6 +201,14 @@ const createTetrobotMemories = (): Record<TetrobotId, BotMemoryEntry[]> => ({
   apex: [],
 });
 
+const normalizeLoginDays = (loginDays: string[]) =>
+  Array.from(new Set(loginDays.filter(Boolean))).sort();
+
+const mergeLoginDays = (...sources: Array<string[] | undefined>) =>
+  normalizeLoginDays(sources.flatMap((source) => source ?? []));
+
+const getTodayLoginDay = () => new Date().toISOString().slice(0, 10);
+
 function clampAffinity(value: number) {
   return Math.max(-100, Math.min(100, value));
 }
@@ -286,7 +295,6 @@ const DEFAULT_STATS: AchievementStats = {
     SPRINT: false,
     VERSUS: false,
     BRICKFALL_SOLO: false,
-    BRICKFALL_VERSUS: false,
     ROGUELIKE: false,
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
@@ -297,7 +305,6 @@ const DEFAULT_STATS: AchievementStats = {
     SPRINT: false,
     VERSUS: false,
     BRICKFALL_SOLO: false,
-    BRICKFALL_VERSUS: false,
     ROGUELIKE: false,
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
@@ -308,7 +315,6 @@ const DEFAULT_STATS: AchievementStats = {
     SPRINT: false,
     VERSUS: false,
     BRICKFALL_SOLO: false,
-    BRICKFALL_VERSUS: false,
     ROGUELIKE: false,
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
@@ -378,6 +384,7 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
     ...DEFAULT_STATS,
     ...raw,
     seedRuns: { ...DEFAULT_STATS.seedRuns, ...(raw.seedRuns ?? {}) },
+    loginDays: normalizeLoginDays(raw.loginDays ?? DEFAULT_STATS.loginDays),
     modesVisited: { ...DEFAULT_STATS.modesVisited, ...(raw.modesVisited ?? {}) },
     level10Modes: { ...DEFAULT_STATS.level10Modes, ...(raw.level10Modes ?? {}) },
     scoredModes: { ...DEFAULT_STATS.scoredModes, ...(raw.scoredModes ?? {}) },
@@ -473,6 +480,7 @@ type UseAchievementsValue = {
   setTetrobotMood: (bot: TetrobotId, affinity: number) => AchievementStats;
   clearLastTetrobotLevelUp: () => AchievementStats;
   acceptActiveTetrobotChallenge: () => AchievementStats;
+  recordLoginDay: (day?: string) => AchievementStats;
   registerRun: (seed?: string) => { runsPlayed: number; sameSeedRuns: number };
   checkAchievements: (ctx: AchievementContext) => void;
 };
@@ -741,6 +749,7 @@ function useAchievementsValue(): UseAchievementsValue {
   const getAchievementProgress = useCallback(
     (achievement: Achievement) => {
       const currentStats = statsRef.current;
+      const unlockedIds = unlockedRef.current.map((entry) => entry.id);
       const highestBotLevel = Math.max(
         currentStats.tetrobotProgression.rookie.level,
         currentStats.tetrobotProgression.pulse.level,
@@ -753,6 +762,41 @@ function useAchievementsValue(): UseAchievementsValue {
       const weakModeWins = weakMode
         ? currentStats.playerBehaviorByMode[weakMode]?.wins ?? 0
         : 0;
+      const totalSessions = Object.values(currentStats.playerBehaviorByMode).reduce(
+        (sum, mode) => sum + mode.sessions,
+        0
+      );
+      const totalLosses = Object.values(currentStats.playerBehaviorByMode).reduce(
+        (sum, mode) => sum + mode.losses,
+        0
+      );
+      const panicMistakes = Object.values(currentStats.playerMistakesByMode).reduce(
+        (sum, mistakes) =>
+          sum +
+          (mistakes.panic_stack ?? 0) +
+          (mistakes.slow_decision ?? 0) +
+          (mistakes.unsafe_stack ?? 0),
+        0
+      );
+      const riskyMistakes = Object.values(currentStats.playerMistakesByMode).reduce(
+        (sum, mistakes) => sum + (mistakes.greedy_play ?? 0) + (mistakes.unsafe_stack ?? 0),
+        0
+      );
+      const countVisitedModes = Object.values(currentStats.modesVisited).filter(Boolean).length;
+      const totalVisitedModes = Object.keys(currentStats.modesVisited).length;
+      const countLevel10Modes = Object.values(currentStats.level10Modes).filter(Boolean).length;
+      const countScoredModes = Object.values(currentStats.scoredModes).filter(Boolean).length;
+      const totalScoredModes = Object.keys(currentStats.scoredModes).length;
+      const progressFromCount = (current: number, target: number, suffix = "") => ({
+        current: Math.max(0, current),
+        target,
+        label: `${Math.max(0, current)}/${target}${suffix}`,
+      });
+      const progressFromBoolean = (done: boolean, label: string) => ({
+        current: done ? 1 : 0,
+        target: 1,
+        label: `${done ? 1 : 0}/1 ${label}`,
+      });
 
       switch (achievement.id) {
         case "rookie-protection": {
@@ -888,26 +932,428 @@ function useAchievementsValue(): UseAchievementsValue {
         }
         default: {
           const condition = achievement.condition;
-          if (condition.type === "counter") {
-            const current = getDerivedCounterValue(currentStats, condition.key);
-            return { current, target: condition.value, label: `${current}/${condition.value}` };
+          switch (condition.type) {
+            case "runs_played":
+              return progressFromCount(currentStats.runsPlayed, condition.count);
+            case "score_reached":
+              return undefined;
+            case "level_reached":
+              if (
+                condition.level === 10 &&
+                achievement.mode &&
+                achievement.mode !== "ALL" &&
+                achievement.mode !== "GLOBAL" &&
+                achievement.mode !== "EDITOR" &&
+                achievement.mode !== "PIXEL_PROTOCOL"
+              ) {
+                const reached = currentStats.level10Modes[achievement.mode as GameMode] ?? false;
+                return {
+                  current: reached ? 10 : 0,
+                  target: 10,
+                  label: `${reached ? 10 : 0}/10 niveaux`,
+                };
+              }
+              return undefined;
+            case "tetris_cleared":
+              return progressFromCount(currentStats.counters.total_tetris_clears ?? 0, 1);
+            case "lines_cleared":
+              return undefined;
+            case "same_seed_runs": {
+              const current = Math.max(0, ...Object.values(currentStats.seedRuns));
+              return progressFromCount(current, condition.count);
+            }
+            case "history_viewed":
+              return progressFromCount(currentStats.historyViewedCount, condition.count);
+            case "counter": {
+              const current = getDerivedCounterValue(currentStats, condition.key);
+              return { current, target: condition.value, label: `${current}/${condition.value}` };
+            }
+            case "affinity": {
+              const current = Math.max(
+                0,
+                currentStats.tetrobotProgression[condition.bot].affinity
+              );
+              return {
+                current,
+                target: condition.value,
+                label: `${current}/${condition.value} affinite`,
+              };
+            }
+            case "custom":
+              break;
+            default:
+              return undefined;
           }
-          if (condition.type === "affinity") {
-            const current = Math.max(
-              0,
-              currentStats.tetrobotProgression[condition.bot].affinity
-            );
-            return {
-              current,
-              target: condition.value,
-              label: `${current}/${condition.value} affinite`,
-            };
+
+          switch (condition.key) {
+            case "created_account":
+              return progressFromBoolean(Boolean(user), "compte");
+            case "login_days_7":
+              return progressFromCount(currentStats.loginDays.length, 7, " jours");
+            case "login_days_30":
+              return progressFromCount(currentStats.loginDays.length, 30, " jours");
+            case "modes_visited_all":
+              return {
+                current: countVisitedModes,
+                target: totalVisitedModes,
+                label: `${countVisitedModes}/${totalVisitedModes} modes`,
+              };
+            case "achievements_50_percent":
+            case "achievements_100_percent": {
+              const target = condition.key === "achievements_50_percent" ? 0.5 : 1;
+              const total = ACHIEVEMENTS.filter((item) => item.id !== "global-completionist").length;
+              const current = Math.round(total * target);
+              const unlocked = Math.min(
+                total,
+                ACHIEVEMENTS.filter(
+                  (item) => item.id !== "global-completionist" && unlockedIds.includes(item.id)
+                ).length
+              );
+              return {
+                current: unlocked,
+                target: current,
+                label: `${unlocked}/${current} succes`,
+              };
+            }
+            case "no_hold_runs_10":
+              return progressFromCount(currentStats.noHoldRuns, 10);
+            case "classic_half_board":
+              return progressFromCount(currentStats.counters.classic_half_board_runs ?? 0, 1);
+            case "classic_hold_under_3":
+              return progressFromCount(currentStats.counters.classic_hold_under_3_runs ?? 0, 1);
+            case "classic_tetris_10":
+              return progressFromCount(currentStats.counters.classic_best_tetris_run ?? 0, 10);
+            case "sprint_finish":
+              return progressFromCount(currentStats.counters.sprint_finishes ?? 0, 1);
+            case "sprint_under_5":
+              return progressFromCount(currentStats.counters.sprint_sub_5m_finishes ?? 0, 1);
+            case "sprint_under_3":
+              return progressFromCount(currentStats.counters.sprint_sub_3m_finishes ?? 0, 1);
+            case "sprint_under_2":
+              return progressFromCount(currentStats.counters.sprint_sub_2m_finishes ?? 0, 1);
+            case "sprint_no_hold":
+              return progressFromCount(currentStats.counters.sprint_no_hold_finishes ?? 0, 1);
+            case "harddrop_50":
+              return progressFromCount(currentStats.hardDropCount, 50);
+            case "level_10_three_modes":
+              return {
+                current: countLevel10Modes,
+                target: 3,
+                label: `${countLevel10Modes}/3 modes`,
+              };
+            case "scored_all_modes":
+              return {
+                current: countScoredModes,
+                target: totalScoredModes,
+                label: `${countScoredModes}/${totalScoredModes} modes`,
+              };
+            case "playtime_60m":
+              return progressFromCount(
+                Math.floor(currentStats.playtimeMs / 60_000),
+                60,
+                " min"
+              );
+            case "playtime_300m":
+              return progressFromCount(
+                Math.floor(currentStats.playtimeMs / 60_000),
+                300,
+                " min"
+              );
+            case "versus_match_1":
+              return progressFromCount(currentStats.versusMatches, 1);
+            case "versus_match_10":
+              return progressFromCount(currentStats.versusMatches, 10);
+            case "versus_match_50":
+              return progressFromCount(currentStats.versusMatches, 50);
+            case "versus_win_1":
+              return progressFromCount(currentStats.versusWins, 1);
+            case "versus_win_streak_5":
+              return progressFromCount(currentStats.versusWinStreak, 5);
+            case "versus_perfect_win":
+              return progressFromCount(currentStats.counters.versus_perfect_wins ?? 0, 1);
+            case "versus_lines_sent_20":
+              return progressFromCount(currentStats.versusLinesSent, 20);
+            case "bf_survive_architect":
+              return progressFromCount(currentStats.counters.bf_survive_architect_wins ?? 0, 1);
+            case "bf_armored_10":
+              return progressFromCount(currentStats.counters.bf_max_armored_spawns ?? 0, 10);
+            case "bf_overwhelm":
+              return progressFromCount(currentStats.counters.bf_overwhelm_wins ?? 0, 1);
+            case "bf_blocks_50":
+              return progressFromCount(currentStats.counters.bf_max_blocks_destroyed ?? 0, 50);
+            case "bf_core_destroyed":
+              return progressFromCount(currentStats.counters.bf_core_destroyed_count ?? 0, 1);
+            case "bf_no_ball_lost":
+              return progressFromCount(currentStats.counters.bf_no_ball_lost_wins ?? 0, 1);
+            case "bf_chaos_5":
+              return progressFromCount(currentStats.counters.bf_max_chaos_effects ?? 0, 5);
+            case "bf_win_both_roles":
+              return {
+                current:
+                  (currentStats.brickfallArchitectWins > 0 ? 1 : 0) +
+                  (currentStats.brickfallDemolisherWins > 0 ? 1 : 0),
+                target: 2,
+                label: `${currentStats.brickfallArchitectWins > 0 ? 1 : 0}/1 architecte · ${currentStats.brickfallDemolisherWins > 0 ? 1 : 0}/1 demolisseur`,
+              };
+            case "bf_inverted_win":
+              return progressFromCount(currentStats.counters.bf_inverted_wins ?? 0, 1);
+            case "bf_solo_1_clear":
+              return progressFromCount(currentStats.brickfallSoloLevelsCleared, 1);
+            case "bf_solo_world1_clear":
+              return progressFromCount(currentStats.brickfallSoloBestWorld, 1);
+            case "bf_solo_campaign_clear":
+              return progressFromBoolean(currentStats.brickfallSoloCampaignCleared, "campagne");
+            case "bf_solo_no_miss":
+              return progressFromCount(currentStats.counters.bf_solo_no_miss_wins ?? 0, 1);
+            case "bf_solo_1000_blocks":
+              return progressFromCount(currentStats.brickfallSoloBlocksDestroyed, 1000);
+            case "bf_solo_under_45s":
+              return progressFromCount(currentStats.counters.bf_solo_under_45s_wins ?? 0, 1);
+            case "bf_solo_3_multiballs":
+              return progressFromCount(currentStats.counters.bf_solo_max_multiballs_run ?? 0, 3);
+            case "bf_solo_3_malus_win":
+              return progressFromCount(currentStats.counters.bf_solo_max_malus_run ?? 0, 3);
+            case "bf_editor_create":
+              return progressFromCount(currentStats.brickfallSoloEditorCreated, 1);
+            case "bf_editor_win":
+              return progressFromCount(currentStats.brickfallSoloEditorWins, 1);
+            case "rv_match_1":
+              return progressFromCount(currentStats.roguelikeVersusMatches, 1);
+            case "rv_match_10":
+              return progressFromCount(currentStats.roguelikeVersusMatches, 10);
+            case "rv_match_50":
+              return progressFromCount(currentStats.roguelikeVersusMatches, 50);
+            case "rv_win_1":
+              return progressFromCount(currentStats.roguelikeVersusWins, 1);
+            case "rv_win_streak_5":
+              return progressFromCount(currentStats.roguelikeVersusWinStreak, 5);
+            case "rv_perfect_win":
+              return progressFromCount(currentStats.counters.rv_perfect_wins ?? 0, 1);
+            case "rv_lines_sent_30":
+              return progressFromCount(currentStats.roguelikeVersusLinesSent, 30);
+            case "rv_win_after_bot_synergy":
+              return progressFromCount(currentStats.counters.rv_wins_after_bot_synergy ?? 0, 1);
+            case "rv_apex_chaos_win":
+              return progressFromCount(currentStats.counters.rv_apex_chaos_wins ?? 0, 1);
+            case "rv_10_bombs_sent":
+              return progressFromCount(currentStats.counters.rv_max_bombs_sent ?? 0, 10);
+            case "rv_more_mutations_than_bot":
+              return progressFromCount(
+                currentStats.counters.rv_more_mutations_than_bot_wins ?? 0,
+                1
+              );
+            case "rv_apex_3_synergies_win":
+              return progressFromCount(currentStats.counters.rv_apex_three_synergy_wins ?? 0, 1);
+            case "puzzle_completed_1":
+              return progressFromCount(currentStats.puzzleCompletedIds.length, 1);
+            case "puzzle_completed_5":
+              return progressFromCount(currentStats.puzzleCompletedIds.length, 5);
+            case "puzzle_completed_all":
+              return progressFromCount(currentStats.puzzleCompletedIds.length, PUZZLES.length);
+            case "puzzle_no_hold":
+              return progressFromCount(currentStats.puzzleNoHoldCount, 1);
+            case "puzzle_optimal":
+              return progressFromCount(currentStats.puzzleOptimalCount, 1);
+            case "puzzle_no_hold_5":
+              return progressFromCount(currentStats.puzzleNoHoldCount, 5);
+            case "puzzle_optimal_1":
+              return progressFromCount(currentStats.puzzleOptimalCount, 1);
+            case "puzzle_optimal_5":
+              return progressFromCount(currentStats.puzzleOptimalCount, 5);
+            case "puzzle_streak_3":
+              return progressFromCount(currentStats.puzzleWinStreak, 3);
+            case "puzzle_survive_3":
+              return progressFromCount(currentStats.puzzleSurviveCount, 3);
+            case "puzzle_free_zones_5":
+              return progressFromCount(currentStats.puzzleFreeZonesTotal, 5);
+            case "puzzle_lines_10":
+              return progressFromCount(currentStats.puzzleLinesTotal, 10);
+            case "bot_match_1":
+              return progressFromCount(currentStats.botMatches, 1);
+            case "bot_win_1":
+              return progressFromCount(currentStats.botWins, 1);
+            case "bot_rookie_win":
+              return progressFromCount(currentStats.counters.bot_rookie_wins ?? 0, 1);
+            case "bot_balanced_win":
+              return progressFromCount(currentStats.counters.bot_balanced_wins ?? 0, 1);
+            case "bot_apex_win":
+              return progressFromCount(currentStats.counters.bot_apex_wins_total ?? 0, 1);
+            case "bot_perfect_win":
+              return progressFromCount(currentStats.counters.bot_perfect_wins ?? 0, 1);
+            case "bot_win_under_60s":
+              return progressFromCount(currentStats.counters.bot_under_60s_wins ?? 0, 1);
+            case "bot_won_after_blunder":
+              return progressFromCount(currentStats.counters.bot_wins_after_blunder ?? 0, 1);
+            case "bot_fewer_holes":
+              return progressFromCount(currentStats.counters.bot_fewer_holes_wins ?? 0, 1);
+            case "bot_win_streak_5":
+              return progressFromCount(currentStats.botWinStreak, 5);
+            case "bot_all_personalities_session":
+              return progressFromCount(
+                currentStats.counters.bot_all_personalities_session_max ?? 0,
+                3
+              );
+            case "bot_apex_win_10":
+              return progressFromCount(currentStats.botApexWins, 10);
+            case "bot_outscore_lines_apex":
+              return progressFromCount(currentStats.counters.bot_outscore_lines_apex_wins ?? 0, 1);
+            case "tm_play_1":
+              return progressFromCount(currentStats.tetromazeRuns, 1);
+            case "tm_win_1":
+              return progressFromCount(currentStats.tetromazeWins, 1);
+            case "tm_world1_clear":
+              return progressFromCount(currentStats.counters.tm_world1_clear_count ?? 0, 1);
+            case "tm_campaign_clear":
+              return progressFromCount(currentStats.counters.tm_campaign_clear_count ?? 0, 1);
+            case "tm_no_hit":
+              return progressFromCount(currentStats.counters.tm_no_hit_wins ?? 0, 1);
+            case "tm_close_escape":
+              return progressFromCount(currentStats.counters.tm_close_escape_count ?? 0, 1);
+            case "tm_escape_10":
+              return progressFromCount(currentStats.tetromazeEscapesTotal, 10);
+            case "tm_under_60s":
+              return progressFromCount(currentStats.counters.tm_under_60s_wins ?? 0, 1);
+            case "tm_stun_3":
+              return progressFromCount(
+                currentStats.counters.tm_max_stunned_simultaneously ?? 0,
+                3
+              );
+            case "tm_5_effects":
+              return progressFromCount(currentStats.counters.tm_max_effects_run ?? 0, 5);
+            case "tm_escape_rookie_5":
+              return progressFromCount(currentStats.tetromazeEscapesRookie, 5);
+            case "tm_escape_pulse_5":
+              return progressFromCount(currentStats.tetromazeEscapesPulse, 5);
+            case "tm_escape_apex_5":
+              return progressFromCount(currentStats.tetromazeEscapesApex, 5);
+            case "tm_encircled":
+              return progressFromCount(currentStats.counters.tm_encircled_count ?? 0, 1);
+            case "tm_loop_10s":
+              return progressFromCount(currentStats.counters.tm_loop_10s_count ?? 0, 1);
+            case "tm_30s_undetected":
+              return progressFromCount(currentStats.counters.tm_30s_undetected_count ?? 0, 1);
+            case "tm_power_used":
+              return progressFromCount(currentStats.tetromazePowerUses, 1);
+            case "tm_capture_3":
+              return progressFromCount(currentStats.tetromazeCaptures, 3);
+            case "no_damage_level":
+              return progressFromCount(currentStats.counters.no_damage_level_count ?? 0, 1);
+            case "level_100_plays":
+              return progressFromCount(currentStats.counters.level_100_plays_best ?? 0, 100);
+            case "level_1000_plays":
+              return progressFromCount(currentStats.counters.level_1000_plays_best ?? 0, 1000);
+            case "level_50_likes":
+              return progressFromCount(currentStats.counters.level_50_likes_best ?? 0, 50);
+            case "grid_master": {
+              const campaign = Math.min(currentStats.counters.campaign_level_complete ?? 0, 20);
+              const created = Math.min(currentStats.counters.levels_created ?? 0, 10);
+              return {
+                current: campaign + created,
+                target: 30,
+                label: `${campaign}/20 campagne · ${created}/10 niveaux`,
+              };
+            }
+            case "improved_after_pulse":
+              return progressFromCount(
+                Math.max(
+                  currentStats.counters.pulse_advice_success ?? 0,
+                  currentStats.tetrobotAffinityLedger.improve_stat > 0 &&
+                    currentStats.tetrobotProgression.pulse.affinity >= 10
+                    ? 1
+                    : 0
+                ),
+                1
+              );
+            case "stable_winrate":
+              return {
+                current: Math.min(
+                  2,
+                  (totalSessions >= 5 ? 1 : 0) +
+                    (currentStats.playerLongTermMemory.consistencyScore >= 60 ? 1 : 0)
+                ),
+                target: 2,
+                label: `${Math.min(totalSessions, 5)}/5 sessions · ${Math.min(
+                  currentStats.playerLongTermMemory.consistencyScore,
+                  60
+                )}/60 stabilite`,
+              };
+            case "negative_bot_reaction":
+              return progressFromCount(
+                [
+                  currentStats.tetrobotProgression.rookie,
+                  currentStats.tetrobotProgression.pulse,
+                  currentStats.tetrobotProgression.apex,
+                ].filter((bot) => bot.affinity < 0 || bot.mood === "angry").length,
+                1
+              );
+            case "panic_sequence":
+              return progressFromCount(panicMistakes, 3);
+            case "risky_loss":
+              return {
+                current: Math.min(2, (totalLosses > 0 ? 1 : 0) + (riskyMistakes > 0 ? 1 : 0)),
+                target: 2,
+                label: `${Math.min(totalLosses, 1)}/1 defaite · ${Math.min(
+                  riskyMistakes,
+                  1
+                )}/1 erreur`,
+              };
+            case "critical_win":
+              return progressFromCount(currentStats.counters.comeback_estimate ?? 0, 1);
+            case "perfect_play_duration":
+              return {
+                current: Math.min(
+                  2,
+                  (totalSessions >= 5 ? 1 : 0) +
+                    (currentStats.playerLongTermMemory.disciplineScore >= 80 ? 1 : 0)
+                ),
+                target: 2,
+                label: `${Math.min(totalSessions, 5)}/5 sessions · ${Math.min(
+                  currentStats.playerLongTermMemory.disciplineScore,
+                  80
+                )}/80 discipline`,
+              };
+            case "tilt_detected":
+              return {
+                current: Math.min(
+                  2,
+                  Math.floor((currentStats.counters.rage_quit_estimate ?? 0) / 3) +
+                    Math.floor(totalLosses / 3)
+                ),
+                target: 2,
+                label: `${Math.min(currentStats.counters.rage_quit_estimate ?? 0, 3)}/3 rage quit · ${Math.min(totalLosses, 3)}/3 defaites`,
+              };
+            case "stat_improved":
+              return progressFromCount(currentStats.tetrobotAffinityLedger.improve_stat, 1);
+            case "multiple_stats_improved":
+              return progressFromCount(currentStats.tetrobotAffinityLedger.improve_stat, 3);
+            case "bot_angry":
+              return progressFromCount(
+                [
+                  currentStats.tetrobotProgression.rookie,
+                  currentStats.tetrobotProgression.pulse,
+                  currentStats.tetrobotProgression.apex,
+                ].filter((bot) => bot.mood === "angry").length,
+                1
+              );
+            case "bot_memory_dialogue":
+              return progressFromCount(
+                Object.values(currentStats.tetrobotMemories).filter((entries) => entries.length > 0)
+                  .length,
+                1
+              );
+            case "bot_detected_style":
+              return progressFromCount(
+                Object.values(currentStats.playerLongTermMemory.weakestModes ?? {}).filter(
+                  (value) => typeof value === "number" && value > 0
+                ).length,
+                1
+              );
           }
           return undefined;
         }
       }
     },
-    []
+    [user]
   );
 
   // Met à jour les stats locales (et persiste) via un updater fonctionnel.
@@ -1211,7 +1657,6 @@ function useAchievementsValue(): UseAchievementsValue {
     (ctx: AchievementContext) => {
       const newlyUnlocked: Achievement[] = [];
       const currentStats = statsRef.current;
-      const currentUnlockedCount = unlockedRef.current.length;
 
       for (const achievement of ACHIEVEMENTS) {
         if (isUnlocked(achievement.id)) continue;
@@ -1302,11 +1747,17 @@ function useAchievementsValue(): UseAchievementsValue {
 
           case "custom":
             if (c.key === "achievements_50_percent") {
-              const total = Math.max(1, ACHIEVEMENTS.length - 1);
-              ok = currentUnlockedCount / total >= 0.5;
+              ok = hasReachedAchievementCompletionThreshold(
+                ACHIEVEMENTS,
+                unlockedRef.current.map((entry) => entry.id),
+                0.5
+              );
             } else if (c.key === "achievements_100_percent") {
-              const total = Math.max(1, ACHIEVEMENTS.length - 1);
-              ok = currentUnlockedCount >= total;
+              ok = hasReachedAchievementCompletionThreshold(
+                ACHIEVEMENTS,
+                unlockedRef.current.map((entry) => entry.id),
+                1
+              );
             } else {
               ok = Boolean(ctx.custom?.[c.key]) || getDerivedCustomAchievementValue(currentStats, c.key, ctx);
             }
@@ -1359,6 +1810,32 @@ function useAchievementsValue(): UseAchievementsValue {
     [isUnlocked, user]
   );
 
+  const recordLoginDay = useCallback(
+    (day = getTodayLoginDay()) => {
+      const next = updateStats((prev) => {
+        const loginDays = mergeLoginDays(prev.loginDays, [day]);
+        if (areArraysEqual(prev.loginDays, loginDays)) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          loginDays,
+        };
+      });
+
+      checkAchievements({
+        custom: {
+          login_days_7: next.loginDays.length >= 7,
+          login_days_30: next.loginDays.length >= 30,
+        },
+      });
+
+      return next;
+    },
+    [checkAchievements, updateStats]
+  );
+
   useEffect(() => {
     if (!user) return;
     let active = true;
@@ -1368,10 +1845,10 @@ function useAchievementsValue(): UseAchievementsValue {
         const remote = await fetchAchievementStats();
         if (!active) return;
         const next = updateStats((prev) => {
-          const uniqueDays = new Set(remote.loginDays ?? prev.loginDays);
+          const loginDays = mergeLoginDays(prev.loginDays, remote.loginDays);
           return {
             ...prev,
-            loginDays: Array.from(uniqueDays),
+            loginDays,
             tetrobotProgression: {
               ...prev.tetrobotProgression,
               ...Object.fromEntries(
@@ -1503,6 +1980,7 @@ function useAchievementsValue(): UseAchievementsValue {
     setTetrobotMood,
     clearLastTetrobotLevelUp,
     acceptActiveTetrobotChallenge,
+    recordLoginDay,
     registerRun,
     checkAchievements,
   };
