@@ -2,6 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import {
+  BOT_LEVEL_XP_BANDS,
+  MOOD_AFFINITY_BANDS,
+} from "../../achievements/lib/tetrobotProgressionLogic";
 import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
 import "../../../styles/tetrobots.css";
 
@@ -80,6 +84,13 @@ const AFFINITY_RULES = [
     negative: ["zone de confort", "esquive du mode faible", "fuite du challenge"],
   },
 ];
+
+const APEX_STATES = [
+  { state: "open", trigger: "aucune alerte forte detectee" },
+  { state: "warning", trigger: "3 rage quit ou plus en memoire long terme" },
+  { state: "cold", trigger: "evasion repetitive de Roguelike ou Puzzle" },
+  { state: "refusing", trigger: "affinite Apex strictement sous -60" },
+] as const;
 
 function defaultHelpSectionState(): HelpSectionState {
   return Object.fromEntries(HELP_SECTION_IDS.map((id) => [id, id === "system"])) as HelpSectionState;
@@ -253,6 +264,27 @@ export default function TetrobotsHelpPage() {
             <li>Ils memorisent des erreurs recurrentes, des retours apres echec et des comportements d&apos;evitement.</li>
             <li>Le dashboard et le centre de liaison affichent ensuite leurs reactions, conseils et souvenirs.</li>
           </ul>
+          <div className="tetrobots-help__matrix">
+            <div className="tetrobots-help__rule">
+              <h3>Seuils de niveau</h3>
+              <ul>
+                {BOT_LEVEL_XP_BANDS.map((band) => (
+                  <li key={band.level}>
+                    niveau {band.level}: {band.minXp} XP
+                    {band.maxXpExclusive === null ? " et plus" : ` a ${band.maxXpExclusive - 1} XP`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="tetrobots-help__rule">
+              <h3>Traits debloques</h3>
+              <ul>
+                <li>Rookie: niveau 2 `contextualTips`, niveau 4 `errorDetection`</li>
+                <li>Pulse: niveau 3 `performanceAnalysis`, niveau 5 `deepOptimization`</li>
+                <li>Apex: niveau 2 `provocation`, niveau 5 `hardcoreCoach`</li>
+              </ul>
+            </div>
+          </div>
         </HelpSection>
 
         <HelpSection id="xp" open={sections.xp} onToggle={toggleSection}>
@@ -271,6 +303,10 @@ export default function TetrobotsHelpPage() {
 
         <HelpSection id="affinity" open={sections.affinity} onToggle={toggleSection}>
           <p className="tetrobots-kicker">AFFINITE</p>
+          <p>
+            L&apos;affinite est bornee entre `-100` et `100`. Chaque bot reagit a des evenements
+            differents, avec des gains et pertes fixes.
+          </p>
           {AFFINITY_RULES.map((rule) => (
             <div key={rule.bot} className="tetrobots-help__rule">
               <h3>{rule.bot}</h3>
@@ -288,16 +324,43 @@ export default function TetrobotsHelpPage() {
               </ul>
             </div>
           ))}
+          <div className="tetrobots-help__rule">
+            <h3>Valeurs appliquees</h3>
+            <ul>
+              <li>Rookie: `play_regularly` `+5`, `rage_quit` `-10`</li>
+              <li>Pulse: `improve_stat` `+10`, `repeat_mistake` `-5`</li>
+              <li>Apex: `challenge_yourself` `+15`, `avoid_weakness` `-15`</li>
+            </ul>
+          </div>
         </HelpSection>
 
         <HelpSection id="mood" open={sections.mood} onToggle={toggleSection}>
           <p className="tetrobots-kicker">HUMEUR</p>
-          <ul>
-            <li>`angry`: le bot est agace, plus sec, parfois plus dur.</li>
-            <li>`neutral`: il observe encore ou reste prudent.</li>
-            <li>`friendly`: il commence a soutenir et guider plus clairement.</li>
-            <li>`respect`: tu as gagne une vraie forme de confiance.</li>
-          </ul>
+          <div className="tetrobots-help__matrix">
+            <div className="tetrobots-help__rule">
+              <h3>Seuils d&apos;humeur</h3>
+              <ul>
+                {MOOD_AFFINITY_BANDS.map((band) => (
+                  <li key={band.mood}>
+                    `{band.mood}`: {band.minAffinity}
+                    {band.maxAffinityExclusive === null
+                      ? " et plus"
+                      : ` a ${band.maxAffinityExclusive - 1}`}{" "}
+                    d&apos;affinite
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="tetrobots-help__rule">
+              <h3>Lecture rapide</h3>
+              <ul>
+                <li>`angry`: le bot est agace, plus sec, parfois plus dur.</li>
+                <li>`neutral`: il observe encore ou reste prudent.</li>
+                <li>`friendly`: il commence a soutenir et guider plus clairement.</li>
+                <li>`respect`: tu as gagne une vraie forme de confiance.</li>
+              </ul>
+            </div>
+          </div>
         </HelpSection>
 
         <HelpSection id="memory" open={sections.memory} onToggle={toggleSection}>
@@ -308,6 +371,47 @@ export default function TetrobotsHelpPage() {
             <li>tes progressions nettes et tes come-backs</li>
             <li>tes sessions courageuses ou au contraire tes fuites</li>
           </ul>
+          <div className="tetrobots-help__matrix">
+            <div className="tetrobots-help__rule">
+              <h3>Consistance</h3>
+              <p>
+                Elle mesure ta stabilite globale. Pulse s&apos;en sert pour distinguer une vraie
+                progression d&apos;une simple bonne run.
+              </p>
+              <ul>
+                <li>base: taux de victoire global</li>
+                <li>penalite: toutes les erreurs agregees</li>
+                <li>formule: `winrate * 100 - totalMistakes * 1.5`, borne entre `0` et `100`</li>
+              </ul>
+            </div>
+            <div className="tetrobots-help__rule">
+              <h3>Courage</h3>
+              <p>
+                Il mesure ta part de sessions dans les modes les plus exigeants. Apex y est tres
+                sensible.
+              </p>
+              <ul>
+                <li>modes comptes: `ROGUELIKE`, `ROGUELIKE_VERSUS`, `PUZZLE`</li>
+                <li>plus leur part monte, plus le score monte</li>
+                <li>formule: `(sessions exigeantes / sessions totales) * 100`, borne entre `0` et `100`</li>
+              </ul>
+            </div>
+            <div className="tetrobots-help__rule">
+              <h3>Discipline</h3>
+              <p>
+                C&apos;est un score de fiabilite long terme. Il resume si tu progresses proprement,
+                sans te disperser ni repeter trop d&apos;erreurs.
+              </p>
+              <ul>
+                <li>`45%` consistance</li>
+                <li>`25%` courage</li>
+                <li>`30%` resistance a la repetition des erreurs</li>
+                <li>
+                  formule: `consistance * 0.45 + courage * 0.25 + (100 - repeat_mistake_delta * 10) * 0.3`
+                </li>
+              </ul>
+            </div>
+          </div>
         </HelpSection>
 
         <HelpSection id="apex" open={sections.apex} onToggle={toggleSection}>
@@ -322,6 +426,16 @@ export default function TetrobotsHelpPage() {
               Quand ca arrive, Apex peut proposer un defi temporaire. Si tu l&apos;acceptes et que tu
               le completes sans fuir, tu recuperes de l&apos;affinite, de l&apos;XP et il peut rouvrir le canal.
             </p>
+            <div className="tetrobots-help__rule">
+              <h3>Etats du canal Apex</h3>
+              <ul>
+                {APEX_STATES.map((item) => (
+                  <li key={item.state}>
+                    `{item.state}`: {item.trigger}
+                  </li>
+                ))}
+              </ul>
+            </div>
             {challenge ? (
               <div className="tetrobots-help__challenge">
                 <h3>Defi actif detecte</h3>
