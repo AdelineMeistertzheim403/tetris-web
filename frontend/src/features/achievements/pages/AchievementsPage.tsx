@@ -36,6 +36,9 @@ export default function AchievementsPage() {
     "COMMUNITY",
     "GAMEPLAY",
     "LEGENDARY",
+    "META",
+    "NARRATIVE",
+    "BEHAVIOR",
     "TETROMAZE",
     "TETROMAZE_SKILL",
     "TETROMAZE_POWER",
@@ -62,6 +65,9 @@ export default function AchievementsPage() {
     COMMUNITY: "Pixel Protocol - Communauté",
     GAMEPLAY: "Pixel Protocol - Gameplay",
     LEGENDARY: "Succès légendaires",
+    META: "Meta progression",
+    NARRATIVE: "Narratif Tetrobots",
+    BEHAVIOR: "Comportement",
     TETROMAZE: "Tetromaze - Progression",
     TETROMAZE_SKILL: "Tetromaze - Skill",
     TETROMAZE_POWER: "Tetromaze - Power Play",
@@ -191,6 +197,7 @@ export default function AchievementsPage() {
                   key={achievement.id}
                   achievement={achievement}
                   unlocked={achievement.unlocked}
+                  progress={achievement.progress}
                 />
               ))}
             </div>

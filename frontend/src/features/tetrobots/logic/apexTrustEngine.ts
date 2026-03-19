@@ -1,8 +1,10 @@
 import {
   getApexTrustState,
-  type ApexTrustState,
-  type PlayerLongTermMemory,
-} from "../../achievements/hooks/useAchievements";
+} from "../../achievements/lib/tetrobotAchievementLogic";
+import type {
+  ApexTrustState,
+  PlayerLongTermMemory,
+} from "../../achievements/types/tetrobots";
 
 export { getApexTrustState };
 export type { ApexTrustState, PlayerLongTermMemory };

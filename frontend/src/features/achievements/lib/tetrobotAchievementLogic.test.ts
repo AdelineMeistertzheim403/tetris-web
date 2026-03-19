@@ -1,0 +1,193 @@
+import { describe, expect, it } from "vitest";
+import {
+  getApexTrustState,
+  getDerivedCounterValue,
+  getDerivedCustomAchievementValue,
+  type AchievementDerivedStats,
+} from "./tetrobotAchievementLogic";
+
+function createStats(): AchievementDerivedStats {
+  return {
+    counters: {},
+    lastPlayedMode: null,
+    lowestWinrateMode: null,
+    playerBehaviorByMode: {
+      CLASSIQUE: { sessions: 0, wins: 0, losses: 0 },
+      SPRINT: { sessions: 0, wins: 0, losses: 0 },
+      VERSUS: { sessions: 0, wins: 0, losses: 0 },
+      BRICKFALL_SOLO: { sessions: 0, wins: 0, losses: 0 },
+      BRICKFALL_VERSUS: { sessions: 0, wins: 0, losses: 0 },
+      ROGUELIKE: { sessions: 0, wins: 0, losses: 0 },
+      ROGUELIKE_VERSUS: { sessions: 0, wins: 0, losses: 0 },
+      PUZZLE: { sessions: 0, wins: 0, losses: 0 },
+      TETROMAZE: { sessions: 0, wins: 0, losses: 0 },
+      PIXEL_PROTOCOL: { sessions: 0, wins: 0, losses: 0 },
+    },
+    playerLongTermMemory: {
+      recurringMistakes: [],
+      avoidedModes: {},
+      strongestModes: {},
+      weakestModes: {},
+      rageQuitCount: 0,
+      comebackCount: 0,
+      consistencyScore: 0,
+      courageScore: 0,
+      disciplineScore: 0,
+    },
+    playerMistakesByMode: {
+      CLASSIQUE: {
+        holes: 0,
+        top_out: 0,
+        slow: 0,
+        unsafe_stack: 0,
+        damage_taken: 0,
+        misread: 0,
+        panic_stack: 0,
+        slow_decision: 0,
+        greedy_play: 0,
+        mode_avoidance: 0,
+        inconsistent_precision: 0,
+      },
+    },
+    tetrobotAffinityLedger: {
+      play_regularly: 0,
+      rage_quit: 0,
+      improve_stat: 0,
+      repeat_mistake: 0,
+      challenge_yourself: 0,
+      avoid_weakness: 0,
+    },
+    tetrobotMemories: {
+      rookie: [],
+      pulse: [],
+      apex: [],
+    },
+    tetrobotProgression: {
+      rookie: { level: 1, xp: 0, affinity: 0, mood: "neutral" },
+      pulse: { level: 1, xp: 0, affinity: 0, mood: "neutral" },
+      apex: { level: 1, xp: 0, affinity: 0, mood: "neutral" },
+    },
+  };
+}
+
+describe("tetrobotAchievementLogic", () => {
+  it("detects Apex refusal and trust restore from memory", () => {
+    const stats = createStats();
+    stats.tetrobotMemories.apex = [
+      {
+        id: "break",
+        bot: "apex",
+        type: "trust_break",
+        text: "Apex refuse.",
+        importance: 5,
+        createdAt: 1,
+      },
+      {
+        id: "rebuild",
+        bot: "apex",
+        type: "trust_rebuild",
+        text: "Apex revient.",
+        importance: 5,
+        createdAt: 2,
+      },
+    ];
+
+    expect(getDerivedCustomAchievementValue(stats, "apex_first_refusal", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "apex_trust_restored", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "success_after_apex_refusal", {})).toBe(true);
+  });
+
+  it("uses affinity ledger as fallback for rookie tips followed", () => {
+    const stats = createStats();
+    stats.tetrobotAffinityLedger.play_regularly = 3;
+
+    expect(getDerivedCounterValue(stats, "rookie_tips_followed")).toBe(3);
+  });
+
+  it("prefers explicit rookie counter when it is higher than fallback", () => {
+    const stats = createStats();
+    stats.counters.rookie_tips_followed = 5;
+    stats.tetrobotAffinityLedger.play_regularly = 3;
+
+    expect(getDerivedCounterValue(stats, "rookie_tips_followed")).toBe(5);
+  });
+
+  it("unlocks Pulse achievement from explicit advice-success counter", () => {
+    const stats = createStats();
+    stats.counters.pulse_advice_success = 1;
+
+    expect(getDerivedCustomAchievementValue(stats, "improved_after_pulse", {})).toBe(true);
+  });
+
+  it("unlocks Apex refusal and restore from explicit counters", () => {
+    const stats = createStats();
+    stats.counters.apex_refusal_count = 1;
+    stats.counters.apex_trust_restored_count = 1;
+
+    expect(getDerivedCustomAchievementValue(stats, "apex_first_refusal", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "apex_trust_restored", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "success_after_apex_refusal", {})).toBe(true);
+  });
+
+  it("detects all bots respect and max bot level", () => {
+    const stats = createStats();
+    stats.tetrobotProgression.rookie = {
+      level: 5,
+      xp: 620,
+      affinity: 55,
+      mood: "respect",
+      lastTip: "Continue.",
+    };
+    stats.tetrobotProgression.pulse = {
+      level: 3,
+      xp: 220,
+      affinity: 60,
+      mood: "respect",
+      lastTip: "Mesure ta progression.",
+    };
+    stats.tetrobotProgression.apex = {
+      level: 4,
+      xp: 410,
+      affinity: 80,
+      mood: "respect",
+      lastTip: "Affronte ton point faible.",
+    };
+
+    expect(getDerivedCustomAchievementValue(stats, "all_bots_respect", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "bot_max_level", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "max_bot_level", {})).toBe(true);
+  });
+
+  it("detects weak mode play and weak mode win", () => {
+    const stats = createStats();
+    stats.lowestWinrateMode = "PUZZLE";
+    stats.lastPlayedMode = "PUZZLE";
+    stats.playerBehaviorByMode.PUZZLE = { sessions: 4, wins: 1, losses: 3 };
+
+    expect(getDerivedCustomAchievementValue(stats, "played_weak_mode", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "win_weak_mode", {})).toBe(true);
+  });
+
+  it("computes Apex trust state thresholds", () => {
+    const stats = createStats();
+
+    expect(getApexTrustState(stats.playerLongTermMemory, -70)).toBe("refusing");
+
+    stats.playerLongTermMemory.avoidedModes.ROGUELIKE = 5;
+    expect(getApexTrustState(stats.playerLongTermMemory, 0)).toBe("cold");
+
+    stats.playerLongTermMemory.avoidedModes.ROGUELIKE = 0;
+    stats.playerLongTermMemory.rageQuitCount = 3;
+    expect(getApexTrustState(stats.playerLongTermMemory, 0)).toBe("warning");
+  });
+
+  it("detects tilt and critical win from explicit counters", () => {
+    const stats = createStats();
+    stats.counters.rage_quit_estimate = 3;
+    stats.counters.comeback_estimate = 1;
+    stats.playerBehaviorByMode.CLASSIQUE = { sessions: 5, wins: 2, losses: 3 };
+
+    expect(getDerivedCustomAchievementValue(stats, "tilt_detected", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "critical_win", {})).toBe(true);
+  });
+});

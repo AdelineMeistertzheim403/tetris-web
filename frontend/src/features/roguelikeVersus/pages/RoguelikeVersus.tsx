@@ -11,9 +11,9 @@ import {
   updateTetrobotsProfile,
   type PlayerProfile,
 } from "../../game/services/scoreService";
+import type { PlayerMistakeKey } from "../../achievements/types/tetrobots";
 import {
   useAchievements,
-  type PlayerMistakeKey,
 } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
 import { useTimeFreeze } from "../../roguelike/hooks/useTimeFreeze";
@@ -1369,7 +1369,8 @@ function RoguelikeVersusPvp() {
 
 function RoguelikeVersusTetrobots() {
   const { user } = useAuth();
-  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const [roundSeed, setRoundSeed] = useState(() => `rv-tetrobots-${Date.now()}`);
   const [roundKey, setRoundKey] = useState(0);
   const [started, setStarted] = useState(false);
@@ -2232,9 +2233,15 @@ function RoguelikeVersusTetrobots() {
     if (redZoneRate >= 0.3) mistakes.push("unsafe_stack" as const);
     if (durationMs >= 8 * 60 * 1000 && !win) mistakes.push("slow" as const);
     let sameScoreTwice = false;
+    let firstRvScore = false;
+    let firstRvLevel10 = false;
+    let firstRvWin = false;
 
     const next = updateStats((prev) => {
       sameScoreTwice = prev.lastScore !== null && prev.lastScore === playerResult.score;
+      firstRvScore = playerResult.score > 0 && !prev.scoredModes.ROGUELIKE_VERSUS;
+      firstRvLevel10 = level >= 10 && !prev.level10Modes.ROGUELIKE_VERSUS;
+      firstRvWin = win && prev.roguelikeVersusWins === 0;
       return {
         ...prev,
         roguelikeVersusMatches: prev.roguelikeVersusMatches + 1,
@@ -2262,6 +2269,13 @@ function RoguelikeVersusTetrobots() {
       durationMs,
       mistakes,
     });
+
+    if (win && mistakes.length === 0 && !botHadChaosRef.current) {
+      recordTetrobotEvent({ type: "rookie_tip_followed" });
+    }
+    if (firstRvScore || firstRvLevel10 || firstRvWin || wonVsApex) {
+      recordTetrobotEvent({ type: "pulse_advice_success" });
+    }
 
     checkAchievements({
       mode: "ROGUELIKE_VERSUS",
@@ -2326,7 +2340,18 @@ function RoguelikeVersusTetrobots() {
       });
 
     finalizedRef.current = true;
-  }, [activeMutations.length, botMutations, botPersonalityId, botResult, checkAchievements, matchOver, playerResult, recordPlayerBehavior, updateStats]);
+  }, [
+    activeMutations.length,
+    botMutations,
+    botPersonalityId,
+    botResult,
+    checkAchievements,
+    matchOver,
+    playerResult,
+    recordPlayerBehavior,
+    recordTetrobotEvent,
+    updateStats,
+  ]);
 
   useEffect(() => {
     if (!matchOver || !playerResult || !botResult || !user || hasSavedResult) return;

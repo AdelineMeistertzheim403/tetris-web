@@ -47,7 +47,8 @@ function clamp(value: number, min: number, max: number) {
 export default function PixelProtocolPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const [searchParams] = useSearchParams();
   const { levels, loading, error, usingFallback } = usePixelProtocolLevels();
   const customId = searchParams.get("custom");
@@ -426,6 +427,13 @@ export default function PixelProtocolPage() {
       },
     }));
 
+    if (runtime.player.hp >= 3) {
+      recordTetrobotEvent({ type: "rookie_tip_followed" });
+    }
+    if (next.counters.campaign_level_complete === 1 || runtime.player.hp >= 3) {
+      recordTetrobotEvent({ type: "pulse_advice_success" });
+    }
+
     checkAchievements({
       mode: "PIXEL_PROTOCOL",
       counters: {
@@ -441,6 +449,7 @@ export default function PixelProtocolPage() {
     isCustomLevel,
     isLocalLevel,
     level.id,
+    recordTetrobotEvent,
     runtime.player.hp,
     runtime.startedAt,
     runtime.status,

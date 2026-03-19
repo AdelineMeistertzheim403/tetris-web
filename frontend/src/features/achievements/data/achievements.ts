@@ -24,7 +24,10 @@ export type AchievementGroup =
   | "CAMPAIGN"
   | "COMMUNITY"
   | "GAMEPLAY"
-  | "LEGENDARY";
+  | "LEGENDARY"
+  | "META"
+  | "NARRATIVE"
+  | "BEHAVIOR";
 
 export type AchievementMode =
   | GameMode
@@ -52,7 +55,8 @@ export type AchievementCondition =
   | { type: "same_seed_runs"; count: number }
   | { type: "history_viewed"; count: number }
   | { type: "counter"; key: string; value: number }
-  | { type: "custom"; key: string }; // pour les cas ultra spécifiques
+  | { type: "custom"; key: string }
+  | { type: "affinity"; bot: "rookie" | "pulse" | "apex"; value: number };
 
 export type Achievement = {
   id: string;
@@ -1849,5 +1853,284 @@ export const ACHIEVEMENTS: Achievement[] = [
   condition: { type: "custom", key: "grid_master" },
 },
 
+// 🤖 TETROBOTS
+
+  {
+    id: "rookie-protection",
+    name: "Sous protection",
+    description: "Avoir une affinité élevée avec Rookie",
+    icon: "rookie_protection",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "affinity", bot: "rookie", value: 60 },
+  },
+
+  {
+    id: "rookie-listen",
+    name: "Je t’écoute",
+    description: "Suivre 3 conseils consécutifs de Rookie",
+    icon: "rookie_listen",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "counter", key: "rookie_tips_followed", value: 3 },
+  },
+
+  {
+    id: "pulse-analysis",
+    name: "Analyse en cours",
+    description: "Améliorer une statistique après un conseil de Pulse",
+    icon: "pulse_analysis",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "improved_after_pulse" },
+  },
+
+  {
+    id: "pulse-optimization",
+    name: "Optimisation",
+    description: "Atteindre un winrate stable sur plusieurs sessions",
+    icon: "pulse_optimization",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "stable_winrate" },
+  },
+
+  {
+    id: "apex-challenge",
+    name: "Tu oses enfin",
+    description: "Jouer ton mode le plus faible",
+    icon: "apex_challenge",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "played_weak_mode" },
+  },
+
+  {
+    id: "apex-face-yourself",
+    name: "Face à toi-même",
+    description: "Gagner une partie dans ton mode le plus faible",
+    icon: "apex_face",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "win_weak_mode" },
+  },
+
+  {
+    id: "apex-respect",
+    name: "Respect gagné",
+    description: "Débloquer le respect d’Apex",
+    icon: "apex_respect",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "affinity", bot: "apex", value: 80 },
+  },
+
+  {
+    id: "apex-approved",
+    name: "Apex approuve",
+    description: "Réussir une action difficile après qu’Apex ait refusé de t’aider",
+    icon: "apex_approve",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "success_after_apex_refusal" },
+  },
+
+  // 🎭 NARRATIF
+
+  {
+    id: "first-contact",
+    name: "Première connexion",
+    description: "Rencontrer les 3 Tetrobots",
+    icon: "first_contact",
+    mode: "ALL",
+    group: "NARRATIVE",
+    condition: { type: "custom", key: "met_all_bots" },
+  },
+
+  {
+    id: "judged",
+    name: "Ils te jugent",
+    description: "Déclencher une réaction négative d’un bot",
+    icon: "judged",
+    mode: "ALL",
+    group: "NARRATIVE",
+    condition: { type: "custom", key: "negative_bot_reaction" },
+  },
+
+  {
+    id: "respected-by-all",
+    name: "Ils te respectent",
+    description: "Avoir les 3 bots en état respect",
+    icon: "all_respect",
+    mode: "ALL",
+    group: "NARRATIVE",
+    condition: { type: "custom", key: "all_bots_respect" },
+  },
+
+  {
+    id: "apex-rivalry",
+    name: "Rivalité",
+    description: "Apex refuse de t’aider pour la première fois",
+    icon: "apex_rivalry",
+    mode: "ALL",
+    group: "NARRATIVE",
+    condition: { type: "custom", key: "apex_first_refusal" },
+  },
+
+  {
+    id: "apex-reconciliation",
+    name: "Réconciliation",
+    description: "Regagner la confiance d’Apex",
+    icon: "apex_reconcile",
+    mode: "ALL",
+    group: "NARRATIVE",
+    condition: { type: "custom", key: "apex_trust_restored" },
+  },
+
+  {
+    id: "balance",
+    name: "Équilibre",
+    description: "Avoir une bonne relation avec les 3 bots",
+    icon: "balance",
+    mode: "ALL",
+    group: "NARRATIVE",
+    condition: { type: "custom", key: "balanced_affinity" },
+  },
+
+  // 🧠 COMPORTEMENT CACHÉ
+
+  {
+    id: "panic",
+    name: "Panique",
+    description: "Faire 3 erreurs rapides d’affilée",
+    icon: "panic",
+    mode: "ALL",
+    group: "BEHAVIOR",
+    condition: { type: "custom", key: "panic_sequence" },
+  },
+
+  {
+    id: "greed-punished",
+    name: "Greed punished",
+    description: "Perdre après un move risqué",
+    icon: "greed",
+    mode: "ALL",
+    group: "BEHAVIOR",
+    condition: { type: "custom", key: "risky_loss" },
+  },
+
+  {
+    id: "comeback",
+    name: "Comeback",
+    description: "Gagner après une situation critique",
+    icon: "comeback",
+    mode: "ALL",
+    group: "BEHAVIOR",
+    condition: { type: "custom", key: "critical_win" },
+  },
+
+  {
+    id: "focus",
+    name: "Focus",
+    description: "Jouer sans erreur pendant un certain temps",
+    icon: "focus",
+    mode: "ALL",
+    group: "BEHAVIOR",
+    condition: { type: "custom", key: "perfect_play_duration" },
+  },
+
+  {
+    id: "tilt",
+    name: "Tilt",
+    description: "Enchaîner défaites et rage quit",
+    icon: "tilt",
+    mode: "ALL",
+    group: "BEHAVIOR",
+    condition: { type: "custom", key: "tilt_detected" },
+  },
+
+  // 🏆 META
+
+  {
+    id: "student",
+    name: "Étudiant",
+    description: "Lire plusieurs conseils",
+    icon: "student",
+    mode: "ALL",
+    group: "META",
+    condition: { type: "counter", key: "tips_read", value: 10 },
+  },
+
+  {
+    id: "apprentice",
+    name: "Apprenti",
+    description: "Améliorer une statistique",
+    icon: "apprentice",
+    mode: "ALL",
+    group: "META",
+    condition: { type: "custom", key: "stat_improved" },
+  },
+
+  {
+    id: "mastery",
+    name: "Maîtrise",
+    description: "Améliorer plusieurs statistiques",
+    icon: "mastery",
+    mode: "ALL",
+    group: "META",
+    condition: { type: "custom", key: "multiple_stats_improved" },
+  },
+
+  {
+    id: "discipline",
+    name: "Discipline",
+    description: "Revenir travailler ses faiblesses",
+    icon: "discipline",
+    mode: "ALL",
+    group: "META",
+    condition: { type: "custom", key: "worked_on_weakness" },
+  },
+
+  {
+    id: "evolution",
+    name: "Évolution",
+    description: "Faire monter un bot au niveau maximum",
+    icon: "evolution",
+    mode: "ALL",
+    group: "META",
+    condition: { type: "custom", key: "bot_max_level" },
+  },
+
+  // ✨ SECRETS
+
+  {
+    id: "bot-angry",
+    name: "Mode colère",
+    description: "Mettre un bot en colère",
+    icon: "bot_angry",
+    mode: "ALL",
+    group: "SECRETS",
+    condition: { type: "custom", key: "bot_angry" },
+  },
+
+  {
+    id: "bot-calm",
+    name: "Apaisement",
+    description: "Faire redevenir un bot amical",
+    icon: "bot_calm",
+    mode: "ALL",
+    group: "SECRETS",
+    condition: { type: "custom", key: "bot_calm" },
+  },
+
+  {
+    id: "max-aura",
+    name: "Aura maximale",
+    description: "Atteindre le niveau maximum d’un bot",
+    icon: "max_aura",
+    mode: "ALL",
+    group: "SECRETS",
+    condition: { type: "custom", key: "max_bot_level" },
+  },
 
 ];
