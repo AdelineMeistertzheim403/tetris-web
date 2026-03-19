@@ -1,10 +1,12 @@
 // Service d'acces aux donnees/API pour ce domaine.
 import { getAuthHeader } from "../../auth/services/authService";
+import type { AchievementStats } from "../types/achievementStats";
 const API_URL = import.meta.env.VITE_API_URL;
 let unlockedAchievementsRequest: Promise<{ id: string; unlockedAt: number }[]> | null = null;
 let achievementStatsRequest: Promise<AchievementStatsPayload> | null = null;
 
 export type AchievementStatsPayload = {
+  stats?: Partial<AchievementStats>;
   loginDays: string[];
   tetrobotProgression?: Record<string, unknown>;
   tetrobotXpLedger?: Record<string, unknown>;
@@ -83,6 +85,7 @@ export async function fetchAchievementStats(): Promise<AchievementStatsPayload> 
 
         const data = await res.json();
         return {
+          stats: data.stats ?? undefined,
           loginDays: data.loginDays ?? [],
           tetrobotProgression: data.tetrobotProgression ?? {},
           tetrobotXpLedger: data.tetrobotXpLedger ?? {},

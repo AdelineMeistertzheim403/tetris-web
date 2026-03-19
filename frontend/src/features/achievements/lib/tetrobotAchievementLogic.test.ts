@@ -157,6 +157,31 @@ describe("tetrobotAchievementLogic", () => {
     expect(getDerivedCustomAchievementValue(stats, "max_bot_level", {})).toBe(true);
   });
 
+  it("unlocks adaptive bot memory and style-detection achievements from derived stats", () => {
+    const stats = createStats();
+    stats.tetrobotProgression.rookie.lastTip = "Je t'ai observe.";
+    stats.tetrobotMemories.pulse = [
+      {
+        id: "memory-1",
+        bot: "pulse",
+        type: "player_progress",
+        text: "Pulse note ta progression.",
+        importance: 3,
+        createdAt: 10,
+      },
+    ];
+    stats.playerLongTermMemory.weakestModes.VERSUS = 2;
+
+    expect(getDerivedCustomAchievementValue(stats, "met_all_bots", {})).toBe(false);
+    expect(getDerivedCustomAchievementValue(stats, "bot_memory_dialogue", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "bot_detected_style", {})).toBe(true);
+
+    stats.tetrobotProgression.pulse.lastTip = "Je connais ton rythme.";
+    stats.tetrobotProgression.apex.lastTip = "Je vois ton point faible.";
+
+    expect(getDerivedCustomAchievementValue(stats, "met_all_bots", {})).toBe(true);
+  });
+
   it("detects weak mode play and weak mode win", () => {
     const stats = createStats();
     stats.lowestWinrateMode = "PUZZLE";
