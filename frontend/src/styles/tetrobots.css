@@ -292,6 +292,12 @@
   padding-top: 12px;
 }
 
+.tetrobots-help__matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
 .tetrobots-help__rule:first-of-type {
   border-top: 0;
   padding-top: 0;
