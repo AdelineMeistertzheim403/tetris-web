@@ -3,13 +3,15 @@ import { useAuth } from "../../auth/context/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
+import type {
+  BotLevel,
+  BotMood,
+  TetrobotChallengeState,
+  TetrobotId,
+} from "../../achievements/types/tetrobots";
+import { getApexTrustState } from "../../achievements/lib/tetrobotAchievementLogic";
 import {
   useAchievements,
-  type TetrobotId,
-  type BotLevel,
-  type BotMood,
-  type TetrobotChallengeState,
-  getApexTrustState,
 } from "../../achievements/hooks/useAchievements";
 import "../../../styles/dashboard.scss";
 
@@ -857,6 +859,7 @@ export default function Dashboard() {
     recentUnlocks,
     syncTetrobotProgression,
     setLastTetrobotTip,
+    recordTetrobotEvent,
     clearLastTetrobotLevelUp,
     acceptActiveTetrobotChallenge,
   } = useAchievements();
@@ -1445,7 +1448,10 @@ export default function Dashboard() {
                 <button
                   type="button"
                   className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--relation"
-                  onClick={() => navigate(`/tetrobots/relations?bot=${chatLine.bot}`)}
+                  onClick={() => {
+                    recordTetrobotEvent({ type: "tip_read", bot: chatLine.bot });
+                    navigate(`/tetrobots/relations?bot=${chatLine.bot}`);
+                  }}
                   data-tooltip="Voir la relation complete de ce Tetrobot."
                   aria-label="Voir la relation complete"
                 >
@@ -1466,7 +1472,10 @@ export default function Dashboard() {
               <button
                 type="button"
                 className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--help"
-                onClick={() => navigate("/tetrobots/help")}
+                onClick={() => {
+                  recordTetrobotEvent({ type: "tip_read", bot: chatLine.bot });
+                  navigate("/tetrobots/help");
+                }}
                 data-tooltip="Comprendre l'XP, l'affinite, l'humeur et les defis des Tetrobots."
                 aria-label="Comprendre les Tetrobots"
               >

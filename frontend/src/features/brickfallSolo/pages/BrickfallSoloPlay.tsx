@@ -131,7 +131,8 @@ export default function BrickfallSoloPlay() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const { checkAchievements, updateStats, recordPlayerBehavior } = useAchievements();
+  const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
+    useAchievements();
   const startLives = BRICKFALL_BALANCE.demolisher.startLives;
   const [levelIndex, setLevelIndex] = useState(1);
   const [level, setLevel] = useState<BrickfallLevel>(() => getCampaignLevel(1));
@@ -360,6 +361,16 @@ export default function BrickfallSoloPlay() {
         ...(durationMs > 60_000 ? (["slow"] as const) : []),
       ],
     });
+    if (noMiss && durationMs <= 60_000) {
+      recordTetrobotEvent({ type: "rookie_tip_followed" });
+    }
+    if (
+      next.brickfallSoloLevelsCleared === 1 ||
+      worldOneClear ||
+      next.brickfallSoloCampaignCleared
+    ) {
+      recordTetrobotEvent({ type: "pulse_advice_success" });
+    }
 
     checkAchievements({
       mode: "BRICKFALL_SOLO",
