@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { BRICKFALL_BALANCE } from "../config/balance";
+import { BRICKFALL_BALANCE } from "../shared/balance";
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 

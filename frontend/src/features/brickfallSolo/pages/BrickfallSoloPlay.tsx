@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
-import BrickfallBoard from "../../brickfallVersus/components/BrickfallBoard";
+import BrickfallBoard from "../../brickfall/components/BrickfallBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
-import { BRICKFALL_BALANCE } from "../../brickfallVersus/config/balance";
+import { BRICKFALL_BALANCE } from "../../brickfall/shared/balance";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
 import type { BrickfallLevel } from "../types/levels";
@@ -350,6 +350,21 @@ export default function BrickfallSoloPlay() {
       brickfallSoloCampaignCleared: prev.brickfallSoloCampaignCleared || campaignClear,
       brickfallSoloEditorWins: prev.brickfallSoloEditorWins + (isCustomLevel ? 1 : 0),
       scoredModes: { ...prev.scoredModes, BRICKFALL_SOLO: true },
+      counters: {
+        ...prev.counters,
+        bf_solo_no_miss_wins:
+          (prev.counters.bf_solo_no_miss_wins ?? 0) + (noMiss ? 1 : 0),
+        bf_solo_under_45s_wins:
+          (prev.counters.bf_solo_under_45s_wins ?? 0) + (durationMs <= 45_000 ? 1 : 0),
+        bf_solo_max_multiballs_run: Math.max(
+          prev.counters.bf_solo_max_multiballs_run ?? 0,
+          multiBallLevelRef.current
+        ),
+        bf_solo_max_malus_run: Math.max(
+          prev.counters.bf_solo_max_malus_run ?? 0,
+          malusLevelRef.current
+        ),
+      },
     }));
 
     recordPlayerBehavior({

@@ -14,7 +14,6 @@ import Versus from "./features/versus/pages/Versus";
 import RoguelikePage from "./features/roguelike/pages/RoguelikePage";
 import RoguelikeLexicon from "./features/roguelike/pages/RoguelikeLexicon";
 import RoguelikeVersus from "./features/roguelikeVersus/pages/RoguelikeVersus";
-import BrickfallVersus from "./features/brickfallVersus/pages/BrickfallVersus";
 import BrickfallSolo from "./features/brickfallSolo/pages/BrickfallSolo";
 import BrickfallSoloPlay from "./features/brickfallSolo/pages/BrickfallSoloPlay";
 import BrickfallEditor from "./features/brickfallSolo/pages/BrickfallEditor";
@@ -80,7 +79,6 @@ function App() {
           <Route path="/brickfall-solo/play" element={<BrickfallSoloPlay />} />
           <Route path="/brickfall-editor" element={<BrickfallEditor />} />
           <Route path="/brickfall/help/editor" element={<BrickfallEditorHelp />} />
-          <Route path="/brickfall-versus" element={<BrickfallVersus />} />
           <Route path="/roguelike" element={<RoguelikePage />} />
           <Route path="/roguelike-versus" element={<RoguelikeVersus />} />
           <Route path="/roguelike/lexique" element={<RoguelikeLexicon />} />

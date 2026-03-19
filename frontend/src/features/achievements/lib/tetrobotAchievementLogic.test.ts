@@ -16,7 +16,6 @@ function createStats(): AchievementDerivedStats {
       SPRINT: { sessions: 0, wins: 0, losses: 0 },
       VERSUS: { sessions: 0, wins: 0, losses: 0 },
       BRICKFALL_SOLO: { sessions: 0, wins: 0, losses: 0 },
-      BRICKFALL_VERSUS: { sessions: 0, wins: 0, losses: 0 },
       ROGUELIKE: { sessions: 0, wins: 0, losses: 0 },
       ROGUELIKE_VERSUS: { sessions: 0, wins: 0, losses: 0 },
       PUZZLE: { sessions: 0, wins: 0, losses: 0 },

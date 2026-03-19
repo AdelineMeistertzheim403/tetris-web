@@ -98,22 +98,6 @@ export const versusMatchSchema = z.object({
 
 export const roguelikeVersusMatchSchema = versusMatchSchema;
 
-export const brickfallVersusMatchSchema = z.object({
-  matchId: z.string().trim().min(1).max(64).optional(),
-  players: z
-    .array(
-      z.object({
-        slot: z.number().int().min(1).max(2),
-        userId: z.number().int().min(1).optional(),
-        pseudo: z.string().trim().min(1).max(32),
-        role: z.enum(["ARCHITECT", "DEMOLISHER"]),
-        score: z.number().int().min(0).max(1_000_000),
-        lines: z.number().int().min(0).max(2_000),
-      })
-    )
-    .length(2),
-});
-
 export const botProfileUpdateSchema = z.object({
   avgHeight: z.number().min(0).max(40),
   holes: z.number().min(0).max(60),
@@ -179,7 +163,7 @@ export const achievementUnlockSchema = z.object({
 });
 
 export const achievementStatsSchema = z.object({
-  loginDays: z.array(z.string().trim().min(1).max(10)).max(400),
+  loginDays: z.array(z.string().trim().min(1).max(10)).max(400).optional(),
   tetrobotProgression: z.record(z.string(), z.any()).optional(),
   tetrobotXpLedger: z.record(z.string(), z.any()).optional(),
   tetrobotAffinityLedger: z.record(z.string(), z.any()).optional(),

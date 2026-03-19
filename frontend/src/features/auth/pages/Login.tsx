@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
-import { saveAchievementStats } from "../../achievements/services/achievementService";
 import { useAuth } from "../context/AuthContext";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 
@@ -11,7 +10,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { setUser } = useAuth(); // accès au contexte auth global
-  const { checkAchievements, updateStats } = useAchievements();
+  const { recordLoginDay } = useAchievements();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,23 +18,7 @@ export default function Login() {
       // Auth + mise à jour du contexte global.
       const loggedUser = await login(email, password);
       setUser(loggedUser);
-      const today = new Date().toISOString().slice(0, 10);
-      const next = updateStats((prev) => {
-        const uniqueDays = new Set(prev.loginDays);
-        uniqueDays.add(today);
-        return {
-          ...prev,
-          loginDays: Array.from(uniqueDays),
-        };
-      });
-      checkAchievements({
-        custom: {
-          login_days_7: next.loginDays.length >= 7,
-          login_days_30: next.loginDays.length >= 30,
-        },
-      });
-      // Persiste les login days côté backend, fallback silencieux en local.
-      saveAchievementStats({ loginDays: next.loginDays }).catch(() => {});
+      recordLoginDay();
       navigate("/dashboard");
     } catch (err) {
       setError("Email ou mot de passe invalide");

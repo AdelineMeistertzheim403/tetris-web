@@ -4,8 +4,7 @@ import { logger } from "../logger";
 
 type Match = {
   id: string;
-  mode: "VERSUS" | "ROGUELIKE_VERSUS" | "BRICKFALL_VERSUS";
-  creatorPreferredRole?: "ARCHITECT" | "DEMOLISHER";
+  mode: "VERSUS" | "ROGUELIKE_VERSUS";
   players: Set<WebSocket>;
   slots: Map<WebSocket, { slot: number; userId?: number; pseudo?: string }>;
   finished: Map<number, { score: number; lines: number }>;
@@ -17,16 +16,13 @@ type IncomingMessage =
       matchId?: string;
       userId?: number;
       pseudo?: string;
-      mode?: "VERSUS" | "ROGUELIKE_VERSUS" | "BRICKFALL_VERSUS";
-      preferredRole?: "ARCHITECT" | "DEMOLISHER";
+      mode?: "VERSUS" | "ROGUELIKE_VERSUS";
     }
   | { type: "lines_cleared"; lines: number }
   | { type: "state"; board: number[][] }
   | { type: "game_over"; score: number; lines: number }
   | { type: "rv_effect"; effect: any }
-  | { type: "rv_status"; status: any }
-  | { type: "bf_event"; event: any }
-  | { type: "bf_state"; state: any };
+  | { type: "rv_status"; status: any };
 
 type OutgoingMessage =
   | { type: "match_joined"; matchId: string; players: number; slot: number }
@@ -39,9 +35,7 @@ type OutgoingMessage =
   | { type: "match_over"; results: Array<{ slot: number; score: number; lines: number }> }
   | { type: "players_sync"; players: Array<{ slot: number; userId?: number; pseudo?: string }> }
   | { type: "rv_effect"; effect: any }
-  | { type: "rv_status"; status: any }
-  | { type: "bf_event"; event: any }
-  | { type: "bf_state"; state: any };
+  | { type: "rv_status"; status: any };
 
 const matches = new Map<string, Match>();
 const BAG_REFILL_SIZE = 21; // 3 bags
@@ -86,27 +80,6 @@ function broadcastPlayersSync(match: Match) {
   broadcast(match, { type: "players_sync", players });
 }
 
-function resolveSlotForJoin(
-  match: Match,
-  joinerCount: number,
-  preferredRole?: "ARCHITECT" | "DEMOLISHER"
-) {
-  if (match.mode !== "BRICKFALL_VERSUS") return joinerCount;
-  const usedSlots = new Set(Array.from(match.slots.values()).map((info) => info.slot));
-  if (joinerCount === 1) {
-    const creatorRole = preferredRole ?? "ARCHITECT";
-    match.creatorPreferredRole = creatorRole;
-    return creatorRole === "ARCHITECT" ? 1 : 2;
-  }
-  if (joinerCount === 2) {
-    if (!usedSlots.has(1)) return 1;
-    if (!usedSlots.has(2)) return 2;
-  }
-  let fallback = 1;
-  while (usedSlots.has(fallback)) fallback += 1;
-  return fallback;
-}
-
 export function setupWebsocket(server: HttpServer) {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -130,7 +103,6 @@ export function setupWebsocket(server: HttpServer) {
           match = {
             id: matchId,
             mode: parsed.mode ?? "VERSUS",
-            creatorPreferredRole: undefined,
             players: new Set(),
             slots: new Map(),
             finished: new Map(),
@@ -138,7 +110,7 @@ export function setupWebsocket(server: HttpServer) {
           matches.set(matchId, match);
         }
         match.players.add(ws);
-        slot = resolveSlotForJoin(match, match.players.size, parsed.preferredRole);
+        slot = match.players.size;
         match.slots.set(ws, {
           slot,
           userId: parsed.userId,
@@ -192,9 +164,7 @@ export function setupWebsocket(server: HttpServer) {
         const garbage =
           currentMatch.mode === "ROGUELIKE_VERSUS"
             ? Math.max(0, parsed.lines)
-            : currentMatch.mode === "BRICKFALL_VERSUS"
-              ? 0
-              : Math.max(0, garbageMap[parsed.lines] ?? 0);
+            : Math.max(0, garbageMap[parsed.lines] ?? 0);
         if (garbage > 0) {
           broadcast(currentMatch, { type: "garbage", count: garbage }, ws);
         }
@@ -215,14 +185,6 @@ export function setupWebsocket(server: HttpServer) {
         broadcast(currentMatch, { type: "rv_status", status: parsed.status }, ws);
       }
 
-      if (parsed.type === "bf_event") {
-        broadcast(currentMatch, { type: "bf_event", event: parsed.event }, ws);
-      }
-
-      if (parsed.type === "bf_state") {
-        broadcast(currentMatch, { type: "bf_state", state: parsed.state }, ws);
-      }
-
       if (parsed.type === "game_over") {
         if (currentMatch.finished.size >= currentMatch.players.size) {
           return;
@@ -235,25 +197,6 @@ export function setupWebsocket(server: HttpServer) {
         }
         // informer l'autre joueur que quelqu'un a fini
         broadcast(currentMatch, { type: "opponent_finished" }, ws);
-        if (currentMatch.mode === "BRICKFALL_VERSUS") {
-          const slotIds = Array.from(currentMatch.slots.values()).map((s) => s.slot);
-          const reporterScore = parsed.score ?? 0;
-          slotIds.forEach((s) => {
-            if (!currentMatch?.finished.has(s)) {
-              currentMatch?.finished.set(s, {
-                score: reporterScore > 0 ? 0 : 1,
-                lines: 0,
-              });
-            }
-          });
-          const results = Array.from(currentMatch.finished.entries()).map(([s, res]) => ({
-            slot: s,
-            score: res.score,
-            lines: res.lines,
-          }));
-          broadcast(currentMatch, { type: "match_over", results });
-          return;
-        }
         // En versus classique / roguelike versus: fin immédiate au premier game over.
         // Le joueur encore en vie gagne automatiquement.
         const slotIds = Array.from(currentMatch.slots.values()).map((s) => s.slot);
