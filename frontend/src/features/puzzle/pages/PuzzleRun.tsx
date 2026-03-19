@@ -263,6 +263,7 @@ export default function PuzzleRun() {
       puzzleAttemptsById[id] = (puzzleAttemptsById[id] ?? 0) + 1;
       return {
         ...prev,
+        noHoldRuns: prev.noHoldRuns + (!holdUsed ? 1 : 0),
         puzzleAttemptsById,
         puzzleWinStreak: status === "success" ? prev.puzzleWinStreak : 0,
       };
@@ -270,10 +271,11 @@ export default function PuzzleRun() {
     checkAchievements({
       mode: "PUZZLE",
       custom: {
+        no_hold_runs_10: next.noHoldRuns >= 10,
         puzzle_same_3: (next.puzzleAttemptsById[id] ?? 0) >= 3,
       },
     });
-  }, [checkAchievements, id, puzzle, status, updateStats]);
+  }, [checkAchievements, holdUsed, id, puzzle, status, updateStats]);
 
   useEffect(() => {
     if (status !== "failed") return;

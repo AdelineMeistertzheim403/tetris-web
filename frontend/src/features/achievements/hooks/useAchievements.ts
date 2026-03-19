@@ -701,6 +701,13 @@ function useAchievementsValue(): UseAchievementsValue {
         (sum, mode) => sum + mode.sessions,
         0
       );
+      const totalPlaytimeMs = Math.max(
+        currentStats.playtimeMs,
+        Object.values(currentStats.playerBehaviorByMode).reduce(
+          (sum, mode) => sum + Math.max(0, mode.totalDurationMs ?? 0),
+          0
+        )
+      );
       const totalLosses = Object.values(currentStats.playerBehaviorByMode).reduce(
         (sum, mode) => sum + mode.losses,
         0
@@ -984,13 +991,13 @@ function useAchievementsValue(): UseAchievementsValue {
               };
             case "playtime_60m":
               return progressFromCount(
-                Math.floor(currentStats.playtimeMs / 60_000),
+                Math.floor(totalPlaytimeMs / 60_000),
                 60,
                 " min"
               );
             case "playtime_300m":
               return progressFromCount(
-                Math.floor(currentStats.playtimeMs / 60_000),
+                Math.floor(totalPlaytimeMs / 60_000),
                 300,
                 " min"
               );
