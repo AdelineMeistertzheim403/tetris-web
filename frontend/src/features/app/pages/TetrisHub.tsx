@@ -78,6 +78,13 @@ export default function TetrisHub() {
       image: "/Game_Mode/versus.png",
     },
     {
+      title: "Pixel Invasion",
+      desc: "Shooter neon: Pixel contre les Tetrobots et lignes explosives.",
+      path: "/pixel-invasion",
+      accent: "from-[#081425] to-[#173d63]",
+      image: "/Game_Mode/pixel_invasion.svg",
+    },
+    {
       title: "Roguelike Versus",
       desc: "Roguelike compétitif en 1v1.",
       path: "/roguelike-versus",

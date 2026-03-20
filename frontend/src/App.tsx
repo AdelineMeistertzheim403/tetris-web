@@ -40,6 +40,7 @@ const PixelProtocolEditor = lazy(() => import("./features/pixelProtocol/pages/Pi
 const PixelProtocolEditorHelp = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolEditorHelp"));
 const PixelProtocolCommunityHub = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityHub"));
 const PixelProtocolCommunityLevelPage = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityLevelPage"));
+const PixelInvasionPage = lazy(() => import("./features/pixelInvasion/pages/PixelInvasionPage"));
 
 function App() {
   const { user } = useAuth();
@@ -92,6 +93,7 @@ function App() {
           <Route path="/pixel-protocol" element={<PixelProtocolHub />} />
           <Route path="/pixel-protocol/community" element={<PixelProtocolCommunityHub />} />
           <Route path="/pixel-protocol/play" element={<PixelProtocolPage />} />
+          <Route path="/pixel-invasion" element={<PixelInvasionPage />} />
           <Route
             path="/pixel-protocol/community/:publishedId"
             element={<PixelProtocolCommunityLevelPage />}

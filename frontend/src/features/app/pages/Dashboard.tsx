@@ -899,6 +899,13 @@ export default function Dashboard() {
       accent: "from-[#061429] to-[#153f5d]",
       image: "/Game_Mode/pixel_protocole.png",
     },
+    {
+      title: "Pixel Invasion",
+      desc: "Shooter arcade Tetroverse avec scrap grid et boss Apex.",
+      path: "/pixel-invasion",
+      accent: "from-[#081425] to-[#173d63]",
+      image: "/Game_Mode/pixel_invasion.svg",
+    },
   ];
 
   useEffect(() => {
