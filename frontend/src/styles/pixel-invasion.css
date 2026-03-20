@@ -269,119 +269,386 @@
 }
 
 .pixel-invasion-enemy {
+  --enemy-outline: rgba(4, 7, 14, 0.96);
+  --enemy-inner-shadow: rgba(6, 9, 18, 0.52);
+  --enemy-top-sheen: rgba(255, 255, 255, 0.24);
+  --enemy-core-width: 42%;
+  --enemy-core-height: 34%;
+  --enemy-core-radius: 2px;
+  --enemy-core-glow: color-mix(in srgb, var(--enemy-color) 78%, white 22%);
+  --enemy-reactor-color: #ffe88f;
+  --enemy-eye-color: #f4fbff;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  padding: 3px;
+  padding: 2px;
   transform-origin: center;
   filter: drop-shadow(0 0 18px color-mix(in srgb, var(--enemy-color) 50%, transparent));
 }
 
 .pixel-invasion-enemy-grid {
+  position: relative;
   width: 100%;
   height: 100%;
   display: grid;
   gap: 2px;
+  padding: 2px;
   grid-template-columns: repeat(var(--enemy-columns), minmax(0, 1fr));
   grid-template-rows: repeat(var(--enemy-rows), minmax(0, 1fr));
+  background:
+    linear-gradient(180deg, rgba(16, 22, 38, 0.74), rgba(4, 8, 18, 0.9)),
+    rgba(5, 8, 18, 0.62);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 0 2px rgba(2, 4, 10, 0.78),
+    inset 0 0 24px rgba(0, 0, 0, 0.42);
 }
 
 .pixel-invasion-enemy-cell {
   position: relative;
-  border-radius: 4px;
-  background: transparent;
+  border-radius: 1px;
+  background:
+    linear-gradient(180deg, rgba(24, 31, 48, 0.65), rgba(6, 9, 18, 0.92));
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.03),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(2, 4, 10, 0.78);
   min-width: 0;
   min-height: 0;
+  overflow: visible;
 }
 
 .pixel-invasion-enemy-cell--filled {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.36), transparent 34%),
-    var(--enemy-color);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow:
-    inset 0 0 0 2px rgba(5, 7, 14, 0.85),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 0 0 2px rgba(6, 7, 12, 0.95),
-    0 0 12px color-mix(in srgb, var(--enemy-color) 65%, transparent);
+  z-index: 2;
 }
 
-.pixel-invasion-enemy-cell--filled::before,
-.pixel-invasion-enemy-cell--filled::after {
+.pixel-invasion-enemy-cell--filled::before {
+  position: absolute;
+  content: "";
+  inset: -1px;
+  z-index: 0;
+  border-radius: 1px;
+  background: rgba(3, 6, 12, 0.96);
+  transform: translate(1px, 1px) scale(1.08);
+  box-shadow:
+    0 0 0 1px rgba(2, 4, 10, 0.96),
+    2px 2px 0 rgba(0, 0, 0, 0.72),
+    0 0 10px color-mix(in srgb, var(--enemy-color) 24%, transparent);
+}
+
+.pixel-invasion-enemy-cube,
+.pixel-invasion-enemy-cube::before,
+.pixel-invasion-enemy-cube::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.pixel-invasion-enemy-cube {
+  inset: 0;
+  z-index: 1;
+  border-radius: 1px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--enemy-color) 48%, white 52%) 0 12%,
+      color-mix(in srgb, var(--enemy-color) 66%, white 34%) 12% 28%,
+      color-mix(in srgb, var(--enemy-color) 94%, white 6%) 28% 54%,
+      color-mix(in srgb, var(--enemy-color) 72%, black 28%) 54% 80%,
+      color-mix(in srgb, var(--enemy-color) 48%, black 52%) 80% 100%
+    );
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 1px 1px 0 var(--enemy-top-sheen),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.28),
+    inset -2px -2px 0 var(--enemy-inner-shadow),
+    0 0 0 1px var(--enemy-outline),
+    0 0 0 2px rgba(4, 7, 14, 0.94),
+    1px 1px 0 rgba(7, 10, 18, 0.98),
+    2px 2px 0 rgba(2, 5, 10, 0.94),
+    0 0 8px color-mix(in srgb, var(--enemy-color) 45%, transparent);
+}
+
+.pixel-invasion-enemy-cube::before {
+  inset: 2px 2px auto 2px;
+  height: 14%;
+  border-radius: 0;
+  opacity: 0.74;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+}
+
+.pixel-invasion-enemy-cube::after {
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 24%;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.22);
+  opacity: 0.95;
+}
+
+.pixel-invasion-enemy-core {
+  position: absolute;
+  width: var(--enemy-core-width);
+  height: var(--enemy-core-height);
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  overflow: hidden;
+  border-radius: var(--enemy-core-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(8, 12, 22, 0.92)),
+    linear-gradient(180deg, color-mix(in srgb, var(--enemy-color) 24%, black 76%), rgba(0, 0, 0, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  opacity: 0.9;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(5, 8, 14, 0.96),
+    1px 1px 0 rgba(0, 0, 0, 0.44),
+    0 0 14px color-mix(in srgb, var(--enemy-core-glow) 70%, transparent);
+}
+
+.pixel-invasion-enemy-core::before,
+.pixel-invasion-enemy-core::after {
   content: "";
   position: absolute;
   pointer-events: none;
 }
 
-.pixel-invasion-enemy-cell--filled::before {
-  inset: 2px;
-  border-radius: 2px;
-  opacity: 0.8;
+.pixel-invasion-enemy-core::before {
+  inset: 1px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06) 0 1px,
+      transparent 1px 3px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%, transparent 76%, rgba(0, 0, 0, 0.16));
+  mix-blend-mode: screen;
+  opacity: 0.7;
 }
 
-.pixel-invasion-enemy-cell--filled::after {
-  right: 3px;
-  top: 3px;
-  width: 28%;
-  height: 28%;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.38);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.24);
+.pixel-invasion-enemy-core::after {
+  left: 18%;
+  right: 18%;
+  bottom: 12%;
+  height: 2px;
+  background: rgba(10, 14, 22, 0.7);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.pixel-invasion-enemy-core-reactor,
+.pixel-invasion-enemy-core-eye {
+  position: absolute;
+  image-rendering: pixelated;
+}
+
+.pixel-invasion-enemy-core-reactor {
+  inset: 28%;
+  border-radius: 1px;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.95) 0 12%, transparent 13%),
+    radial-gradient(circle at 50% 50%, var(--enemy-reactor-color) 0 42%, rgba(11, 17, 28, 0.98) 43% 70%, transparent 71%);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--enemy-reactor-color) 78%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  animation: pixel-invasion-reactor-idle 1.8s infinite steps(2, end);
+}
+
+.pixel-invasion-enemy-core-eye {
+  top: 34%;
+  width: 12%;
+  height: 12%;
+  border-radius: 1px;
+  background: var(--enemy-eye-color);
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--enemy-eye-color) 80%, transparent),
+    0 0 0 1px rgba(3, 5, 10, 0.68);
+  animation: pixel-invasion-eye-idle 2.8s infinite steps(2, end);
+}
+
+.pixel-invasion-enemy-core-eye--left {
+  left: 20%;
+}
+
+.pixel-invasion-enemy-core-eye--right {
+  right: 20%;
 }
 
 .pixel-invasion-enemy--i {
+  --enemy-top-sheen: rgba(214, 250, 255, 0.34);
+  --enemy-core-width: 48%;
+  --enemy-core-height: 18%;
+  --enemy-core-radius: 1px;
+  --enemy-reactor-color: #9af9ff;
+  --enemy-eye-color: #f3ffff;
   animation: pixel-invasion-i-scan 1.45s infinite linear;
 }
 
-.pixel-invasion-enemy--i .pixel-invasion-enemy-cell--filled::before {
+.pixel-invasion-enemy--i .pixel-invasion-enemy-cube::before {
   background:
     linear-gradient(90deg, transparent 28%, rgba(4, 10, 18, 0.9) 28%, rgba(4, 10, 18, 0.9) 41%, transparent 41%),
     linear-gradient(180deg, rgba(180, 250, 255, 0.8), rgba(36, 111, 255, 0.15));
 }
 
+.pixel-invasion-enemy--i .pixel-invasion-enemy-core-eye {
+  top: 50%;
+  width: 10%;
+  height: 38%;
+  transform: translateY(-50%);
+  animation: pixel-invasion-eye-scan 1.4s infinite steps(3, end);
+}
+
+.pixel-invasion-enemy--i .pixel-invasion-enemy-core-reactor {
+  inset: 24% 34%;
+  animation: pixel-invasion-reactor-scan 1.4s infinite steps(4, end);
+}
+
+.pixel-invasion-enemy--i .pixel-invasion-enemy-core::after {
+  left: 24%;
+  right: 24%;
+  bottom: 18%;
+  height: 1px;
+}
+
 .pixel-invasion-enemy--o {
+  --enemy-top-sheen: rgba(255, 244, 176, 0.34);
+  --enemy-core-width: 36%;
+  --enemy-core-height: 36%;
+  --enemy-core-radius: 1px;
+  --enemy-reactor-color: #ffe86a;
+  --enemy-eye-color: #fff8bf;
   animation: pixel-invasion-o-thump 1.8s infinite ease-in-out;
 }
 
-.pixel-invasion-enemy--o .pixel-invasion-enemy-cell--filled::before {
-  inset: 3px;
+.pixel-invasion-enemy--o .pixel-invasion-enemy-cube::before {
+  inset: 2px;
   border: 2px solid rgba(7, 8, 12, 0.9);
-  border-radius: 3px;
+  border-radius: 1px;
   background:
     linear-gradient(180deg, rgba(255, 247, 180, 0.3), rgba(0, 0, 0, 0.08)),
     linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.24));
 }
 
+.pixel-invasion-enemy--o .pixel-invasion-enemy-core-eye {
+  top: 24%;
+  width: 10%;
+  height: 10%;
+  animation: pixel-invasion-eye-heavy 3.1s infinite steps(2, end);
+}
+
+.pixel-invasion-enemy--o .pixel-invasion-enemy-core-reactor {
+  inset: 25%;
+  animation: pixel-invasion-reactor-furnace 1.9s infinite steps(3, end);
+}
+
+.pixel-invasion-enemy--o .pixel-invasion-enemy-core::after {
+  left: 22%;
+  right: 22%;
+  bottom: 10%;
+  height: 3px;
+}
+
 .pixel-invasion-enemy--t {
+  --enemy-top-sheen: rgba(236, 202, 255, 0.3);
+  --enemy-core-width: 36%;
+  --enemy-core-height: 24%;
+  --enemy-reactor-color: #f0a8ff;
+  --enemy-eye-color: #ffe9ff;
   animation: pixel-invasion-t-fan 1.7s infinite ease-in-out;
 }
 
-.pixel-invasion-enemy--t .pixel-invasion-enemy-cell--filled::before {
+.pixel-invasion-enemy--t .pixel-invasion-enemy-cube::before {
   background:
     radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.62), transparent 30%),
     conic-gradient(from 180deg, rgba(0, 0, 0, 0.15), rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.15));
 }
 
+.pixel-invasion-enemy--t .pixel-invasion-enemy-core {
+  transform: translate(-50%, -50%) rotate(-2deg);
+}
+
+.pixel-invasion-enemy--t .pixel-invasion-enemy-core-eye {
+  animation: pixel-invasion-eye-oracle 2.2s infinite steps(3, end);
+}
+
+.pixel-invasion-enemy--t .pixel-invasion-enemy-core-reactor {
+  animation: pixel-invasion-reactor-psionic 1.7s infinite steps(3, end);
+}
+
+.pixel-invasion-enemy--t .pixel-invasion-enemy-core::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 22%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 3px),
+    linear-gradient(90deg, transparent 40%, rgba(255, 255, 255, 0.12) 40% 60%, transparent 60%);
+}
+
 .pixel-invasion-enemy--l {
+  --enemy-top-sheen: rgba(255, 219, 182, 0.34);
+  --enemy-core-width: 30%;
+  --enemy-core-height: 22%;
+  --enemy-reactor-color: #ffbc86;
+  --enemy-eye-color: #fff2ea;
   animation: pixel-invasion-l-dash 0.95s infinite ease-in-out;
 }
 
-.pixel-invasion-enemy--l .pixel-invasion-enemy-cell--filled::before {
+.pixel-invasion-enemy--l .pixel-invasion-enemy-cube::before {
   background:
     linear-gradient(135deg, rgba(7, 9, 14, 0.88) 0 18%, transparent 18% 100%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 62%),
     linear-gradient(180deg, rgba(255, 186, 123, 0.7), rgba(0, 0, 0, 0.08));
 }
 
+.pixel-invasion-enemy--l .pixel-invasion-enemy-core-eye--left {
+  left: 18%;
+  top: 30%;
+  animation: pixel-invasion-eye-striker 1s infinite steps(2, end);
+}
+
+.pixel-invasion-enemy--l .pixel-invasion-enemy-core-eye--right {
+  right: 18%;
+  top: 48%;
+  animation: pixel-invasion-eye-striker 1s infinite steps(2, end) reverse;
+}
+
+.pixel-invasion-enemy--l .pixel-invasion-enemy-core-reactor {
+  animation: pixel-invasion-reactor-burn 1.05s infinite steps(3, end);
+}
+
 .pixel-invasion-enemy--j {
+  --enemy-top-sheen: rgba(186, 221, 255, 0.34);
+  --enemy-core-width: 30%;
+  --enemy-core-height: 22%;
+  --enemy-reactor-color: #95c6ff;
+  --enemy-eye-color: #eef8ff;
   animation: pixel-invasion-j-drift 1.15s infinite ease-in-out;
 }
 
-.pixel-invasion-enemy--j .pixel-invasion-enemy-cell--filled::before {
+.pixel-invasion-enemy--j .pixel-invasion-enemy-cube::before {
   background:
     linear-gradient(225deg, rgba(7, 9, 14, 0.88) 0 18%, transparent 18% 100%),
     linear-gradient(90deg, transparent 38%, rgba(255, 255, 255, 0.18)),
     linear-gradient(180deg, rgba(144, 198, 255, 0.68), rgba(0, 0, 0, 0.08));
+}
+
+.pixel-invasion-enemy--j .pixel-invasion-enemy-core-eye--left {
+  left: 18%;
+  top: 48%;
+  animation: pixel-invasion-eye-guard 1.3s infinite steps(2, end);
+}
+
+.pixel-invasion-enemy--j .pixel-invasion-enemy-core-eye--right {
+  right: 18%;
+  top: 30%;
+  animation: pixel-invasion-eye-guard 1.3s infinite steps(2, end) reverse;
+}
+
+.pixel-invasion-enemy--j .pixel-invasion-enemy-core-reactor {
+  animation: pixel-invasion-reactor-guard 1.6s infinite steps(3, end);
 }
 
 .pixel-invasion-enemy--s,
@@ -389,26 +656,112 @@
   animation: pixel-invasion-zigzag 1.35s infinite ease-in-out;
 }
 
-.pixel-invasion-enemy--s .pixel-invasion-enemy-cell--filled::before {
+.pixel-invasion-enemy--s {
+  --enemy-top-sheen: rgba(201, 255, 225, 0.32);
+  --enemy-core-width: 34%;
+  --enemy-core-height: 20%;
+  --enemy-reactor-color: #8effb5;
+  --enemy-eye-color: #e7fff0;
+}
+
+.pixel-invasion-enemy--s .pixel-invasion-enemy-cube::before {
   background:
     repeating-linear-gradient(135deg, rgba(6, 10, 12, 0.85) 0 3px, transparent 3px 7px),
     linear-gradient(180deg, rgba(180, 255, 210, 0.35), rgba(0, 0, 0, 0.08));
 }
 
-.pixel-invasion-enemy--z .pixel-invasion-enemy-cell--filled::before {
+.pixel-invasion-enemy--s .pixel-invasion-enemy-core {
+  transform: translate(-50%, -50%) rotate(-7deg);
+}
+
+.pixel-invasion-enemy--s .pixel-invasion-enemy-core-eye--left {
+  top: 30%;
+  animation: pixel-invasion-eye-glitch 0.95s infinite steps(2, end);
+}
+
+.pixel-invasion-enemy--s .pixel-invasion-enemy-core-eye--right {
+  top: 50%;
+  animation: pixel-invasion-eye-glitch 0.95s infinite steps(2, end) reverse;
+}
+
+.pixel-invasion-enemy--s .pixel-invasion-enemy-core-reactor {
+  animation: pixel-invasion-reactor-glitch 1s infinite steps(4, end);
+}
+
+.pixel-invasion-enemy--z {
+  --enemy-top-sheen: rgba(255, 210, 225, 0.32);
+  --enemy-core-width: 34%;
+  --enemy-core-height: 20%;
+  --enemy-reactor-color: #ff8cab;
+  --enemy-eye-color: #fff0f5;
+}
+
+.pixel-invasion-enemy--z .pixel-invasion-enemy-cube::before {
   background:
     repeating-linear-gradient(-135deg, rgba(6, 10, 12, 0.85) 0 3px, transparent 3px 7px),
     linear-gradient(180deg, rgba(255, 190, 210, 0.35), rgba(0, 0, 0, 0.08));
 }
 
+.pixel-invasion-enemy--z .pixel-invasion-enemy-core {
+  transform: translate(-50%, -50%) rotate(7deg);
+}
+
+.pixel-invasion-enemy--z .pixel-invasion-enemy-core-eye--left {
+  top: 50%;
+  animation: pixel-invasion-eye-rage 0.85s infinite steps(2, end);
+}
+
+.pixel-invasion-enemy--z .pixel-invasion-enemy-core-eye--right {
+  top: 30%;
+  animation: pixel-invasion-eye-rage 0.85s infinite steps(2, end) reverse;
+}
+
+.pixel-invasion-enemy--z .pixel-invasion-enemy-core-reactor {
+  animation: pixel-invasion-reactor-rage 0.9s infinite steps(3, end);
+}
+
 .pixel-invasion-enemy--apex {
+  --enemy-top-sheen: rgba(255, 219, 188, 0.34);
+  --enemy-core-width: 28%;
+  --enemy-core-height: 20%;
+  --enemy-core-radius: 1px;
+  --enemy-reactor-color: #ff9d69;
+  --enemy-eye-color: #fff0e7;
   animation: pixel-invasion-apex-overclock 1.2s infinite ease-in-out;
 }
 
-.pixel-invasion-enemy--apex .pixel-invasion-enemy-cell--filled::before {
+.pixel-invasion-enemy--apex .pixel-invasion-enemy-cube::before {
   background:
     linear-gradient(90deg, transparent 14%, rgba(9, 7, 7, 0.86) 14% 20%, transparent 20% 80%, rgba(9, 7, 7, 0.86) 80% 86%, transparent 86%),
     linear-gradient(180deg, rgba(255, 219, 188, 0.36), rgba(0, 0, 0, 0.1));
+}
+
+.pixel-invasion-enemy--apex .pixel-invasion-enemy-core {
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(5, 8, 14, 0.96),
+    1px 1px 0 rgba(0, 0, 0, 0.44),
+    0 0 22px rgba(255, 122, 74, 0.45);
+}
+
+.pixel-invasion-enemy--apex .pixel-invasion-enemy-core-eye {
+  top: 28%;
+  width: 10%;
+  height: 10%;
+  animation: pixel-invasion-eye-overclock 0.8s infinite steps(3, end);
+}
+
+.pixel-invasion-enemy--apex .pixel-invasion-enemy-core-reactor {
+  inset: 22%;
+  animation: pixel-invasion-reactor-overclock 0.72s infinite steps(4, end);
+}
+
+.pixel-invasion-enemy--apex .pixel-invasion-enemy-core::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 24%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 3px),
+    linear-gradient(90deg, transparent 20%, rgba(255, 165, 128, 0.16) 20% 26%, transparent 26% 74%, rgba(255, 165, 128, 0.16) 74% 80%, transparent 80%);
 }
 
 .pixel-invasion-enemy-hp {
@@ -719,6 +1072,228 @@
   }
   to {
     transform: scale(1.18);
+  }
+}
+
+@keyframes pixel-invasion-reactor-idle {
+  0%,
+  100% {
+    opacity: 0.88;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--enemy-reactor-color) 74%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--enemy-reactor-color) 92%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  }
+}
+
+@keyframes pixel-invasion-eye-idle {
+  0%,
+  84%,
+  100% {
+    opacity: 1;
+  }
+  88%,
+  92% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes pixel-invasion-reactor-scan {
+  0%,
+  100% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px rgba(154, 249, 255, 0.36);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(154, 249, 255, 0.72);
+  }
+}
+
+@keyframes pixel-invasion-eye-scan {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pixel-invasion-reactor-furnace {
+  0%,
+  100% {
+    opacity: 0.82;
+    box-shadow: 0 0 10px rgba(255, 232, 106, 0.45);
+  }
+  40% {
+    opacity: 1;
+    box-shadow: 0 0 18px rgba(255, 232, 106, 0.8);
+  }
+}
+
+@keyframes pixel-invasion-eye-heavy {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  75%,
+  86% {
+    opacity: 0.22;
+  }
+}
+
+@keyframes pixel-invasion-reactor-psionic {
+  0%,
+  100% {
+    opacity: 0.8;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    filter: hue-rotate(14deg);
+  }
+}
+
+@keyframes pixel-invasion-eye-oracle {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  45%,
+  55% {
+    opacity: 1;
+  }
+}
+
+@keyframes pixel-invasion-reactor-burn {
+  0%,
+  100% {
+    opacity: 0.86;
+    box-shadow: 0 0 10px rgba(255, 188, 134, 0.42);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 18px rgba(255, 188, 134, 0.78);
+  }
+}
+
+@keyframes pixel-invasion-eye-striker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes pixel-invasion-reactor-guard {
+  0%,
+  100% {
+    opacity: 0.78;
+  }
+  50% {
+    opacity: 0.96;
+    box-shadow: 0 0 14px rgba(149, 198, 255, 0.62);
+  }
+}
+
+@keyframes pixel-invasion-eye-guard {
+  0%,
+  100% {
+    opacity: 0.92;
+  }
+  50% {
+    opacity: 0.58;
+  }
+}
+
+@keyframes pixel-invasion-reactor-glitch {
+  0%,
+  100% {
+    opacity: 0.78;
+    filter: hue-rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    filter: hue-rotate(22deg);
+  }
+  50% {
+    opacity: 0.5;
+  }
+  75% {
+    opacity: 1;
+    filter: hue-rotate(-18deg);
+  }
+}
+
+@keyframes pixel-invasion-eye-glitch {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  30% {
+    opacity: 0.4;
+    transform: translateX(-1px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(1px);
+  }
+}
+
+@keyframes pixel-invasion-reactor-rage {
+  0%,
+  100% {
+    opacity: 0.8;
+    box-shadow: 0 0 10px rgba(255, 140, 171, 0.38);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(255, 140, 171, 0.92);
+  }
+}
+
+@keyframes pixel-invasion-eye-rage {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes pixel-invasion-reactor-overclock {
+  0%,
+  100% {
+    opacity: 0.86;
+    filter: saturate(1);
+  }
+  50% {
+    opacity: 1;
+    filter: saturate(1.35);
+    box-shadow: 0 0 20px rgba(255, 157, 105, 0.92);
+  }
+}
+
+@keyframes pixel-invasion-eye-overclock {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 8px rgba(255, 240, 231, 0.7),
+      0 0 0 1px rgba(3, 5, 10, 0.68);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow:
+      0 0 16px rgba(255, 240, 231, 0.98),
+      0 0 0 1px rgba(3, 5, 10, 0.68);
   }
 }
 

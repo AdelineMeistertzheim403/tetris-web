@@ -5,6 +5,7 @@ import {
   PLAYER_WIDTH,
   PLAYER_Y,
   getEnemyCells,
+  getEnemyCoreStyle,
   getEnemyGridStyle,
   renderPercent,
 } from "../model";
@@ -92,9 +93,20 @@ export function PixelInvasionBoard({ game, stars, onRestart }: PixelInvasionBoar
                     className={`pixel-invasion-enemy-cell ${
                       value ? "pixel-invasion-enemy-cell--filled" : ""
                     }`}
-                  />
+                  >
+                    {value ? <span className="pixel-invasion-enemy-cube" /> : null}
+                  </span>
                 ))
               )}
+              <span
+                className={`pixel-invasion-enemy-core pixel-invasion-enemy-core--${enemy.kind.toLowerCase()}`}
+                style={getEnemyCoreStyle(enemy)}
+                aria-hidden="true"
+              >
+                <span className="pixel-invasion-enemy-core-reactor" />
+                <span className="pixel-invasion-enemy-core-eye pixel-invasion-enemy-core-eye--left" />
+                <span className="pixel-invasion-enemy-core-eye pixel-invasion-enemy-core-eye--right" />
+              </span>
             </div>
             <div className="pixel-invasion-enemy-hp">
               <span style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }} />

@@ -266,6 +266,37 @@ export function getEnemyGridStyle(enemy: Enemy): CSSProperties {
   } as CSSProperties;
 }
 
+/**
+ * Positionne le noyau robotique au barycentre des cellules remplies,
+ * pour éviter un simple centrage de bounding-box.
+ */
+export function getEnemyCoreStyle(enemy: Enemy): CSSProperties {
+  const cells = getEnemyCells(enemy.kind);
+  const filled: Array<{ row: number; col: number }> = [];
+
+  cells.forEach((row, rowIndex) => {
+    row.forEach((value, colIndex) => {
+      if (value) {
+        filled.push({ row: rowIndex, col: colIndex });
+      }
+    });
+  });
+
+  if (filled.length === 0) {
+    return { left: "50%", top: "50%" };
+  }
+
+  const rowCount = cells.length || 1;
+  const colCount = cells[0]?.length || 1;
+  const averageRow = filled.reduce((sum, cell) => sum + cell.row + 0.5, 0) / filled.length;
+  const averageCol = filled.reduce((sum, cell) => sum + cell.col + 0.5, 0) / filled.length;
+
+  return {
+    left: `${(averageCol / colCount) * 100}%`,
+    top: `${(averageRow / rowCount) * 100}%`,
+  };
+}
+
 /** Génère un fond étoilé stable sans dépendre d'un état runtime. */
 export function createStars(count = 20): PixelInvasionStar[] {
   return Array.from({ length: count }, (_, index) => ({
