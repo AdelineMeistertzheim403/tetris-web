@@ -218,6 +218,7 @@ export const pixelInvasionProgressSchema = z.object({
   totalKills: intWithin(0, 999_999).optional(),
   totalLineBursts: intWithin(0, 999_999).optional(),
   victories: intWithin(0, 999_999).optional(),
+  pausedRun: z.unknown().nullable().optional(),
 });
 
 const tetromazePosSchema = z.object({

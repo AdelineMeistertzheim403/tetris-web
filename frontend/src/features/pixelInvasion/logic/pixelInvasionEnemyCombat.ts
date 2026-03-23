@@ -227,8 +227,13 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
   if (picked.kind === "APEX") {
     const isRookieBoss = picked.bossTheme === "rookie";
     const isPulseBoss = picked.bossTheme === "pulse";
-    const spread = isRookieBoss ? 42 : isPulseBoss ? 58 : 74;
-    const baseVy = isRookieBoss ? ENEMY_BULLET_SPEED + 12 : isPulseBoss ? ENEMY_BULLET_SPEED + 40 : ENEMY_BULLET_SPEED + 56;
+    const isSplitBoss = (picked.bossSplitGeneration ?? 0) > 0;
+    const spread = isRookieBoss ? (isSplitBoss ? 56 : 48) : isPulseBoss ? (isSplitBoss ? 76 : 64) : isSplitBoss ? 92 : 82;
+    const baseVy = isRookieBoss
+      ? ENEMY_BULLET_SPEED + (isSplitBoss ? 36 : 22)
+      : isPulseBoss
+        ? ENEMY_BULLET_SPEED + (isSplitBoss ? 72 : 56)
+        : ENEMY_BULLET_SPEED + (isSplitBoss ? 92 : 74);
 
     return [
       ...state.enemyBullets,
@@ -238,9 +243,9 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
         y: picked.y + picked.height + 8,
         vx: -spread,
         vy: baseVy,
-        width: 10,
-        height: 22,
-        damage: 1,
+        width: isSplitBoss ? 12 : 10,
+        height: isSplitBoss ? 24 : 22,
+        damage: isSplitBoss ? 2 : 1,
         age: 0,
         sourceKind: "APEX",
       },
@@ -252,9 +257,9 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
               y: picked.y + picked.height + 8,
               vx: spread,
               vy: baseVy,
-              width: 10,
-              height: 22,
-              damage: 1,
+              width: isSplitBoss ? 12 : 10,
+              height: isSplitBoss ? 24 : 22,
+              damage: isSplitBoss ? 2 : 1,
               age: 0,
               sourceKind: "APEX" as const,
             },
@@ -265,10 +270,10 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
               x: picked.x + picked.width / 2 - 6,
               y: picked.y + picked.height + 8,
               vx: 0,
-              vy: isPulseBoss ? baseVy + 26 : baseVy + 32,
-              width: 12,
-              height: 26,
-              damage: 1,
+              vy: isPulseBoss ? baseVy + 34 : baseVy + 42,
+              width: isSplitBoss ? 14 : 12,
+              height: isSplitBoss ? 28 : 26,
+              damage: isSplitBoss ? 2 : 1,
               age: 0,
               sourceKind: "APEX" as const,
             },
@@ -278,9 +283,9 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
               y: picked.y + picked.height + 8,
               vx: spread,
               vy: baseVy,
-              width: 10,
-              height: 22,
-              damage: 1,
+              width: isSplitBoss ? 12 : 10,
+              height: isSplitBoss ? 24 : 22,
+              damage: isSplitBoss ? 2 : 1,
               age: 0,
               sourceKind: "APEX" as const,
             },
@@ -290,11 +295,11 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
                     id: baseId + 3,
                     x: picked.x + picked.width / 2 - 6,
                     y: picked.y + picked.height + 8,
-                    vx: -28,
-                    vy: baseVy + 48,
+                    vx: -36,
+                    vy: baseVy + 58,
                     width: 8,
                     height: 20,
-                    damage: 1,
+                    damage: isSplitBoss ? 2 : 1,
                     age: 0,
                     sourceKind: "APEX" as const,
                   },
@@ -302,11 +307,11 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
                     id: baseId + 4,
                     x: picked.x + picked.width / 2 - 6,
                     y: picked.y + picked.height + 8,
-                    vx: 28,
-                    vy: baseVy + 48,
+                    vx: 36,
+                    vy: baseVy + 58,
                     width: 8,
                     height: 20,
-                    damage: 1,
+                    damage: isSplitBoss ? 2 : 1,
                     age: 0,
                     sourceKind: "APEX" as const,
                   },
@@ -529,11 +534,21 @@ export function queueEnemyFire(next: GameState, playerCenterX: number, slowMulti
   if (next.enemyShotCooldown !== 0 || next.enemies.length === 0 || next.waveTransition !== 0) return;
 
   const formation = getFormationPressure(next);
+  const bosses = next.enemies.filter((enemy) => enemy.kind === "APEX");
 
-  const shooters = next.enemies
-    .filter((enemy) => enemy.kind !== "L" && enemy.kind !== "J")
-    .sort((left, right) => right.y - left.y)
-    .slice(0, Math.min(next.waveTheme === "rookie" ? 3 : next.waveTheme === "pulse" ? 4 : 5, next.enemies.length));
+  const shooters =
+    bosses.length > 0
+      ? bosses
+      : next.enemies
+          .filter((enemy) => enemy.kind !== "L" && enemy.kind !== "J")
+          .sort((left, right) => right.y - left.y)
+          .slice(
+            0,
+            Math.min(
+              next.waveTheme === "rookie" ? 3 : next.waveTheme === "pulse" ? 4 : 5,
+              next.enemies.length
+            )
+          );
   const pickedShooter = shooters[Math.floor(Math.random() * shooters.length)];
 
   if (pickedShooter) {
@@ -545,11 +560,21 @@ export function queueEnemyFire(next: GameState, playerCenterX: number, slowMulti
   }
 
   const baseCooldown =
-    next.waveTheme === "rookie"
-      ? Math.max(0.72, 1.95 - next.wave * 0.028)
-      : next.waveTheme === "pulse"
-        ? Math.max(0.46, 1.62 - next.wave * 0.04 - formation.compression * 0.2)
-        : Math.max(0.34, 1.36 - next.wave * 0.038 - formation.skew * 0.24);
+    bosses.length > 0
+      ? Math.max(
+          0.14,
+          (pickedShooter?.bossTheme === "rookie"
+            ? 0.52
+            : pickedShooter?.bossTheme === "pulse"
+              ? 0.38
+              : 0.28) -
+            (pickedShooter?.bossSplitGeneration === 0 ? 0 : 0.08)
+        )
+      : next.waveTheme === "rookie"
+        ? Math.max(0.72, 1.95 - next.wave * 0.028)
+        : next.waveTheme === "pulse"
+          ? Math.max(0.46, 1.62 - next.wave * 0.04 - formation.compression * 0.2)
+          : Math.max(0.34, 1.36 - next.wave * 0.038 - formation.skew * 0.24);
   next.enemyShotCooldown = baseCooldown / slowMultiplier;
 }
 

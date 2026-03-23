@@ -107,6 +107,7 @@ export type Enemy = {
   id: number;
   kind: EnemyKind;
   bossTheme?: Exclude<WaveTheme, "standard">;
+  bossSplitGeneration?: number;
   x: number;
   y: number;
   width: number;

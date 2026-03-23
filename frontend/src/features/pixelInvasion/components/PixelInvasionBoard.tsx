@@ -1,4 +1,5 @@
 import { memo } from "react";
+import type { ReactNode } from "react";
 import { PixelInvasionEntityCanvas } from "./PixelInvasionEntityCanvas";
 import {
   BOARD_HEIGHT,
@@ -14,6 +15,7 @@ type PixelInvasionBoardProps = {
   game: GameState;
   stars: PixelInvasionStar[];
   onRestart: () => void;
+  customOverlay?: ReactNode;
 };
 
 const ScrapGrid = memo(function ScrapGrid({ scrapGrid }: { scrapGrid: GameState["scrapGrid"] }) {
@@ -38,7 +40,7 @@ const ScrapGrid = memo(function ScrapGrid({ scrapGrid }: { scrapGrid: GameState[
   );
 });
 
-export function PixelInvasionBoard({ game, stars, onRestart }: PixelInvasionBoardProps) {
+export function PixelInvasionBoard({ game, stars, onRestart, customOverlay }: PixelInvasionBoardProps) {
   const highDensity =
     game.enemies.length >= 18 ||
     game.enemyBullets.length >= 28 ||
@@ -154,7 +156,9 @@ export function PixelInvasionBoard({ game, stars, onRestart }: PixelInvasionBoar
           />
         </div>
 
-        {(game.gameOver || game.victory) && (
+        {customOverlay}
+
+        {!customOverlay && (game.gameOver || game.victory) && (
           <div className="pixel-invasion-overlay">
             <h2>{game.victory ? "Secteur securise" : "Secteur perdu"}</h2>
             <p>
@@ -173,7 +177,7 @@ export function PixelInvasionBoard({ game, stars, onRestart }: PixelInvasionBoar
           </div>
         )}
 
-        {!game.gameOver && !game.victory && game.waveTransition > 0 && (
+        {!customOverlay && !game.gameOver && !game.victory && game.waveTransition > 0 && (
           <div
             className={`pixel-invasion-wave-overlay ${
               isChapterIntro && chapterIntro
