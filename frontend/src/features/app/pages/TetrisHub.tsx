@@ -121,13 +121,13 @@ export default function TetrisHub() {
   }, [mode, tab, user]);
 
   return (
-    <div className="dashboard-mode-shell min-h-screen text-pink-300 font-['Press_Start_2P'] py-10 px-10">
+    <div className="dashboard-mode-shell dashboard-mode-shell--tetris min-h-screen text-pink-300 font-['Press_Start_2P'] py-10 px-10">
       <div className="dashboard-mode-head">
         <div>
-          <p className="dashboard-mode-eyebrow">Hub central</p>
-          <h1 className="dashboard-mode-title">Mode Tetris</h1>
+          <p className="dashboard-mode-eyebrow">Hub arcade</p>
+          <h1 className="dashboard-mode-title">Arcade Tetris</h1>
           <p className="dashboard-mode-subtitle">
-            Retrouve ici tous les modes Tetris classiques, puzzle et versus.
+            Retrouve ici les modes Tetris purs: score, vitesse, puzzle et affrontement.
           </p>
         </div>
         <button
@@ -171,7 +171,7 @@ export default function TetrisHub() {
                 }
                 navigate(modeCard.path);
               }}
-              className={`mode-card bg-gradient-to-b ${modeCard.accent}`}
+              className={`mode-card mode-card--tetris bg-gradient-to-b ${modeCard.accent}`}
             >
               <div className="mode-card__icon">
                 <img

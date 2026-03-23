@@ -21,6 +21,7 @@ type ModeCard = {
   path: string;
   accent: string;
   image: string;
+  variant: "tetris" | "brickfall" | "tetroverse";
 };
 
 type DashboardBot = TetrobotId;
@@ -877,6 +878,7 @@ export default function Dashboard() {
       path: "/tetris-hub",
       accent: "from-[#130018] to-[#2b0a45]",
       image: "/Game_Mode/tetris.png",
+      variant: "tetris",
     },
     {
       title: "Brickfall Solo",
@@ -884,20 +886,15 @@ export default function Dashboard() {
       path: "/brickfall-solo",
       accent: "from-[#00121a] to-[#00314a]",
       image: "/Game_Mode/brickfall_solo.png",
+      variant: "brickfall",
     },
     {
-      title: "Tetromaze",
-      desc: "Pacman-like neon contre les Tetrobots.",
-      path: "/tetromaze",
-      accent: "from-[#070f24] to-[#1b2b56]",
-      image: "/Game_Mode/tetromaze.png",
-    },
-    {
-      title: "Pixel Protocol",
-      desc: "Platformer Tetroverse: saute, hack et collecte des Data-Orbs.",
-      path: "/pixel-protocol",
-      accent: "from-[#061429] to-[#153f5d]",
-      image: "/Game_Mode/pixel_protocole.png",
+      title: "Tetro-Verse",
+      desc: "Tetromaze, Pixel Protocol et Pixel Invasion dans un hub dedie.",
+      path: "/tetro-verse",
+      accent: "from-[#0a1028] to-[#21457a]",
+      image: "/Game_Mode/tetroverse.png",
+      variant: "tetroverse",
     },
   ];
 
@@ -1548,7 +1545,7 @@ export default function Dashboard() {
                 <button
                   key={modeCard.title}
                   onClick={() => navigate(modeCard.path)}
-                  className={`mode-card bg-gradient-to-b ${modeCard.accent}`}
+                  className={`mode-card mode-card--dashboard mode-card--dashboard-${modeCard.variant} bg-gradient-to-b ${modeCard.accent}`}
                 >
                   <div className="mode-card__icon">
                     <img

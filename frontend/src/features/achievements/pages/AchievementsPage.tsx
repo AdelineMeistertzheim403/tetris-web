@@ -36,6 +36,7 @@ export default function AchievementsPage() {
     "META",
     "NARRATIVE",
     "BEHAVIOR",
+    "PIXEL_INVASION",
     "TETROMAZE",
     "TETROMAZE_SKILL",
     "TETROMAZE_POWER",
@@ -66,6 +67,7 @@ export default function AchievementsPage() {
     META: "Meta progression",
     NARRATIVE: "Narratif Tetrobots",
     BEHAVIOR: "Comportement",
+    PIXEL_INVASION: "Pixel Invasion",
     TETROMAZE: "Tetromaze - Progression",
     TETROMAZE_SKILL: "Tetromaze - Skill",
     TETROMAZE_POWER: "Tetromaze - Power Play",
@@ -88,6 +90,7 @@ export default function AchievementsPage() {
     "ROGUELIKE_VERSUS",
     "PUZZLE",
     "TETROMAZE",
+    "PIXEL_INVASION",
     "PIXEL_PROTOCOL",
   ];
 
@@ -103,6 +106,7 @@ export default function AchievementsPage() {
     ROGUELIKE_VERSUS: "Roguelike Versus",
     PUZZLE: "Puzzle",
     TETROMAZE: "Tetromaze",
+    PIXEL_INVASION: "Pixel Invasion",
     PIXEL_PROTOCOL: "Pixel Protocol",
   };
 

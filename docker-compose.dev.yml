@@ -28,6 +28,7 @@ services:
       - ./frontend/src/features/pixelProtocol:/app/frontend/src/features/pixelProtocol:ro
       - /app/node_modules
     environment:
+      NODE_ENV: development
       DATABASE_URL: postgresql://tetris_user:tetris_pass@db:5432/tetris_db?schema=public
       JWT_SECRET: super_secret_tetris_key_dev
       ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
@@ -44,8 +45,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      VITE_API_URL: http://10.8.251.40:8080/api
-      VITE_WS_URL: ws://10.8.251.40:8080/ws
+      VITE_API_URL: http://localhost:8080/api
+      VITE_WS_URL: ws://localhost:8080/ws
     depends_on:
       - backend
 
