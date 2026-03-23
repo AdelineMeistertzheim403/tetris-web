@@ -1,22 +1,69 @@
-import { DASH_COOLDOWN, MAX_LIVES, TOTAL_WAVES, getPowerupLabel } from "../model";
+import {
+  DASH_COOLDOWN,
+  MAX_LIVES,
+  TOTAL_WAVES,
+  getPowerupLabel,
+  getWaveThemeLabel,
+} from "../model";
 import type { GameState } from "../model";
 
 type PixelInvasionSidebarProps = {
   game: GameState;
   shieldRatio: number;
+  bestScore: number;
+  bestWave: number;
+  side: "left" | "right";
 };
 
-export function PixelInvasionSidebar({ game, shieldRatio }: PixelInvasionSidebarProps) {
+export function PixelInvasionSidebar({
+  game,
+  shieldRatio,
+  bestScore,
+  bestWave,
+  side,
+}: PixelInvasionSidebarProps) {
   const activeBotLabel = game.message.bot.toUpperCase();
 
+  if (side === "left") {
+    return (
+      <aside className="pixel-invasion-sidebar pixel-invasion-sidebar--left">
+        <section
+          className={`pixel-invasion-card pixel-invasion-card--message pixel-invasion-card--${game.message.tone}`}
+        >
+          <div className="pixel-invasion-card-title">Canal Tetrobots</div>
+          <div className="pixel-invasion-message-bot">{activeBotLabel}</div>
+          <p>{game.message.text}</p>
+        </section>
+
+        <section className="pixel-invasion-card">
+          <div className="pixel-invasion-card-title">Controles</div>
+          <ul className="pixel-invasion-list">
+            <li>`A` / `D` ou fleches : deplacement</li>
+            <li>`Space` : tir</li>
+            <li>`Shift` : dash</li>
+            <li>`B` : bombe de nettoyage</li>
+          </ul>
+        </section>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="pixel-invasion-sidebar">
+    <aside className="pixel-invasion-sidebar pixel-invasion-sidebar--right">
       <section className="pixel-invasion-card pixel-invasion-card--stats">
         <div className="pixel-invasion-card-title">Flux combat</div>
         <div className="pixel-invasion-stat-grid">
           <div>
             <span>Score</span>
             <strong>{game.score}</strong>
+          </div>
+          <div>
+            <span>Meilleur</span>
+            <strong>{bestScore}</strong>
+          </div>
+          <div>
+            <span>Vague max</span>
+            <strong>{bestWave}</strong>
           </div>
           <div>
             <span>Vague</span>
@@ -33,6 +80,14 @@ export function PixelInvasionSidebar({ game, shieldRatio }: PixelInvasionSidebar
             <strong>{getPowerupLabel(game.weaponPowerup)}</strong>
           </div>
           <div>
+            <span>Modules au sol</span>
+            <strong>{game.drops.length}/1</strong>
+          </div>
+          <div>
+            <span>En attente</span>
+            <strong>{game.queuedDrops.length}</strong>
+          </div>
+          <div>
             <span>Eliminations</span>
             <strong>{game.kills}</strong>
           </div>
@@ -47,6 +102,10 @@ export function PixelInvasionSidebar({ game, shieldRatio }: PixelInvasionSidebar
           <div>
             <span>Bombes</span>
             <strong>{game.bombs}</strong>
+          </div>
+          <div>
+            <span>Secteur</span>
+            <strong>{getWaveThemeLabel(game.waveTheme)}</strong>
           </div>
         </div>
 
@@ -85,35 +144,6 @@ export function PixelInvasionSidebar({ game, shieldRatio }: PixelInvasionSidebar
             </div>
           </div>
         </div>
-      </section>
-
-      <section
-        className={`pixel-invasion-card pixel-invasion-card--message pixel-invasion-card--${game.message.tone}`}
-      >
-        <div className="pixel-invasion-card-title">Canal Tetrobots</div>
-        <div className="pixel-invasion-message-bot">{activeBotLabel}</div>
-        <p>{game.message.text}</p>
-      </section>
-
-      <section className="pixel-invasion-card">
-        <div className="pixel-invasion-card-title">MVP livre</div>
-        <ul className="pixel-invasion-list">
-          <li>Pixel tire, dash et lance une bombe.</li>
-          <li>Les Tetrobots descendent en formations de tetrominos.</li>
-          <li>Les ennemis detruits alimentent une scrap grid.</li>
-          <li>Une ligne pleine explose et donne un bonus massif.</li>
-          <li>Apex apparait sur les vagues majeures de l'invasion.</li>
-        </ul>
-      </section>
-
-      <section className="pixel-invasion-card">
-        <div className="pixel-invasion-card-title">Controles</div>
-        <ul className="pixel-invasion-list">
-          <li>`A` / `D` ou fleches : deplacement</li>
-          <li>`Space`: tir</li>
-          <li>`Shift`: dash</li>
-          <li>`B`: bombe de nettoyage</li>
-        </ul>
       </section>
     </aside>
   );

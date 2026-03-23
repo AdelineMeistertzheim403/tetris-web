@@ -63,6 +63,7 @@ export default function Leaderboard() {
           <option value="SPRINT"> Mode Sprint</option>
           <option value="VERSUS"> Mode Versus</option>
           <option value="ROGUELIKE_VERSUS"> Mode Roguelike Versus</option>
+          <option value="PIXEL_INVASION"> Pixel Invasion</option>
         </select>
       </div>
 
@@ -121,7 +122,9 @@ export default function Leaderboard() {
               <th>
                 {mode === "SPRINT" ? "Temps (s)" : "Score"}
               </th>
-              {mode === "CLASSIQUE" && <th>Niveau</th>}
+              {(mode === "CLASSIQUE" || mode === "PIXEL_INVASION") && (
+                <th>{mode === "PIXEL_INVASION" ? "Vague" : "Niveau"}</th>
+              )}
               <th>Lignes</th>
             </tr>
           </thead>
@@ -134,7 +137,7 @@ export default function Leaderboard() {
                 <td className="py-2">{i + 1}</td>
                 <td>{s.user?.pseudo ?? "Anonyme"}</td>
                 <td>{s.value}</td>
-                {mode === "CLASSIQUE" && <td>{s.level}</td>}
+                {(mode === "CLASSIQUE" || mode === "PIXEL_INVASION") && <td>{s.level}</td>}
                 <td>{s.lines}</td>
               </tr>
             ))}

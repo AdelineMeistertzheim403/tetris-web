@@ -5,6 +5,7 @@ import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
 import Dashboard from "./features/app/pages/Dashboard";
 import TetrisHub from "./features/app/pages/TetrisHub";
+import TetroVerseHub from "./features/app/pages/TetroVerseHub";
 import Game from "./features/game/pages/Game";
 import Leaderboard from "./features/game/pages/Leaderboard";
 import ProtectedRoute from "./features/auth/components/ProtectedRoute";
@@ -74,6 +75,7 @@ function App() {
           />
           <Route path="/sprint" element={<Sprint />} />
           <Route path="/tetris-hub" element={<TetrisHub />} />
+          <Route path="/tetro-verse" element={<TetroVerseHub />} />
           <Route path="/versus" element={<Versus />} />
           <Route path="/brickfall-solo" element={<BrickfallSolo />} />
           <Route path="/brickfall-solo/community" element={<BrickfallSoloCommunityHub />} />

@@ -1,31 +1,31 @@
 import type { CSSProperties } from "react";
 
 /** Dimensions et réglages de base du terrain de jeu Pixel Invasion. */
-export const BOARD_WIDTH = 720;
-export const BOARD_HEIGHT = 640;
+export const BOARD_WIDTH = 1440;
+export const BOARD_HEIGHT = 750;
 export const PLAYER_WIDTH = 144;
 export const PLAYER_HEIGHT = 104;
-export const PLAYER_Y = BOARD_HEIGHT - 88;
+export const PLAYER_Y = BOARD_HEIGHT - 118;
 export const PLAYER_HITBOX_WIDTH = 68;
 export const PLAYER_HITBOX_HEIGHT = 46;
 export const PLAYER_MUZZLE_OFFSET_X = PLAYER_WIDTH / 2;
 export const PLAYER_MUZZLE_OFFSET_Y = 14;
 export const SCRAP_ROWS = 8;
 export const SCRAP_COLS = 10;
-export const SCRAP_CELL = 24;
+export const SCRAP_CELL = 22;
 export const SCRAP_HEIGHT = SCRAP_ROWS * SCRAP_CELL;
 export const SCRAP_TOP = BOARD_HEIGHT - SCRAP_HEIGHT - 16;
 export const GAME_LOOP_MS = 1000 / 60;
-export const PLAYER_SPEED = 360;
-export const PLAYER_BULLET_SPEED = 520;
-export const ENEMY_BULLET_SPEED = 250;
-export const PLAYER_SHOT_COOLDOWN = 0.16;
-export const DASH_DISTANCE = 180;
+export const PLAYER_SPEED = 520;
+export const PLAYER_BULLET_SPEED = 620;
+export const ENEMY_BULLET_SPEED = 280;
+export const PLAYER_SHOT_COOLDOWN = 0.22;
+export const DASH_DISTANCE = 260;
 export const DASH_COOLDOWN = 1.4;
 export const BOMB_COOLDOWN = 10;
 export const MAX_BOMBS = 2;
 export const MAX_WEAPON_LEVEL = 4;
-export const TOTAL_WAVES = 24;
+export const TOTAL_WAVES = 100;
 export const MAX_SHIELD = 5;
 export const MAX_LIVES = 3;
 
@@ -33,6 +33,7 @@ export type BotId = "rookie" | "pulse" | "apex";
 export type EnemyKind = "I" | "O" | "T" | "L" | "J" | "S" | "Z" | "APEX";
 export type MessageTone = "info" | "warning" | "boss" | "success";
 export type WeaponPowerup = "multi_shot" | "laser" | "piercing" | "charge";
+export type PickupType = WeaponPowerup | "slow_field";
 export type WaveTheme = "standard" | "rookie" | "pulse" | "apex";
 
 export type Bullet = {
@@ -49,6 +50,7 @@ export type Bullet = {
   pattern?: "zigzag";
   curveDir?: number;
   remainingHits?: number;
+  visualType?: WeaponPowerup | "standard";
 };
 
 export type Telegraph = {
@@ -71,12 +73,40 @@ export type Impact = {
   y: number;
   size: number;
   ttl: number;
-  type: "laser" | "fan" | "heavy" | "zigzag" | "dash" | "player-hit" | "enemy-break";
+  type:
+    | "laser"
+    | "fan"
+    | "heavy"
+    | "zigzag"
+    | "dash"
+    | "player-hit"
+    | "enemy-break"
+    | "player-standard"
+    | "player-laser"
+    | "player-piercing"
+    | "player-charge";
+};
+
+export type Drop = {
+  id: number;
+  type: PickupType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  vy: number;
+};
+
+export type QueuedDrop = {
+  type: PickupType;
+  x: number;
+  y: number;
 };
 
 export type Enemy = {
   id: number;
   kind: EnemyKind;
+  bossTheme?: Exclude<WaveTheme, "standard">;
   x: number;
   y: number;
   width: number;
@@ -124,13 +154,19 @@ export type GameState = {
   enemyDashCooldown: number;
   formationDir: number;
   formationSpeed: number;
+  formationPulse: number;
   enemies: Enemy[];
   playerBullets: Bullet[];
   enemyBullets: Bullet[];
+  drops: Drop[];
+  queuedDrops: QueuedDrop[];
   telegraphs: Telegraph[];
   impacts: Impact[];
   scrapGrid: Array<Array<string | null>>;
   flashTimer: number;
+  hitStopTimer: number;
+  boardShakeTimer: number;
+  lineBurstFxTimer: number;
   message: Message;
   messageTimer: number;
   lastHorizontalDir: number;
@@ -202,7 +238,13 @@ export const ENEMY_COLORS: Record<EnemyKind, string> = {
 };
 
 export const TETROMINO_ORDER: Array<Exclude<EnemyKind, "APEX">> = ["I", "T", "L", "O", "J", "S", "Z"];
-export const POWERUP_ROTATION: WeaponPowerup[] = ["multi_shot", "laser", "piercing", "charge"];
+export const POWERUP_ROTATION: PickupType[] = [
+  "multi_shot",
+  "laser",
+  "piercing",
+  "charge",
+  "slow_field",
+];
 
 /** Clamp numérique générique utilisé dans tout le moteur. */
 export function clamp(value: number, min: number, max: number) {
@@ -220,16 +262,31 @@ export function createMessage(bot: BotId, tone: MessageTone, text: string): Mess
 }
 
 /** Libellé UI du power-up actuellement actif. */
-export function getPowerupLabel(powerup: WeaponPowerup) {
+export function getPowerupLabel(powerup: PickupType) {
   switch (powerup) {
     case "multi_shot":
-      return "Multi-shot";
+      return "Tir multiple";
     case "laser":
       return "Laser";
     case "piercing":
       return "Perforant";
     case "charge":
-      return "Charge shot";
+      return "Tir charge";
+    case "slow_field":
+      return "Champ ralenti";
+  }
+}
+
+export function getWaveThemeLabel(theme: WaveTheme) {
+  switch (theme) {
+    case "standard":
+      return "Mixte";
+    case "rookie":
+      return "Rookie";
+    case "pulse":
+      return "Pulse";
+    case "apex":
+      return "Apex";
   }
 }
 

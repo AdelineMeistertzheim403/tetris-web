@@ -1,4 +1,5 @@
 import {
+  BOARD_HEIGHT,
   BOARD_WIDTH,
   BOMB_COOLDOWN,
   MAX_WEAPON_LEVEL,
@@ -12,8 +13,9 @@ import {
   SHAPES,
   clamp,
   createMessage,
+  getPowerupLabel,
 } from "../model";
-import type { Bullet, Enemy, EnemyKind, GameState } from "../model";
+import type { Bullet, Drop, Enemy, EnemyKind, GameState, PickupType } from "../model";
 import { createImpact, overlaps } from "./pixelInvasionCore";
 import {
   getBombMessage,
@@ -70,6 +72,136 @@ function addScrapFromEnemy(
   ];
 
   return { grid: rebuilt, clearedRows: Math.max(0, clearedRows) };
+}
+
+function addMissedDropToScrap(
+  grid: Array<Array<string | null>>,
+  drop: Drop
+): Array<Array<string | null>> {
+  const next = grid.map((row) => [...row]);
+  const column = clamp(
+    Math.floor(((drop.x + drop.width / 2) / BOARD_WIDTH) * SCRAP_COLS),
+    0,
+    SCRAP_COLS - 1
+  );
+
+  for (let row = SCRAP_ROWS - 1; row >= 0; row -= 1) {
+    if (!next[row][column]) {
+      next[row][column] = drop.type === "slow_field" ? "#50e985" : "#93b7ff";
+      return next;
+    }
+  }
+
+  return next;
+}
+
+function getRewardDropType(next: GameState, sequence: number): PickupType {
+  const rookieTable: PickupType[] = ["multi_shot", "multi_shot", "laser", "slow_field"];
+  const pulseTable: PickupType[] = ["laser", "piercing", "laser", "charge"];
+  const apexTable: PickupType[] = ["piercing", "charge", "laser", "charge", "slow_field"];
+  const standardTable: PickupType[] = ["multi_shot", "laser", "piercing", "charge", "slow_field"];
+
+  const themedDrop =
+    next.waveTheme === "rookie"
+      ? rookieTable[(next.lineBursts + sequence - 1) % rookieTable.length]
+      : next.waveTheme === "pulse"
+        ? pulseTable[(next.lineBursts + sequence - 1) % pulseTable.length]
+        : next.waveTheme === "apex"
+          ? apexTable[(next.lineBursts + sequence - 1) % apexTable.length]
+          : standardTable[(next.lineBursts + sequence - 1) % standardTable.length];
+  const rotated = themedDrop ?? getNextWeaponPowerup(next.lineBursts + sequence);
+
+  if (rotated === "slow_field" && (next.wave < 6 || next.waveTheme === "rookie")) {
+    return "multi_shot";
+  }
+
+  if (rotated === "charge" && next.wave < 4) {
+    return "laser";
+  }
+
+  if (rotated === "multi_shot" && next.weaponLevel >= 3 && next.waveTheme === "pulse") {
+    return "piercing";
+  }
+
+  if (rotated === "laser" && next.waveTheme === "apex" && next.wave >= 18) {
+    return "charge";
+  }
+
+  return rotated;
+}
+
+function getDropImpactType(dropType: PickupType) {
+  switch (dropType) {
+    case "multi_shot":
+      return "fan";
+    case "laser":
+      return "laser";
+    case "piercing":
+      return "heavy";
+    case "charge":
+      return "dash";
+    case "slow_field":
+      return "zigzag";
+  }
+}
+
+function getPlayerShotImpactType(bullet: Bullet) {
+  switch (bullet.visualType) {
+    case "laser":
+      return "player-laser";
+    case "piercing":
+      return "player-piercing";
+    case "charge":
+      return "player-charge";
+    default:
+      return "player-standard";
+  }
+}
+
+function createDrop(id: number, type: PickupType, x: number, y: number): Drop {
+  return {
+    id,
+    type,
+    x: clamp(x - 16, 18, BOARD_WIDTH - 50),
+    y: clamp(y - 16, 18, BOARD_HEIGHT - 220),
+    width: 32,
+    height: 32,
+    vy: 92,
+  };
+}
+
+function maybeReleaseQueuedDrop(next: GameState) {
+  if (next.drops.length > 0 || next.queuedDrops.length === 0) return;
+
+  const [queued, ...rest] = next.queuedDrops;
+  next.drops = [createDrop(next.nextEntityId, queued.type, queued.x, queued.y)];
+  next.queuedDrops = rest;
+  next.nextEntityId += 1;
+}
+
+function spawnRewardDrops(
+  next: GameState,
+  count: number,
+  x: number,
+  y: number
+): PickupType | null {
+  let latestDrop: PickupType | null = null;
+
+  for (let index = 0; index < count; index += 1) {
+    const nextDrop = getRewardDropType(next, index + 1);
+    next.queuedDrops = [
+      ...next.queuedDrops,
+      {
+        type: nextDrop,
+        x: x + (index - (count - 1) / 2) * 36,
+        y: y - Math.min(28, index * 10),
+      },
+    ];
+    latestDrop = nextDrop;
+  }
+
+  maybeReleaseQueuedDrop(next);
+  return latestDrop;
 }
 
 function createPlayerShotPattern(
@@ -145,14 +277,16 @@ function createPlayerShotPattern(
       age: 0,
       sourceKind: "PLAYER",
       remainingHits: spec.remainingHits,
+      visualType:
+        state.weaponPowerup === "multi_shot" ? "standard" : state.weaponPowerup,
     })),
     nextId: state.nextEntityId + specs.length,
     cooldown:
       state.weaponPowerup === "laser"
-        ? Math.max(0.07, PLAYER_SHOT_COOLDOWN - (state.weaponLevel - 1) * 0.025)
+        ? Math.max(0.16, PLAYER_SHOT_COOLDOWN - (state.weaponLevel - 1) * 0.015)
         : state.weaponPowerup === "charge"
-          ? (isCharged ? 0.28 : 0.18)
-          : Math.max(0.09, PLAYER_SHOT_COOLDOWN - (state.weaponLevel - 1) * 0.015),
+          ? (isCharged ? 0.36 : 0.24)
+          : Math.max(0.18, PLAYER_SHOT_COOLDOWN - (state.weaponLevel - 1) * 0.01),
   };
 }
 
@@ -161,6 +295,7 @@ function createPlayerShotPattern(
  * La résolution des collisions est volontairement séparée pour garder un tick lisible.
  */
 export function advancePlayerProjectiles(next: GameState, dt: number) {
+  maybeReleaseQueuedDrop(next);
   next.playerBullets = next.playerBullets
     .map((bullet) => ({
       ...bullet,
@@ -169,6 +304,74 @@ export function advancePlayerProjectiles(next: GameState, dt: number) {
       y: bullet.y + bullet.vy * dt,
     }))
     .filter((bullet) => bullet.y + bullet.height > 0);
+  const movedDrops = next.drops.map((drop) => ({
+    ...drop,
+    y: drop.y + drop.vy * dt,
+  }));
+
+  const keptDrops: Drop[] = [];
+
+  for (const drop of movedDrops) {
+    if (drop.y >= BOARD_HEIGHT + 16) {
+      next.scrapGrid = addMissedDropToScrap(next.scrapGrid, drop);
+      next.impacts = [
+        ...next.impacts,
+        createImpact(
+          next.nextEntityId,
+          drop.x + drop.width / 2,
+          Math.min(BOARD_HEIGHT - 18, drop.y + drop.height / 2),
+          getDropImpactType(drop.type),
+          22,
+          0.22
+        ),
+      ];
+      next.nextEntityId += 1;
+      next.flashTimer = Math.max(next.flashTimer, 0.12);
+      next.message = createMessage(
+        "rookie",
+        "warning",
+        `Module ${getPowerupLabel(drop.type)} perdu. Il tombe dans la scrap grid.`
+      );
+      next.messageTimer = 2.4;
+      continue;
+    }
+
+    if (drop.y < BOARD_HEIGHT + 48) {
+      keptDrops.push(drop);
+    }
+  }
+
+  next.drops = keptDrops;
+  maybeReleaseQueuedDrop(next);
+}
+
+export function attractDrops(
+  next: GameState,
+  playerBox: { x: number; y: number; width: number; height: number },
+  dt: number
+) {
+  const playerCenterX = playerBox.x + playerBox.width / 2;
+  const playerCenterY = playerBox.y + playerBox.height / 2;
+
+  next.drops = next.drops.map((drop) => {
+    const dropCenterX = drop.x + drop.width / 2;
+    const dropCenterY = drop.y + drop.height / 2;
+    const dx = playerCenterX - dropCenterX;
+    const dy = playerCenterY - dropCenterY;
+    const distance = Math.hypot(dx, dy);
+
+    if (distance > 168) return drop;
+
+    const pull = distance < 72 ? 340 : 190;
+    const normalizedDistance = Math.max(0.2, 1 - distance / 168);
+    const strength = pull * normalizedDistance * dt;
+
+    return {
+      ...drop,
+      x: drop.x + (dx / Math.max(distance, 1)) * strength,
+      y: drop.y + (dy / Math.max(distance, 1)) * strength,
+    };
+  });
 }
 
 /**
@@ -211,16 +414,25 @@ export function applyBomb(next: GameState) {
   next.bombs -= 1;
   next.bombCooldown = BOMB_COOLDOWN;
   next.score += scoreGain + lineGain * 450;
+  const dropType =
+    lineGain > 0 ? spawnRewardDrops(next, lineGain, BOARD_WIDTH / 2, BOARD_HEIGHT * 0.54) : null;
   next.lineBursts += lineGain;
-  next.weaponLevel = Math.min(MAX_WEAPON_LEVEL, next.weaponLevel + lineGain);
   if (lineGain > 0) {
-    next.weaponPowerup = getNextWeaponPowerup(next.lineBursts + lineGain);
-    next.slowFieldTimer = Math.max(next.slowFieldTimer, 4 + lineGain * 1.5);
-    next.chargeCounter = 0;
+    next.flashTimer = 0.35;
+    next.hitStopTimer = Math.max(next.hitStopTimer, 0.045);
+    next.boardShakeTimer = Math.max(next.boardShakeTimer, 0.22);
+    next.lineBurstFxTimer = Math.max(next.lineBurstFxTimer, 0.24);
+    next.message = createMessage(
+      "pulse",
+      "success",
+      getBombMessage(dropType ?? "multi_shot", lineGain)
+    );
+    next.messageTimer = 3.2;
+  } else {
+    next.flashTimer = 0.35;
+    next.message = createMessage("pulse", "success", getBombMessage("multi_shot", lineGain));
+    next.messageTimer = 3.2;
   }
-  next.flashTimer = 0.35;
-  next.message = createMessage("pulse", "success", getBombMessage(next.weaponPowerup, lineGain));
-  next.messageTimer = 3.2;
 }
 
 /**
@@ -233,8 +445,6 @@ export function resolvePlayerHits(next: GameState) {
   let scrapGrid = next.scrapGrid;
   let lineBursts = next.lineBursts;
   let score = next.score;
-  let weaponLevel = next.weaponLevel;
-  let weaponPowerup = next.weaponPowerup;
   let kills = next.kills;
   let combo = next.combo;
   let comboTimer = next.comboTimer;
@@ -252,6 +462,18 @@ export function resolvePlayerHits(next: GameState) {
     const enemy = next.enemies[hitEnemyIndex];
     consumedEnemyIds.add(enemy.id);
     const damaged = { ...enemy, hp: enemy.hp - bullet.damage };
+    next.impacts = [
+      ...next.impacts,
+      createImpact(
+        next.nextEntityId,
+        bullet.x + bullet.width / 2,
+        bullet.y + Math.min(bullet.height, enemy.height) / 2,
+        getPlayerShotImpactType(bullet),
+        bullet.visualType === "charge" ? 30 : bullet.visualType === "laser" ? 24 : 20,
+        bullet.visualType === "charge" ? 0.28 : 0.2
+      ),
+    ];
+    next.nextEntityId += 1;
 
     if (damaged.hp > 0) {
       damagedEnemies.set(enemy.id, damaged);
@@ -272,19 +494,30 @@ export function resolvePlayerHits(next: GameState) {
     const outcome = addScrapFromEnemy(scrapGrid, enemy);
     scrapGrid = outcome.grid;
     if (outcome.clearedRows > 0) {
+      const latestDrop = spawnRewardDrops(
+        next,
+        outcome.clearedRows,
+        enemy.x + enemy.width / 2,
+        enemy.y + enemy.height / 2
+      );
       lineBursts += outcome.clearedRows;
-      weaponLevel = Math.min(MAX_WEAPON_LEVEL, weaponLevel + outcome.clearedRows);
-      weaponPowerup = getNextWeaponPowerup(lineBursts);
-      next.slowFieldTimer = Math.max(next.slowFieldTimer, 4 + outcome.clearedRows * 1.5);
-      next.chargeCounter = 0;
       score += outcome.clearedRows * 500 + combo * 35;
       next.flashTimer = 0.28;
-      next.message = createMessage("pulse", "success", getLineBurstMessage(weaponPowerup, outcome.clearedRows));
+      next.hitStopTimer = Math.max(next.hitStopTimer, 0.05);
+      next.boardShakeTimer = Math.max(next.boardShakeTimer, 0.24);
+      next.lineBurstFxTimer = Math.max(next.lineBurstFxTimer, 0.28);
+      next.message = createMessage(
+        "pulse",
+        "success",
+        getLineBurstMessage(latestDrop ?? "multi_shot", outcome.clearedRows)
+      );
       next.messageTimer = 3.3;
     } else if (enemy.kind === "APEX") {
       next.message = createMessage("apex", "boss", "Pas mal. La coque du boss vient de ceder.");
       next.messageTimer = 2.4;
     }
+    next.hitStopTimer = Math.max(next.hitStopTimer, enemy.kind === "APEX" ? 0.045 : 0.022);
+    next.boardShakeTimer = Math.max(next.boardShakeTimer, enemy.kind === "APEX" ? 0.2 : 0.1);
     next.impacts = [
       ...next.impacts,
       createImpact(
@@ -307,10 +540,61 @@ export function resolvePlayerHits(next: GameState) {
   next.scrapGrid = scrapGrid;
   next.lineBursts = lineBursts;
   next.score = score;
-  next.weaponLevel = weaponLevel;
-  next.weaponPowerup = weaponPowerup;
   next.kills = kills;
   next.combo = combo;
   next.comboTimer = comboTimer;
   next.maxCombo = maxCombo;
+}
+
+/**
+ * Active les drops touchés par le vaisseau. L'effet n'est appliqué
+ * qu'au moment de la récupération visuelle.
+ */
+export function resolveDropCollection(
+  next: GameState,
+  playerBox: { x: number; y: number; width: number; height: number }
+) {
+  next.drops = next.drops.filter((drop) => {
+    if (!overlaps(drop, playerBox)) return true;
+
+    if (drop.type === "slow_field") {
+      next.slowFieldTimer = Math.max(next.slowFieldTimer, 6);
+      next.flashTimer = Math.max(next.flashTimer, 0.2);
+      next.message = createMessage(
+        "pulse",
+        "success",
+        "Champ ralenti recupere. Les Tetrobots perdent du rythme."
+      );
+      next.messageTimer = 2.8;
+    } else {
+      next.weaponPowerup = drop.type;
+      next.weaponLevel = Math.min(MAX_WEAPON_LEVEL, next.weaponLevel + 1);
+      next.chargeCounter = 0;
+      next.message = createMessage(
+        drop.type === "charge" ? "apex" : drop.type === "multi_shot" ? "rookie" : "pulse",
+        "success",
+        `${getPowerupLabel(drop.type)} recupere. Tir niveau ${next.weaponLevel}.`
+      );
+      next.messageTimer = 2.8;
+      next.flashTimer = Math.max(
+        next.flashTimer,
+        drop.type === "charge" ? 0.34 : drop.type === "piercing" ? 0.26 : 0.18
+      );
+    }
+
+    next.impacts = [
+      ...next.impacts,
+      createImpact(
+        next.nextEntityId,
+        drop.x + drop.width / 2,
+        drop.y + drop.height / 2,
+        getDropImpactType(drop.type),
+        drop.type === "charge" ? 30 : drop.type === "piercing" ? 28 : 24,
+        0.24
+      ),
+    ];
+    next.nextEntityId += 1;
+    return false;
+  });
+  maybeReleaseQueuedDrop(next);
 }

@@ -95,6 +95,7 @@ const PLAYER_BEHAVIOR_MODES: PlayerBehaviorMode[] = [
   "ROGUELIKE_VERSUS",
   "PUZZLE",
   "TETROMAZE",
+  "PIXEL_INVASION",
   "PIXEL_PROTOCOL",
 ];
 
@@ -234,6 +235,7 @@ const DEFAULT_STATS: AchievementStats = {
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
     TETROMAZE: false,
+    PIXEL_INVASION: false,
   },
   level10Modes: {
     CLASSIQUE: false,
@@ -244,6 +246,7 @@ const DEFAULT_STATS: AchievementStats = {
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
     TETROMAZE: false,
+    PIXEL_INVASION: false,
   },
   scoredModes: {
     CLASSIQUE: false,
@@ -254,6 +257,7 @@ const DEFAULT_STATS: AchievementStats = {
     ROGUELIKE_VERSUS: false,
     PUZZLE: false,
     TETROMAZE: false,
+    PIXEL_INVASION: false,
   },
   playtimeMs: 0,
   noHoldRuns: 0,

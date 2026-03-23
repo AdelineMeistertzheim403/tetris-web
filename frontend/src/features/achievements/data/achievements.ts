@@ -21,6 +21,7 @@ export type AchievementGroup =
   | "TETROMAZE_SKILL"
   | "TETROMAZE_POWER"
   | "TETROBOTS"
+  | "PIXEL_INVASION"
   | "CAMPAIGN"
   | "COMMUNITY"
   | "GAMEPLAY"
@@ -2003,6 +2004,146 @@ export const ACHIEVEMENTS: Achievement[] = [
     mode: "ALL",
     group: "META",
     condition: { type: "custom", key: "worked_on_weakness" },
+  },
+
+  {
+    id: "pi-first-score",
+    name: "Premiere salve",
+    description: "Atteindre 2 500 points dans Pixel Invasion",
+    icon: "PI_premier_pas",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "score_reached", score: 2500 },
+  },
+
+  {
+    id: "pi-rookie-sector",
+    name: "Secteur Rookie",
+    description: "Atteindre la vague 10",
+    icon: "PI_campaign_10",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "level_reached", level: 10 },
+  },
+
+  {
+    id: "pi-first-line-burst",
+    name: "Ligne explosive",
+    description: "Declencher une premiere ligne explosive",
+    icon: "PI_combo_master",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_line_burst_1" },
+  },
+
+  {
+    id: "pi-combo-hunter",
+    name: "Chasseur de combo",
+    description: "Atteindre un combo x8",
+    icon: "PI_precision_mortelle",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_combo_8" },
+  },
+
+  {
+    id: "pi-apex-front",
+    name: "Front Apex",
+    description: "Atteindre la vague 30",
+    icon: "PI_apex_face",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "level_reached", level: 30 },
+  },
+
+  {
+    id: "pi-sector-locked",
+    name: "Secteur verrouille",
+    description: "Terminer la campagne Pixel Invasion",
+    icon: "PI_survivor",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_victory" },
+  },
+
+  {
+    id: "pi-perfect-defense",
+    name: "Defense parfaite",
+    description: "Finir Pixel Invasion sans perdre de vie",
+    icon: "PI_parfait",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_perfect_sector" },
+  },
+
+  {
+    id: "pi-rookie-boss-down",
+    name: "Rookie neutralise",
+    description: "Passer le boss Rookie",
+    icon: "PI_rookie_listen",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_rookie_boss_down" },
+  },
+
+  {
+    id: "pi-pulse-boss-down",
+    name: "Pulse neutralise",
+    description: "Passer le boss Pulse",
+    icon: "PI_pulse_analysis",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_pulse_boss_down" },
+  },
+
+  {
+    id: "pi-apex-boss-down",
+    name: "Apex en recul",
+    description: "Passer le boss Apex",
+    icon: "PI_apex_face_boss",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_apex_boss_down" },
+  },
+
+  {
+    id: "pi-line-burst-4",
+    name: "Reaction en chaine",
+    description: "Declencher 4 lignes explosives sur une run",
+    icon: "PI_grid_master",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_line_burst_4" },
+  },
+
+  {
+    id: "pi-charge-loaded",
+    name: "Charge complete",
+    description: "Recuperer le tir charge",
+    icon: "PI_charger",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_charge_loaded" },
+  },
+
+  {
+    id: "pi-all-powerups",
+    name: "Arsenal total",
+    description: "Recuperer tous les modules sur une run",
+    icon: "PI_industriel",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_all_powerups" },
+  },
+
+  {
+    id: "pi-wave-50",
+    name: "Siege prolonge",
+    description: "Atteindre la vague 50",
+    icon: "PI_campaign_50",
+    mode: "PIXEL_INVASION",
+    group: "PIXEL_INVASION",
+    condition: { type: "custom", key: "pi_wave_50" },
   },
 
   {

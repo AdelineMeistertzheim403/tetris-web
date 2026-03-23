@@ -8,6 +8,56 @@ import {
 import type { Bullet, Enemy, EnemyKind, GameState, Telegraph } from "../model";
 import { createImpact } from "./pixelInvasionCore";
 
+function getFormationOffsets(next: GameState, enemy: Enemy) {
+  if (next.waveTheme === "rookie") {
+    return { offsetX: 0, offsetY: 0 };
+  }
+
+  const boardCenter = BOARD_WIDTH / 2;
+  const enemyCenter = enemy.x + enemy.width / 2;
+  const side = enemyCenter >= boardCenter ? 1 : -1;
+  const normalizedDistance = Math.min(1, Math.abs(enemyCenter - boardCenter) / (BOARD_WIDTH * 0.5));
+
+  if (next.waveTheme === "pulse") {
+    const pulse = Math.sin(next.formationPulse * 1.9 + enemy.y * 0.012);
+    return {
+      offsetX: side * pulse * (18 + normalizedDistance * 12),
+      offsetY: Math.cos(next.formationPulse * 1.4 + enemyCenter * 0.004) * 1.6,
+    };
+  }
+
+  const shear = Math.sin(next.formationPulse * 2.3 + enemy.id * 0.35);
+  const stagger = Math.cos(next.formationPulse * 1.7 + enemy.y * 0.018);
+  return {
+    offsetX: side * shear * (14 + normalizedDistance * 18),
+    offsetY: stagger * 3.8,
+  };
+}
+
+function getFormationPressure(next: GameState) {
+  if (next.waveTheme === "rookie") {
+    return {
+      pressure: 0.2,
+      compression: 0,
+      skew: 0,
+    };
+  }
+
+  if (next.waveTheme === "pulse") {
+    return {
+      pressure: Math.max(0, Math.sin(next.formationPulse * 1.9)),
+      compression: Math.abs(Math.sin(next.formationPulse * 1.9)),
+      skew: 0,
+    };
+  }
+
+  return {
+    pressure: Math.max(0, Math.sin(next.formationPulse * 2.3 + 0.4)),
+    compression: Math.abs(Math.sin(next.formationPulse * 1.7)),
+    skew: Math.abs(Math.sin(next.formationPulse * 2.7)),
+  };
+}
+
 function getTelegraphDuration(kind: EnemyKind) {
   switch (kind) {
     case "I":
@@ -145,9 +195,29 @@ function createTelegraphForEnemy(enemy: Enemy, playerCenterX: number, id: number
 function spawnEnemyBullets(state: GameState): Bullet[] {
   if (state.enemies.length === 0) return state.enemyBullets;
 
+  const formation = getFormationPressure(state);
+  const boardCenter = BOARD_WIDTH / 2;
   const shooters = [...state.enemies]
-    .sort((left, right) => right.y - left.y)
-    .slice(0, Math.min(4, state.enemies.length));
+    .sort((left, right) => {
+      const leftCenter = left.x + left.width / 2;
+      const rightCenter = right.x + right.width / 2;
+      const leftBias =
+        state.waveTheme === "pulse"
+          ? -Math.abs(leftCenter - boardCenter) * formation.compression
+          : state.waveTheme === "apex"
+            ? -Math.abs(leftCenter - boardCenter) * 0.2 +
+              (left.id % 2 === 0 ? 24 * formation.skew : 0)
+            : 0;
+      const rightBias =
+        state.waveTheme === "pulse"
+          ? -Math.abs(rightCenter - boardCenter) * formation.compression
+          : state.waveTheme === "apex"
+            ? -Math.abs(rightCenter - boardCenter) * 0.2 +
+              (right.id % 2 === 0 ? 24 * formation.skew : 0)
+            : 0;
+      return right.y + rightBias - (left.y + leftBias);
+    })
+    .slice(0, Math.min(state.waveTheme === "rookie" ? 3 : state.waveTheme === "pulse" ? 4 : 5, state.enemies.length));
   const picked = shooters[Math.floor(Math.random() * shooters.length)];
 
   if (!picked) return state.enemyBullets;
@@ -155,44 +225,94 @@ function spawnEnemyBullets(state: GameState): Bullet[] {
   const baseId = state.nextEntityId + 10000;
 
   if (picked.kind === "APEX") {
+    const isRookieBoss = picked.bossTheme === "rookie";
+    const isPulseBoss = picked.bossTheme === "pulse";
+    const spread = isRookieBoss ? 42 : isPulseBoss ? 58 : 74;
+    const baseVy = isRookieBoss ? ENEMY_BULLET_SPEED + 12 : isPulseBoss ? ENEMY_BULLET_SPEED + 40 : ENEMY_BULLET_SPEED + 56;
+
     return [
       ...state.enemyBullets,
       {
         id: baseId,
         x: picked.x + picked.width / 2 - 6,
         y: picked.y + picked.height + 8,
-        vx: -58,
-        vy: ENEMY_BULLET_SPEED + 30,
+        vx: -spread,
+        vy: baseVy,
         width: 10,
         height: 22,
         damage: 1,
         age: 0,
         sourceKind: "APEX",
       },
-      {
-        id: baseId + 1,
-        x: picked.x + picked.width / 2 - 6,
-        y: picked.y + picked.height + 8,
-        vx: 0,
-        vy: ENEMY_BULLET_SPEED + 50,
-        width: 12,
-        height: 26,
-        damage: 1,
-        age: 0,
-        sourceKind: "APEX",
-      },
-      {
-        id: baseId + 2,
-        x: picked.x + picked.width / 2 - 6,
-        y: picked.y + picked.height + 8,
-        vx: 58,
-        vy: ENEMY_BULLET_SPEED + 30,
-        width: 10,
-        height: 22,
-        damage: 1,
-        age: 0,
-        sourceKind: "APEX",
-      },
+      ...(isRookieBoss
+        ? [
+            {
+              id: baseId + 1,
+              x: picked.x + picked.width / 2 - 6,
+              y: picked.y + picked.height + 8,
+              vx: spread,
+              vy: baseVy,
+              width: 10,
+              height: 22,
+              damage: 1,
+              age: 0,
+              sourceKind: "APEX" as const,
+            },
+          ]
+        : [
+            {
+              id: baseId + 1,
+              x: picked.x + picked.width / 2 - 6,
+              y: picked.y + picked.height + 8,
+              vx: 0,
+              vy: isPulseBoss ? baseVy + 26 : baseVy + 32,
+              width: 12,
+              height: 26,
+              damage: 1,
+              age: 0,
+              sourceKind: "APEX" as const,
+            },
+            {
+              id: baseId + 2,
+              x: picked.x + picked.width / 2 - 6,
+              y: picked.y + picked.height + 8,
+              vx: spread,
+              vy: baseVy,
+              width: 10,
+              height: 22,
+              damage: 1,
+              age: 0,
+              sourceKind: "APEX" as const,
+            },
+            ...(picked.bossTheme === "apex"
+              ? [
+                  {
+                    id: baseId + 3,
+                    x: picked.x + picked.width / 2 - 6,
+                    y: picked.y + picked.height + 8,
+                    vx: -28,
+                    vy: baseVy + 48,
+                    width: 8,
+                    height: 20,
+                    damage: 1,
+                    age: 0,
+                    sourceKind: "APEX" as const,
+                  },
+                  {
+                    id: baseId + 4,
+                    x: picked.x + picked.width / 2 - 6,
+                    y: picked.y + picked.height + 8,
+                    vx: 28,
+                    vy: baseVy + 48,
+                    width: 8,
+                    height: 20,
+                    damage: 1,
+                    age: 0,
+                    sourceKind: "APEX" as const,
+                  },
+                ]
+              : []),
+          ]),
     ];
   }
 
@@ -327,6 +447,9 @@ function getTelegraphImpactType(telegraphType: Telegraph["type"]) {
 export function queueEnemyDashAttack(next: GameState, playerCenterX: number) {
   if (next.waveTransition !== 0 || next.enemyDashCooldown !== 0) return;
 
+  const formation = getFormationPressure(next);
+  if (next.waveTheme === "rookie" && formation.pressure < 0.45) return;
+
   const dashers = next.enemies.filter((enemy) => enemy.kind === "L" || enemy.kind === "J");
   const pickedDasher = dashers[Math.floor(Math.random() * dashers.length)];
 
@@ -337,7 +460,12 @@ export function queueEnemyDashAttack(next: GameState, playerCenterX: number) {
     ...createTelegraphForEnemy(pickedDasher, playerCenterX, next.nextEntityId),
   ];
   next.nextEntityId += 1;
-  next.enemyDashCooldown = Math.max(1.15, 2.45 - next.wave * 0.045);
+  next.enemyDashCooldown =
+    next.waveTheme === "rookie"
+      ? Math.max(1.6, 2.7 - next.wave * 0.035)
+      : next.waveTheme === "pulse"
+        ? Math.max(1.05, 2.1 - next.wave * 0.04)
+        : Math.max(0.92, 1.85 - next.wave * 0.038);
   next.message = createMessage("pulse", "warning", "Dash offensif detecte. Decale-toi maintenant.");
   next.messageTimer = 2;
 }
@@ -351,7 +479,9 @@ export function advanceEnemyFormation(next: GameState, dt: number, slowMultiplie
   const enemyStep = next.formationSpeed * slowMultiplier * dt * next.formationDir;
 
   next.enemies = next.enemies.map((enemy) => {
-    const futureX = enemy.x + (canAdvanceFormation ? enemyStep : 0);
+    const { offsetX, offsetY } = getFormationOffsets(next, enemy);
+    const futureX = enemy.x + (canAdvanceFormation ? enemyStep + offsetX * dt : 0);
+    const futureY = enemy.y + (canAdvanceFormation ? offsetY * dt : 0);
     if (futureX <= 18 || futureX + enemy.width >= BOARD_WIDTH - 18) {
       touchedEdge = true;
     }
@@ -359,6 +489,7 @@ export function advanceEnemyFormation(next: GameState, dt: number, slowMultiplie
     return {
       ...enemy,
       x: canAdvanceFormation ? futureX : enemy.x,
+      y: canAdvanceFormation ? futureY : enemy.y,
     };
   });
 
@@ -397,10 +528,12 @@ export function advanceEnemyProjectiles(next: GameState, dt: number, slowMultipl
 export function queueEnemyFire(next: GameState, playerCenterX: number, slowMultiplier: number) {
   if (next.enemyShotCooldown !== 0 || next.enemies.length === 0 || next.waveTransition !== 0) return;
 
+  const formation = getFormationPressure(next);
+
   const shooters = next.enemies
     .filter((enemy) => enemy.kind !== "L" && enemy.kind !== "J")
     .sort((left, right) => right.y - left.y)
-    .slice(0, Math.min(4, next.enemies.length));
+    .slice(0, Math.min(next.waveTheme === "rookie" ? 3 : next.waveTheme === "pulse" ? 4 : 5, next.enemies.length));
   const pickedShooter = shooters[Math.floor(Math.random() * shooters.length)];
 
   if (pickedShooter) {
@@ -411,7 +544,13 @@ export function queueEnemyFire(next: GameState, playerCenterX: number, slowMulti
     next.enemyBullets = spawnEnemyBullets(next);
   }
 
-  next.enemyShotCooldown = Math.max(0.48, 1.78 - next.wave * 0.045) / slowMultiplier;
+  const baseCooldown =
+    next.waveTheme === "rookie"
+      ? Math.max(0.72, 1.95 - next.wave * 0.028)
+      : next.waveTheme === "pulse"
+        ? Math.max(0.46, 1.62 - next.wave * 0.04 - formation.compression * 0.2)
+        : Math.max(0.34, 1.36 - next.wave * 0.038 - formation.skew * 0.24);
+  next.enemyShotCooldown = baseCooldown / slowMultiplier;
 }
 
 /**

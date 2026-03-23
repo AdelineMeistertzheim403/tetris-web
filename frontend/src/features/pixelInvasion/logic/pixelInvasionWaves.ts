@@ -1,37 +1,40 @@
 import {
+  BOARD_HEIGHT,
   BOARD_WIDTH,
   ENEMY_COLORS,
   MAX_BOMBS,
   MAX_LIVES,
   MAX_SHIELD,
   PLAYER_WIDTH,
+  SCRAP_TOP,
   SHAPES,
-  TETROMINO_ORDER,
   TOTAL_WAVES,
   createEmptyScrapGrid,
 } from "../model";
 import type { Enemy, EnemyKind, GameState, WaveTheme } from "../model";
 import { getVictoryMessage, getWaveStartMessage } from "./pixelInvasionMessages";
 
-function createEnemy(kind: EnemyKind, x: number, y: number, id: number, hpBoost: number): Enemy {
-  if (kind === "APEX") {
-    const apexHp = 22 + hpBoost * 3;
+type BossTheme = Exclude<WaveTheme, "standard">;
 
-    return {
-      id,
-      kind,
-      x,
-      y,
-      width: 144,
-      height: 96,
-      hp: apexHp,
-      maxHp: apexHp,
-      points: 1400,
-      color: ENEMY_COLORS.APEX,
-      shootBias: 2.8,
-    };
-  }
+type WaveDefinition = {
+  enemies: Enemy[];
+  nextId: number;
+  formationSpeed: number;
+  theme: BossTheme;
+  bossCount: number;
+  bossTheme?: BossTheme;
+  finale: boolean;
+};
 
+type FormationProfile = "line" | "arc" | "vee" | "flanks";
+
+function createRegularEnemy(
+  kind: Exclude<EnemyKind, "APEX">,
+  x: number,
+  y: number,
+  id: number,
+  hpBoost: number
+): Enemy {
   const shape = SHAPES[kind];
   const baseHp =
     kind === "O"
@@ -49,78 +52,137 @@ function createEnemy(kind: EnemyKind, x: number, y: number, id: number, hpBoost:
     height: shape.length * 18,
     hp: baseHp,
     maxHp: baseHp,
-    points: kind === "O" ? 220 : kind === "T" ? 180 : 150,
+    points: kind === "O" ? 220 + hpBoost * 10 : kind === "T" ? 180 + hpBoost * 8 : 150 + hpBoost * 7,
     color: ENEMY_COLORS[kind],
     shootBias: kind === "I" ? 1.5 : kind === "T" ? 1.3 : kind === "L" ? 1.15 : 1,
   };
 }
 
-/** Construit la composition d'une vague complète à partir de son index. */
-export function createWave(wave: number, startId: number) {
-  const isApexWave = wave % 9 === 0 || wave === TOTAL_WAVES;
-  const isPulseWave = !isApexWave && wave % 6 === 0;
-  const isRookieWave = !isApexWave && !isPulseWave && wave % 4 === 0;
-  const theme: WaveTheme = isApexWave
-    ? "apex"
-    : isPulseWave
-      ? "pulse"
-      : isRookieWave
-        ? "rookie"
-        : "standard";
+function createBossEnemy(
+  theme: BossTheme,
+  cycle: number,
+  id: number,
+  x: number,
+  finalBoss = false
+): Enemy {
+  const hpBase = theme === "rookie" ? 16 : theme === "pulse" ? 24 : 34;
+  const hp = hpBase + cycle * (theme === "rookie" ? 7 : theme === "pulse" ? 9 : 12) + (finalBoss ? 16 : 0);
+  const color =
+    theme === "rookie" ? "#7fd8ff" : theme === "pulse" ? "#df96ff" : ENEMY_COLORS.APEX;
 
-  if (isApexWave) {
-    const apexCount = wave >= 18 ? 2 : 1;
-    const enemies: Enemy[] = [];
-    let nextId = startId;
+  return {
+    id,
+    kind: "APEX",
+    bossTheme: theme,
+    x,
+    y: 92,
+    width: 144,
+    height: 96,
+    hp,
+    maxHp: hp,
+    points: (theme === "rookie" ? 1200 : theme === "pulse" ? 1650 : 2200) + cycle * 220 + (finalBoss ? 800 : 0),
+    color,
+    shootBias: theme === "rookie" ? 1.8 : theme === "pulse" ? 2.4 : 3.1,
+  };
+}
 
-    for (let index = 0; index < apexCount; index += 1) {
-      enemies.push(
-        createEnemy(
-          "APEX",
-          apexCount === 1 ? BOARD_WIDTH / 2 - 72 : 170 + index * 220,
-          92,
-          nextId,
-          Math.max(1, Math.floor(wave / 4))
-        )
-      );
-      nextId += 1;
-    }
+function getBlockTheme(blockIndex: number): BossTheme {
+  return blockIndex % 3 === 0 ? "rookie" : blockIndex % 3 === 1 ? "pulse" : "apex";
+}
 
-    return {
-      enemies,
-      nextId,
-      formationSpeed: 68 + wave * 5,
-      theme,
-      apexCount,
-    };
-  }
+function getCycle(blockIndex: number) {
+  return Math.floor(blockIndex / 3) + 1;
+}
 
-  const rows =
-    theme === "rookie"
-      ? Math.min(5, 3 + Math.floor(wave / 5))
-      : Math.min(4, 2 + Math.floor(wave / 2));
-  const cols = theme === "pulse" ? 5 : 6;
-  const pool: Array<Exclude<EnemyKind, "APEX">> =
-    theme === "pulse"
-      ? ["I", "T", "S", "Z", "J"]
-      : theme === "rookie"
-        ? ["O", "L", "J", "T"]
-        : TETROMINO_ORDER;
+function createBossWave(
+  theme: BossTheme,
+  cycle: number,
+  startId: number,
+  bossCount: number,
+  finalBoss = false
+): WaveDefinition {
   const enemies: Enemy[] = [];
   let nextId = startId;
+
+  for (let index = 0; index < bossCount; index += 1) {
+    const spread = bossCount === 1 ? 0 : bossCount === 2 ? 180 : 230;
+    const centerOffset = (index - (bossCount - 1) / 2) * spread;
+    const x = BOARD_WIDTH / 2 - 72 + centerOffset;
+    enemies.push(createBossEnemy(theme, cycle, nextId, x, finalBoss));
+    nextId += 1;
+  }
+
+  return {
+    enemies,
+    nextId,
+    formationSpeed: (theme === "rookie" ? 62 : theme === "pulse" ? 72 : 82) + cycle * 7,
+    theme,
+    bossCount,
+    bossTheme: theme,
+    finale: finalBoss,
+  };
+}
+
+function createFormationWave(
+  wave: number,
+  theme: BossTheme,
+  cycle: number,
+  waveInBlock: number,
+  startId: number
+): WaveDefinition {
+  const rows =
+    theme === "rookie"
+      ? Math.min(3 + cycle, 4)
+      : theme === "pulse"
+        ? Math.min(3 + cycle, 5)
+        : Math.min(4 + cycle, 5);
+  const cols =
+    theme === "rookie"
+      ? Math.min(7 + cycle, 9)
+      : theme === "pulse"
+        ? Math.min(8 + cycle, 10)
+        : Math.min(9 + cycle, 11);
+  const pool: Array<Exclude<EnemyKind, "APEX">> =
+    theme === "rookie"
+      ? ["O", "L", "J", "T"]
+      : theme === "pulse"
+        ? ["I", "T", "S", "Z", "J", "L"]
+        : ["I", "T", "L", "O", "J", "S", "Z"];
   const hpBoost =
-    theme === "pulse"
-      ? Math.max(1, wave - 1)
-      : theme === "rookie"
-        ? Math.max(0, wave - 2)
-        : Math.max(0, wave - 1);
+    theme === "rookie"
+      ? cycle + Math.max(0, waveInBlock - 3)
+      : theme === "pulse"
+        ? cycle * 2 + waveInBlock
+        : cycle * 3 + waveInBlock;
+  const profile = getFormationProfile(theme, wave, waveInBlock);
+  const maxEnemyHeight = Math.max(...pool.map((kind) => SHAPES[kind].length * 18));
+  const startY = 52;
+  const safeBottom = Math.min(BOARD_HEIGHT * 0.62, SCRAP_TOP - 62);
+  const spacingY = Math.max(
+    42,
+    Math.min(
+      theme === "apex" ? 62 : 66,
+      (safeBottom - startY - maxEnemyHeight) / Math.max(1, rows - 1)
+    )
+  );
+  const sidePadding = 86;
+  const availableWidth = BOARD_WIDTH - sidePadding * 2;
+  const spacingX = Math.max(
+    96,
+    Math.min(128, cols > 1 ? availableWidth / (cols - 1) : availableWidth)
+  );
+  const formationWidth = cols > 1 ? (cols - 1) * spacingX : 0;
+  const startX = Math.max(sidePadding - 28, BOARD_WIDTH / 2 - formationWidth / 2 - 28);
+  const enemies: Enemy[] = [];
+  let nextId = startId;
 
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
-      const kind = pool[(row * cols + col + wave) % pool.length];
-      const x = 82 + col * 92 + (row % 2) * 10;
-      const y = 86 + row * 72;
-      enemies.push(createEnemy(kind, x, y, nextId, hpBoost));
+      const kind = pool[(wave + row * cols + col + cycle) % pool.length];
+      const baseX = startX + col * spacingX + (row % 2) * 8;
+      const baseY = startY + row * spacingY;
+      const { x, y } = applyFormationProfile(baseX, baseY, col, row, cols, rows, profile);
+      enemies.push(createRegularEnemy(kind, x, y, nextId, hpBoost));
       nextId += 1;
     }
   }
@@ -129,14 +191,97 @@ export function createWave(wave: number, startId: number) {
     enemies,
     nextId,
     formationSpeed:
-      theme === "pulse"
-        ? 68 + wave * 7
-        : theme === "rookie"
-          ? 54 + wave * 5
-          : 58 + wave * 6,
+      theme === "rookie"
+        ? 50 + cycle * 6 + waveInBlock * 2
+        : theme === "pulse"
+          ? 60 + cycle * 8 + waveInBlock * 3
+          : 68 + cycle * 9 + waveInBlock * 3,
     theme,
-    apexCount: 0,
+    bossCount: 0,
+    finale: false,
   };
+}
+
+function getFormationProfile(theme: BossTheme, wave: number, waveInBlock: number): FormationProfile {
+  const rotation =
+    theme === "rookie"
+      ? ["line", "arc", "flanks"]
+      : theme === "pulse"
+        ? ["line", "vee", "arc", "flanks"]
+        : ["vee", "arc", "flanks", "line"];
+
+  return rotation[(wave + waveInBlock) % rotation.length] as FormationProfile;
+}
+
+function applyFormationProfile(
+  baseX: number,
+  baseY: number,
+  col: number,
+  row: number,
+  cols: number,
+  rows: number,
+  profile: FormationProfile
+) {
+  const centerCol = (cols - 1) / 2;
+  const centerRow = (rows - 1) / 2;
+  const dx = col - centerCol;
+  const dy = row - centerRow;
+
+  if (profile === "arc") {
+    return {
+      x: baseX,
+      y: baseY + Math.abs(dx) * 10 - row * 2,
+    };
+  }
+
+  if (profile === "vee") {
+    return {
+      x: baseX,
+      y: baseY + Math.abs(dx) * 12 + Math.max(0, dy) * 2,
+    };
+  }
+
+  if (profile === "flanks") {
+    return {
+      x: baseX + Math.sign(dx || 1) * Math.min(26, Math.abs(dx) * 6),
+      y: baseY + (Math.abs(dx) >= centerCol - 1 ? -14 : 8),
+    };
+  }
+
+  return {
+    x: baseX,
+    y: baseY,
+  };
+}
+
+function createFinalePreludeWave(wave: number, startId: number): WaveDefinition {
+  const theme = wave === 95 ? "rookie" : wave === 96 ? "pulse" : wave === 97 ? "apex" : "apex";
+  const cycle = 4;
+  const waveInBlock = wave - 94;
+  return createFormationWave(wave, theme, cycle, waveInBlock + 6, startId);
+}
+
+/** Construit la composition d'une vague complète à partir de son index. */
+export function createWave(wave: number, startId: number): WaveDefinition {
+  if (wave >= 98) {
+    const theme = wave === 98 ? "rookie" : wave === 99 ? "pulse" : "apex";
+    return createBossWave(theme, 4, startId, 1, true);
+  }
+
+  if (wave >= 95) {
+    return createFinalePreludeWave(wave, startId);
+  }
+
+  const blockIndex = Math.floor((wave - 1) / 10);
+  const waveInBlock = ((wave - 1) % 10) + 1;
+  const theme = getBlockTheme(blockIndex);
+  const cycle = getCycle(blockIndex);
+
+  if (waveInBlock === 10) {
+    return createBossWave(theme, cycle, startId, cycle);
+  }
+
+  return createFormationWave(wave, theme, cycle, waveInBlock, startId);
 }
 
 /** Crée l'état initial prêt à être consommé par la boucle de jeu. */
@@ -169,14 +314,20 @@ export function createInitialState(): GameState {
     enemyDashCooldown: 1.8,
     formationDir: 1,
     formationSpeed: wave.formationSpeed,
+    formationPulse: 0,
     enemies: wave.enemies,
     playerBullets: [],
     enemyBullets: [],
+    drops: [],
+    queuedDrops: [],
     telegraphs: [],
     impacts: [],
     scrapGrid: createEmptyScrapGrid(),
     flashTimer: 0,
-    message: getWaveStartMessage(1, wave.theme, wave.apexCount),
+    hitStopTimer: 0,
+    boardShakeTimer: 0,
+    lineBurstFxTimer: 0,
+    message: getWaveStartMessage(1, wave.theme, wave.bossCount, wave.bossTheme, wave.finale),
     messageTimer: 4,
     lastHorizontalDir: 1,
     playerTilt: 0,
@@ -184,7 +335,7 @@ export function createInitialState(): GameState {
     playerThrust: 0,
     playerDashFx: 0,
     slowFieldTimer: 0,
-    waveTransition: 1.4,
+    waveTransition: 5.2,
     nextEntityId: wave.nextId,
     recentDanger: false,
   };
@@ -205,6 +356,7 @@ export function resolveWaveCompletion(next: GameState): GameState {
   }
 
   const wave = createWave(nextWave, next.nextEntityId);
+  const isChapterStart = nextWave === 1 || [11, 21, 31, 41, 51, 61, 71, 81, 91, 95, 98].includes(nextWave);
 
   return {
     ...next,
@@ -214,14 +366,20 @@ export function resolveWaveCompletion(next: GameState): GameState {
     nextEntityId: wave.nextId,
     formationSpeed: wave.formationSpeed,
     formationDir: nextWave % 2 === 0 ? -1 : 1,
-    enemyShotCooldown: 1.25,
-    enemyDashCooldown: 1.5,
+    formationPulse: 0,
+    enemyShotCooldown: wave.bossCount > 0 ? 1.05 : 1.25,
+    enemyDashCooldown: wave.theme === "rookie" ? 1.8 : wave.theme === "pulse" ? 1.45 : 1.25,
     playerBullets: [],
     enemyBullets: [],
+    drops: [],
+    queuedDrops: [],
     telegraphs: [],
     bombs: Math.min(MAX_BOMBS, next.bombs + 1),
-    waveTransition: 1.8,
-    message: getWaveStartMessage(nextWave, wave.theme, wave.apexCount),
+    hitStopTimer: 0,
+    boardShakeTimer: 0,
+    lineBurstFxTimer: 0,
+    waveTransition: isChapterStart ? 5.2 : wave.bossCount > 0 ? 4.2 : 3,
+    message: getWaveStartMessage(nextWave, wave.theme, wave.bossCount, wave.bossTheme, wave.finale),
     messageTimer: 4,
   };
 }

@@ -54,6 +54,8 @@ export function resolveIncomingDamage(next: GameState) {
       ),
     ];
     next.nextEntityId += 1;
+    next.hitStopTimer = Math.max(next.hitStopTimer, bullet.sourceKind === "O" ? 0.05 : 0.03);
+    next.boardShakeTimer = Math.max(next.boardShakeTimer, bullet.sourceKind === "O" ? 0.22 : 0.14);
     return false;
   });
 
@@ -62,6 +64,8 @@ export function resolveIncomingDamage(next: GameState) {
 
     shield -= enemy.kind === "APEX" ? 3 : 1;
     tookDamage = true;
+    next.hitStopTimer = Math.max(next.hitStopTimer, enemy.kind === "APEX" ? 0.06 : 0.035);
+    next.boardShakeTimer = Math.max(next.boardShakeTimer, enemy.kind === "APEX" ? 0.28 : 0.18);
     return false;
   });
 
@@ -74,6 +78,11 @@ export function resolveIncomingDamage(next: GameState) {
 
   next.shield = shield;
   next.lives = lives;
+
+  if (tookDamage) {
+    next.combo = 0;
+    next.comboTimer = 0;
+  }
 
   return tookDamage;
 }

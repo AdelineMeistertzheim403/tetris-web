@@ -211,6 +211,15 @@ export const brickfallSoloProgressSchema = z.object({
   highestLevel: intWithin(1, 999),
 });
 
+export const pixelInvasionProgressSchema = z.object({
+  highestWave: intWithin(1, 999).optional(),
+  currentWave: intWithin(1, 999).optional(),
+  bestScore: intWithin(0, 9_999_999).optional(),
+  totalKills: intWithin(0, 999_999).optional(),
+  totalLineBursts: intWithin(0, 999_999).optional(),
+  victories: intWithin(0, 999_999).optional(),
+});
+
 const tetromazePosSchema = z.object({
   x: intWithin(0, 99),
   y: intWithin(0, 99),
