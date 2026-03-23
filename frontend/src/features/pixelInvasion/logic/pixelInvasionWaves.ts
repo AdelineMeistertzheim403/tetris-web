@@ -63,10 +63,17 @@ function createBossEnemy(
   cycle: number,
   id: number,
   x: number,
-  finalBoss = false
+  finalBoss = false,
+  splitGeneration = 0
 ): Enemy {
-  const hpBase = theme === "rookie" ? 16 : theme === "pulse" ? 24 : 34;
-  const hp = hpBase + cycle * (theme === "rookie" ? 7 : theme === "pulse" ? 9 : 12) + (finalBoss ? 16 : 0);
+  const hpBase = theme === "rookie" ? 22 : theme === "pulse" ? 32 : 46;
+  const hp =
+    splitGeneration === 0
+      ? hpBase + cycle * (theme === "rookie" ? 10 : theme === "pulse" ? 13 : 17) + (finalBoss ? 22 : 0)
+      : Math.max(
+          16,
+          hpBase * 0.9 + cycle * (theme === "rookie" ? 6.5 : theme === "pulse" ? 8 : 10) + (finalBoss ? 10 : 0)
+        );
   const color =
     theme === "rookie" ? "#7fd8ff" : theme === "pulse" ? "#df96ff" : ENEMY_COLORS.APEX;
 
@@ -74,15 +81,24 @@ function createBossEnemy(
     id,
     kind: "APEX",
     bossTheme: theme,
+    bossSplitGeneration: splitGeneration,
     x,
     y: 92,
-    width: 144,
-    height: 96,
+    width: splitGeneration === 0 ? 144 : 92,
+    height: splitGeneration === 0 ? 96 : 62,
     hp,
     maxHp: hp,
-    points: (theme === "rookie" ? 1200 : theme === "pulse" ? 1650 : 2200) + cycle * 220 + (finalBoss ? 800 : 0),
+    points:
+      splitGeneration === 0
+        ? (theme === "rookie" ? 1200 : theme === "pulse" ? 1650 : 2200) + cycle * 220 + (finalBoss ? 800 : 0)
+        : Math.floor(
+            ((theme === "rookie" ? 1200 : theme === "pulse" ? 1650 : 2200) + cycle * 180 + (finalBoss ? 400 : 0)) *
+              0.58
+          ),
     color,
-    shootBias: theme === "rookie" ? 1.8 : theme === "pulse" ? 2.4 : 3.1,
+    shootBias:
+      (theme === "rookie" ? 2.2 : theme === "pulse" ? 3 : 3.9) +
+      (splitGeneration === 0 ? 0.3 : 0.8),
   };
 }
 
