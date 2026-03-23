@@ -5,6 +5,7 @@ import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
 import Dashboard from "./features/app/pages/Dashboard";
 import TetrisHub from "./features/app/pages/TetrisHub";
+import TetroVerseHub from "./features/app/pages/TetroVerseHub";
 import Game from "./features/game/pages/Game";
 import Leaderboard from "./features/game/pages/Leaderboard";
 import ProtectedRoute from "./features/auth/components/ProtectedRoute";
@@ -40,6 +41,7 @@ const PixelProtocolEditor = lazy(() => import("./features/pixelProtocol/pages/Pi
 const PixelProtocolEditorHelp = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolEditorHelp"));
 const PixelProtocolCommunityHub = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityHub"));
 const PixelProtocolCommunityLevelPage = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityLevelPage"));
+const PixelInvasionPage = lazy(() => import("./features/pixelInvasion/pages/PixelInvasionPage"));
 
 function App() {
   const { user } = useAuth();
@@ -73,6 +75,7 @@ function App() {
           />
           <Route path="/sprint" element={<Sprint />} />
           <Route path="/tetris-hub" element={<TetrisHub />} />
+          <Route path="/tetro-verse" element={<TetroVerseHub />} />
           <Route path="/versus" element={<Versus />} />
           <Route path="/brickfall-solo" element={<BrickfallSolo />} />
           <Route path="/brickfall-solo/community" element={<BrickfallSoloCommunityHub />} />
@@ -92,6 +95,7 @@ function App() {
           <Route path="/pixel-protocol" element={<PixelProtocolHub />} />
           <Route path="/pixel-protocol/community" element={<PixelProtocolCommunityHub />} />
           <Route path="/pixel-protocol/play" element={<PixelProtocolPage />} />
+          <Route path="/pixel-invasion" element={<PixelInvasionPage />} />
           <Route
             path="/pixel-protocol/community/:publishedId"
             element={<PixelProtocolCommunityLevelPage />}

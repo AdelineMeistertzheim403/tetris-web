@@ -22,6 +22,11 @@ const mockVersusScores = [
   { id: 3, value: 1500, level: 1, lines: 20, userId: 1, mode: "VERSUS", createdAt: new Date(), user: { pseudo: "neo" } },
 ];
 
+const mockPixelInvasionScores = [
+  { id: 4, value: 8200, level: 18, lines: 6, userId: 1, mode: "PIXEL_INVASION", createdAt: new Date(), user: { pseudo: "neo" } },
+  { id: 5, value: 7600, level: 16, lines: 5, userId: 2, mode: "PIXEL_INVASION", createdAt: new Date(), user: { pseudo: "trinity" } },
+];
+
 const mockVersusMatches = [
   {
     id: 10,
@@ -49,6 +54,16 @@ const mockAchievementStatsRecord = {
   tetrobotMemories: { pulse: [{ type: "tip", detail: "keep going" }] },
   lastTetrobotLevelUp: { bot: "pulse", level: 3 },
   activeTetrobotChallenge: { status: "active" },
+};
+
+const mockPixelInvasionProgressRecord = {
+  highestWave: 18,
+  currentWave: 7,
+  bestScore: 8200,
+  totalKills: 143,
+  totalLineBursts: 18,
+  victories: 1,
+  updatedAt: new Date(),
 };
 
 const runTokenSecret =
@@ -84,7 +99,31 @@ vi.mock("../src/prisma/client", () => {
   const scoreFindMany = vi.fn(({ where }) => {
     if (where?.mode === "CLASSIQUE") return mockScores;
     if (where?.mode === "VERSUS") return mockVersusScores;
+    if (where?.mode === "PIXEL_INVASION") return mockPixelInvasionScores;
     return [];
+  });
+
+  const scoreGroupBy = vi.fn(({ where }) => {
+    if (where?.mode === "SPRINT") {
+      return [{ userId: 1, _min: { value: 60 } }];
+    }
+    if (where?.mode === "PIXEL_INVASION") {
+      return [
+        { userId: 1, _max: { value: 8200 } },
+        { userId: 2, _max: { value: 7600 } },
+      ];
+    }
+    return [
+      { userId: 1, _max: { value: 1200 } },
+      { userId: 2, _max: { value: 800 } },
+    ];
+  });
+
+  const scoreFindFirst = vi.fn(({ where }) => {
+    const mode = where?.mode;
+    const value = where?.value;
+    const all = mode === "PIXEL_INVASION" ? mockPixelInvasionScores : mockScores;
+    return all.find((row) => row.userId === where?.userId && row.mode === mode && row.value === value) ?? null;
   });
 
   const versusMatchCreate = vi.fn(({ data }) => ({
@@ -97,6 +136,8 @@ vi.mock("../src/prisma/client", () => {
   const versusMatchFindMany = vi.fn(() => mockVersusMatches);
   const userAchievementStatsFindUnique = vi.fn(() => mockAchievementStatsRecord);
   const userAchievementStatsUpsert = vi.fn(({ create, update }) => ({ ...create, ...update }));
+  const pixelInvasionProgressFindUnique = vi.fn(() => mockPixelInvasionProgressRecord);
+  const pixelInvasionProgressUpsert = vi.fn(({ create, update }) => ({ ...create, ...update, updatedAt: new Date() }));
 
   const queryRaw = vi.fn(async (strings: TemplateStringsArray) => {
     const sql = strings[0] || "";
@@ -118,6 +159,12 @@ vi.mock("../src/prisma/client", () => {
       score: {
         create: scoreCreate,
         findMany: scoreFindMany,
+        groupBy: scoreGroupBy,
+        findFirst: scoreFindFirst,
+      },
+      pixelInvasionProgress: {
+        findUnique: pixelInvasionProgressFindUnique,
+        upsert: pixelInvasionProgressUpsert,
       },
       versusMatch: {
         create: versusMatchCreate,
@@ -187,6 +234,13 @@ describe("Scores routes", () => {
     expect(res.body[0]).toHaveProperty("player2");
   });
 
+  it("leaderboard supporte le mode PIXEL_INVASION", async () => {
+    const res = await request(app).get("/api/scores/leaderboard/PIXEL_INVASION");
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThan(0);
+    expect(res.body[0].mode).toBe("PIXEL_INVASION");
+  });
+
   it("enregistre un score authentifie", async () => {
     const runToken = computeRunToken(mockUser.id, "CLASSIQUE");
     const res = await request(app)
@@ -211,6 +265,18 @@ describe("Scores routes", () => {
     expect(res.body.score.mode).toBe("VERSUS");
   });
 
+  it("enregistre un score PIXEL_INVASION authentifie", async () => {
+    const runToken = computeRunToken(mockUser.id, "PIXEL_INVASION");
+    const res = await request(app)
+      .post("/api/scores")
+      .set("Authorization", `Bearer ${token}`)
+      .set("X-Run-Token", runToken)
+      .send({ value: 8200, level: 18, lines: 6, mode: "PIXEL_INVASION" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.score.mode).toBe("PIXEL_INVASION");
+  });
+
   it("enregistre un match VERSUS en une ligne", async () => {
     const runToken = computeRunToken(mockUser.id, "VERSUS", "abc123");
     const res = await request(app)
@@ -228,6 +294,41 @@ describe("Scores routes", () => {
     expect(res.status).toBe(201);
     expect(res.body.player1Pseudo).toBe("neo");
     expect(res.body.winnerId).toBe(1);
+  });
+});
+
+describe("Pixel Invasion progress routes", () => {
+  const token = jwt.sign(
+    { id: mockUser.id, email: mockUser.email, pseudo: mockUser.pseudo },
+    process.env.JWT_SECRET || "super_secret_tetris_key_dev"
+  );
+
+  it("charge la progression Pixel Invasion", async () => {
+    const res = await request(app)
+      .get("/api/pixel-invasion/progress")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.highestWave).toBe(18);
+    expect(res.body.bestScore).toBe(8200);
+  });
+
+  it("sauvegarde la progression Pixel Invasion", async () => {
+    const res = await request(app)
+      .put("/api/pixel-invasion/progress")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        highestWave: 22,
+        currentWave: 11,
+        bestScore: 9100,
+        totalKills: 190,
+        totalLineBursts: 24,
+        victories: 2,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.highestWave).toBe(22);
+    expect(res.body.bestScore).toBe(9100);
   });
 });
 

@@ -63,6 +63,7 @@ const PLAYER_BEHAVIOR_MODES: PlayerBehaviorMode[] = [
   "ROGUELIKE_VERSUS",
   "PUZZLE",
   "TETROMAZE",
+  "PIXEL_INVASION",
   "PIXEL_PROTOCOL",
 ];
 

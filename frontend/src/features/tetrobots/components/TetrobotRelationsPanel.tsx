@@ -44,6 +44,7 @@ const MODE_LABELS: Partial<Record<NonNullable<RelationsStats["lowestWinrateMode"
   ROGUELIKE_VERSUS: "Roguelike Versus",
   PUZZLE: "Puzzle",
   TETROMAZE: "Tetromaze",
+  PIXEL_INVASION: "Pixel Invasion",
   PIXEL_PROTOCOL: "Pixel Protocol",
 };
 
@@ -108,6 +109,8 @@ function getModeActionTarget(mode: RelationsStats["lowestWinrateMode"]) {
       return "/puzzle";
     case "TETROMAZE":
       return "/tetromaze/play";
+    case "PIXEL_INVASION":
+      return "/pixel-invasion";
     case "PIXEL_PROTOCOL":
       return "/pixel-protocol/play";
     default:

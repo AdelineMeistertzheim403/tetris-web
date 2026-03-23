@@ -29,6 +29,7 @@ model User {
   settings UserSettings?
   brickfallSoloProgress BrickfallSoloProgress?
   tetromazeProgress TetromazeProgress?
+  pixelInvasionProgress PixelInvasionProgress?
   pixelProtocolProgress PixelProtocolProgress?
   brickfallSoloCustomLevels BrickfallSoloCustomLevel[]
   brickfallSoloPublishedLevels BrickfallSoloPublishedLevel[]
@@ -237,6 +238,20 @@ model PixelProtocolProgress {
   user         User     @relation(fields: [userId], references: [id])
 }
 
+model PixelInvasionProgress {
+  userId          Int      @id
+  highestWave     Int      @default(1)
+  currentWave     Int      @default(1)
+  bestScore       Int      @default(0)
+  totalKills      Int      @default(0)
+  totalLineBursts Int      @default(0)
+  victories       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id])
+}
+
 model BrickfallSoloCustomLevel {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -395,6 +410,7 @@ enum GameMode {
   SPRINT
   VERSUS
   ROGUELIKE_VERSUS
+  PIXEL_INVASION
 }
 
 enum UserRole {

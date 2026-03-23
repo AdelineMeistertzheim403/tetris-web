@@ -1186,11 +1186,143 @@
   overflow-wrap: anywhere;
 }
 
+.mode-card--dashboard {
+  position: relative;
+  overflow: hidden;
+  min-height: 248px;
+  justify-content: flex-start;
+}
+
+.mode-card--dashboard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.78;
+}
+
+.mode-card--dashboard .mode-card__icon {
+  width: 100%;
+  height: 152px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.mode-card--dashboard .mode-card__image {
+  width: 138px;
+  height: 138px;
+}
+
+.mode-card--dashboard .mode-card__content h3 {
+  font-size: 0.82rem;
+}
+
+.mode-card--dashboard-tetris {
+  border-color: rgba(255, 154, 107, 0.45);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 28px rgba(255, 120, 87, 0.14);
+}
+
+.mode-card--dashboard-tetris::before {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 214, 120, 0.16), transparent 26%),
+    linear-gradient(135deg, transparent 0 54%, rgba(255, 122, 74, 0.08) 54% 100%);
+}
+
+.mode-card--dashboard-tetris .mode-card__icon {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255, 219, 142, 0.16), transparent 44%),
+    linear-gradient(180deg, rgba(42, 10, 18, 0.9), rgba(18, 5, 12, 0.96));
+}
+
+.mode-card--dashboard-tetris .mode-card__content h3 {
+  color: #ffe290;
+  text-shadow: 0 0 10px rgba(255, 156, 94, 0.34);
+}
+
+.mode-card--dashboard-tetris .mode-card__content p {
+  color: #ffd2d8;
+}
+
+.mode-card--dashboard-brickfall {
+  border-color: rgba(92, 224, 201, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 28px rgba(92, 224, 201, 0.12);
+}
+
+.mode-card--dashboard-brickfall::before {
+  background:
+    radial-gradient(circle at 82% 20%, rgba(111, 250, 255, 0.14), transparent 28%),
+    repeating-linear-gradient(90deg, transparent 0 24px, rgba(94, 255, 157, 0.05) 24px 36px, transparent 36px 66px);
+}
+
+.mode-card--dashboard-brickfall .mode-card__icon {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(111, 250, 255, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(6, 26, 31, 0.92), rgba(3, 16, 21, 0.97));
+}
+
+.mode-card--dashboard-brickfall .mode-card__content h3 {
+  color: #9cf8dd;
+  text-shadow: 0 0 10px rgba(92, 224, 201, 0.3);
+}
+
+.mode-card--dashboard-brickfall .mode-card__content p {
+  color: #c7fff2;
+}
+
+.mode-card--dashboard-tetroverse {
+  border-color: rgba(118, 168, 255, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 30px rgba(92, 173, 255, 0.16);
+}
+
+.mode-card--dashboard-tetroverse::before {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(106, 255, 217, 0.1), transparent 24%),
+    radial-gradient(circle at 82% 16%, rgba(158, 108, 255, 0.12), transparent 24%),
+    linear-gradient(180deg, transparent, rgba(92, 173, 255, 0.06));
+}
+
+.mode-card--dashboard-tetroverse .mode-card__icon {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(163, 227, 255, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(7, 20, 42, 0.92), rgba(5, 11, 26, 0.97));
+}
+
+.mode-card--dashboard-tetroverse .mode-card__content h3 {
+  color: #c7f2ff;
+  text-shadow: 0 0 10px rgba(92, 173, 255, 0.34);
+}
+
+.mode-card--dashboard-tetroverse .mode-card__content p {
+  color: #d0dcff;
+}
+
 .dashboard-mode-shell {
   background:
     radial-gradient(circle at top, rgba(255, 0, 255, 0.16), transparent 34%),
     radial-gradient(circle at 82% 12%, rgba(0, 255, 255, 0.12), transparent 30%),
     #06020c;
+}
+
+.dashboard-mode-shell--tetris {
+  background:
+    radial-gradient(circle at top, rgba(255, 196, 66, 0.16), transparent 34%),
+    radial-gradient(circle at 82% 14%, rgba(255, 84, 153, 0.12), transparent 28%),
+    linear-gradient(180deg, #13040d, #07020a 70%);
+}
+
+.dashboard-mode-shell--tetroverse {
+  background:
+    radial-gradient(circle at top, rgba(92, 173, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(106, 255, 217, 0.12), transparent 28%),
+    radial-gradient(circle at 82% 14%, rgba(158, 108, 255, 0.14), transparent 26%),
+    linear-gradient(180deg, #04111f, #050815 74%);
 }
 
 .dashboard-mode-head {
@@ -1230,6 +1362,58 @@
   color: #ffd6f6;
   border-radius: 12px;
   box-shadow: 0 0 14px rgba(255, 58, 215, 0.22);
+}
+
+.dashboard-mode-shell--tetris .dashboard-mode-eyebrow {
+  color: #ffb37b;
+}
+
+.dashboard-mode-shell--tetris .dashboard-mode-title {
+  color: #ffe06a;
+  text-shadow: 0 0 12px rgba(255, 130, 79, 0.28);
+}
+
+.dashboard-mode-shell--tetris .dashboard-mode-subtitle {
+  color: #ffd1df;
+}
+
+.dashboard-mode-shell--tetris .dashboard-mode-back {
+  border-color: #ff8c6b;
+  background: rgba(30, 8, 16, 0.9);
+  color: #ffe7dc;
+  box-shadow: 0 0 14px rgba(255, 140, 107, 0.2);
+}
+
+.dashboard-mode-shell--tetroverse .dashboard-mode-eyebrow {
+  color: #8ad8ff;
+}
+
+.dashboard-mode-shell--tetroverse .dashboard-mode-title {
+  color: #c4f1ff;
+  text-shadow: 0 0 12px rgba(92, 173, 255, 0.26);
+}
+
+.dashboard-mode-shell--tetroverse .dashboard-mode-subtitle {
+  color: #cce4ff;
+}
+
+.dashboard-mode-shell--tetroverse .dashboard-mode-back {
+  border-color: #62bcff;
+  background: rgba(7, 18, 36, 0.9);
+  color: #dff4ff;
+  box-shadow: 0 0 16px rgba(92, 173, 255, 0.2);
+}
+
+.mode-card--tetris {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 226, 153, 0.06),
+    0 0 24px rgba(255, 132, 82, 0.16);
+}
+
+.mode-card--tetroverse {
+  box-shadow:
+    inset 0 0 0 1px rgba(173, 232, 255, 0.06),
+    0 0 26px rgba(92, 173, 255, 0.16);
 }
 
 @media (max-width: 1400px) {

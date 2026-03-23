@@ -12,6 +12,7 @@ import achievementRoutes from "./routes/achievements.routes";
 import puzzleRoutes from "./routes/puzzle.routes";
 import brickfallSoloRoutes from "./routes/brickfallSolo.routes";
 import tetromazeRoutes from "./routes/tetromaze.routes";
+import pixelInvasionRoutes from "./routes/pixelInvasion.routes";
 import pixelProtocolRoutes from "./routes/pixelProtocol.routes";
 import { env } from "./config";
 import { errorHandler } from "./middleware/error.middleware";
@@ -68,6 +69,7 @@ app.use("/api/achievements", achievementRoutes);
 app.use("/api/puzzles", puzzleRoutes);
 app.use("/api/brickfall-solo", brickfallSoloRoutes);
 app.use("/api/tetromaze", tetromazeRoutes);
+app.use("/api/pixel-invasion", pixelInvasionRoutes);
 app.use("/api/pixel-protocol", pixelProtocolRoutes);
 
 app.get("/", (_, res) => res.send("Tetris backend en ligne"));

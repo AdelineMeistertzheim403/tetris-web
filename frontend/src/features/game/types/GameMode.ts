@@ -7,7 +7,8 @@ export type GameMode =
   | "ROGUELIKE"
   | "ROGUELIKE_VERSUS"
   | "PUZZLE"
-  | "TETROMAZE";
+  | "TETROMAZE"
+  | "PIXEL_INVASION";
 
 export const GAME_MODES: GameMode[] = [
   "CLASSIQUE",
@@ -18,6 +19,7 @@ export const GAME_MODES: GameMode[] = [
   "ROGUELIKE_VERSUS",
   "PUZZLE",
   "TETROMAZE",
+  "PIXEL_INVASION",
 ];
 
 export const TOTAL_GAME_MODES = GAME_MODES.length;
