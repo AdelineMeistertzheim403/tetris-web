@@ -74,6 +74,70 @@ function addScrapFromEnemy(
   return { grid: rebuilt, clearedRows: Math.max(0, clearedRows) };
 }
 
+const ENEMY_BUCKET = 120;
+
+function bucketKey(x: number, y: number) {
+  return `${x}:${y}`;
+}
+
+function buildEnemySpatialIndex(enemies: Enemy[]) {
+  const buckets = new Map<string, Enemy[]>();
+
+  for (const enemy of enemies) {
+    const minX = Math.floor(enemy.x / ENEMY_BUCKET);
+    const maxX = Math.floor((enemy.x + enemy.width) / ENEMY_BUCKET);
+    const minY = Math.floor(enemy.y / ENEMY_BUCKET);
+    const maxY = Math.floor((enemy.y + enemy.height) / ENEMY_BUCKET);
+
+    for (let by = minY; by <= maxY; by += 1) {
+      for (let bx = minX; bx <= maxX; bx += 1) {
+        const key = bucketKey(bx, by);
+        const current = buckets.get(key);
+        if (current) {
+          current.push(enemy);
+        } else {
+          buckets.set(key, [enemy]);
+        }
+      }
+    }
+  }
+
+  return buckets;
+}
+
+function findBulletCollision(
+  bullet: Bullet,
+  buckets: Map<string, Enemy[]>,
+  enemiesById: Map<number, Enemy>,
+  consumedEnemyIds: Set<number>
+) {
+  const minX = Math.floor(bullet.x / ENEMY_BUCKET);
+  const maxX = Math.floor((bullet.x + bullet.width) / ENEMY_BUCKET);
+  const minY = Math.floor(bullet.y / ENEMY_BUCKET);
+  const maxY = Math.floor((bullet.y + bullet.height) / ENEMY_BUCKET);
+  const seen = new Set<number>();
+
+  for (let by = minY; by <= maxY; by += 1) {
+    for (let bx = minX; bx <= maxX; bx += 1) {
+      const candidates = buckets.get(bucketKey(bx, by));
+      if (!candidates) continue;
+
+      for (const candidate of candidates) {
+        if (seen.has(candidate.id) || consumedEnemyIds.has(candidate.id)) continue;
+        seen.add(candidate.id);
+
+        const liveEnemy = enemiesById.get(candidate.id);
+        if (!liveEnemy) continue;
+        if (overlaps(bullet, liveEnemy)) {
+          return liveEnemy;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 function addMissedDropToScrap(
   grid: Array<Array<string | null>>,
   drop: Drop
@@ -186,20 +250,19 @@ function spawnRewardDrops(
   y: number
 ): PickupType | null {
   let latestDrop: PickupType | null = null;
+  const queuedDrops = [...next.queuedDrops];
 
   for (let index = 0; index < count; index += 1) {
     const nextDrop = getRewardDropType(next, index + 1);
-    next.queuedDrops = [
-      ...next.queuedDrops,
-      {
-        type: nextDrop,
-        x: x + (index - (count - 1) / 2) * 36,
-        y: y - Math.min(28, index * 10),
-      },
-    ];
+    queuedDrops.push({
+      type: nextDrop,
+      x: x + (index - (count - 1) / 2) * 36,
+      y: y - Math.min(28, index * 10),
+    });
     latestDrop = nextDrop;
   }
 
+  next.queuedDrops = queuedDrops;
   maybeReleaseQueuedDrop(next);
   return latestDrop;
 }
@@ -442,6 +505,8 @@ export function applyBomb(next: GameState) {
 export function resolvePlayerHits(next: GameState) {
   const damagedEnemies = new Map<number, Enemy>();
   const consumedEnemyIds = new Set<number>();
+  const liveEnemiesById = new Map(next.enemies.map((enemy) => [enemy.id, enemy]));
+  const spatialIndex = buildEnemySpatialIndex(next.enemies);
   let scrapGrid = next.scrapGrid;
   let lineBursts = next.lineBursts;
   let score = next.score;
@@ -450,20 +515,19 @@ export function resolvePlayerHits(next: GameState) {
   let comboTimer = next.comboTimer;
   let maxCombo = next.maxCombo;
   const bulletsToKeep: Bullet[] = [];
+  const impacts = [...next.impacts];
 
   for (const bullet of next.playerBullets) {
-    const hitEnemyIndex = next.enemies.findIndex((enemy) => overlaps(bullet, enemy));
+    const enemy = findBulletCollision(bullet, spatialIndex, liveEnemiesById, consumedEnemyIds);
 
-    if (hitEnemyIndex === -1) {
+    if (!enemy) {
       bulletsToKeep.push(bullet);
       continue;
     }
 
-    const enemy = next.enemies[hitEnemyIndex];
     consumedEnemyIds.add(enemy.id);
     const damaged = { ...enemy, hp: enemy.hp - bullet.damage };
-    next.impacts = [
-      ...next.impacts,
+    impacts.push(
       createImpact(
         next.nextEntityId,
         bullet.x + bullet.width / 2,
@@ -471,12 +535,13 @@ export function resolvePlayerHits(next: GameState) {
         getPlayerShotImpactType(bullet),
         bullet.visualType === "charge" ? 30 : bullet.visualType === "laser" ? 24 : 20,
         bullet.visualType === "charge" ? 0.28 : 0.2
-      ),
-    ];
+      )
+    );
     next.nextEntityId += 1;
 
     if (damaged.hp > 0) {
       damagedEnemies.set(enemy.id, damaged);
+      liveEnemiesById.set(enemy.id, damaged);
       if ((bullet.remainingHits ?? 0) > 0) {
         bulletsToKeep.push({
           ...bullet,
@@ -485,6 +550,8 @@ export function resolvePlayerHits(next: GameState) {
       }
       continue;
     }
+
+    liveEnemiesById.delete(enemy.id);
 
     score += enemy.points;
     kills += 1;
@@ -502,10 +569,10 @@ export function resolvePlayerHits(next: GameState) {
       );
       lineBursts += outcome.clearedRows;
       score += outcome.clearedRows * 500 + combo * 35;
-      next.flashTimer = 0.28;
-      next.hitStopTimer = Math.max(next.hitStopTimer, 0.05);
-      next.boardShakeTimer = Math.max(next.boardShakeTimer, 0.24);
-      next.lineBurstFxTimer = Math.max(next.lineBurstFxTimer, 0.28);
+      next.flashTimer = Math.max(next.flashTimer, 0.18);
+      next.hitStopTimer = Math.max(next.hitStopTimer, 0.018);
+      next.boardShakeTimer = Math.max(next.boardShakeTimer, 0.1);
+      next.lineBurstFxTimer = Math.max(next.lineBurstFxTimer, 0.16);
       next.message = createMessage(
         "pulse",
         "success",
@@ -518,8 +585,7 @@ export function resolvePlayerHits(next: GameState) {
     }
     next.hitStopTimer = Math.max(next.hitStopTimer, enemy.kind === "APEX" ? 0.045 : 0.022);
     next.boardShakeTimer = Math.max(next.boardShakeTimer, enemy.kind === "APEX" ? 0.2 : 0.1);
-    next.impacts = [
-      ...next.impacts,
+    impacts.push(
       createImpact(
         next.nextEntityId,
         enemy.x + enemy.width / 2,
@@ -527,12 +593,13 @@ export function resolvePlayerHits(next: GameState) {
         "enemy-break",
         34,
         0.32
-      ),
-    ];
+      )
+    );
     next.nextEntityId += 1;
   }
 
   next.playerBullets = bulletsToKeep;
+  next.impacts = impacts;
   next.enemies = next.enemies
     .filter((enemy) => !consumedEnemyIds.has(enemy.id))
     .concat(Array.from(damagedEnemies.values()))

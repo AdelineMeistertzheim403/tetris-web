@@ -219,17 +219,17 @@
 .pixel-invasion-line-burst-fx {
   position: absolute;
   inset: auto 12% 19% 12%;
-  height: 18%;
+  height: 14%;
   z-index: 2;
   pointer-events: none;
   border-radius: 16px;
   background:
-    linear-gradient(180deg, rgba(255, 246, 181, 0.22), rgba(255, 224, 102, 0.04)),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0 16px, transparent 16px 32px);
+    linear-gradient(180deg, rgba(255, 246, 181, 0.16), rgba(255, 224, 102, 0.03)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 16px, transparent 16px 32px);
   box-shadow:
-    0 0 18px rgba(255, 224, 102, 0.16),
-    inset 0 0 14px rgba(255, 255, 255, 0.08);
-  animation: pixel-invasion-line-burst 0.28s ease-out infinite;
+    0 0 12px rgba(255, 224, 102, 0.1),
+    inset 0 0 10px rgba(255, 255, 255, 0.05);
+  animation: pixel-invasion-line-burst 0.22s ease-out infinite;
 }
 
 .pixel-invasion-star {
@@ -259,6 +259,13 @@
   bottom: 23%;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255, 223, 119, 0.7), transparent);
+}
+
+.pixel-invasion-entity-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .pixel-invasion-telegraph,
@@ -450,24 +457,25 @@
   right: 19%;
   bottom: 1.8%;
   height: 22.8%;
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  grid-template-rows: repeat(8, 1fr);
-  gap: 2px;
   padding: 8px;
   border: 1px solid rgba(255, 223, 119, 0.22);
   border-radius: 16px;
-  background: rgba(10, 12, 20, 0.78);
+  background:
+    linear-gradient(rgba(115, 140, 179, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(115, 140, 179, 0.1) 1px, transparent 1px),
+    rgba(10, 12, 20, 0.78);
+  background-size: 10% 12.5%;
   box-shadow: inset 0 0 24px rgba(255, 223, 119, 0.08);
 }
 
-.pixel-invasion-scrap-cell {
+.pixel-invasion-scrap-block {
+  position: absolute;
+  width: 10%;
+  height: 12.5%;
   border-radius: 4px;
-  border: 1px solid rgba(115, 140, 179, 0.1);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.pixel-invasion-scrap-cell--filled {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transform: scale(0.88);
+  transform-origin: center;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 10px currentColor;
 }
 
@@ -2093,4 +2101,74 @@
   color: #9ec9ff;
   cursor: pointer;
   font-size: 1rem;
+}
+
+body.reduce-neon .pixel-invasion-enemy {
+  filter: brightness(1.08) saturate(1.18) !important;
+}
+
+body.reduce-neon .pixel-invasion-enemy-grid {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--enemy-color) 22%, rgba(40, 56, 98, 0.84)),
+      color-mix(in srgb, var(--enemy-color) 10%, rgba(16, 24, 46, 0.86))
+    ),
+    rgba(18, 27, 48, 0.48) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 2px rgba(2, 4, 10, 0.78) !important;
+}
+
+body.reduce-neon .pixel-invasion-enemy-cell {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--enemy-color) 18%, rgba(42, 54, 82, 0.72)),
+      color-mix(in srgb, var(--enemy-color) 8%, rgba(14, 20, 36, 0.82))
+    ) !important;
+}
+
+body.reduce-neon .pixel-invasion-enemy-cell--filled::before {
+  background: color-mix(in srgb, var(--enemy-color) 22%, rgba(18, 24, 38, 0.72)) !important;
+  box-shadow:
+    0 0 0 1px rgba(2, 4, 10, 0.96),
+    2px 2px 0 rgba(0, 0, 0, 0.58) !important;
+}
+
+body.reduce-neon .pixel-invasion-enemy-cube {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--enemy-color) 42%, white 58%) 0 14%,
+      color-mix(in srgb, var(--enemy-color) 68%, white 32%) 14% 34%,
+      color-mix(in srgb, var(--enemy-color) 94%, white 6%) 34% 58%,
+      color-mix(in srgb, var(--enemy-color) 92%, black 8%) 58% 82%,
+      color-mix(in srgb, var(--enemy-color) 84%, black 16%) 82% 100%
+    ) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.22),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.16),
+    inset -2px -2px 0 rgba(10, 16, 28, 0.14),
+    0 0 0 1px rgba(4, 7, 14, 0.96),
+    0 0 0 2px rgba(4, 7, 14, 0.92),
+    1px 1px 0 rgba(7, 10, 18, 0.92) !important;
+}
+
+body.reduce-neon .pixel-invasion-enemy-core,
+body.reduce-neon .pixel-invasion-enemy-core::before,
+body.reduce-neon .pixel-invasion-enemy-core::after,
+body.reduce-neon .pixel-invasion-enemy-core-reactor,
+body.reduce-neon .pixel-invasion-enemy-core-eye,
+body.reduce-neon .pixel-invasion-enemy-hp span {
+  box-shadow: none !important;
+}
+
+body.reduce-neon .pixel-invasion-enemy-core-reactor {
+  background: var(--enemy-reactor-color) !important;
+}
+
+body.reduce-neon .pixel-invasion-enemy-core-eye {
+  background: var(--enemy-eye-color) !important;
 }
