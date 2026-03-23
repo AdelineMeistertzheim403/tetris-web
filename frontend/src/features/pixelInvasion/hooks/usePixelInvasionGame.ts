@@ -83,38 +83,61 @@ export function usePixelInvasionGame() {
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setGame((current) => {
-        const frameInput: InputState = {
-          ...inputRef.current,
-          dash: queuedActionsRef.current.dash,
-          bomb: queuedActionsRef.current.bomb,
-        };
-        const next = stepGame(current, frameInput, GAME_LOOP_MS);
+    let frameId = 0;
+    let previousTime = performance.now();
+    let accumulator = 0;
 
-        if (queuedActionsRef.current.dash) {
-          const dashConsumed = next.dashCooldown > current.dashCooldown || next.playerDashFx > current.playerDashFx;
-          const dashBlocked = next.gameOver || next.victory;
-          if (dashConsumed || dashBlocked) {
-            queuedActionsRef.current.dash = false;
-          }
+    const consumeQueuedActions = (current: GameState, next: GameState) => {
+      if (queuedActionsRef.current.dash) {
+        const dashConsumed =
+          next.dashCooldown > current.dashCooldown || next.playerDashFx > current.playerDashFx;
+        const dashBlocked = next.gameOver || next.victory;
+        if (dashConsumed || dashBlocked) {
+          queuedActionsRef.current.dash = false;
         }
+      }
 
-        if (queuedActionsRef.current.bomb) {
-          const bombConsumed =
-            next.bombs < current.bombs || next.bombCooldown > current.bombCooldown;
-          const bombBlocked = next.gameOver || next.victory;
-          if (bombConsumed || bombBlocked) {
-            queuedActionsRef.current.bomb = false;
-          }
+      if (queuedActionsRef.current.bomb) {
+        const bombConsumed = next.bombs < current.bombs || next.bombCooldown > current.bombCooldown;
+        const bombBlocked = next.gameOver || next.victory;
+        if (bombConsumed || bombBlocked) {
+          queuedActionsRef.current.bomb = false;
         }
+      }
+    };
 
-        return next;
-      });
-    }, GAME_LOOP_MS);
+    const loop = (timestamp: number) => {
+      const elapsed = Math.min(64, timestamp - previousTime);
+      previousTime = timestamp;
+      accumulator += elapsed;
+
+      if (accumulator >= GAME_LOOP_MS) {
+        setGame((current) => {
+          let simulated = current;
+
+          while (accumulator >= GAME_LOOP_MS) {
+            const frameInput: InputState = {
+              ...inputRef.current,
+              dash: queuedActionsRef.current.dash,
+              bomb: queuedActionsRef.current.bomb,
+            };
+            const next = stepGame(simulated, frameInput, GAME_LOOP_MS);
+            consumeQueuedActions(simulated, next);
+            simulated = next;
+            accumulator -= GAME_LOOP_MS;
+          }
+
+          return simulated;
+        });
+      }
+
+      frameId = window.requestAnimationFrame(loop);
+    };
+
+    frameId = window.requestAnimationFrame(loop);
 
     return () => {
-      window.clearInterval(interval);
+      window.cancelAnimationFrame(frameId);
     };
   }, []);
 

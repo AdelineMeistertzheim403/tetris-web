@@ -1,13 +1,11 @@
+import { memo } from "react";
+import { PixelInvasionEntityCanvas } from "./PixelInvasionEntityCanvas";
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
   PLAYER_HEIGHT,
   PLAYER_WIDTH,
   PLAYER_Y,
-  getPowerupLabel,
-  getEnemyCells,
-  getEnemyCoreStyle,
-  getEnemyGridStyle,
   renderPercent,
 } from "../model";
 import type { GameState, PixelInvasionStar } from "../model";
@@ -18,7 +16,40 @@ type PixelInvasionBoardProps = {
   onRestart: () => void;
 };
 
+const ScrapGrid = memo(function ScrapGrid({ scrapGrid }: { scrapGrid: GameState["scrapGrid"] }) {
+  return (
+    <div className="pixel-invasion-scrap-grid">
+      {scrapGrid.flatMap((row, rowIndex) =>
+        row.map((cell, columnIndex) =>
+          cell ? (
+            <span
+              key={`${rowIndex}-${columnIndex}`}
+              className="pixel-invasion-scrap-block"
+              style={{
+                left: `${columnIndex * 10}%`,
+                top: `${rowIndex * 12.5}%`,
+                background: cell,
+              }}
+            />
+          ) : null
+        )
+      )}
+    </div>
+  );
+});
+
 export function PixelInvasionBoard({ game, stars, onRestart }: PixelInvasionBoardProps) {
+  const highDensity =
+    game.enemies.length >= 18 ||
+    game.enemyBullets.length >= 28 ||
+    game.playerBullets.length >= 18 ||
+    game.impacts.length >= 14;
+  const visibleTelegraphs = game.telegraphs.slice(-(highDensity ? 6 : 12));
+  const visibleImpacts = game.impacts.slice(-(highDensity ? 8 : 18));
+  const visiblePlayerBullets = game.playerBullets.slice(-(highDensity ? 16 : 28));
+  const visibleEnemyBullets = game.enemyBullets.slice(-(highDensity ? 26 : 44));
+  const visibleDrops = game.drops.slice(0, 1);
+  const visibleStars = highDensity ? stars.slice(0, 8) : stars;
   const countdown = Math.max(1, Math.ceil(game.waveTransition - 0.02));
   const chapterLabel = getWaveChapterLabel(game.wave);
   const stageLabel = getWaveStageLabel(game.wave, game.waveTheme);
@@ -42,8 +73,8 @@ export function PixelInvasionBoard({ game, stars, onRestart }: PixelInvasionBoar
           transform: game.boardShakeTimer > 0 ? `translate(${shakeX}px, ${shakeY}px)` : undefined,
         }}
       >
-        <div className="pixel-invasion-scanlines" />
-        {stars.map((star) => (
+        {!highDensity && <div className="pixel-invasion-scanlines" />}
+        {visibleStars.map((star) => (
           <span
             key={star.id}
             className="pixel-invasion-star"
@@ -51,145 +82,35 @@ export function PixelInvasionBoard({ game, stars, onRestart }: PixelInvasionBoar
           />
         ))}
 
-        {formationPhase === "opening" && <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--opening" />}
-        {formationPhase === "compression" && <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--compression" />}
-        {formationPhase === "punish" && <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--punish" />}
+        {!highDensity && formationPhase === "opening" && (
+          <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--opening" />
+        )}
+        {!highDensity && formationPhase === "compression" && (
+          <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--compression" />
+        )}
+        {!highDensity && formationPhase === "punish" && (
+          <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--punish" />
+        )}
         {game.lineBurstFxTimer > 0 && (
           <div
             className="pixel-invasion-line-burst-fx"
-            style={{ opacity: Math.min(0.48, game.lineBurstFxTimer * 1.8) }}
+            style={{ opacity: Math.min(highDensity ? 0.2 : 0.48, game.lineBurstFxTimer * 1.8) }}
           />
         )}
 
         <div className="pixel-invasion-lane pixel-invasion-lane--enemy" />
         <div className="pixel-invasion-lane pixel-invasion-lane--scrap" />
+        <PixelInvasionEntityCanvas
+          enemies={game.enemies}
+          telegraphs={visibleTelegraphs}
+          impacts={visibleImpacts}
+          playerBullets={visiblePlayerBullets}
+          enemyBullets={visibleEnemyBullets}
+          drops={visibleDrops}
+          reducedFx={highDensity}
+        />
 
-        {game.telegraphs.map((telegraph) => (
-          <span
-            key={telegraph.id}
-            className={`pixel-invasion-telegraph pixel-invasion-telegraph--${telegraph.type}`}
-            style={{
-              left: renderPercent(telegraph.x, BOARD_WIDTH),
-              top: renderPercent(telegraph.y, BOARD_HEIGHT),
-              width: renderPercent(telegraph.width, BOARD_WIDTH),
-              height: renderPercent(telegraph.height, BOARD_HEIGHT),
-              transform: telegraph.angle ? `rotate(${telegraph.angle}deg)` : undefined,
-            }}
-          />
-        ))}
-
-        {game.impacts.map((impact) => (
-          <span
-            key={impact.id}
-            className={`pixel-invasion-impact pixel-invasion-impact--${impact.type}`}
-            style={{
-              left: renderPercent(impact.x - impact.size / 2, BOARD_WIDTH),
-              top: renderPercent(impact.y - impact.size / 2, BOARD_HEIGHT),
-              width: renderPercent(impact.size, BOARD_WIDTH),
-              height: renderPercent(impact.size, BOARD_HEIGHT),
-              opacity: Math.max(0.2, impact.ttl / 0.32),
-            }}
-          />
-        ))}
-
-        {game.drops.map((drop) => (
-          <span
-            key={drop.id}
-            className={`pixel-invasion-drop pixel-invasion-drop--${drop.type}`}
-            style={{
-              left: renderPercent(drop.x, BOARD_WIDTH),
-              top: renderPercent(drop.y, BOARD_HEIGHT),
-              width: renderPercent(drop.width, BOARD_WIDTH),
-              height: renderPercent(drop.height, BOARD_HEIGHT),
-            }}
-            title={getPowerupLabel(drop.type)}
-          >
-            <span className="pixel-invasion-drop-core">{getDropShortLabel(drop.type)}</span>
-          </span>
-        ))}
-
-        <div className="pixel-invasion-scrap-grid">
-          {game.scrapGrid.map((row, rowIndex) =>
-            row.map((cell, columnIndex) => (
-              <span
-                key={`${rowIndex}-${columnIndex}`}
-                className={`pixel-invasion-scrap-cell ${
-                  cell ? "pixel-invasion-scrap-cell--filled" : ""
-                }`}
-                style={{ background: cell ?? undefined }}
-              />
-            ))
-          )}
-        </div>
-
-        {game.enemies.map((enemy) => (
-          <div
-            key={enemy.id}
-            className={`pixel-invasion-enemy pixel-invasion-enemy--${enemy.kind.toLowerCase()} ${
-              enemy.kind === "APEX" && enemy.bossTheme
-                ? `pixel-invasion-enemy--boss-${enemy.bossTheme}`
-                : ""
-            } ${
-              formationPhase ? `pixel-invasion-enemy--${formationPhase}` : ""
-            }`}
-            style={getEnemyGridStyle(enemy)}
-          >
-            <div className="pixel-invasion-enemy-grid">
-              {getEnemyCells(enemy.kind).flatMap((row, rowIndex) =>
-                row.map((value, columnIndex) => (
-                  <span
-                    key={`${enemy.id}-${rowIndex}-${columnIndex}`}
-                    className={`pixel-invasion-enemy-cell ${
-                      value ? "pixel-invasion-enemy-cell--filled" : ""
-                    }`}
-                  >
-                    {value ? <span className="pixel-invasion-enemy-cube" /> : null}
-                  </span>
-                ))
-              )}
-              <span
-                className={`pixel-invasion-enemy-core pixel-invasion-enemy-core--${enemy.kind.toLowerCase()}`}
-                style={getEnemyCoreStyle(enemy)}
-                aria-hidden="true"
-              >
-                <span className="pixel-invasion-enemy-core-reactor" />
-                <span className="pixel-invasion-enemy-core-eye pixel-invasion-enemy-core-eye--left" />
-                <span className="pixel-invasion-enemy-core-eye pixel-invasion-enemy-core-eye--right" />
-              </span>
-            </div>
-            <div className="pixel-invasion-enemy-hp">
-              <span style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }} />
-            </div>
-          </div>
-        ))}
-
-        {game.playerBullets.map((bullet) => (
-          <span
-            key={bullet.id}
-            className={`pixel-invasion-bullet pixel-invasion-bullet--player pixel-invasion-bullet--${
-              bullet.visualType ?? "standard"
-            }`}
-            style={{
-              left: renderPercent(bullet.x, BOARD_WIDTH),
-              top: renderPercent(bullet.y, BOARD_HEIGHT),
-              width: renderPercent(bullet.width, BOARD_WIDTH),
-              height: renderPercent(bullet.height, BOARD_HEIGHT),
-            }}
-          />
-        ))}
-
-        {game.enemyBullets.map((bullet) => (
-          <span
-            key={bullet.id}
-            className="pixel-invasion-bullet pixel-invasion-bullet--enemy"
-            style={{
-              left: renderPercent(bullet.x, BOARD_WIDTH),
-              top: renderPercent(bullet.y, BOARD_HEIGHT),
-              width: renderPercent(bullet.width, BOARD_WIDTH),
-              height: renderPercent(bullet.height, BOARD_HEIGHT),
-            }}
-          />
-        ))}
+        <ScrapGrid scrapGrid={game.scrapGrid} />
 
         <div
           className="pixel-invasion-player"
@@ -314,21 +235,6 @@ function getFormationVisualPhase(game: GameState) {
   if (apexPhase > 0.94) return "punish";
   if (apexPhase < -0.9) return "opening";
   return null;
-}
-
-function getDropShortLabel(type: GameState["drops"][number]["type"]) {
-  switch (type) {
-    case "multi_shot":
-      return "M";
-    case "laser":
-      return "L";
-    case "piercing":
-      return "P";
-    case "charge":
-      return "C";
-    case "slow_field":
-      return "S";
-  }
 }
 
 function getWaveChapterLabel(wave: number) {

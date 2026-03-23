@@ -246,6 +246,61 @@ export const POWERUP_ROTATION: PickupType[] = [
   "slow_field",
 ];
 
+type EnemyCellTemplate = {
+  key: string;
+  filled: boolean;
+};
+
+type EnemySpriteTemplate = {
+  cells: EnemyCellTemplate[];
+  columns: number;
+  rows: number;
+  coreStyle: CSSProperties;
+};
+
+function buildEnemySpriteTemplate(kind: EnemyKind): EnemySpriteTemplate {
+  const cells = getEnemyCells(kind);
+  const filledCoords: Array<{ row: number; col: number }> = [];
+  const flatCells = cells.flatMap((row, rowIndex) =>
+    row.map((value, columnIndex) => {
+      if (value) {
+        filledCoords.push({ row: rowIndex, col: columnIndex });
+      }
+
+      return {
+        key: `${rowIndex}-${columnIndex}`,
+        filled: Boolean(value),
+      };
+    })
+  );
+
+  if (filledCoords.length === 0) {
+    return {
+      cells: flatCells,
+      columns: cells[0]?.length ?? 1,
+      rows: cells.length,
+      coreStyle: { left: "50%", top: "50%" },
+    };
+  }
+
+  const rowCount = cells.length || 1;
+  const colCount = cells[0]?.length || 1;
+  const averageRow =
+    filledCoords.reduce((sum, cell) => sum + cell.row + 0.5, 0) / filledCoords.length;
+  const averageCol =
+    filledCoords.reduce((sum, cell) => sum + cell.col + 0.5, 0) / filledCoords.length;
+
+  return {
+    cells: flatCells,
+    columns: colCount,
+    rows: rowCount,
+    coreStyle: {
+      left: `${(averageCol / colCount) * 100}%`,
+      top: `${(averageRow / rowCount) * 100}%`,
+    },
+  };
+}
+
 /** Clamp numérique générique utilisé dans tout le moteur. */
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -308,9 +363,24 @@ export function getEnemyCells(kind: EnemyKind) {
   return SHAPES[kind];
 }
 
+const ENEMY_SPRITE_TEMPLATES: Record<EnemyKind, EnemySpriteTemplate> = {
+  I: buildEnemySpriteTemplate("I"),
+  O: buildEnemySpriteTemplate("O"),
+  T: buildEnemySpriteTemplate("T"),
+  L: buildEnemySpriteTemplate("L"),
+  J: buildEnemySpriteTemplate("J"),
+  S: buildEnemySpriteTemplate("S"),
+  Z: buildEnemySpriteTemplate("Z"),
+  APEX: buildEnemySpriteTemplate("APEX"),
+};
+
+export function getEnemySpriteTemplate(kind: EnemyKind) {
+  return ENEMY_SPRITE_TEMPLATES[kind];
+}
+
 /** Convertit un ennemi simulé en style CSS positionné pour le board. */
 export function getEnemyGridStyle(enemy: Enemy): CSSProperties {
-  const cells = getEnemyCells(enemy.kind);
+  const template = getEnemySpriteTemplate(enemy.kind);
 
   return {
     left: renderPercent(enemy.x, BOARD_WIDTH),
@@ -318,8 +388,8 @@ export function getEnemyGridStyle(enemy: Enemy): CSSProperties {
     width: renderPercent(enemy.width, BOARD_WIDTH),
     height: renderPercent(enemy.height, BOARD_HEIGHT),
     "--enemy-color": enemy.color,
-    "--enemy-columns": String(cells[0]?.length ?? 1),
-    "--enemy-rows": String(cells.length),
+    "--enemy-columns": String(template.columns),
+    "--enemy-rows": String(template.rows),
   } as CSSProperties;
 }
 
@@ -328,30 +398,7 @@ export function getEnemyGridStyle(enemy: Enemy): CSSProperties {
  * pour éviter un simple centrage de bounding-box.
  */
 export function getEnemyCoreStyle(enemy: Enemy): CSSProperties {
-  const cells = getEnemyCells(enemy.kind);
-  const filled: Array<{ row: number; col: number }> = [];
-
-  cells.forEach((row, rowIndex) => {
-    row.forEach((value, colIndex) => {
-      if (value) {
-        filled.push({ row: rowIndex, col: colIndex });
-      }
-    });
-  });
-
-  if (filled.length === 0) {
-    return { left: "50%", top: "50%" };
-  }
-
-  const rowCount = cells.length || 1;
-  const colCount = cells[0]?.length || 1;
-  const averageRow = filled.reduce((sum, cell) => sum + cell.row + 0.5, 0) / filled.length;
-  const averageCol = filled.reduce((sum, cell) => sum + cell.col + 0.5, 0) / filled.length;
-
-  return {
-    left: `${(averageCol / colCount) * 100}%`,
-    top: `${(averageRow / rowCount) * 100}%`,
-  };
+  return getEnemySpriteTemplate(enemy.kind).coreStyle;
 }
 
 /** Génère un fond étoilé stable sans dépendre d'un état runtime. */
