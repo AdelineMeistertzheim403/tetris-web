@@ -17,6 +17,7 @@ const INITIAL_INPUT_STATE: InputState = {
  */
 export function usePixelInvasionGame() {
   const [game, setGame] = useState<GameState>(() => createInitialState());
+  const [paused, setPaused] = useState(false);
   const inputRef = useRef<InputState>({ ...INITIAL_INPUT_STATE });
   const queuedActionsRef = useRef({ dash: false, bomb: false });
 
@@ -37,9 +38,29 @@ export function usePixelInvasionGame() {
   const isBombKey = (event: KeyboardEvent) =>
     event.code === "KeyB" || event.key.toLowerCase() === "b";
 
-  const resetGame = () => {
+  const clearInputs = () => {
     inputRef.current = { ...INITIAL_INPUT_STATE };
     queuedActionsRef.current = { dash: false, bomb: false };
+  };
+
+  const pauseGame = () => {
+    clearInputs();
+    setPaused(true);
+  };
+
+  const resumeGame = () => {
+    clearInputs();
+    setPaused(false);
+  };
+
+  const loadGame = (snapshot: GameState) => {
+    clearInputs();
+    setGame(snapshot);
+  };
+
+  const resetGame = () => {
+    clearInputs();
+    setPaused(false);
     setGame(createInitialState());
   };
 
@@ -107,6 +128,13 @@ export function usePixelInvasionGame() {
     };
 
     const loop = (timestamp: number) => {
+      if (paused) {
+        previousTime = timestamp;
+        accumulator = 0;
+        frameId = window.requestAnimationFrame(loop);
+        return;
+      }
+
       const elapsed = Math.min(64, timestamp - previousTime);
       previousTime = timestamp;
       accumulator += elapsed;
@@ -139,13 +167,18 @@ export function usePixelInvasionGame() {
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, []);
+  }, [paused]);
 
   const shieldRatio = useMemo(() => clamp(game.shield / MAX_SHIELD, 0, 1), [game.shield]);
 
   return {
     game,
+    paused,
+    pauseGame,
+    resumeGame,
+    loadGame,
     resetGame,
+    setPaused,
     shieldRatio,
   };
 }

@@ -1221,6 +1221,7 @@
 .pixel-invasion-overlay {
   position: absolute;
   inset: 18% 16%;
+  z-index: 9;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1232,6 +1233,13 @@
   background: rgba(8, 10, 20, 0.9);
   backdrop-filter: blur(8px);
   text-align: center;
+}
+
+.pixel-invasion-overlay--pause {
+  border-color: rgba(127, 198, 255, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 38px rgba(104, 171, 255, 0.14);
 }
 
 .pixel-invasion-overlay h2,
@@ -1246,6 +1254,25 @@
   justify-content: center;
   color: #ffe79c;
   font-size: 0.65rem;
+}
+
+.pixel-invasion-overlay-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pixel-invasion-overlay .retro-btn:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.pixel-invasion-overlay .retro-btn--ghost {
+  border-color: rgba(127, 198, 255, 0.28);
+  background: rgba(18, 24, 44, 0.78);
+  color: #d5e6ff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 .pixel-invasion-wave-overlay {

@@ -27,6 +27,7 @@ router.get("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
         totalKills: true,
         totalLineBursts: true,
         victories: true,
+        pausedRun: true,
         updatedAt: true,
       },
     });
@@ -38,6 +39,7 @@ router.get("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
       totalKills: row?.totalKills ?? 0,
       totalLineBursts: row?.totalLineBursts ?? 0,
       victories: row?.victories ?? 0,
+      pausedRun: row?.pausedRun ?? null,
       updatedAt: row?.updatedAt ?? null,
     });
   } catch (err) {
@@ -70,6 +72,7 @@ router.put("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
         totalKills: true,
         totalLineBursts: true,
         victories: true,
+        pausedRun: true,
       },
     });
 
@@ -82,6 +85,8 @@ router.put("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
       payload.totalLineBursts ?? 0
     );
     const nextVictories = Math.max(existing?.victories ?? 0, payload.victories ?? 0);
+    const hasPausedRunUpdate = Object.prototype.hasOwnProperty.call(payload, "pausedRun");
+    const nextPausedRun = hasPausedRunUpdate ? payload.pausedRun ?? null : existing?.pausedRun ?? null;
 
     const saved = await pixelInvasionProgress.upsert({
       where: { userId },
@@ -92,6 +97,7 @@ router.put("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
         totalKills: { set: nextTotalKills },
         totalLineBursts: { set: nextTotalLineBursts },
         victories: { set: nextVictories },
+        pausedRun: { set: nextPausedRun },
       },
       create: {
         userId,
@@ -101,6 +107,7 @@ router.put("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
         totalKills: nextTotalKills,
         totalLineBursts: nextTotalLineBursts,
         victories: nextVictories,
+        pausedRun: nextPausedRun,
       },
       select: {
         highestWave: true,
@@ -109,6 +116,7 @@ router.put("/progress", verifyToken, async (req: AuthRequest, res: Response) => 
         totalKills: true,
         totalLineBursts: true,
         victories: true,
+        pausedRun: true,
         updatedAt: true,
       },
     });

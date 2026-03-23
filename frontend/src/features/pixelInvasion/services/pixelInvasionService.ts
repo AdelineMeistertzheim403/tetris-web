@@ -9,6 +9,7 @@ export type PixelInvasionProgress = {
   totalKills: number;
   totalLineBursts: number;
   victories: number;
+  pausedRun: unknown | null;
   updatedAt?: string | null;
 };
 
@@ -33,6 +34,7 @@ function normalizeProgress(data: Partial<PixelInvasionProgress> | null | undefin
     totalKills: Math.max(0, Math.floor(data?.totalKills ?? 0)),
     totalLineBursts: Math.max(0, Math.floor(data?.totalLineBursts ?? 0)),
     victories: Math.max(0, Math.floor(data?.victories ?? 0)),
+    pausedRun: data?.pausedRun ?? null,
     updatedAt: typeof data?.updatedAt === "string" ? data.updatedAt : null,
   };
 }
@@ -62,6 +64,7 @@ export async function savePixelInvasionProgress(
   if (payload.totalKills !== undefined) body.totalKills = Math.max(0, Math.floor(payload.totalKills));
   if (payload.totalLineBursts !== undefined) body.totalLineBursts = Math.max(0, Math.floor(payload.totalLineBursts));
   if (payload.victories !== undefined) body.victories = Math.max(0, Math.floor(payload.victories));
+  if (Object.prototype.hasOwnProperty.call(payload, "pausedRun")) body.pausedRun = payload.pausedRun ?? null;
 
   const res = await fetch(`${API_URL}/pixel-invasion/progress`, {
     method: "PUT",

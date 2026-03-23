@@ -138,6 +138,39 @@ function findBulletCollision(
   return null;
 }
 
+function createSplitBossChildren(enemy: Enemy, nextId: number): Enemy[] {
+  if (enemy.kind !== "APEX" || enemy.bossSplitGeneration !== 0 || !enemy.bossTheme) return [];
+
+  return [
+    {
+      ...enemy,
+      id: nextId,
+      bossSplitGeneration: 1,
+      width: 92,
+      height: 62,
+      hp: Math.max(18, enemy.maxHp * 0.54),
+      maxHp: Math.max(18, enemy.maxHp * 0.54),
+      points: Math.floor(enemy.points * 0.58),
+      shootBias: enemy.shootBias + 0.6,
+      x: clamp(enemy.x - 34, 18, BOARD_WIDTH - 92 - 18),
+      y: Math.max(54, enemy.y + 8),
+    },
+    {
+      ...enemy,
+      id: nextId + 1,
+      bossSplitGeneration: 1,
+      width: 92,
+      height: 62,
+      hp: Math.max(18, enemy.maxHp * 0.54),
+      maxHp: Math.max(18, enemy.maxHp * 0.54),
+      points: Math.floor(enemy.points * 0.58),
+      shootBias: enemy.shootBias + 0.6,
+      x: clamp(enemy.x + enemy.width - 58, 18, BOARD_WIDTH - 92 - 18),
+      y: Math.max(54, enemy.y + 8),
+    },
+  ];
+}
+
 function addMissedDropToScrap(
   grid: Array<Array<string | null>>,
   drop: Drop
@@ -507,6 +540,7 @@ export function resolvePlayerHits(next: GameState) {
   const consumedEnemyIds = new Set<number>();
   const liveEnemiesById = new Map(next.enemies.map((enemy) => [enemy.id, enemy]));
   const spatialIndex = buildEnemySpatialIndex(next.enemies);
+  const spawnedEnemies: Enemy[] = [];
   let scrapGrid = next.scrapGrid;
   let lineBursts = next.lineBursts;
   let score = next.score;
@@ -526,7 +560,8 @@ export function resolvePlayerHits(next: GameState) {
     }
 
     consumedEnemyIds.add(enemy.id);
-    const damaged = { ...enemy, hp: enemy.hp - bullet.damage };
+    const appliedDamage = enemy.kind === "APEX" ? bullet.damage * 0.42 : bullet.damage;
+    const damaged = { ...enemy, hp: enemy.hp - appliedDamage };
     impacts.push(
       createImpact(
         next.nextEntityId,
@@ -552,6 +587,35 @@ export function resolvePlayerHits(next: GameState) {
     }
 
     liveEnemiesById.delete(enemy.id);
+
+    if (enemy.kind === "APEX" && enemy.bossSplitGeneration === 0) {
+      const splitChildren = createSplitBossChildren(enemy, next.nextEntityId);
+      if (splitChildren.length > 0) {
+        next.nextEntityId += splitChildren.length;
+        spawnedEnemies.push(...splitChildren);
+        impacts.push(
+          createImpact(
+            next.nextEntityId,
+            enemy.x + enemy.width / 2,
+            enemy.y + enemy.height / 2,
+            "dash",
+            42,
+            0.26
+          )
+        );
+        next.nextEntityId += 1;
+        next.hitStopTimer = Math.max(next.hitStopTimer, 0.028);
+        next.boardShakeTimer = Math.max(next.boardShakeTimer, 0.14);
+        next.flashTimer = Math.max(next.flashTimer, 0.16);
+        next.message = createMessage(
+          enemy.bossTheme === "rookie" ? "rookie" : enemy.bossTheme === "pulse" ? "pulse" : "apex",
+          "warning",
+          "Le boss se scinde. Deux signatures secondaires detectees."
+        );
+        next.messageTimer = 2.8;
+        continue;
+      }
+    }
 
     score += enemy.points;
     kills += 1;
@@ -603,6 +667,7 @@ export function resolvePlayerHits(next: GameState) {
   next.enemies = next.enemies
     .filter((enemy) => !consumedEnemyIds.has(enemy.id))
     .concat(Array.from(damagedEnemies.values()))
+    .concat(spawnedEnemies)
     .filter((enemy) => enemy.hp > 0);
   next.scrapGrid = scrapGrid;
   next.lineBursts = lineBursts;

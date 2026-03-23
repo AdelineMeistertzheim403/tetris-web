@@ -11,6 +11,7 @@ import { PixelInvasionSidebar } from "../components/PixelInvasionSidebar";
 import { usePixelInvasionAudio } from "../hooks/usePixelInvasionAudio";
 import { usePixelInvasionGame } from "../hooks/usePixelInvasionGame";
 import { createStars } from "../model";
+import type { GameState } from "../model";
 import {
   fetchPixelInvasionProgress,
   savePixelInvasionProgress,
@@ -19,14 +20,80 @@ import {
 const PIXEL_INVASION_MODE = "PIXEL_INVASION";
 const PIXEL_INVASION_BEST_SCORE_KEY = "pixel-invasion-best-score";
 const PIXEL_INVASION_BEST_WAVE_KEY = "pixel-invasion-best-wave";
+const PIXEL_INVASION_PAUSED_RUN_KEY = "pixel-invasion-paused-run";
+
+type PausedRunSnapshot = {
+  version: 1;
+  savedAt: string;
+  highestWaveReached: number;
+  trackedPowerups: string[];
+  game: GameState;
+};
 
 function countTrue(values: Record<string, boolean>) {
   return Object.values(values).filter(Boolean).length;
 }
 
+function isSnapshotGameState(value: unknown): value is GameState {
+  if (!value || typeof value !== "object") return false;
+  const data = value as Partial<GameState>;
+  return (
+    typeof data.wave === "number" &&
+    typeof data.score === "number" &&
+    typeof data.lives === "number" &&
+    Array.isArray(data.enemies) &&
+    Array.isArray(data.scrapGrid)
+  );
+}
+
+function normalizePausedRunSnapshot(value: unknown): PausedRunSnapshot | null {
+  try {
+    const parsed = value as Partial<PausedRunSnapshot>;
+    if (
+      parsed.version !== 1 ||
+      !Array.isArray(parsed.trackedPowerups) ||
+      !isSnapshotGameState(parsed.game)
+    ) {
+      return null;
+    }
+
+    return {
+      version: 1,
+      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
+      highestWaveReached: Math.max(1, Math.floor(parsed.highestWaveReached ?? parsed.game.wave)),
+      trackedPowerups: parsed.trackedPowerups.filter((item): item is string => typeof item === "string"),
+      game: parsed.game,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readPausedRunSnapshot(): PausedRunSnapshot | null {
+  try {
+    const raw = localStorage.getItem(PIXEL_INVASION_PAUSED_RUN_KEY);
+    if (!raw) return null;
+    return normalizePausedRunSnapshot(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+function pickNewestSnapshot(
+  localSnapshot: PausedRunSnapshot | null,
+  remoteSnapshot: PausedRunSnapshot | null
+) {
+  if (!localSnapshot) return remoteSnapshot;
+  if (!remoteSnapshot) return localSnapshot;
+
+  const localTime = Date.parse(localSnapshot.savedAt);
+  const remoteTime = Date.parse(remoteSnapshot.savedAt);
+  return remoteTime > localTime ? remoteSnapshot : localSnapshot;
+}
+
 export default function PixelInvasionPage() {
   const navigate = useNavigate();
-  const { game, resetGame, shieldRatio } = usePixelInvasionGame();
+  const { game, paused, pauseGame, resumeGame, loadGame, resetGame, shieldRatio } = usePixelInvasionGame();
   const { muted, toggleMute } = usePixelInvasionAudio(game);
   const {
     updateStats,
@@ -43,9 +110,12 @@ export default function PixelInvasionPage() {
   const resolvedOutcomeRef = useRef<string | null>(null);
   const visitedModeRef = useRef(false);
   const trackedPowerupsRef = useRef(new Set<string>(["multi_shot"]));
+  const waveCheckpointRef = useRef<GameState | null>(null);
   const lastWeaponPowerupRef = useRef<string | null>(null);
   const lastSlowFieldTimerRef = useRef(0);
   const latestWaveRef = useRef(1);
+  const [resumeSnapshot, setResumeSnapshot] = useState<PausedRunSnapshot | null>(null);
+  const [quittingRun, setQuittingRun] = useState(false);
   const campaignTone =
     game.wave >= 98
       ? "finale"
@@ -98,6 +168,8 @@ export default function PixelInvasionPage() {
         setBestWave(normalizedLocalBestWave);
       }
 
+      const localSnapshot = readPausedRunSnapshot();
+
       try {
         const progress = await fetchPixelInvasionProgress();
         const scores = await getMyScores(PIXEL_INVASION_MODE);
@@ -110,14 +182,28 @@ export default function PixelInvasionPage() {
           : 0;
         const mergedBest = Math.max(normalizedLocalBest, progress.bestScore, remoteBest);
         const mergedBestWave = Math.max(normalizedLocalBestWave, progress.highestWave);
+        const latestSnapshot = pickNewestSnapshot(
+          localSnapshot,
+          normalizePausedRunSnapshot(progress.pausedRun)
+        );
         localStorage.setItem(PIXEL_INVASION_BEST_SCORE_KEY, String(mergedBest));
         localStorage.setItem(PIXEL_INVASION_BEST_WAVE_KEY, String(mergedBestWave));
+        if (latestSnapshot) {
+          localStorage.setItem(PIXEL_INVASION_PAUSED_RUN_KEY, JSON.stringify(latestSnapshot));
+        }
         if (!cancelled) {
           setBestScore(mergedBest);
           setBestWave(mergedBestWave);
+          if (latestSnapshot) {
+            pauseGame();
+            setResumeSnapshot(latestSnapshot);
+          }
         }
       } catch {
-        // Fallback local si le backend n'a pas encore le mode.
+        if (!cancelled && localSnapshot) {
+          pauseGame();
+          setResumeSnapshot(localSnapshot);
+        }
       }
     }
 
@@ -142,6 +228,12 @@ export default function PixelInvasionPage() {
     }
     lastSlowFieldTimerRef.current = game.slowFieldTimer;
   }, [game.slowFieldTimer, game.wave, game.weaponPowerup]);
+
+  useEffect(() => {
+    if (game.gameOver || game.victory) return;
+    if (game.waveTransition <= 0) return;
+    waveCheckpointRef.current = structuredClone(game);
+  }, [game]);
 
   useEffect(() => {
     const nextBestWave = Math.max(bestWave, latestWaveRef.current);
@@ -255,6 +347,8 @@ export default function PixelInvasionPage() {
 
     const nextBestScore = Math.max(bestScore, score);
     const nextBestWave = Math.max(bestWave, highestWaveThisRun);
+    localStorage.removeItem(PIXEL_INVASION_PAUSED_RUN_KEY);
+    setResumeSnapshot(null);
     if (nextBestScore !== bestScore) {
       localStorage.setItem(PIXEL_INVASION_BEST_SCORE_KEY, String(nextBestScore));
       setBestScore(nextBestScore);
@@ -272,6 +366,7 @@ export default function PixelInvasionPage() {
         totalKills: next.counters.pi_total_kills ?? 0,
         totalLineBursts: next.counters.pi_total_line_bursts ?? 0,
         victories: next.counters.pi_runs_won ?? 0,
+        pausedRun: null,
       }).catch(() => {
         // Le stockage local reste disponible.
       });
@@ -309,10 +404,129 @@ export default function PixelInvasionPage() {
     startTimeRef.current = Date.now();
     latestWaveRef.current = 1;
     trackedPowerupsRef.current = new Set(["multi_shot"]);
+    waveCheckpointRef.current = null;
     lastWeaponPowerupRef.current = "multi_shot";
     lastSlowFieldTimerRef.current = 0;
+    setResumeSnapshot(null);
+    localStorage.removeItem(PIXEL_INVASION_PAUSED_RUN_KEY);
+    void savePixelInvasionProgress({ pausedRun: null }).catch(() => {
+      // Le reset local couvre le cas de fallback.
+    });
     resetGame();
   };
+
+  const clearPausedRun = () => {
+    setResumeSnapshot(null);
+    localStorage.removeItem(PIXEL_INVASION_PAUSED_RUN_KEY);
+    void savePixelInvasionProgress({ pausedRun: null }).catch(() => {
+      // Le reset local couvre le cas de fallback.
+    });
+  };
+
+  const handleResumeSavedRun = () => {
+    if (!resumeSnapshot) return;
+    resolvedOutcomeRef.current = null;
+    startTimeRef.current = Date.now();
+    latestWaveRef.current = Math.max(resumeSnapshot.highestWaveReached, resumeSnapshot.game.wave);
+    trackedPowerupsRef.current = new Set(resumeSnapshot.trackedPowerups);
+    lastWeaponPowerupRef.current = resumeSnapshot.game.weaponPowerup;
+    lastSlowFieldTimerRef.current = resumeSnapshot.game.slowFieldTimer;
+    waveCheckpointRef.current = structuredClone(resumeSnapshot.game);
+    loadGame(resumeSnapshot.game);
+    clearPausedRun();
+    resumeGame();
+  };
+
+  const handlePause = () => {
+    if (game.gameOver || game.victory || resumeSnapshot || quittingRun) return;
+    pauseGame();
+  };
+
+  async function persistPausedCheckpoint(snapshot: GameState) {
+    const highestWave = Math.max(latestWaveRef.current, snapshot.wave);
+    const pausedRun: PausedRunSnapshot = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      highestWaveReached: highestWave,
+      trackedPowerups: Array.from(trackedPowerupsRef.current),
+      game: structuredClone(snapshot),
+    };
+    localStorage.setItem(PIXEL_INVASION_PAUSED_RUN_KEY, JSON.stringify(pausedRun));
+
+    const nextBestScore = Math.max(bestScore, snapshot.score);
+    const nextBestWave = Math.max(bestWave, highestWave);
+    localStorage.setItem(PIXEL_INVASION_BEST_SCORE_KEY, String(nextBestScore));
+    localStorage.setItem(PIXEL_INVASION_BEST_WAVE_KEY, String(nextBestWave));
+    setBestScore(nextBestScore);
+    setBestWave(nextBestWave);
+
+    await savePixelInvasionProgress({
+      highestWave: nextBestWave,
+      currentWave: snapshot.wave,
+      bestScore: nextBestScore,
+      pausedRun,
+    }).catch(() => {
+      // La sauvegarde locale de run reste prioritaire si l'API échoue.
+    });
+  }
+
+  const handleQuitPausedRun = async () => {
+    if (quittingRun) return;
+    const checkpoint = waveCheckpointRef.current ?? structuredClone(game);
+    setQuittingRun(true);
+
+    try {
+      await persistPausedCheckpoint(checkpoint);
+      navigate("/tetro-verse");
+    } finally {
+      setQuittingRun(false);
+    }
+  };
+
+  const customOverlay = resumeSnapshot ? (
+    <div className="pixel-invasion-overlay pixel-invasion-overlay--pause">
+      <h2>Run suspendue</h2>
+      <p>Une partie en cours a ete detectee. Tu peux la reprendre ou repartir sur une nouvelle run.</p>
+      <div className="pixel-invasion-overlay-stats">
+        <span>Vague {resumeSnapshot.game.wave}</span>
+        <span>Score {resumeSnapshot.game.score}</span>
+        <span>Vies {resumeSnapshot.game.lives}</span>
+      </div>
+      <div className="pixel-invasion-overlay-actions">
+        <button type="button" className="retro-btn" onClick={handleResumeSavedRun}>
+          Reprendre
+        </button>
+        <button type="button" className="retro-btn retro-btn--ghost" onClick={handleRestart}>
+          Nouvelle run
+        </button>
+      </div>
+    </div>
+  ) : paused && !game.gameOver && !game.victory ? (
+    <div className="pixel-invasion-overlay pixel-invasion-overlay--pause">
+      <h2>Pause tactique</h2>
+      <p>Le combat est fige. Tu peux reprendre immediatement ou quitter en sauvegardant le checkpoint valide.</p>
+      <div className="pixel-invasion-overlay-stats">
+        <span>Checkpoint vague {waveCheckpointRef.current?.wave ?? game.wave}</span>
+        <span>Score {waveCheckpointRef.current?.score ?? game.score}</span>
+        <span>Vies {waveCheckpointRef.current?.lives ?? game.lives}</span>
+      </div>
+      <div className="pixel-invasion-overlay-actions">
+        <button type="button" className="retro-btn" onClick={resumeGame}>
+          Reprendre
+        </button>
+        <button
+          type="button"
+          className="retro-btn retro-btn--ghost"
+          onClick={() => {
+            void handleQuitPausedRun();
+          }}
+          disabled={quittingRun}
+        >
+          {quittingRun ? "Sauvegarde..." : "Quitter"}
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div className={`pixel-invasion-page pixel-invasion-page--${campaignTone} font-['Press_Start_2P']`}>
@@ -331,6 +545,11 @@ export default function PixelInvasionPage() {
             <button type="button" className="retro-btn" onClick={toggleMute}>
               {muted ? "Son OFF" : "Son ON"}
             </button>
+            {!game.gameOver && !game.victory && !resumeSnapshot && (
+              <button type="button" className="retro-btn" onClick={handlePause}>
+                Pause
+              </button>
+            )}
             <button type="button" className="retro-btn" onClick={handleRestart}>
               Relancer
             </button>
@@ -348,7 +567,12 @@ export default function PixelInvasionPage() {
             bestScore={bestScore}
             bestWave={bestWave}
           />
-          <PixelInvasionBoard game={game} stars={stars} onRestart={handleRestart} />
+          <PixelInvasionBoard
+            game={game}
+            stars={stars}
+            onRestart={handleRestart}
+            customOverlay={customOverlay}
+          />
           <PixelInvasionSidebar
             side="right"
             game={game}
