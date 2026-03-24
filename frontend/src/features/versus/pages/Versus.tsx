@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useVersusSocket } from "../hooks/useVersusSocket";
@@ -6,7 +6,11 @@ import TetrisBoard from "../../game/components/board/TetrisBoard";
 import OpponentBoard from "../../game/components/board/OpponentBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
 import { saveVersusMatch } from "../../game/services/scoreService";
-import type { PlayerMistakeKey } from "../../achievements/types/tetrobots";
+import type {
+  PlayerMistakeKey,
+  PlayerRunTimelineSample,
+  PlayerRunTimelineTag,
+} from "../../achievements/types/tetrobots";
 import {
   useAchievements,
 } from "../../achievements/hooks/useAchievements";
@@ -67,6 +71,27 @@ function getStackHeight(board: number[][]): number {
   return rows - topFilled;
 }
 
+function pushTimelineSample(
+  ref: MutableRefObject<PlayerRunTimelineSample[]>,
+  startTime: number | null,
+  phase: "early" | "mid" | "late",
+  tags: PlayerRunTimelineTag[],
+  runContext: PlayerRunTimelineSample["runContext"]
+) {
+  if (!startTime) return;
+  const atMs = Math.max(0, Date.now() - startTime);
+  const previous = ref.current[ref.current.length - 1];
+  if (
+    previous &&
+    previous.phase === phase &&
+    previous.tags.join("|") === tags.join("|") &&
+    Math.abs((previous.runContext.pressureScore ?? 0) - (runContext.pressureScore ?? 0)) < 8
+  ) {
+    return;
+  }
+  ref.current = [...ref.current, { atMs, phase, tags, runContext }].slice(-6);
+}
+
 function useMarkVersusVisited() {
   const { checkAchievements, updateStats } = useAchievements();
   const visitedRef = useRef(false);
@@ -103,6 +128,8 @@ function VersusPvp() {
   const maxStackHeightRef = useRef(0);
   const levelRef = useRef(1);
   const finalizedRef = useRef(false);
+  const timelineSamplesRef = useRef<PlayerRunTimelineSample[]>([]);
+  const lastHeightRef = useRef(0);
 
   useMarkVersusVisited();
 
@@ -118,6 +145,8 @@ function VersusPvp() {
     maxStackHeightRef.current = 0;
     levelRef.current = 1;
     finalizedRef.current = false;
+    timelineSamplesRef.current = [];
+    lastHeightRef.current = 0;
   };
 
   const countTrue = (values: Record<string, boolean>) =>
@@ -245,6 +274,13 @@ function VersusPvp() {
       won: win,
       durationMs,
       mistakes,
+      runContext: {
+        boardMaxHeight: maxStackHeightRef.current,
+        comboPeak: maxComboRef.current,
+        pressureScore: Math.round((maxStackHeightRef.current / 20) * 100),
+        stageIndex: level,
+      },
+      timelineSamples: timelineSamplesRef.current,
     });
 
     if (win && mistakes.length === 0 && durationMs >= 60_000) {
@@ -319,6 +355,20 @@ function VersusPvp() {
                 if (comboStreakRef.current > maxComboRef.current) {
                   maxComboRef.current = comboStreakRef.current;
                 }
+                if (comboStreakRef.current >= 4) {
+                  pushTimelineSample(
+                    timelineSamplesRef,
+                    startTimeRef.current,
+                    "mid",
+                    ["execution_peak"],
+                    {
+                      comboPeak: comboStreakRef.current,
+                      boardMaxHeight: lastHeightRef.current,
+                      pressureScore: Math.round((lastHeightRef.current / 20) * 100),
+                      stageIndex: levelRef.current,
+                    }
+                  );
+                }
               } else {
                 comboStreakRef.current = 0;
               }
@@ -336,9 +386,38 @@ function VersusPvp() {
                 }
               }
               const height = rows - topFilled;
+              if (height >= RED_ZONE_HEIGHT && lastHeightRef.current < RED_ZONE_HEIGHT) {
+                pushTimelineSample(
+                  timelineSamplesRef,
+                  startTimeRef.current,
+                  "late",
+                  ["pressure_spike"],
+                  {
+                    boardMaxHeight: height,
+                    comboPeak: maxComboRef.current,
+                    pressureScore: Math.round((height / 20) * 100),
+                    stageIndex: levelRef.current,
+                  }
+                );
+              }
+              if (lastHeightRef.current >= RED_ZONE_HEIGHT && height <= RED_ZONE_HEIGHT - 4) {
+                pushTimelineSample(
+                  timelineSamplesRef,
+                  startTimeRef.current,
+                  "late",
+                  ["recovery"],
+                  {
+                    boardMaxHeight: height,
+                    comboPeak: maxComboRef.current,
+                    pressureScore: Math.round((height / 20) * 100),
+                    stageIndex: levelRef.current,
+                  }
+                );
+              }
               if (height > maxStackHeightRef.current) {
                 maxStackHeightRef.current = height;
               }
+              lastHeightRef.current = height;
               actions.sendBoardState(board);
             }}
             onLocalGameOver={(score, lines) => {
@@ -583,6 +662,8 @@ function VersusTetrobots() {
   const comboValueSumRef = useRef(0);
   const lastTrollAtRef = useRef(0);
   const botMoodTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timelineSamplesRef = useRef<PlayerRunTimelineSample[]>([]);
+  const lastTimelineHeightRef = useRef(0);
 
   useMarkVersusVisited();
 
@@ -707,6 +788,8 @@ function VersusTetrobots() {
     comboSampleCountRef.current = 0;
     comboValueSumRef.current = 0;
     lastTrollAtRef.current = 0;
+    timelineSamplesRef.current = [];
+    lastTimelineHeightRef.current = 0;
     setBotMessage(null);
     setBotMood("idle");
   };
@@ -833,10 +916,48 @@ function VersusTetrobots() {
     const wonVsBalanced = win && botPersonalityId === "balanced";
     const wonVsApex = win && botPersonalityId === "apex";
     const mistakes: PlayerMistakeKey[] = [];
-    if (playerHoles >= 4) mistakes.push("holes" as const);
-    if (!win && maxStackHeightRef.current >= RED_ZONE_HEIGHT) mistakes.push("top_out" as const);
-    if (redZoneRate >= 0.3) mistakes.push("unsafe_stack" as const);
-    if (durationMs >= 8 * 60 * 1000 && !win) mistakes.push("slow" as const);
+    const contextualMistakes: Array<{
+      key: PlayerMistakeKey;
+      phase: "early" | "mid" | "late";
+      pressure: "low" | "medium" | "high";
+      trigger: "timeout" | "collapse" | "tilt" | "attrition" | "unknown";
+    }> = [];
+    if (playerHoles >= 4) {
+      mistakes.push("holes" as const);
+      contextualMistakes.push({
+        key: "holes",
+        phase: durationMs < 90_000 ? "early" : durationMs < 240_000 ? "mid" : "late",
+        pressure: playerHoles >= 7 ? "high" : "medium",
+        trigger: "collapse",
+      });
+    }
+    if (!win && maxStackHeightRef.current >= RED_ZONE_HEIGHT) {
+      mistakes.push("top_out" as const);
+      contextualMistakes.push({
+        key: "top_out",
+        phase: "late",
+        pressure: "high",
+        trigger: redZoneRate >= 0.45 ? "tilt" : "collapse",
+      });
+    }
+    if (redZoneRate >= 0.3) {
+      mistakes.push("unsafe_stack" as const);
+      contextualMistakes.push({
+        key: "unsafe_stack",
+        phase: "late",
+        pressure: redZoneRate >= 0.5 ? "high" : "medium",
+        trigger: "attrition",
+      });
+    }
+    if (durationMs >= 8 * 60 * 1000 && !win) {
+      mistakes.push("slow" as const);
+      contextualMistakes.push({
+        key: "slow",
+        phase: "late",
+        pressure: "medium",
+        trigger: "timeout",
+      });
+    }
     if (wonVsRookie) botPersonalityWinsRef.current.add("rookie");
     if (wonVsBalanced) botPersonalityWinsRef.current.add("balanced");
     if (wonVsApex) botPersonalityWinsRef.current.add("apex");
@@ -909,6 +1030,16 @@ function VersusTetrobots() {
       won: win,
       durationMs,
       mistakes,
+      contextualMistakes,
+      runContext: {
+        boardMaxHeight: maxStackHeightRef.current,
+        comboPeak: maxComboRef.current,
+        pressureScore: Math.round(
+          Math.min(100, redZoneRate * 100 + (win ? 10 : 20))
+        ),
+        stageIndex: level,
+      },
+      timelineSamples: timelineSamplesRef.current,
     });
 
     if (win && mistakes.length === 0 && !botBlunderRef.current) {
@@ -1153,6 +1284,20 @@ function VersusTetrobots() {
               if (comboStreakRef.current > maxComboRef.current) {
                 maxComboRef.current = comboStreakRef.current;
               }
+              if (comboStreakRef.current >= 4) {
+                pushTimelineSample(
+                  timelineSamplesRef,
+                  startTimeRef.current,
+                  "mid",
+                  ["execution_peak"],
+                  {
+                    comboPeak: comboStreakRef.current,
+                    boardMaxHeight: lastTimelineHeightRef.current,
+                    pressureScore: Math.round((lastTimelineHeightRef.current / 20) * 100),
+                    stageIndex: levelRef.current,
+                  }
+                );
+              }
               if (playerChainRef.current >= 2) {
                 playerAggressionScoreRef.current += playerChainRef.current;
                 comboSampleCountRef.current += 1;
@@ -1209,6 +1354,35 @@ function VersusTetrobots() {
             if (height > maxStackHeightRef.current) {
               maxStackHeightRef.current = height;
             }
+            if (height >= RED_ZONE_HEIGHT && lastTimelineHeightRef.current < RED_ZONE_HEIGHT) {
+              pushTimelineSample(
+                timelineSamplesRef,
+                startTimeRef.current,
+                "late",
+                ["pressure_spike"],
+                {
+                  boardMaxHeight: height,
+                  comboPeak: maxComboRef.current,
+                  pressureScore: Math.round((height / 20) * 100),
+                  stageIndex: levelRef.current,
+                }
+              );
+            }
+            if (lastTimelineHeightRef.current >= RED_ZONE_HEIGHT && height <= RED_ZONE_HEIGHT - 4) {
+              pushTimelineSample(
+                timelineSamplesRef,
+                startTimeRef.current,
+                "late",
+                ["recovery"],
+                {
+                  boardMaxHeight: height,
+                  comboPeak: maxComboRef.current,
+                  pressureScore: Math.round((height / 20) * 100),
+                  stageIndex: levelRef.current,
+                }
+              );
+            }
+            lastTimelineHeightRef.current = height;
             if (height >= RED_ZONE_HEIGHT && !playerHighStackAnnouncedRef.current) {
               playerHighStackAnnouncedRef.current = true;
               emitBotEvent({ type: "player_high_stack" });

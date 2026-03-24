@@ -1,11 +1,11 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { syncTetrobotProgressionState } from "./tetrobotProgressionLogic";
+import { syncTetrobotProgressionState, type TetrobotSyncStats } from "./tetrobotProgressionLogic";
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-function createBaseStats() {
+function createBaseStats(): TetrobotSyncStats {
   return {
     botApexWins: 0,
     counters: {},
@@ -58,10 +58,53 @@ function createBaseStats() {
       strategyScore: 0,
       weakestModeFocus: null,
       strongestModeFocus: null,
+      lingeringResentment: {
+        rookie: 0,
+        pulse: 0,
+        apex: 0,
+      },
       activeRecommendations: {
         rookie: null,
         pulse: null,
         apex: null,
+      },
+      activeConflict: null,
+      activeExclusiveAlignment: null,
+      recentRunsByMode: {
+        CLASSIQUE: [],
+        SPRINT: [],
+        VERSUS: [],
+        BRICKFALL_SOLO: [],
+        ROGUELIKE: [],
+        ROGUELIKE_VERSUS: [],
+        PUZZLE: [],
+        TETROMAZE: [],
+        PIXEL_INVASION: [],
+        PIXEL_PROTOCOL: [],
+      },
+      modeProfiles: {
+        CLASSIQUE: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        SPRINT: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        VERSUS: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        BRICKFALL_SOLO: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        ROGUELIKE: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        ROGUELIKE_VERSUS: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        PUZZLE: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        TETROMAZE: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        PIXEL_INVASION: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+        PIXEL_PROTOCOL: { recentRuns: 0, recentWinRate: 0, recentMistakeRate: 0, averageDurationMs: 0, resilienceScore: 0, pressureIndex: 0, averagePressureScore: 0, averageBoardHeight: 0, resourceStability: 0, executionPeak: 0, averageStageIndex: 0, volatilityIndex: 0, recoveryScore: 0, improvementTrend: "stable", dominantMistakes: [] },
+      },
+      contextualMistakePatterns: {
+        CLASSIQUE: [],
+        SPRINT: [],
+        VERSUS: [],
+        BRICKFALL_SOLO: [],
+        ROGUELIKE: [],
+        ROGUELIKE_VERSUS: [],
+        PUZZLE: [],
+        TETROMAZE: [],
+        PIXEL_INVASION: [],
+        PIXEL_PROTOCOL: [],
       },
     },
     playerMistakesByMode: {
@@ -428,6 +471,79 @@ describe("tetrobotProgressionLogic", () => {
     );
   });
 
+  it("does not create an Apex challenge while Apex exclusive challenges are locked", () => {
+    const stats = createBaseStats();
+    stats.tetrobotProgression.apex.affinity = -70;
+    stats.tetrobotXpLedger.play_game = 4;
+    stats.tetrobotXpLedger.fail_repeated = 3;
+    stats.tetrobotXpLedger.win_game = 1;
+    stats.tetrobotXpLedger.try_new_mode = 1;
+    stats.playerLongTermMemory.activeExclusiveAlignment = {
+      favoredBot: "rookie",
+      blockedBot: "apex",
+      issuedAt: 10,
+      expiresAt: Date.now() + 60_000,
+      sessionsRemaining: 6,
+      reason: "Rookie garde la main.",
+      favoredLine: "Rookie tient la ligne.",
+      blockedLine: "Apex reste a l'ecart.",
+      lockedAdvice: ["punishing_challenges"],
+      objectiveLabel: "Rookie veut 2 sessions propres sur CLASSIQUE",
+      objectiveMode: "CLASSIQUE",
+      objectiveStartSessions: 4,
+      objectiveTargetSessions: 2,
+      objectiveProgress: 0,
+      rewardAffinity: 8,
+      rewardXp: 12,
+      rewardClaimed: false,
+    };
+
+    const result = syncTetrobotProgressionState(stats);
+
+    expect(result.activeTetrobotChallenge).toBeNull();
+  });
+
+  it("grants the exclusive alignment reward once the objective is completed", () => {
+    const stats = createBaseStats();
+    stats.playerLongTermMemory.activeExclusiveAlignment = {
+      favoredBot: "pulse",
+      blockedBot: "rookie",
+      issuedAt: 10,
+      expiresAt: Date.now() + 60_000,
+      sessionsRemaining: 5,
+      reason: "Pulse garde la main.",
+      favoredLine: "Pulse conduit la correction.",
+      blockedLine: "Rookie reste en retrait.",
+      lockedAdvice: ["comforting_routes"],
+      objectiveLabel: "Pulse veut 2 sessions mesurees sur CLASSIQUE",
+      objectiveMode: "CLASSIQUE",
+      objectiveStartSessions: 4,
+      objectiveTargetSessions: 2,
+      objectiveProgress: 0,
+      rewardAffinity: 10,
+      rewardXp: 14,
+      rewardClaimed: false,
+    };
+    stats.playerBehaviorByMode.CLASSIQUE.sessions = 6;
+    stats.playerBehaviorByMode.CLASSIQUE.losses = 5;
+    stats.tetrobotXpLedger.play_game = 4;
+    stats.tetrobotXpLedger.fail_repeated = 3;
+    stats.tetrobotXpLedger.win_game = 1;
+    stats.tetrobotXpLedger.try_new_mode = 1;
+
+    const result = syncTetrobotProgressionState(stats);
+
+    expect(result.playerLongTermMemory.activeExclusiveAlignment?.objectiveProgress).toBe(2);
+    expect(result.playerLongTermMemory.activeExclusiveAlignment?.rewardClaimed).toBe(true);
+    expect(result.tetrobotProgression.pulse.affinity).toBeGreaterThan(
+      stats.tetrobotProgression.pulse.affinity
+    );
+    expect(result.tetrobotProgression.pulse.xp).toBeGreaterThan(stats.tetrobotProgression.pulse.xp);
+    expect(
+      result.tetrobotMemories.pulse.some((entry) => entry.text.includes("ligne exclusive"))
+    ).toBe(true);
+  });
+
   it("penalizes ignored recommendations after enough real time passes", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-24T09:00:00Z"));
@@ -458,5 +574,257 @@ describe("tetrobotProgressionLogic", () => {
       first.tetrobotProgression.apex.affinity
     );
     expect(second.playerLongTermMemory.activeRecommendations.apex?.ignoredMs).toBeGreaterThan(0);
+  });
+
+  it("derives per-mode profiles from recent runs", () => {
+    const stats = createBaseStats();
+    stats.playerLongTermMemory.recentRunsByMode.CLASSIQUE = [
+      {
+        at: 4,
+        won: false,
+        durationMs: 45_000,
+        mistakeCount: 3,
+        mistakes: ["panic_stack", "top_out", "unsafe_stack"],
+        contextualMistakes: [
+          { key: "panic_stack", phase: "late", pressure: "high", trigger: "tilt" },
+          { key: "top_out", phase: "late", pressure: "high", trigger: "tilt" },
+          { key: "unsafe_stack", phase: "late", pressure: "high", trigger: "tilt" },
+        ],
+        rageQuitEstimate: true,
+        runContext: { boardMaxHeight: 18, comboPeak: 2, pressureScore: 92, stageIndex: 6 },
+        timelineSamples: [
+          { atMs: 12000, phase: "early", runContext: { pressureScore: 40, boardMaxHeight: 7 }, tags: [] },
+          { atMs: 32000, phase: "mid", runContext: { pressureScore: 86, boardMaxHeight: 16 }, tags: ["pressure_spike"] },
+        ],
+      },
+      {
+        at: 3,
+        won: false,
+        durationMs: 70_000,
+        mistakeCount: 2,
+        mistakes: ["panic_stack", "slow_decision"],
+        contextualMistakes: [
+          { key: "panic_stack", phase: "late", pressure: "high", trigger: "collapse" },
+          { key: "slow_decision", phase: "early", pressure: "high", trigger: "timeout" },
+        ],
+        rageQuitEstimate: false,
+        runContext: { boardMaxHeight: 15, comboPeak: 3, pressureScore: 74, stageIndex: 7 },
+        timelineSamples: [
+          { atMs: 18000, phase: "early", runContext: { pressureScore: 35, comboPeak: 2 }, tags: ["execution_peak"] },
+          { atMs: 52000, phase: "mid", runContext: { pressureScore: 77, boardMaxHeight: 15 }, tags: ["pressure_spike"] },
+          { atMs: 65000, phase: "mid", runContext: { pressureScore: 48, boardMaxHeight: 11 }, tags: ["recovery"] },
+        ],
+      },
+      {
+        at: 2,
+        won: true,
+        durationMs: 110_000,
+        mistakeCount: 1,
+        mistakes: ["unsafe_stack"],
+        contextualMistakes: [
+          { key: "unsafe_stack", phase: "mid", pressure: "high", trigger: "collapse" },
+        ],
+        rageQuitEstimate: false,
+        runContext: { boardMaxHeight: 11, comboPeak: 5, pressureScore: 58, stageIndex: 9 },
+        timelineSamples: [
+          { atMs: 35000, phase: "mid", runContext: { pressureScore: 55, comboPeak: 5 }, tags: ["execution_peak"] },
+        ],
+      },
+      {
+        at: 1,
+        won: true,
+        durationMs: 120_000,
+        mistakeCount: 0,
+        mistakes: [],
+        contextualMistakes: [],
+        rageQuitEstimate: false,
+        runContext: { boardMaxHeight: 8, comboPeak: 6, pressureScore: 36, stageIndex: 10 },
+        timelineSamples: [
+          { atMs: 54000, phase: "late", runContext: { pressureScore: 28, comboPeak: 6, boardMaxHeight: 8 }, tags: ["recovery", "execution_peak"] },
+        ],
+      },
+    ];
+
+    const result = syncTetrobotProgressionState(stats);
+    const profile = result.playerLongTermMemory.modeProfiles.CLASSIQUE;
+
+    expect(profile.recentRuns).toBe(4);
+    expect(profile.pressureIndex).toBeGreaterThan(0);
+    expect(profile.averagePressureScore).toBeGreaterThan(0);
+    expect(profile.averageBoardHeight).toBeGreaterThan(0);
+    expect(profile.executionPeak).toBeGreaterThan(0);
+    expect(profile.volatilityIndex).toBeGreaterThan(0);
+    expect(profile.recoveryScore).toBeGreaterThan(0);
+    expect(profile.dominantMistakes).toContain("panic_stack");
+    expect(profile.improvementTrend).toBe("down");
+    expect(result.playerLongTermMemory.contextualMistakePatterns.CLASSIQUE[0]?.key).toBe(
+      "panic_stack"
+    );
+  });
+
+  it("creates rivalry memories when tetrobots disagree on the player plan", () => {
+    const stats = createBaseStats();
+    stats.playerBehaviorByMode.CLASSIQUE = {
+      sessions: 2,
+      wins: 0,
+      losses: 2,
+      totalDurationMs: 160_000,
+      lastPlayedAt: 10,
+    };
+    stats.playerBehaviorByMode.SPRINT = {
+      sessions: 10,
+      wins: 8,
+      losses: 2,
+      totalDurationMs: 320_000,
+      lastPlayedAt: 11,
+    };
+    stats.playerBehaviorByMode.VERSUS = {
+      sessions: 12,
+      wins: 9,
+      losses: 3,
+      totalDurationMs: 480_000,
+      lastPlayedAt: 12,
+    };
+    stats.modesVisited.SPRINT = true;
+    stats.modesVisited.VERSUS = true;
+    stats.playerMistakesByMode.CLASSIQUE.top_out = 4;
+    stats.playerMistakesByMode.CLASSIQUE.unsafe_stack = 4;
+    stats.playerMistakesByMode.CLASSIQUE.slow = 2;
+    stats.playerLongTermMemory.recentRunsByMode.CLASSIQUE = [
+      {
+        at: 3,
+        won: false,
+        durationMs: 60_000,
+        mistakeCount: 3,
+        mistakes: ["top_out", "unsafe_stack", "panic_stack"],
+        contextualMistakes: [
+          { key: "top_out", phase: "late", pressure: "high", trigger: "tilt" },
+          { key: "unsafe_stack", phase: "late", pressure: "high", trigger: "collapse" },
+          { key: "panic_stack", phase: "late", pressure: "high", trigger: "tilt" },
+        ],
+        rageQuitEstimate: true,
+        runContext: { boardMaxHeight: 18, pressureScore: 94, comboPeak: 2, stageIndex: 6 },
+        timelineSamples: [
+          { atMs: 15000, phase: "mid", runContext: { pressureScore: 82, boardMaxHeight: 15 }, tags: ["pressure_spike"] },
+        ],
+      },
+      {
+        at: 2,
+        won: false,
+        durationMs: 75_000,
+        mistakeCount: 2,
+        mistakes: ["top_out", "unsafe_stack"],
+        contextualMistakes: [
+          { key: "top_out", phase: "late", pressure: "high", trigger: "collapse" },
+          { key: "unsafe_stack", phase: "late", pressure: "high", trigger: "collapse" },
+        ],
+        rageQuitEstimate: false,
+        runContext: { boardMaxHeight: 17, pressureScore: 88, comboPeak: 2, stageIndex: 6 },
+        timelineSamples: [],
+      },
+    ];
+
+    const result = syncTetrobotProgressionState(stats);
+
+    expect(
+      result.tetrobotMemories.rookie.some((entry) =>
+        entry.text.includes("Ne l'ecoute pas")
+      )
+    ).toBe(true);
+    expect(
+      result.tetrobotMemories.apex.some((entry) =>
+        entry.text.includes("Ignore Rookie")
+      )
+    ).toBe(true);
+  });
+
+  it("resolves a tetrobot conflict from the mode the player actually chooses", () => {
+    const stats = createBaseStats();
+    stats.playerBehaviorByMode.CLASSIQUE = {
+      sessions: 2,
+      wins: 0,
+      losses: 2,
+      totalDurationMs: 160_000,
+      lastPlayedAt: 10,
+    };
+    stats.playerBehaviorByMode.SPRINT = {
+      sessions: 10,
+      wins: 8,
+      losses: 2,
+      totalDurationMs: 320_000,
+      lastPlayedAt: 11,
+    };
+    stats.playerBehaviorByMode.VERSUS = {
+      sessions: 12,
+      wins: 9,
+      losses: 3,
+      totalDurationMs: 480_000,
+      lastPlayedAt: 12,
+    };
+    stats.modesVisited.SPRINT = true;
+    stats.modesVisited.VERSUS = true;
+    stats.playerMistakesByMode.CLASSIQUE.top_out = 4;
+    stats.playerMistakesByMode.CLASSIQUE.unsafe_stack = 4;
+    stats.playerLongTermMemory.recentRunsByMode.CLASSIQUE = [
+      {
+        at: 3,
+        won: false,
+        durationMs: 60_000,
+        mistakeCount: 3,
+        mistakes: ["top_out", "unsafe_stack", "panic_stack"],
+        contextualMistakes: [
+          { key: "top_out", phase: "late", pressure: "high", trigger: "tilt" },
+          { key: "unsafe_stack", phase: "late", pressure: "high", trigger: "collapse" },
+          { key: "panic_stack", phase: "late", pressure: "high", trigger: "tilt" },
+        ],
+        rageQuitEstimate: true,
+        runContext: { boardMaxHeight: 18, pressureScore: 94, comboPeak: 2, stageIndex: 6 },
+        timelineSamples: [],
+      },
+    ];
+
+    const first = syncTetrobotProgressionState(stats);
+    expect(first.playerLongTermMemory.activeConflict?.resolvedAt).toBeNull();
+
+    const chosen = {
+      ...stats,
+      playerLongTermMemory: first.playerLongTermMemory,
+      tetrobotProgression: first.tetrobotProgression,
+      tetrobotXpLedger: first.tetrobotXpLedger,
+      tetrobotAffinityLedger: first.tetrobotAffinityLedger,
+      tetrobotMemories: first.tetrobotMemories,
+      playerBehaviorByMode: {
+        ...stats.playerBehaviorByMode,
+        CLASSIQUE: {
+          ...stats.playerBehaviorByMode.CLASSIQUE,
+          sessions: stats.playerBehaviorByMode.CLASSIQUE.sessions + 1,
+          losses: stats.playerBehaviorByMode.CLASSIQUE.losses + 1,
+        },
+      },
+    };
+
+    const second = syncTetrobotProgressionState(chosen);
+    expect(second.playerLongTermMemory.activeConflict?.chosenBot).toBe("apex");
+    expect(second.playerLongTermMemory.activeConflict?.resolvedAt).not.toBeNull();
+    expect(second.playerLongTermMemory.activeExclusiveAlignment?.favoredBot).toBe("apex");
+    expect(second.playerLongTermMemory.activeExclusiveAlignment?.blockedBot).toBe("rookie");
+    expect(second.playerLongTermMemory.activeExclusiveAlignment?.lockedAdvice).toContain(
+      "comforting_routes"
+    );
+    expect(second.playerLongTermMemory.activeExclusiveAlignment?.favoredLine).toContain(
+      "Apex prend le canal"
+    );
+    expect(second.playerLongTermMemory.lingeringResentment.rookie).toBe(6);
+    expect(second.tetrobotProgression.rookie.affinity).toBeLessThanOrEqual(first.tetrobotProgression.rookie.affinity);
+    expect(
+      second.tetrobotMemories.apex.some((entry) =>
+        entry.text.includes("Tu as suivi apex")
+      )
+    ).toBe(true);
+    expect(
+      second.tetrobotMemories.rookie.some((entry) =>
+        entry.text.includes("n'oublie pas")
+      )
+    ).toBe(true);
   });
 });

@@ -221,8 +221,30 @@ export default function TetrisBoardSprint() {
     const noHold = holdCountRef.current === 0;
     const noHardDrop = hardDropCountRef.current === 0;
     const mistakes: PlayerMistakeKey[] = [];
-    if (!completedRun) mistakes.push("top_out" as const);
-    if (lines < TARGET_LINES * 0.5 && durationMs >= 2 * 60 * 1000) mistakes.push("slow" as const);
+    const contextualMistakes: Array<{
+      key: PlayerMistakeKey;
+      phase: "early" | "mid" | "late";
+      pressure: "low" | "medium" | "high";
+      trigger: "timeout" | "collapse" | "tilt" | "attrition" | "unknown";
+    }> = [];
+    if (!completedRun) {
+      mistakes.push("top_out" as const);
+      contextualMistakes.push({
+        key: "top_out",
+        phase: durationMs < 60_000 ? "early" : durationMs < 150_000 ? "mid" : "late",
+        pressure: "high",
+        trigger: durationMs < 60_000 ? "tilt" : "collapse",
+      });
+    }
+    if (lines < TARGET_LINES * 0.5 && durationMs >= 2 * 60 * 1000) {
+      mistakes.push("slow" as const);
+      contextualMistakes.push({
+        key: "slow",
+        phase: "mid",
+        pressure: "medium",
+        trigger: "timeout",
+      });
+    }
     let firstSprintCompletion = false;
     const next = updateStats((prev) => {
       firstSprintCompletion = completedRun && !prev.scoredModes.SPRINT;
@@ -260,6 +282,14 @@ export default function TetrisBoardSprint() {
       won: completedRun,
       durationMs,
       mistakes,
+      contextualMistakes,
+      runContext: {
+        comboPeak: maxComboRef.current,
+        pressureScore: Math.round(
+          Math.min(100, mistakes.length * 22 + (completedRun ? 15 : 45))
+        ),
+        stageIndex: completedRun ? TARGET_LINES : lines,
+      },
     });
 
     if (completedRun && mistakes.length === 0) {

@@ -6,16 +6,25 @@ import type {
   BotMood,
   BotState,
   BotTrait,
+  ContextualMistakePattern,
   MistakeLastSeenStats,
+  MistakePhase,
+  MistakePressure,
   MistakeMemory,
   MistakeStats,
+  MistakeTrigger,
   ModeBehaviorStats,
   PlayerBehaviorMode,
   PlayerLongTermMemory,
+  PlayerModeProfile,
   PlayerMistakeKey,
+  PlayerRunSnapshot,
+  PlayerRunTimelineSample,
   TetrobotAffinityEvent,
   TetrobotAffinityLedger,
   TetrobotChallengeState,
+  TetrobotConflict,
+  TetrobotExclusiveAlignment,
   TetrobotId,
   TetrobotLevelUp,
   TetrobotRecommendation,
@@ -257,6 +266,487 @@ function clampScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function createEmptyModeProfile(): PlayerModeProfile {
+  return {
+    recentRuns: 0,
+    recentWinRate: 0,
+    recentMistakeRate: 0,
+    averageDurationMs: 0,
+    resilienceScore: 0,
+    pressureIndex: 0,
+    averagePressureScore: 0,
+    averageBoardHeight: 0,
+    resourceStability: 0,
+    executionPeak: 0,
+    averageStageIndex: 0,
+    volatilityIndex: 0,
+    recoveryScore: 0,
+    improvementTrend: "stable",
+    dominantMistakes: [],
+  };
+}
+
+function average(values: number[]) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function round1(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function inferPressureScore(run: PlayerRunSnapshot) {
+  if (typeof run.runContext?.pressureScore === "number") {
+    return clampScore(run.runContext.pressureScore);
+  }
+
+  const contextualPressure = average(
+    run.contextualMistakes.map((entry) =>
+      entry.pressure === "high" ? 90 : entry.pressure === "medium" ? 60 : 25
+    )
+  );
+  const mistakePressure = Math.min(35, run.mistakeCount * 12);
+  const rageQuitPressure = run.rageQuitEstimate ? 20 : 0;
+  return clampScore(contextualPressure + mistakePressure + rageQuitPressure);
+}
+
+function inferTimelinePressureScore(sample: PlayerRunTimelineSample) {
+  if (typeof sample.runContext.pressureScore === "number") {
+    return clampScore(sample.runContext.pressureScore);
+  }
+  return 0;
+}
+
+function inferRecoveryScore(samples: PlayerRunTimelineSample[]) {
+  if (!samples.length) return 0;
+  let recoveries = 0;
+  let executionResets = 0;
+  let pressureSpikeSeen = false;
+  let previousPressure = inferTimelinePressureScore(samples[0]);
+
+  samples.forEach((sample) => {
+    const pressure = inferTimelinePressureScore(sample);
+    if (sample.tags.includes("pressure_spike")) pressureSpikeSeen = true;
+    if (
+      sample.tags.includes("recovery") ||
+      (pressureSpikeSeen && pressure <= previousPressure - 18)
+    ) {
+      recoveries += 1;
+      pressureSpikeSeen = false;
+    }
+    if (sample.tags.includes("execution_peak")) executionResets += 1;
+    previousPressure = pressure;
+  });
+
+  return clampScore(recoveries * 35 + executionResets * 12);
+}
+
+function inferVolatilityIndex(samples: PlayerRunTimelineSample[]) {
+  if (samples.length < 2) {
+    return clampScore(
+      samples.some((sample) => sample.tags.includes("pressure_spike")) ? 35 : 0
+    );
+  }
+
+  const deltas: number[] = [];
+  for (let index = 1; index < samples.length; index += 1) {
+    deltas.push(
+      Math.abs(
+        inferTimelinePressureScore(samples[index]) -
+          inferTimelinePressureScore(samples[index - 1])
+      )
+    );
+  }
+  const taggedSpikes = samples.filter((sample) => sample.tags.includes("pressure_spike")).length;
+  const taggedLosses = samples.filter((sample) => sample.tags.includes("resource_loss")).length;
+  return clampScore(average(deltas) * 1.4 + taggedSpikes * 18 + taggedLosses * 12);
+}
+
+function getTrendFromRuns(runs: PlayerRunSnapshot[]) {
+  if (runs.length < 4) return "stable" as const;
+  const recentHalf = runs.slice(0, Math.ceil(runs.length / 2));
+  const olderHalf = runs.slice(Math.ceil(runs.length / 2));
+  const recentScore =
+    recentHalf.reduce((sum, run) => sum + (run.won ? 1 : 0) - run.mistakeCount * 0.15, 0) /
+    Math.max(1, recentHalf.length);
+  const olderScore =
+    olderHalf.reduce((sum, run) => sum + (run.won ? 1 : 0) - run.mistakeCount * 0.15, 0) /
+    Math.max(1, olderHalf.length);
+  if (recentScore - olderScore > 0.2) return "up" as const;
+  if (olderScore - recentScore > 0.2) return "down" as const;
+  return "stable" as const;
+}
+
+function buildModeProfile(runs: PlayerRunSnapshot[]): PlayerModeProfile {
+  if (!runs.length) return createEmptyModeProfile();
+
+  const winRate = runs.filter((run) => run.won).length / runs.length;
+  const averageDurationMs = Math.round(
+    runs.reduce((sum, run) => sum + run.durationMs, 0) / Math.max(1, runs.length)
+  );
+  const recentMistakeRate =
+    runs.reduce((sum, run) => sum + run.mistakeCount, 0) / Math.max(1, runs.length);
+  const pressureRuns = runs.filter(
+    (run) => run.mistakes.includes("panic_stack") || run.mistakes.includes("slow_decision")
+  ).length;
+  const rageQuitRuns = runs.filter((run) => run.rageQuitEstimate).length;
+  const resilienceWins = runs.filter((run, index) => index > 0 && run.won && !runs[index - 1]?.won).length;
+  const pressureScores = runs.map(inferPressureScore);
+  const boardHeights = runs
+    .map((run) => run.runContext?.boardMaxHeight)
+    .filter((value): value is number => typeof value === "number");
+  const comboPeaks = runs
+    .map((run) => run.runContext?.comboPeak)
+    .filter((value): value is number => typeof value === "number");
+  const lifeSamples = runs
+    .map((run) => run.runContext?.livesRemaining)
+    .filter((value): value is number => typeof value === "number");
+  const stageSamples = runs
+    .map((run) => run.runContext?.stageIndex)
+    .filter((value): value is number => typeof value === "number");
+  const timelineSamples = runs.flatMap((run) => run.timelineSamples ?? []);
+  const mistakeCounts = new Map<PlayerMistakeKey, number>();
+  runs.forEach((run) =>
+    run.mistakes.forEach((mistake) => {
+      mistakeCounts.set(mistake, (mistakeCounts.get(mistake) ?? 0) + 1);
+    })
+  );
+  const dominantMistakes = [...mistakeCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([key]) => key);
+  const averagePressureScore = clampScore(average(pressureScores));
+  const averageBoardHeight = round1(average(boardHeights));
+  const averageStageIndex = round1(average(stageSamples));
+  const averageLives = average(lifeSamples);
+  const resourceStability = clampScore(
+    (lifeSamples.length > 0 ? (averageLives / 3) * 100 : winRate * 70 + 15) -
+      rageQuitRuns * 12 -
+      (averagePressureScore > 75 ? 8 : 0)
+  );
+  const executionPeak = clampScore(
+    average(comboPeaks) * 12 + winRate * 30 + Math.max(0, 20 - recentMistakeRate * 5)
+  );
+  const boardPressureWeight = boardHeights.length > 0 ? (average(boardHeights) / 20) * 100 : 0;
+  const volatilityIndex = inferVolatilityIndex(timelineSamples);
+  const recoveryScore = inferRecoveryScore(timelineSamples);
+
+  return {
+    recentRuns: runs.length,
+    recentWinRate: clampScore(winRate * 100),
+    recentMistakeRate: Math.round(recentMistakeRate * 10) / 10,
+    averageDurationMs,
+    resilienceScore: clampScore(
+      winRate * 45 + resilienceWins * 12 - rageQuitRuns * 18 + Math.max(0, 25 - recentMistakeRate * 5)
+    ),
+    pressureIndex: clampScore(
+      averagePressureScore * 0.55 +
+        boardPressureWeight * 0.25 +
+        (pressureRuns / Math.max(1, runs.length)) * 20 +
+        rageQuitRuns * 8
+    ),
+    averagePressureScore,
+    averageBoardHeight,
+    resourceStability,
+    executionPeak,
+    averageStageIndex,
+    volatilityIndex,
+    recoveryScore,
+    improvementTrend: getTrendFromRuns(runs),
+    dominantMistakes,
+  };
+}
+
+function buildContextualMistakePatterns(
+  runs: PlayerRunSnapshot[],
+  previous: ContextualMistakePattern[]
+): ContextualMistakePattern[] {
+  const counts = new Map<string, ContextualMistakePattern>();
+
+  runs.forEach((run) => {
+    run.contextualMistakes.forEach((entry) => {
+      const id = `${entry.key}:${entry.phase}:${entry.pressure}:${entry.trigger}`;
+      const current = counts.get(id);
+      if (current) {
+        current.count += 1;
+      } else {
+        counts.set(id, {
+          key: entry.key,
+          phase: entry.phase,
+          pressure: entry.pressure,
+          trigger: entry.trigger,
+          count: 1,
+          trend: "stable",
+        });
+      }
+    });
+  });
+
+  return [...counts.values()]
+    .map((pattern) => {
+      const previousCount =
+        previous.find(
+          (item) =>
+            item.key === pattern.key &&
+            item.phase === pattern.phase &&
+            item.pressure === pattern.pressure &&
+            item.trigger === pattern.trigger
+        )?.count ?? pattern.count;
+      return {
+        ...pattern,
+        trend: (
+          pattern.count > previousCount
+            ? "up"
+            : pattern.count < previousCount
+              ? "down"
+              : "stable"
+        ) as "up" | "down" | "stable",
+      };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+}
+
+function describeContextualPattern(
+  key: PlayerMistakeKey,
+  phase: MistakePhase,
+  pressure: MistakePressure,
+  trigger: MistakeTrigger
+) {
+  return `${key} revient surtout en phase ${phase}, sous pression ${pressure}, declencheur ${trigger}`;
+}
+
+function buildRookieRecommendationReason(
+  targetMode: PlayerBehaviorMode,
+  profile: PlayerModeProfile
+) {
+  if (profile.recoveryScore < 35) {
+    return `Rookie attend un retour plus calme sur ${targetMode}. Stabilite ${profile.resourceStability}/100, recovery ${profile.recoveryScore}/100.`;
+  }
+  return `Rookie attend plus de regularite sur ${targetMode}. Stabilite ${profile.resourceStability}/100, recovery ${profile.recoveryScore}/100.`;
+}
+
+function buildPulseRecommendationReason(
+  targetMode: PlayerBehaviorMode,
+  profile: PlayerModeProfile
+) {
+  if (profile.volatilityIndex >= 60) {
+    return `Pulse veut casser la volatilite sur ${targetMode}. Execution ${profile.executionPeak}/100, volatilite ${profile.volatilityIndex}/100.`;
+  }
+  return `Pulse veut une baisse nette des erreurs sur ${targetMode}. Tendance ${profile.improvementTrend}, execution ${profile.executionPeak}/100, volatilite ${profile.volatilityIndex}/100.`;
+}
+
+function buildApexRecommendationReason(
+  targetMode: PlayerBehaviorMode,
+  profile: PlayerModeProfile
+) {
+  if (profile.recoveryScore < 35) {
+    return `Apex refuse les detours. Travaille ${targetMode}. Pression ${profile.pressureIndex}/100, stack ${profile.averageBoardHeight}/20, recovery critique ${profile.recoveryScore}/100.`;
+  }
+  return `Apex refuse les detours. Travaille ${targetMode}. Pression ${profile.pressureIndex}/100, stack ${profile.averageBoardHeight}/20, recovery ${profile.recoveryScore}/100.`;
+}
+
+function buildConflict(
+  challenger: TetrobotId,
+  opponent: TetrobotId,
+  challengerMode: PlayerBehaviorMode | null,
+  opponentMode: PlayerBehaviorMode | null,
+  totalSessions: number,
+  playerBehaviorByMode: Record<PlayerBehaviorMode, ModeBehaviorStats>,
+  summary: string,
+  now: number
+): TetrobotConflict | null {
+  if (!challengerMode && !opponentMode) return null;
+  return {
+    id: `conflict-${challenger}-${opponent}-${challengerMode ?? "none"}-${opponentMode ?? "none"}`,
+    challenger,
+    opponent,
+    challengerMode,
+    opponentMode,
+    issuedAt: now,
+    totalSessionsAtIssue: totalSessions,
+    challengerModeSessionsAtIssue: challengerMode
+      ? playerBehaviorByMode[challengerMode].sessions
+      : 0,
+    opponentModeSessionsAtIssue: opponentMode
+      ? playerBehaviorByMode[opponentMode].sessions
+      : 0,
+    resolvedAt: null,
+    chosenBot: null,
+    summary,
+  };
+}
+
+function getExclusiveAlignmentFlavor(
+  favoredBot: TetrobotId,
+  blockedBot: TetrobotId
+) {
+  const pairId = `${favoredBot}:${blockedBot}`;
+  switch (pairId) {
+    case "rookie:apex":
+      return {
+        favoredLine:
+          "Rookie prend le canal: on reconstruit proprement, sans laisser Apex te casser trop vite.",
+        blockedLine:
+          "Apex reste en retrait, mais il note deja que tu as choisi le confort avant la contrainte.",
+        lockedAdvice: ["hard_truths", "punishing_challenges"],
+      };
+    case "apex:rookie":
+      return {
+        favoredLine:
+          "Apex prend le canal: fini les detours, tu travailles maintenant ce que Rookie voulait encore adoucir.",
+        blockedLine:
+          "Rookie se retire un temps. Il pense qu'Apex te pousse trop loin, trop vite.",
+        lockedAdvice: ["comforting_routes", "reassurance_loops"],
+      };
+    case "pulse:rookie":
+      return {
+        favoredLine:
+          "Pulse prend le canal: les conseils flous s'effacent, place a une correction precise et mesuree.",
+        blockedLine:
+          "Rookie se crispe. Il supporte mal de voir sa lecture relationnelle passer apres l'analyse froide.",
+        lockedAdvice: ["comforting_routes", "broad_reassurance"],
+      };
+    case "rookie:pulse":
+      return {
+        favoredLine:
+          "Rookie prend le canal: d'abord la regularite et le rythme, ensuite seulement l'obsession des chiffres.",
+        blockedLine:
+          "Pulse se tait a contrecoeur. Il considere que tu repousses encore la vraie correction technique.",
+        lockedAdvice: ["micro_analysis", "precision_breakdowns"],
+      };
+    case "apex:pulse":
+      return {
+        favoredLine:
+          "Apex prend le canal: fini la dispersion, Pulse n'imposera plus ses detours analytiques pendant quelques sessions.",
+        blockedLine:
+          "Pulse encaisse mal. Il juge qu'Apex t'enferme dans une logique brutale au lieu de comprendre l'erreur.",
+        lockedAdvice: ["micro_analysis", "optimization_detours"],
+      };
+    case "pulse:apex":
+      return {
+        favoredLine:
+          "Pulse prend le canal: avant d'encaisser la pression d'Apex, tu corriges d'abord la structure de ton jeu.",
+        blockedLine:
+          "Apex garde le silence, mais il considere ce report comme un nouveau sursis accorde a ta faiblesse.",
+        lockedAdvice: ["hard_truths", "punishing_challenges"],
+      };
+    default:
+      return {
+        favoredLine: `${favoredBot} prend le dessus pour quelques sessions.`,
+        blockedLine: `${blockedBot} garde ses conseils en retrait apres ton choix.`,
+        lockedAdvice: ["exclusive_advice"],
+      };
+  }
+}
+
+function buildExclusiveAlignmentObjective(
+  favoredBot: TetrobotId,
+  conflict: TetrobotConflict | null,
+  playerBehaviorByMode: Record<PlayerBehaviorMode, ModeBehaviorStats>
+) {
+  const mode =
+    (favoredBot === conflict?.challenger ? conflict.challengerMode : null) ??
+    (favoredBot === conflict?.opponent ? conflict.opponentMode : null) ??
+    conflict?.challengerMode ??
+    conflict?.opponentMode ??
+    null;
+  const startSessions = mode ? playerBehaviorByMode[mode].sessions : 0;
+
+  if (favoredBot === "rookie") {
+    return {
+      objectiveLabel: mode
+        ? `Rookie veut 2 sessions propres sur ${mode}`
+        : "Rookie veut 2 sessions regulieres sans detour",
+      objectiveMode: mode,
+      objectiveStartSessions: startSessions,
+      objectiveTargetSessions: 2,
+      objectiveProgress: 0,
+      rewardAffinity: 8,
+      rewardXp: 12,
+      rewardClaimed: false,
+    };
+  }
+  if (favoredBot === "pulse") {
+    return {
+      objectiveLabel: mode
+        ? `Pulse veut 2 sessions mesurees sur ${mode}`
+        : "Pulse veut 2 sessions de correction nette",
+      objectiveMode: mode,
+      objectiveStartSessions: startSessions,
+      objectiveTargetSessions: 2,
+      objectiveProgress: 0,
+      rewardAffinity: 10,
+      rewardXp: 14,
+      rewardClaimed: false,
+    };
+  }
+  return {
+    objectiveLabel: mode
+      ? `Apex exige 3 sessions utiles sur ${mode}`
+      : "Apex exige 3 sessions sans esquive",
+    objectiveMode: mode,
+    objectiveStartSessions: startSessions,
+    objectiveTargetSessions: 3,
+    objectiveProgress: 0,
+    rewardAffinity: 14,
+    rewardXp: 18,
+    rewardClaimed: false,
+  };
+}
+
+function buildExclusiveAlignment(
+  favoredBot: TetrobotId,
+  blockedBot: TetrobotId,
+  reason: string,
+  now: number,
+  conflict: TetrobotConflict | null,
+  playerBehaviorByMode: Record<PlayerBehaviorMode, ModeBehaviorStats>
+): TetrobotExclusiveAlignment {
+  const flavor = getExclusiveAlignmentFlavor(favoredBot, blockedBot);
+  const objective = buildExclusiveAlignmentObjective(favoredBot, conflict, playerBehaviorByMode);
+  return {
+    favoredBot,
+    blockedBot,
+    issuedAt: now,
+    expiresAt: now + 3 * 24 * 60 * 60 * 1000,
+    sessionsRemaining: 4,
+    reason,
+    favoredLine: flavor.favoredLine,
+    blockedLine: flavor.blockedLine,
+    lockedAdvice: flavor.lockedAdvice,
+    objectiveLabel: objective.objectiveLabel,
+    objectiveMode: objective.objectiveMode,
+    objectiveStartSessions: objective.objectiveStartSessions,
+    objectiveTargetSessions: objective.objectiveTargetSessions,
+    objectiveProgress: objective.objectiveProgress,
+    rewardAffinity: objective.rewardAffinity,
+    rewardXp: objective.rewardXp,
+    rewardClaimed: objective.rewardClaimed,
+  };
+}
+
+function hasLockedAdvice(
+  alignment: TetrobotExclusiveAlignment | null,
+  bot: TetrobotId,
+  advice: string
+) {
+  return alignment?.blockedBot === bot && alignment.lockedAdvice.includes(advice);
+}
+
+function getExclusiveRewardDialogue(bot: TetrobotId, objectiveLabel: string) {
+  switch (bot) {
+    case "rookie":
+      return `Rookie ouvre une ligne rare: tu as tenu ${objectiveLabel}. Cette fois, il te fait vraiment confiance.`;
+    case "pulse":
+      return `Pulse ouvre une ligne rare: ${objectiveLabel} est valide. Il admet enfin que ta correction est mesurable.`;
+    case "apex":
+      return `Apex ouvre une ligne rare: ${objectiveLabel} est accompli. Pour lui, tu as enfin choisi le vrai travail.`;
+    default:
+      return `${bot} ouvre une ligne rare apres validation de ${objectiveLabel}.`;
+  }
+}
+
 function buildRecommendation(
   bot: TetrobotId,
   prevRecommendation: TetrobotRecommendation | null,
@@ -349,6 +839,24 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   const playedModes = Object.entries(prev.playerBehaviorByMode).filter(([, value]) => value.sessions > 0) as Array<
     [PlayerBehaviorMode, ModeBehaviorStats]
   >;
+  const recentRunsByMode = Object.fromEntries(
+    PLAYER_BEHAVIOR_MODES.map((mode) => [
+      mode,
+      prev.playerLongTermMemory.recentRunsByMode?.[mode] ?? [],
+    ])
+  ) as Record<PlayerBehaviorMode, PlayerRunSnapshot[]>;
+  const modeProfiles = Object.fromEntries(
+    PLAYER_BEHAVIOR_MODES.map((mode) => [mode, buildModeProfile(recentRunsByMode[mode])])
+  ) as Record<PlayerBehaviorMode, PlayerModeProfile>;
+  const contextualMistakePatterns = Object.fromEntries(
+    PLAYER_BEHAVIOR_MODES.map((mode) => [
+      mode,
+      buildContextualMistakePatterns(
+        recentRunsByMode[mode],
+        prev.playerLongTermMemory.contextualMistakePatterns?.[mode] ?? []
+      ),
+    ])
+  ) as Record<PlayerBehaviorMode, ContextualMistakePattern[]>;
   const modeCount = playedModes.length;
   const sessionsByMode = playedModes.map(([, value]) => value.sessions);
   const minModeSessions = sessionsByMode.length ? Math.min(...sessionsByMode) : 0;
@@ -366,17 +874,37 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   const strongestModeFocus =
     playedModes
       .sort((a, b) => {
-        const leftRate = getModeWinRate(a[1]);
-        const rightRate = getModeWinRate(b[1]);
+        const leftRate = modeProfiles[a[0]].recentRuns > 0 ? modeProfiles[a[0]].recentWinRate / 100 : getModeWinRate(a[1]);
+        const rightRate = modeProfiles[b[0]].recentRuns > 0 ? modeProfiles[b[0]].recentWinRate / 100 : getModeWinRate(b[1]);
         return rightRate - leftRate || b[1].sessions - a[1].sessions;
       })[0]?.[0] ?? null;
   const weakestModeFocus =
     playedModes
       .sort((a, b) => {
-        const leftMistakes = getModeMistakeCount(prev.playerMistakesByMode[a[0]]) / Math.max(1, a[1].sessions);
-        const rightMistakes = getModeMistakeCount(prev.playerMistakesByMode[b[0]]) / Math.max(1, b[1].sessions);
-        const leftSeverity = (1 - getModeWinRate(a[1])) * 100 + leftMistakes * 10;
-        const rightSeverity = (1 - getModeWinRate(b[1])) * 100 + rightMistakes * 10;
+        const leftProfile = modeProfiles[a[0]];
+        const rightProfile = modeProfiles[b[0]];
+        const leftMistakes =
+          leftProfile.recentRuns > 0
+            ? leftProfile.recentMistakeRate
+            : getModeMistakeCount(prev.playerMistakesByMode[a[0]]) / Math.max(1, a[1].sessions);
+        const rightMistakes =
+          rightProfile.recentRuns > 0
+            ? rightProfile.recentMistakeRate
+            : getModeMistakeCount(prev.playerMistakesByMode[b[0]]) / Math.max(1, b[1].sessions);
+        const leftWinRate =
+          leftProfile.recentRuns > 0 ? leftProfile.recentWinRate / 100 : getModeWinRate(a[1]);
+        const rightWinRate =
+          rightProfile.recentRuns > 0 ? rightProfile.recentWinRate / 100 : getModeWinRate(b[1]);
+        const leftSeverity =
+          (1 - leftWinRate) * 100 +
+          leftMistakes * 10 +
+          leftProfile.pressureIndex * 0.2 +
+          (leftProfile.improvementTrend === "down" ? 8 : 0);
+        const rightSeverity =
+          (1 - rightWinRate) * 100 +
+          rightMistakes * 10 +
+          rightProfile.pressureIndex * 0.2 +
+          (rightProfile.improvementTrend === "down" ? 8 : 0);
         return rightSeverity - leftSeverity || b[1].sessions - a[1].sessions;
       })[0]?.[0] ?? null;
   const weakFocusWins = weakestModeFocus ? prev.playerBehaviorByMode[weakestModeFocus]?.wins ?? 0 : 0;
@@ -646,8 +1174,16 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     playedModes
       .slice()
       .sort((a, b) => {
-        const leftDensity = getModeMistakeCount(prev.playerMistakesByMode[a[0]]) / Math.max(1, a[1].sessions);
-        const rightDensity = getModeMistakeCount(prev.playerMistakesByMode[b[0]]) / Math.max(1, b[1].sessions);
+        const leftProfile = modeProfiles[a[0]];
+        const rightProfile = modeProfiles[b[0]];
+        const leftDensity =
+          leftProfile.recentRuns > 0
+            ? leftProfile.recentMistakeRate + (leftProfile.improvementTrend === "down" ? 1 : 0)
+            : getModeMistakeCount(prev.playerMistakesByMode[a[0]]) / Math.max(1, a[1].sessions);
+        const rightDensity =
+          rightProfile.recentRuns > 0
+            ? rightProfile.recentMistakeRate + (rightProfile.improvementTrend === "down" ? 1 : 0)
+            : getModeMistakeCount(prev.playerMistakesByMode[b[0]]) / Math.max(1, b[1].sessions);
         return rightDensity - leftDensity || b[1].sessions - a[1].sessions;
       })[0]?.[0] ?? null;
   const rookieRecommendation =
@@ -660,7 +1196,10 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
           prev.playerBehaviorByMode[rookieTargetMode].sessions,
           modeCount < 3
             ? `Rookie veut te voir revenir aussi sur ${rookieTargetMode}, pas seulement sur ton confort.`
-            : `Rookie attend plus de regularite sur ${rookieTargetMode}.`,
+            : buildRookieRecommendationReason(
+                rookieTargetMode,
+                modeProfiles[rookieTargetMode]
+              ),
           "play_underplayed_mode",
           now
         )
@@ -668,12 +1207,15 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   const pulseRecommendation =
     strategyScore < 72 && pulseTargetMode
       ? buildRecommendation(
-          "pulse",
-          prev.playerLongTermMemory.activeRecommendations.pulse,
-          totalSessions,
-          pulseTargetMode,
-          prev.playerBehaviorByMode[pulseTargetMode].sessions,
-          `Pulse veut une baisse nette des erreurs sur ${pulseTargetMode}.`,
+        "pulse",
+        prev.playerLongTermMemory.activeRecommendations.pulse,
+        totalSessions,
+        pulseTargetMode,
+        prev.playerBehaviorByMode[pulseTargetMode].sessions,
+          buildPulseRecommendationReason(
+            pulseTargetMode,
+            modeProfiles[pulseTargetMode]
+          ),
           "reduce_mistakes",
           now
         )
@@ -685,11 +1227,63 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
         totalSessions,
         weakestModeFocus,
         prev.playerBehaviorByMode[weakestModeFocus].sessions,
-        `Apex refuse les detours. Travaille ${weakestModeFocus} jusqu'a ce que ce ne soit plus ton point faible.`,
+        buildApexRecommendationReason(
+          weakestModeFocus,
+          modeProfiles[weakestModeFocus]
+        ),
         "train_weak_mode",
         now
       )
     : null;
+  const candidateConflict =
+    rookieRecommendation?.targetMode &&
+    apexRecommendation?.targetMode &&
+    rookieRecommendation.targetMode === apexRecommendation.targetMode
+      ? buildConflict(
+          "rookie",
+          "apex",
+          rookieRecommendation.targetMode,
+          apexRecommendation.targetMode,
+          totalSessions,
+          prev.playerBehaviorByMode,
+          `Rookie veut te faire reprendre ${rookieRecommendation.targetMode} proprement, Apex veut t'y forcer sans ménagement.`,
+          now
+        )
+      : rookieRecommendation?.targetMode &&
+          pulseRecommendation?.targetMode &&
+          rookieRecommendation.targetMode !== pulseRecommendation.targetMode
+        ? buildConflict(
+            "pulse",
+            "rookie",
+            pulseRecommendation.targetMode,
+            rookieRecommendation.targetMode,
+            totalSessions,
+            prev.playerBehaviorByMode,
+            `Pulse veut une correction ciblée sur ${pulseRecommendation.targetMode}, Rookie préfère te renvoyer sur ${rookieRecommendation.targetMode}.`,
+            now
+          )
+        : pulseRecommendation?.targetMode &&
+            apexRecommendation?.targetMode &&
+            pulseRecommendation.targetMode !== apexRecommendation.targetMode
+          ? buildConflict(
+              "apex",
+              "pulse",
+              apexRecommendation.targetMode,
+              pulseRecommendation.targetMode,
+              totalSessions,
+              prev.playerBehaviorByMode,
+              `Apex veut verrouiller ${apexRecommendation.targetMode}, Pulse te disperse encore sur ${pulseRecommendation.targetMode}.`,
+              now
+            )
+          : null;
+  const previousConflict = prev.playerLongTermMemory.activeConflict;
+  let activeConflict =
+    previousConflict &&
+    previousConflict.resolvedAt === null &&
+    candidateConflict &&
+    previousConflict.id === candidateConflict.id
+      ? previousConflict
+      : candidateConflict ?? previousConflict;
   const playerLongTermMemory: PlayerLongTermMemory = {
     recurringMistakes: aggregatedMistakes
       .sort((a, b) => b.count - a.count || b.lastSeenAt - a.lastSeenAt)
@@ -706,12 +1300,178 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     strategyScore,
     weakestModeFocus,
     strongestModeFocus,
+    lingeringResentment: {
+      rookie: Math.max(
+        0,
+        (prev.playerLongTermMemory.lingeringResentment?.rookie ?? 0) - Math.max(0, deltas.play_game)
+      ),
+      pulse: Math.max(
+        0,
+        (prev.playerLongTermMemory.lingeringResentment?.pulse ?? 0) - Math.max(0, deltas.play_game)
+      ),
+      apex: Math.max(
+        0,
+        (prev.playerLongTermMemory.lingeringResentment?.apex ?? 0) - Math.max(0, deltas.play_game)
+      ),
+    },
     activeRecommendations: {
       rookie: rookieRecommendation,
       pulse: pulseRecommendation,
       apex: apexRecommendation,
     },
+    activeConflict,
+    activeExclusiveAlignment: prev.playerLongTermMemory.activeExclusiveAlignment,
+    recentRunsByMode,
+    modeProfiles,
+    contextualMistakePatterns,
   };
+
+  if (playerLongTermMemory.activeExclusiveAlignment) {
+    const alignment = playerLongTermMemory.activeExclusiveAlignment;
+    const nextProgress = alignment.objectiveMode
+      ? Math.min(
+          alignment.objectiveTargetSessions,
+          Math.max(
+            0,
+            prev.playerBehaviorByMode[alignment.objectiveMode].sessions -
+              alignment.objectiveStartSessions
+          )
+        )
+      : alignment.objectiveProgress;
+    const remaining =
+      alignment.sessionsRemaining - Math.max(0, deltas.play_game);
+    if (remaining <= 0 || now >= playerLongTermMemory.activeExclusiveAlignment.expiresAt) {
+      playerLongTermMemory.activeExclusiveAlignment = null;
+    } else {
+      playerLongTermMemory.activeExclusiveAlignment = {
+        ...alignment,
+        sessionsRemaining: remaining,
+        objectiveProgress: nextProgress,
+      };
+      if (
+        !alignment.rewardClaimed &&
+        alignment.objectiveTargetSessions > 0 &&
+        nextProgress >= alignment.objectiveTargetSessions
+      ) {
+        const nextAffinity = clampAffinity(
+          progression[alignment.favoredBot].affinity + alignment.rewardAffinity
+        );
+        progression[alignment.favoredBot] = {
+          ...progression[alignment.favoredBot],
+          affinity: nextAffinity,
+          mood: getMood(nextAffinity),
+        };
+        applyXp(alignment.favoredBot, alignment.rewardXp);
+        playerLongTermMemory.activeExclusiveAlignment = {
+          ...playerLongTermMemory.activeExclusiveAlignment,
+          rewardClaimed: true,
+        };
+        pushMemory(
+          alignment.favoredBot,
+          "player_progress",
+          `${alignment.favoredBot} valide sa ligne exclusive: ${alignment.objectiveLabel}.`,
+          alignment.favoredBot === "apex" ? 5 : 4
+        );
+        pushMemory(
+          alignment.favoredBot,
+          "player_progress",
+          getExclusiveRewardDialogue(alignment.favoredBot, alignment.objectiveLabel),
+          5
+        );
+        bumpCounter(`tetrobot_exclusive_reward_${alignment.favoredBot}`);
+        bumpCounter(`tetrobot_exclusive_dialogue_${alignment.favoredBot}`);
+        changed = true;
+      }
+    }
+  }
+
+  if (activeConflict && activeConflict.resolvedAt === null) {
+    const challengerGain = activeConflict.challengerMode
+      ? Math.max(
+          0,
+          prev.playerBehaviorByMode[activeConflict.challengerMode].sessions -
+            activeConflict.challengerModeSessionsAtIssue
+        )
+      : 0;
+    const opponentGain = activeConflict.opponentMode
+      ? Math.max(
+          0,
+          prev.playerBehaviorByMode[activeConflict.opponentMode].sessions -
+            activeConflict.opponentModeSessionsAtIssue
+        )
+      : 0;
+    const chosenBot =
+      activeConflict.challengerMode &&
+      activeConflict.opponentMode &&
+      activeConflict.challengerMode === activeConflict.opponentMode &&
+      challengerGain > 0
+        ? modeProfiles[activeConflict.challengerMode].recoveryScore >= 45
+          ? activeConflict.challenger
+          : activeConflict.opponent
+        : challengerGain > opponentGain
+          ? activeConflict.challenger
+          : opponentGain > challengerGain
+            ? activeConflict.opponent
+            : null;
+
+    if (chosenBot) {
+      const otherBot =
+        chosenBot === activeConflict.challenger
+          ? activeConflict.opponent
+          : activeConflict.challenger;
+      const chosenCurrent = progression[chosenBot];
+      const otherCurrent = progression[otherBot];
+      const chosenAffinity = clampAffinity(chosenCurrent.affinity + (chosenBot === "apex" ? 8 : 6));
+      const otherAffinity = clampAffinity(otherCurrent.affinity - (otherBot === "apex" ? 6 : 4));
+      progression[chosenBot] = {
+        ...chosenCurrent,
+        affinity: chosenAffinity,
+        mood: getMood(chosenAffinity),
+      };
+      progression[otherBot] = {
+        ...otherCurrent,
+        affinity: otherAffinity,
+        mood: getMood(otherAffinity),
+      };
+      playerLongTermMemory.activeConflict = {
+        ...activeConflict,
+        chosenBot,
+        resolvedAt: now,
+      };
+      playerLongTermMemory.activeExclusiveAlignment = buildExclusiveAlignment(
+        chosenBot,
+        otherBot,
+        `Tu as choisi ${chosenBot} contre ${otherBot}. Ses lignes exclusives passent devant pour quelques sessions.`,
+        now,
+        activeConflict,
+        prev.playerBehaviorByMode
+      );
+      playerLongTermMemory.lingeringResentment[otherBot] = Math.max(
+        playerLongTermMemory.lingeringResentment[otherBot],
+        6
+      );
+      changed = true;
+      pushMemory(
+        chosenBot,
+        "player_progress",
+        `Tu as suivi ${chosenBot} dans le conflit contre ${otherBot}.`,
+        chosenBot === "apex" ? 5 : 4
+      );
+      pushMemory(
+        otherBot,
+        "player_failure",
+        `Tu as choisi ${chosenBot} plutot que ${otherBot}.`,
+        otherBot === "apex" ? 5 : 4
+      );
+      pushMemory(
+        otherBot,
+        "trust_break",
+        `${otherBot} n'oublie pas que tu as pris parti pour ${chosenBot}.`,
+        4
+      );
+      bumpCounter(`tetrobot_conflict_side_${chosenBot}`);
+    }
+  }
 
   if (affinityDeltas.play_regularly > 0) {
     pushMemory("rookie", "player_comeback", "Tu es revenu apres plusieurs echecs sans abandonner.", 3);
@@ -720,8 +1480,123 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     pushMemory("pulse", "player_progress", "Ta progression recente est assez nette pour etre mesuree.", 4);
     bumpCounter("pulse_advice_success");
   }
+  if (
+    weakestModeFocus &&
+    modeProfiles[weakestModeFocus].improvementTrend === "down" &&
+    modeProfiles[weakestModeFocus].recentRuns >= 4
+  ) {
+    pushMemory(
+      "apex",
+      "player_failure",
+      `Apex voit une regression recente sur ${weakestModeFocus}.`,
+      4
+    );
+  }
+  if (
+    weakestModeFocus &&
+    modeProfiles[weakestModeFocus].averagePressureScore >= 70 &&
+    modeProfiles[weakestModeFocus].averageBoardHeight >= 12
+  ) {
+    pushMemory(
+      "apex",
+      "player_failure",
+      `Apex voit ${weakestModeFocus} te faire monter trop haut: stack moyen ${modeProfiles[weakestModeFocus].averageBoardHeight}/20.`,
+      5
+    );
+  }
+  if (
+    pulseTargetMode &&
+    modeProfiles[pulseTargetMode].volatilityIndex >= 55 &&
+    modeProfiles[pulseTargetMode].recentRuns >= 3
+  ) {
+    pushMemory(
+      "pulse",
+      "player_failure",
+      `Pulse voit une execution trop instable sur ${pulseTargetMode}: volatilite ${modeProfiles[pulseTargetMode].volatilityIndex}/100.`,
+      4
+    );
+  }
+  if (pulseTargetMode && contextualMistakePatterns[pulseTargetMode]?.length) {
+    const pattern = contextualMistakePatterns[pulseTargetMode][0];
+    if (pattern && pattern.count >= 2) {
+      pushMemory(
+        "pulse",
+        "player_failure",
+        `Pulse detecte un schema: ${describeContextualPattern(
+          pattern.key,
+          pattern.phase,
+          pattern.pressure,
+          pattern.trigger
+        )}.`,
+        4
+      );
+    }
+  }
+  if (weakestModeFocus && contextualMistakePatterns[weakestModeFocus]?.length) {
+    const pattern = contextualMistakePatterns[weakestModeFocus][0];
+    if (pattern && pattern.count >= 2) {
+      pushMemory(
+        "apex",
+        "player_failure",
+        `Apex cible une faille precise: ${describeContextualPattern(
+          pattern.key,
+          pattern.phase,
+          pattern.pressure,
+          pattern.trigger
+        )}.`,
+        5
+      );
+    }
+  }
   if ((playerLongTermMemory.avoidedModes[prev.lowestWinrateMode ?? ""] ?? 0) >= 5) {
     pushMemory("apex", "player_avoidance", `Tu evites encore ${prev.lowestWinrateMode ?? "ton point faible"}.`, 5);
+  }
+  if (
+    rookieRecommendation?.targetMode &&
+    apexRecommendation?.targetMode &&
+    rookieRecommendation.targetMode === apexRecommendation.targetMode &&
+    modeProfiles[rookieRecommendation.targetMode].recoveryScore < 45
+  ) {
+    pushMemory(
+      "rookie",
+      "player_failure",
+      `Ne l'ecoute pas... Apex te pousse trop fort sur ${rookieRecommendation.targetMode}. Tu as besoin de reprendre le controle.`,
+      4
+    );
+    pushMemory(
+      "apex",
+      "player_failure",
+      `Ignore Rookie. Il veut t'adoucir sur ${apexRecommendation.targetMode} alors que c'est la faille a corriger.`,
+      5
+    );
+  }
+  if (
+    rookieRecommendation?.targetMode &&
+    pulseRecommendation?.targetMode &&
+    rookieRecommendation.targetMode !== pulseRecommendation.targetMode &&
+    pulseTargetMode &&
+    modeProfiles[pulseTargetMode].volatilityIndex >= 55
+  ) {
+    pushMemory(
+      "pulse",
+      "player_failure",
+      `Rookie te dit de juste rejouer. Mauvaise lecture. Sur ${pulseRecommendation.targetMode}, il faut corriger avant de grinder.`,
+      4
+    );
+  }
+  if (
+    pulseRecommendation?.targetMode &&
+    apexRecommendation?.targetMode &&
+    pulseRecommendation.targetMode !== apexRecommendation.targetMode &&
+    weakestModeFocus &&
+    modeProfiles[weakestModeFocus].pressureIndex >= 65
+  ) {
+    pushMemory(
+      "apex",
+      "player_failure",
+      `Ignore Pulse. Il disperse encore ton attention alors que ton vrai probleme reste ${apexRecommendation.targetMode}.`,
+      5
+    );
   }
 
   (["rookie", "pulse", "apex"] as TetrobotId[]).forEach((bot) => {
@@ -775,7 +1650,8 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   if (
     !activeTetrobotChallenge &&
     prev.lowestWinrateMode &&
-    (apexTrustState === "refusing" || apexTrustState === "cold")
+    (apexTrustState === "refusing" || apexTrustState === "cold") &&
+    !hasLockedAdvice(playerLongTermMemory.activeExclusiveAlignment, "apex", "punishing_challenges")
   ) {
     activeTetrobotChallenge = createApexChallenge(
       prev.lowestWinrateMode,

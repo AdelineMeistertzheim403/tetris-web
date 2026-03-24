@@ -27,8 +27,11 @@ import type {
   PlayerBehaviorEvent,
   PlayerBehaviorMode,
   PlayerBotProgression,
+  ContextualMistakePattern,
   PlayerLongTermMemory,
+  PlayerModeProfile,
   PlayerMistakeKey,
+  PlayerRunSnapshot,
   TetrobotAffinityLedger,
   TetrobotAchievementEvent,
   TetrobotChallengeState,
@@ -185,6 +188,41 @@ const createMistakeLastSeenByMode = (): Record<PlayerBehaviorMode, MistakeLastSe
     PLAYER_BEHAVIOR_MODES.map((mode) => [mode, { ...EMPTY_MISTAKE_LAST_SEEN }])
   ) as Record<PlayerBehaviorMode, MistakeLastSeenStats>;
 
+const DEFAULT_MODE_PROFILE: PlayerModeProfile = {
+  recentRuns: 0,
+  recentWinRate: 0,
+  recentMistakeRate: 0,
+  averageDurationMs: 0,
+  resilienceScore: 0,
+  pressureIndex: 0,
+  averagePressureScore: 0,
+  averageBoardHeight: 0,
+  resourceStability: 0,
+  executionPeak: 0,
+  averageStageIndex: 0,
+  volatilityIndex: 0,
+  recoveryScore: 0,
+  improvementTrend: "stable",
+  dominantMistakes: [],
+};
+
+const createRecentRunsByMode = (): Record<PlayerBehaviorMode, PlayerRunSnapshot[]> =>
+  Object.fromEntries(PLAYER_BEHAVIOR_MODES.map((mode) => [mode, []])) as unknown as Record<
+    PlayerBehaviorMode,
+    PlayerRunSnapshot[]
+  >;
+
+const createModeProfiles = (): Record<PlayerBehaviorMode, PlayerModeProfile> =>
+  Object.fromEntries(
+    PLAYER_BEHAVIOR_MODES.map((mode) => [mode, { ...DEFAULT_MODE_PROFILE }])
+  ) as Record<PlayerBehaviorMode, PlayerModeProfile>;
+
+const createContextualMistakePatterns = (): Record<PlayerBehaviorMode, ContextualMistakePattern[]> =>
+  Object.fromEntries(PLAYER_BEHAVIOR_MODES.map((mode) => [mode, []])) as unknown as Record<
+    PlayerBehaviorMode,
+    ContextualMistakePattern[]
+  >;
+
 const DEFAULT_PLAYER_LONG_TERM_MEMORY: PlayerLongTermMemory = {
   recurringMistakes: [],
   avoidedModes: {},
@@ -199,11 +237,21 @@ const DEFAULT_PLAYER_LONG_TERM_MEMORY: PlayerLongTermMemory = {
   strategyScore: 0,
   weakestModeFocus: null,
   strongestModeFocus: null,
+  lingeringResentment: {
+    rookie: 0,
+    pulse: 0,
+    apex: 0,
+  },
   activeRecommendations: {
     rookie: null,
     pulse: null,
     apex: null,
   },
+  activeConflict: null,
+  activeExclusiveAlignment: null,
+  recentRunsByMode: createRecentRunsByMode(),
+  modeProfiles: createModeProfiles(),
+  contextualMistakePatterns: createContextualMistakePatterns(),
 };
 
 const createTetrobotMemories = (): Record<TetrobotId, BotMemoryEntry[]> => ({
@@ -211,6 +259,42 @@ const createTetrobotMemories = (): Record<TetrobotId, BotMemoryEntry[]> => ({
   pulse: [],
   apex: [],
 });
+
+const MAX_RECENT_MODE_RUNS = 12;
+
+const inferMistakePhase = (durationMs: number, mistake: PlayerMistakeKey) => {
+  if (mistake === "top_out" || mistake === "panic_stack") return "late" as const;
+  if (durationMs <= 75_000) return "early" as const;
+  if (durationMs <= 210_000) return "mid" as const;
+  return "late" as const;
+};
+
+const inferMistakePressure = (mistake: PlayerMistakeKey, durationMs: number) => {
+  if (
+    mistake === "panic_stack" ||
+    mistake === "top_out" ||
+    mistake === "unsafe_stack" ||
+    mistake === "slow_decision"
+  ) {
+    return "high" as const;
+  }
+  if (mistake === "damage_taken" || mistake === "misread" || durationMs >= 180_000) {
+    return "medium" as const;
+  }
+  return "low" as const;
+};
+
+const inferMistakeTrigger = (
+  mistake: PlayerMistakeKey,
+  estimatedRageQuit: boolean,
+  durationMs: number
+) => {
+  if (estimatedRageQuit) return "tilt" as const;
+  if (mistake === "top_out" || mistake === "unsafe_stack") return "collapse" as const;
+  if (mistake === "slow" || mistake === "slow_decision") return "timeout" as const;
+  if (mistake === "damage_taken" || durationMs >= 240_000) return "attrition" as const;
+  return "unknown" as const;
+};
 
 const normalizeLoginDays = (loginDays: string[]) =>
   Array.from(new Set(loginDays.filter(Boolean))).sort();
@@ -225,6 +309,121 @@ function clampAffinity(value: number) {
 }
 
 export const getApexTrustState = getApexTrustStateFromLogic;
+
+function getExclusiveAlignmentFlavor(bot: TetrobotId, otherBot: TetrobotId) {
+  const pairId = `${bot}:${otherBot}`;
+  switch (pairId) {
+    case "rookie:apex":
+      return {
+        favoredLine:
+          "Rookie prend le canal: on reconstruit proprement, sans laisser Apex te casser trop vite.",
+        blockedLine:
+          "Apex reste en retrait, mais il note deja que tu as choisi le confort avant la contrainte.",
+        lockedAdvice: ["hard_truths", "punishing_challenges"],
+      };
+    case "apex:rookie":
+      return {
+        favoredLine:
+          "Apex prend le canal: fini les detours, tu travailles maintenant ce que Rookie voulait encore adoucir.",
+        blockedLine:
+          "Rookie se retire un temps. Il pense qu'Apex te pousse trop loin, trop vite.",
+        lockedAdvice: ["comforting_routes", "reassurance_loops"],
+      };
+    case "pulse:rookie":
+      return {
+        favoredLine:
+          "Pulse prend le canal: les conseils flous s'effacent, place a une correction precise et mesuree.",
+        blockedLine:
+          "Rookie se crispe. Il supporte mal de voir sa lecture relationnelle passer apres l'analyse froide.",
+        lockedAdvice: ["comforting_routes", "broad_reassurance"],
+      };
+    case "rookie:pulse":
+      return {
+        favoredLine:
+          "Rookie prend le canal: d'abord la regularite et le rythme, ensuite seulement l'obsession des chiffres.",
+        blockedLine:
+          "Pulse se tait a contrecoeur. Il considere que tu repousses encore la vraie correction technique.",
+        lockedAdvice: ["micro_analysis", "precision_breakdowns"],
+      };
+    case "apex:pulse":
+      return {
+        favoredLine:
+          "Apex prend le canal: fini la dispersion, Pulse n'imposera plus ses detours analytiques pendant quelques sessions.",
+        blockedLine:
+          "Pulse encaisse mal. Il juge qu'Apex t'enferme dans une logique brutale au lieu de comprendre l'erreur.",
+        lockedAdvice: ["micro_analysis", "optimization_detours"],
+      };
+    case "pulse:apex":
+      return {
+        favoredLine:
+          "Pulse prend le canal: avant d'encaisser la pression d'Apex, tu corriges d'abord la structure de ton jeu.",
+        blockedLine:
+          "Apex garde le silence, mais il considere ce report comme un nouveau sursis accorde a ta faiblesse.",
+        lockedAdvice: ["hard_truths", "punishing_challenges"],
+      };
+    default:
+      return {
+        favoredLine: `${bot} prend le dessus pour quelques sessions.`,
+        blockedLine: `${otherBot} garde ses conseils en retrait apres ton choix.`,
+        lockedAdvice: ["exclusive_advice"],
+      };
+  }
+}
+
+function buildExclusiveAlignmentObjective(
+  bot: TetrobotId,
+  conflict: PlayerLongTermMemory["activeConflict"],
+  playerBehaviorByMode: AchievementStats["playerBehaviorByMode"]
+) {
+  const mode =
+    (bot === conflict?.challenger ? conflict.challengerMode : null) ??
+    (bot === conflict?.opponent ? conflict.opponentMode : null) ??
+    conflict?.challengerMode ??
+    conflict?.opponentMode ??
+    null;
+  const startSessions = mode ? playerBehaviorByMode[mode].sessions : 0;
+
+  if (bot === "rookie") {
+    return {
+      objectiveLabel: mode
+        ? `Rookie veut 2 sessions propres sur ${mode}`
+        : `Rookie veut 2 sessions regulieres sans detour`,
+      objectiveMode: mode,
+      objectiveStartSessions: startSessions,
+      objectiveTargetSessions: 2,
+      objectiveProgress: 0,
+      rewardAffinity: 8,
+      rewardXp: 12,
+      rewardClaimed: false,
+    };
+  }
+  if (bot === "pulse") {
+    return {
+      objectiveLabel: mode
+        ? `Pulse veut 2 sessions mesurees sur ${mode}`
+        : `Pulse veut 2 sessions de correction nette`,
+      objectiveMode: mode,
+      objectiveStartSessions: startSessions,
+      objectiveTargetSessions: 2,
+      objectiveProgress: 0,
+      rewardAffinity: 10,
+      rewardXp: 14,
+      rewardClaimed: false,
+    };
+  }
+  return {
+    objectiveLabel: mode
+      ? `Apex exige 3 sessions utiles sur ${mode}`
+      : `Apex exige 3 sessions sans esquive`,
+    objectiveMode: mode,
+    objectiveStartSessions: startSessions,
+    objectiveTargetSessions: 3,
+    objectiveProgress: 0,
+    rewardAffinity: 14,
+    rewardXp: 18,
+    rewardClaimed: false,
+  };
+}
 
 // Persistance locale des achievements + stats pour éviter un fetch constant.
 const STORAGE_KEY = "tetris-roguelike-achievements";
@@ -398,6 +597,62 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
         ...DEFAULT_PLAYER_LONG_TERM_MEMORY.activeRecommendations,
         ...((raw.playerLongTermMemory?.activeRecommendations as PlayerLongTermMemory["activeRecommendations"] | undefined) ?? {}),
       },
+      lingeringResentment: {
+        ...DEFAULT_PLAYER_LONG_TERM_MEMORY.lingeringResentment,
+        ...((raw.playerLongTermMemory?.lingeringResentment as PlayerLongTermMemory["lingeringResentment"] | undefined) ?? {}),
+      },
+      activeConflict:
+        (raw.playerLongTermMemory?.activeConflict as PlayerLongTermMemory["activeConflict"] | undefined) ??
+        null,
+      activeExclusiveAlignment:
+        raw.playerLongTermMemory?.activeExclusiveAlignment
+          ? (() => {
+              const alignment = raw.playerLongTermMemory
+                .activeExclusiveAlignment as NonNullable<
+                PlayerLongTermMemory["activeExclusiveAlignment"]
+              >;
+              return {
+                ...alignment,
+                lockedAdvice: alignment.lockedAdvice ?? [],
+                favoredLine: alignment.favoredLine ?? "",
+                blockedLine: alignment.blockedLine ?? "",
+                objectiveLabel: alignment.objectiveLabel ?? "",
+                objectiveMode: alignment.objectiveMode ?? null,
+                objectiveStartSessions: alignment.objectiveStartSessions ?? 0,
+                objectiveTargetSessions: alignment.objectiveTargetSessions ?? 0,
+                objectiveProgress: alignment.objectiveProgress ?? 0,
+                rewardAffinity: alignment.rewardAffinity ?? 0,
+                rewardXp: alignment.rewardXp ?? 0,
+                rewardClaimed: alignment.rewardClaimed ?? false,
+              };
+            })()
+          : null,
+      recentRunsByMode: Object.fromEntries(
+        PLAYER_BEHAVIOR_MODES.map((mode) => [
+          mode,
+          (
+            (raw.playerLongTermMemory?.recentRunsByMode?.[mode] as PlayerRunSnapshot[] | undefined) ?? []
+          ).map((run) => ({
+            ...run,
+            timelineSamples: run.timelineSamples ?? [],
+          })),
+        ])
+      ) as PlayerLongTermMemory["recentRunsByMode"],
+      modeProfiles: Object.fromEntries(
+        PLAYER_BEHAVIOR_MODES.map((mode) => [
+          mode,
+          {
+            ...DEFAULT_MODE_PROFILE,
+            ...((raw.playerLongTermMemory?.modeProfiles?.[mode] as PlayerModeProfile | undefined) ?? {}),
+          },
+        ])
+      ) as PlayerLongTermMemory["modeProfiles"],
+      contextualMistakePatterns: Object.fromEntries(
+        PLAYER_BEHAVIOR_MODES.map((mode) => [
+          mode,
+          (raw.playerLongTermMemory?.contextualMistakePatterns?.[mode] as ContextualMistakePattern[] | undefined) ?? [],
+        ])
+      ) as PlayerLongTermMemory["contextualMistakePatterns"],
     },
     tetrobotMemories: {
       ...createTetrobotMemories(),
@@ -432,6 +687,7 @@ type UseAchievementsValue = {
   setTetrobotMood: (bot: TetrobotId, affinity: number) => AchievementStats;
   clearLastTetrobotLevelUp: () => AchievementStats;
   acceptActiveTetrobotChallenge: () => AchievementStats;
+  chooseActiveTetrobotConflict: (bot: TetrobotId) => AchievementStats;
   recordLoginDay: (day?: string) => AchievementStats;
   registerRun: (seed?: string) => { runsPlayed: number; sameSeedRuns: number };
   checkAchievements: (ctx: AchievementContext) => void;
@@ -1391,6 +1647,36 @@ function useAchievementsValue(): UseAchievementsValue {
           event.won === true &&
           previousModeStats.losses > previousModeStats.wins &&
           previousModeStats.sessions >= 2;
+        const contextualMistakes =
+          event.contextualMistakes && event.contextualMistakes.length > 0
+            ? event.contextualMistakes
+            : (event.mistakes ?? []).map((mistake) => ({
+                key: mistake,
+                phase: inferMistakePhase(Math.max(0, event.durationMs ?? 0), mistake),
+                pressure: inferMistakePressure(mistake, Math.max(0, event.durationMs ?? 0)),
+                trigger: inferMistakeTrigger(
+                  mistake,
+                  estimatedRageQuit,
+                  Math.max(0, event.durationMs ?? 0)
+                ),
+              }));
+        const recentRunsByMode = {
+          ...prev.playerLongTermMemory.recentRunsByMode,
+          [event.mode]: [
+            {
+              at: now,
+              won: event.won === true,
+              durationMs: Math.max(0, event.durationMs ?? 0),
+              mistakeCount: (event.mistakes ?? []).length,
+              mistakes: [...(event.mistakes ?? [])],
+              contextualMistakes,
+              rageQuitEstimate: estimatedRageQuit,
+              runContext: event.runContext,
+              timelineSamples: [...(event.timelineSamples ?? [])],
+            },
+            ...(prev.playerLongTermMemory.recentRunsByMode[event.mode] ?? []),
+          ].slice(0, MAX_RECENT_MODE_RUNS),
+        };
 
         const mostPlayedMode =
           [...PLAYER_BEHAVIOR_MODES]
@@ -1429,6 +1715,10 @@ function useAchievementsValue(): UseAchievementsValue {
               (prev.counters.rage_quit_estimate ?? 0) + (estimatedRageQuit ? 1 : 0),
             comeback_estimate:
               (prev.counters.comeback_estimate ?? 0) + (comebackWin ? 1 : 0),
+          },
+          playerLongTermMemory: {
+            ...prev.playerLongTermMemory,
+            recentRunsByMode,
           },
         };
       }),
@@ -1568,6 +1858,14 @@ function useAchievementsValue(): UseAchievementsValue {
         if (!prev.activeTetrobotChallenge || prev.activeTetrobotChallenge.status !== "offered") {
           return prev;
         }
+        if (
+          prev.playerLongTermMemory.activeExclusiveAlignment?.blockedBot === "apex" &&
+          prev.playerLongTermMemory.activeExclusiveAlignment.lockedAdvice.includes(
+            "punishing_challenges"
+          )
+        ) {
+          return prev;
+        }
 
         return {
           ...prev,
@@ -1580,6 +1878,128 @@ function useAchievementsValue(): UseAchievementsValue {
             ...prev.activeTetrobotChallenge,
             status: "active",
             acceptedAt: Date.now(),
+          },
+        };
+      }),
+    [updateStats]
+  );
+
+  const chooseActiveTetrobotConflict = useCallback(
+    (bot: TetrobotId) =>
+      updateStats((prev) => {
+        const conflict = prev.playerLongTermMemory.activeConflict;
+        if (!conflict || conflict.resolvedAt !== null) return prev;
+        if (bot !== conflict.challenger && bot !== conflict.opponent) return prev;
+
+        const otherBot = bot === conflict.challenger ? conflict.opponent : conflict.challenger;
+        const now = Date.now();
+        const nextChosenAffinity = clampAffinity(
+          prev.tetrobotProgression[bot].affinity + (bot === "apex" ? 8 : 6)
+        );
+        const nextOtherAffinity = clampAffinity(
+          prev.tetrobotProgression[otherBot].affinity - (otherBot === "apex" ? 6 : 4)
+        );
+        const nextConflict = {
+          ...conflict,
+          chosenBot: bot,
+          resolvedAt: now,
+        };
+        const flavor = getExclusiveAlignmentFlavor(bot, otherBot);
+        const objective = buildExclusiveAlignmentObjective(
+          bot,
+          conflict,
+          prev.playerBehaviorByMode
+        );
+        const exclusiveAlignment = {
+          favoredBot: bot,
+          blockedBot: otherBot,
+          issuedAt: now,
+          expiresAt: now + 3 * 24 * 60 * 60 * 1000,
+          sessionsRemaining: 4,
+          reason: `Tu as choisi ${bot} contre ${otherBot}. Les lignes de ${otherBot} passent en retrait pendant quelques sessions.`,
+          favoredLine: flavor.favoredLine,
+          blockedLine: flavor.blockedLine,
+          lockedAdvice: flavor.lockedAdvice,
+          objectiveLabel: objective.objectiveLabel,
+          objectiveMode: objective.objectiveMode,
+          objectiveStartSessions: objective.objectiveStartSessions,
+          objectiveTargetSessions: objective.objectiveTargetSessions,
+          objectiveProgress: objective.objectiveProgress,
+          rewardAffinity: objective.rewardAffinity,
+          rewardXp: objective.rewardXp,
+          rewardClaimed: objective.rewardClaimed,
+        } satisfies NonNullable<PlayerLongTermMemory["activeExclusiveAlignment"]>;
+        const pushMemory = (
+          entries: BotMemoryEntry[],
+          memoryBot: TetrobotId,
+          type: BotMemoryEntry["type"],
+          text: string,
+          importance: 1 | 2 | 3 | 4 | 5
+        ) => {
+          const nextEntries = [
+            {
+              id: `${memoryBot}-${type}-${now}-${entries.length}`,
+              bot: memoryBot,
+              type,
+              text,
+              importance,
+              createdAt: now,
+            },
+            ...entries,
+          ];
+          return nextEntries
+            .sort((left, right) => right.createdAt - left.createdAt || right.importance - left.importance)
+            .slice(0, 8);
+        };
+
+        return {
+          ...prev,
+          counters: {
+            ...prev.counters,
+            [`tetrobot_conflict_side_${bot}`]:
+              (prev.counters[`tetrobot_conflict_side_${bot}`] ?? 0) + 1,
+          },
+          tetrobotProgression: {
+            ...prev.tetrobotProgression,
+            [bot]: {
+              ...prev.tetrobotProgression[bot],
+              affinity: nextChosenAffinity,
+              mood: getMood(nextChosenAffinity),
+            },
+            [otherBot]: {
+              ...prev.tetrobotProgression[otherBot],
+              affinity: nextOtherAffinity,
+              mood: getMood(nextOtherAffinity),
+            },
+          },
+          playerLongTermMemory: {
+            ...prev.playerLongTermMemory,
+            lingeringResentment: {
+              ...prev.playerLongTermMemory.lingeringResentment,
+              [otherBot]: Math.max(
+                prev.playerLongTermMemory.lingeringResentment[otherBot] ?? 0,
+                6
+              ),
+            },
+            activeConflict: nextConflict,
+            activeExclusiveAlignment: exclusiveAlignment,
+          },
+          tetrobotMemories: {
+            ...prev.tetrobotMemories,
+            [bot]: pushMemory(
+              prev.tetrobotMemories[bot],
+              bot,
+              "player_progress",
+              `Tu as choisi ${bot} contre ${otherBot}.`,
+              bot === "apex" ? 5 : 4
+            ),
+            [otherBot]: pushMemory(
+              prev.tetrobotMemories[otherBot],
+              otherBot,
+              "trust_break",
+              `${otherBot} n'oublie pas que tu as choisi ${bot} plutot que ${otherBot}.`,
+              otherBot === "apex" ? 5 : 4
+            ),
           },
         };
       }),
@@ -2001,6 +2421,7 @@ function useAchievementsValue(): UseAchievementsValue {
     setTetrobotMood,
     clearLastTetrobotLevelUp,
     acceptActiveTetrobotChallenge,
+    chooseActiveTetrobotConflict,
     recordLoginDay,
     registerRun,
     checkAchievements,

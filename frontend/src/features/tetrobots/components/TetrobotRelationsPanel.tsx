@@ -48,6 +48,33 @@ const MODE_LABELS: Partial<Record<NonNullable<RelationsStats["lowestWinrateMode"
   PIXEL_PROTOCOL: "Pixel Protocol",
 };
 
+function formatLockedAdvice(lockedAdvice: string[]) {
+  return lockedAdvice
+    .map((entry) => {
+      switch (entry) {
+        case "hard_truths":
+          return "verites dures";
+        case "punishing_challenges":
+          return "defis punitifs";
+        case "comforting_routes":
+          return "routes rassurantes";
+        case "reassurance_loops":
+          return "boucles de reassurance";
+        case "broad_reassurance":
+          return "conseils larges";
+        case "micro_analysis":
+          return "micro-analyse";
+        case "precision_breakdowns":
+          return "decompositions precises";
+        case "optimization_detours":
+          return "detours d'optimisation";
+        default:
+          return entry;
+      }
+    })
+    .join(", ");
+}
+
 function getStatusLabel(bot: TetrobotId, affinity: number) {
   if (bot === "rookie") {
     if (affinity >= 50) return "Confiance en construction";
@@ -77,29 +104,121 @@ function getThought(
   const latest = memories[0]?.text;
   const recommendation = stats.playerLongTermMemory.activeRecommendations[bot];
   const targetMode = recommendation?.targetMode ? getModeLabel(recommendation.targetMode) : null;
+  const targetProfile = recommendation?.targetMode
+    ? stats.playerLongTermMemory.modeProfiles[recommendation.targetMode]
+    : null;
+  const targetPattern = recommendation?.targetMode
+    ? stats.playerLongTermMemory.contextualMistakePatterns[recommendation.targetMode]?.[0]
+    : null;
+  const oppositionLine = getOppositionLine(bot, stats);
+  const activeConflict = stats.playerLongTermMemory.activeConflict;
+  const activeExclusiveAlignment = stats.playerLongTermMemory.activeExclusiveAlignment;
+  const resentment = stats.playerLongTermMemory.lingeringResentment[bot] ?? 0;
+  if (activeExclusiveAlignment?.blockedBot === bot) {
+    return `${activeExclusiveAlignment.blockedLine} Conseils verrouilles: ${formatLockedAdvice(activeExclusiveAlignment.lockedAdvice)}.`;
+  }
+  if (activeExclusiveAlignment?.favoredBot === bot) {
+    return `${activeExclusiveAlignment.favoredLine} ${oppositionLine ?? ""}`.trim();
+  }
+  if (resentment > 0) {
+    return `${BOT_META[bot].name} n'a pas completement tourne la page. Rancune residuelle: ${resentment} session(s).`;
+  }
   if (bot === "rookie") {
+    if (
+      activeConflict &&
+      activeConflict.resolvedAt === null &&
+      (activeConflict.challenger === "rookie" || activeConflict.opponent === "rookie")
+    ) {
+      return activeConflict.summary;
+    }
     if (recommendation && targetMode) {
-      return latest ?? `Rookie attend plus de regularite: il veut te revoir sur ${targetMode}.`;
+      return (
+        latest ??
+        `Rookie attend plus de regularite: il veut te revoir sur ${targetMode}. Stabilite ${targetProfile?.resourceStability ?? 0}/100, recovery ${targetProfile?.recoveryScore ?? 0}/100.${oppositionLine ? ` ${oppositionLine}` : ""}`
+      );
     }
     if (affinity >= 50) return latest ?? "Tu reviens apres tes echecs. Rookie y voit de la vraie perseverance.";
     if (affinity <= -30) return latest ?? "Rookie pense que tu abandonnes trop vite quand la pression monte.";
     return latest ?? "Rookie observe encore ta maniere d'apprendre.";
   }
   if (bot === "pulse") {
+    if (
+      activeConflict &&
+      activeConflict.resolvedAt === null &&
+      (activeConflict.challenger === "pulse" || activeConflict.opponent === "pulse")
+    ) {
+      return activeConflict.summary;
+    }
     if (recommendation && targetMode) {
-      return latest ?? `Pulse cible ${targetMode}: il veut voir moins d'erreurs repetitives.`;
+      return (
+        latest ??
+        `Pulse cible ${targetMode}: il veut voir moins d'erreurs repetitives. Tendance ${targetProfile?.improvementTrend ?? "stable"}, execution ${targetProfile?.executionPeak ?? 0}/100, volatilite ${targetProfile?.volatilityIndex ?? 0}/100.${
+          targetPattern ? ` Pattern: ${targetPattern.key} en ${targetPattern.phase} sous pression ${targetPattern.pressure}.` : ""
+        }${oppositionLine ? ` ${oppositionLine}` : ""}`
+      );
     }
     if (affinity >= 50) return latest ?? "Pulse estime que tes progres deviennent enfin mesurables.";
     if (affinity <= -30) return latest ?? "Pulse voit surtout des erreurs repetees sans correction claire.";
     return latest ?? "Pulse compile encore des donnees sur ton execution.";
   }
+  if (
+    activeConflict &&
+    activeConflict.resolvedAt === null &&
+    (activeConflict.challenger === "apex" || activeConflict.opponent === "apex")
+  ) {
+    return activeConflict.summary;
+  }
   if (recommendation && targetMode) {
-    return latest ?? `Apex fixe toujours la meme cible: ${targetMode}. Il ne lachera pas tant que tu l'evites.`;
+    return (
+      latest ??
+      `Apex fixe toujours la meme cible: ${targetMode}. Pression ${targetProfile?.pressureIndex ?? 0}/100, stack ${targetProfile?.averageBoardHeight ?? 0}/20, recovery ${targetProfile?.recoveryScore ?? 0}/100.${
+        targetPattern ? ` Faille dominante: ${targetPattern.key} en ${targetPattern.phase}, trigger ${targetPattern.trigger}.` : ""
+      } Il ne lachera pas tant que tu l'evites.${oppositionLine ? ` ${oppositionLine}` : ""}`
+    );
   }
   if (affinity >= 50) return latest ?? "Apex admet enfin que tu affrontes parfois ce que tu evites.";
   if (affinity <= -60) return latest ?? "Apex considere que tu refuses encore le vrai travail.";
   if (affinity <= -30) return latest ?? "Apex te juge trop attache a tes zones de confort.";
   return latest ?? "Apex attend une preuve de courage utile.";
+}
+
+function getOppositionLine(bot: TetrobotId, stats: RelationsStats) {
+  const rookieRecommendation = stats.playerLongTermMemory.activeRecommendations.rookie;
+  const pulseRecommendation = stats.playerLongTermMemory.activeRecommendations.pulse;
+  const apexRecommendation = stats.playerLongTermMemory.activeRecommendations.apex;
+
+  if (
+    bot === "rookie" &&
+    rookieRecommendation?.targetMode &&
+    apexRecommendation?.targetMode &&
+    rookieRecommendation.targetMode === apexRecommendation.targetMode
+  ) {
+    return "Ne l'ecoute pas... il te pousse a faire des erreurs.";
+  }
+  if (
+    bot === "pulse" &&
+    rookieRecommendation?.targetMode &&
+    pulseRecommendation?.targetMode &&
+    rookieRecommendation.targetMode !== pulseRecommendation.targetMode
+  ) {
+    return "Rookie te rassure trop vite. Le probleme est plus precis que ca.";
+  }
+  if (
+    bot === "apex" &&
+    rookieRecommendation?.targetMode &&
+    apexRecommendation?.targetMode
+  ) {
+    return "Ignore Rookie. Il veut te rendre faible.";
+  }
+  if (
+    bot === "apex" &&
+    pulseRecommendation?.targetMode &&
+    apexRecommendation?.targetMode &&
+    pulseRecommendation.targetMode !== apexRecommendation.targetMode
+  ) {
+    return "Ignore Pulse. Il te disperse au lieu de corriger ta faille.";
+  }
+  return null;
 }
 
 function getModeLabel(mode: RelationsStats["lowestWinrateMode"]) {
@@ -163,6 +282,10 @@ function getProgressItems(
   stats: RelationsStats,
   apexTrustState: ReturnType<typeof getApexTrustState>
 ): TetrobotRelationProgressItem[] {
+  const activeExclusiveAlignment = stats.playerLongTermMemory.activeExclusiveAlignment;
+  const apexChallengesLocked =
+    activeExclusiveAlignment?.blockedBot === "apex" &&
+    activeExclusiveAlignment.lockedAdvice.includes("punishing_challenges");
   const weakMode = stats.playerLongTermMemory.weakestModeFocus ?? stats.lowestWinrateMode;
   const weakModeLabel = getModeLabel(weakMode);
   const weakModeActionTarget = getModeActionTarget(weakMode);
@@ -409,7 +532,9 @@ function getProgressItems(
       current: apexCycleProgress,
       target: 2,
       detail:
-        refusal <= 0
+        apexChallengesLocked
+          ? "La ligne exclusive actuelle suspend temporairement les defis punitifs d'Apex."
+          : refusal <= 0
           ? "Apex n'a pas encore rompu le dialogue."
           : restored > 0
             ? "Le cycle refus puis reconstruction est complete."
@@ -417,15 +542,23 @@ function getProgressItems(
               ? "Une reconciliation concrete est maintenant attendue."
               : "Le refus existe, mais la reconstruction reste inachevee.",
       stateLabel:
-        restored > 0
+        apexChallengesLocked
+          ? "en attente"
+          : restored > 0
           ? "termine"
           : refusal > 0
             ? "en cours"
             : "bloque",
       actionLabel:
-        restored > 0 ? undefined : refusal > 0 ? "Voir l'aide Apex" : "Comprendre Apex",
-      actionTo: restored > 0 ? undefined : "/tetrobots/help#apex-overview",
-      tone: restored > 0 ? "success" : refusal > 0 ? "warning" : "neutral",
+        apexChallengesLocked
+          ? undefined
+          : restored > 0
+            ? undefined
+            : refusal > 0
+              ? "Voir l'aide Apex"
+              : "Comprendre Apex",
+      actionTo: apexChallengesLocked || restored > 0 ? undefined : "/tetrobots/help#apex-overview",
+      tone: apexChallengesLocked ? "neutral" : restored > 0 ? "success" : refusal > 0 ? "warning" : "neutral",
     },
   ]);
 }
@@ -437,11 +570,12 @@ export default function TetrobotRelationsPanel({
   activeBot: TetrobotId;
   highlightedGoalId?: string | null;
 }) {
-  const { stats } = useAchievements();
+  const { stats, chooseActiveTetrobotConflict } = useAchievements();
   const apexTrustState = getApexTrustState(
     stats.playerLongTermMemory,
     stats.tetrobotProgression.apex.affinity
   );
+  const activeConflict = stats.playerLongTermMemory.activeConflict;
 
   useEffect(() => {
     const target = document.getElementById(`relation-${activeBot}`);
@@ -455,10 +589,15 @@ export default function TetrobotRelationsPanel({
   const recommendation = stats.playerLongTermMemory.activeRecommendations[bot];
   const requirement =
     bot === "apex"
-      ? getApexRequirement(stats.playerLongTermMemory, apexTrustState)
+      ? stats.playerLongTermMemory.activeExclusiveAlignment?.blockedBot === "apex" &&
+        stats.playerLongTermMemory.activeExclusiveAlignment.lockedAdvice.includes(
+          "punishing_challenges"
+        )
+        ? "La ligne exclusive actuelle reporte temporairement les defis d'Apex."
+        : getApexRequirement(stats.playerLongTermMemory, apexTrustState)
       : recommendation?.reason
         ? recommendation.reason
-      : BOT_META[bot].relationGoal;
+        : BOT_META[bot].relationGoal;
 
   return (
     <section className="tetrobots-relations">
@@ -521,6 +660,59 @@ export default function TetrobotRelationsPanel({
         />
       </div>
 
+      {activeConflict && activeConflict.resolvedAt === null ? (
+        <div className="tetrobots-memory__block">
+          <h3>Conflit actif</h3>
+          <p>{activeConflict.summary}</p>
+          <div className="tetrobots-relation__actions">
+            <button
+              type="button"
+              className="tetrobots-help-link"
+              onClick={() => chooseActiveTetrobotConflict(activeConflict.challenger)}
+            >
+              Suivre {BOT_META[activeConflict.challenger].name}
+            </button>
+            <button
+              type="button"
+              className="tetrobots-help-link"
+              onClick={() => chooseActiveTetrobotConflict(activeConflict.opponent)}
+            >
+              Suivre {BOT_META[activeConflict.opponent].name}
+            </button>
+          </div>
+          <p>
+            Ce choix modifie immediatement leurs affinites. Si tu ne choisis pas ici, ton prochain
+            mode joue pourra quand meme trancher automatiquement.
+          </p>
+        </div>
+      ) : null}
+
+      {stats.playerLongTermMemory.activeExclusiveAlignment ? (
+        <div className="tetrobots-memory__block">
+          <h3>Ligne exclusive active</h3>
+          <p>{stats.playerLongTermMemory.activeExclusiveAlignment.reason}</p>
+          <p>{stats.playerLongTermMemory.activeExclusiveAlignment.favoredLine}</p>
+          <p>
+            Objectif exclusif: {stats.playerLongTermMemory.activeExclusiveAlignment.objectiveLabel}
+          </p>
+          <p>
+            Progression: {stats.playerLongTermMemory.activeExclusiveAlignment.objectiveProgress}/
+            {stats.playerLongTermMemory.activeExclusiveAlignment.objectiveTargetSessions}
+            {stats.playerLongTermMemory.activeExclusiveAlignment.rewardClaimed
+              ? " · recompense obtenue"
+              : ""}
+          </p>
+          <p>
+            {BOT_META[stats.playerLongTermMemory.activeExclusiveAlignment.blockedBot].name} reste en
+            retrait pour {stats.playerLongTermMemory.activeExclusiveAlignment.sessionsRemaining} session(s).
+          </p>
+          <p>
+            Conseils verrouilles:{" "}
+            {formatLockedAdvice(stats.playerLongTermMemory.activeExclusiveAlignment.lockedAdvice)}
+          </p>
+        </div>
+      ) : null}
+
       {apexTrustState === "refusing" ? (
         <ApexLockedPanel
           message="Apex considere que tu demandes encore des conseils sans accepter la vraie contrainte."
@@ -558,6 +750,26 @@ export default function TetrobotRelationsPanel({
             </ul>
           ) : (
             <p>Aucun evitement net detecte.</p>
+          )}
+        </div>
+        <div className="tetrobots-memory__block">
+          <h3>Contextes d'erreur</h3>
+          {stats.playerLongTermMemory.contextualMistakePatterns[
+            stats.playerLongTermMemory.weakestModeFocus ?? stats.lastPlayedMode ?? "CLASSIQUE"
+          ]?.length ? (
+            <ul>
+              {stats.playerLongTermMemory.contextualMistakePatterns[
+                stats.playerLongTermMemory.weakestModeFocus ?? stats.lastPlayedMode ?? "CLASSIQUE"
+              ]
+                .slice(0, 3)
+                .map((pattern, index) => (
+                  <li key={`${pattern.key}-${pattern.phase}-${pattern.pressure}-${index}`}>
+                    {pattern.key} · {pattern.phase} · pression {pattern.pressure} · trigger {pattern.trigger}
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p>Pas encore assez de contexte pour isoler un schema d'erreur fiable.</p>
           )}
         </div>
       </div>
