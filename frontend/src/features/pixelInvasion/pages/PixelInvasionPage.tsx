@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AchievementToast from "../../achievements/components/AchievementToast";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import type {
+  PlayerRunTimelineSample,
+  PlayerRunTimelineTag,
+} from "../../achievements/types/tetrobots";
 import { addScore, getMyScores, getScoreRunToken } from "../../game/services/scoreService";
 import { GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
 import { useAutoClearRecentAchievements } from "../../roguelike/hooks/useAutoClearRecentAchievements";
@@ -114,6 +118,10 @@ export default function PixelInvasionPage() {
   const lastWeaponPowerupRef = useRef<string | null>(null);
   const lastSlowFieldTimerRef = useRef(0);
   const latestWaveRef = useRef(1);
+  const timelineSamplesRef = useRef<PlayerRunTimelineSample[]>([]);
+  const lastSampledLivesRef = useRef(game.lives);
+  const lastSampledWaveRef = useRef(game.wave);
+  const lastSampledComboRef = useRef(game.maxCombo);
   const [resumeSnapshot, setResumeSnapshot] = useState<PausedRunSnapshot | null>(null);
   const [quittingRun, setQuittingRun] = useState(false);
   const campaignTone =
@@ -128,6 +136,24 @@ export default function PixelInvasionPage() {
             : "apex";
 
   useAutoClearRecentAchievements(recentUnlocks, clearRecent);
+
+  const pushTimelineSample = (
+    phase: "early" | "mid" | "late",
+    tags: PlayerRunTimelineTag[],
+    runContext: PlayerRunTimelineSample["runContext"]
+  ) => {
+    const atMs = Math.max(0, Date.now() - startTimeRef.current);
+    const previous = timelineSamplesRef.current[timelineSamplesRef.current.length - 1];
+    if (
+      previous &&
+      previous.phase === phase &&
+      previous.tags.join("|") === tags.join("|") &&
+      Math.abs((previous.runContext.pressureScore ?? 0) - (runContext.pressureScore ?? 0)) < 8
+    ) {
+      return;
+    }
+    timelineSamplesRef.current = [...timelineSamplesRef.current, { atMs, phase, tags, runContext }].slice(-6);
+  };
 
   useEffect(() => {
     if (visitedModeRef.current) return;
@@ -230,6 +256,51 @@ export default function PixelInvasionPage() {
   }, [game.slowFieldTimer, game.wave, game.weaponPowerup]);
 
   useEffect(() => {
+    const phase = game.wave < 10 ? "early" : game.wave < 25 ? "mid" : "late";
+    const pressureScore = Math.round(
+      Math.min(100, (3 - game.lives) * 28 + Math.min(40, game.wave))
+    );
+
+    if (game.lives < lastSampledLivesRef.current) {
+      pushTimelineSample(phase, ["resource_loss", "pressure_spike"], {
+        livesRemaining: game.lives,
+        comboPeak: game.maxCombo,
+        pressureScore,
+        stageIndex: game.wave,
+      });
+    } else if (game.lives > lastSampledLivesRef.current) {
+      pushTimelineSample(phase, ["recovery"], {
+        livesRemaining: game.lives,
+        comboPeak: game.maxCombo,
+        pressureScore,
+        stageIndex: game.wave,
+      });
+    }
+
+    if (game.wave >= lastSampledWaveRef.current + 5) {
+      pushTimelineSample(phase, ["recovery"], {
+        livesRemaining: game.lives,
+        comboPeak: game.maxCombo,
+        pressureScore: Math.max(0, pressureScore - 12),
+        stageIndex: game.wave,
+      });
+      lastSampledWaveRef.current = game.wave;
+    }
+
+    if (game.maxCombo >= 6 && game.maxCombo >= lastSampledComboRef.current + 2) {
+      pushTimelineSample(phase, ["execution_peak"], {
+        livesRemaining: game.lives,
+        comboPeak: game.maxCombo,
+        pressureScore: Math.max(0, pressureScore - 8),
+        stageIndex: game.wave,
+      });
+      lastSampledComboRef.current = game.maxCombo;
+    }
+
+    lastSampledLivesRef.current = game.lives;
+  }, [game.lives, game.maxCombo, game.wave]);
+
+  useEffect(() => {
     if (game.gameOver || game.victory) return;
     if (game.waveTransition <= 0) return;
     waveCheckpointRef.current = structuredClone(game);
@@ -310,6 +381,36 @@ export default function PixelInvasionPage() {
       won: game.victory,
       durationMs,
       mistakes,
+      contextualMistakes: mistakes.map((mistake) => ({
+        key: mistake,
+        phase:
+          waveLevel < 10 ? "early" : waveLevel < 25 ? "mid" : "late",
+        pressure:
+          mistake === "top_out" || game.lives === 1
+            ? "high"
+            : game.lives === 2
+              ? "medium"
+              : "low",
+        trigger:
+          mistake === "slow"
+            ? "timeout"
+            : mistake === "damage_taken"
+              ? "attrition"
+              : mistake === "top_out"
+                ? game.lives === 1
+                  ? "collapse"
+                  : "attrition"
+                : "unknown",
+      })),
+      runContext: {
+        comboPeak: game.maxCombo,
+        livesRemaining: game.lives,
+        pressureScore: Math.round(
+          Math.min(100, (3 - game.lives) * 28 + Math.min(40, waveLevel))
+        ),
+        stageIndex: waveLevel,
+      },
+      timelineSamples: timelineSamplesRef.current,
     });
 
     if (game.lineBursts >= 1 && game.lives === 3) {
@@ -403,6 +504,10 @@ export default function PixelInvasionPage() {
     resolvedOutcomeRef.current = null;
     startTimeRef.current = Date.now();
     latestWaveRef.current = 1;
+    timelineSamplesRef.current = [];
+    lastSampledLivesRef.current = 3;
+    lastSampledWaveRef.current = 1;
+    lastSampledComboRef.current = 0;
     trackedPowerupsRef.current = new Set(["multi_shot"]);
     waveCheckpointRef.current = null;
     lastWeaponPowerupRef.current = "multi_shot";

@@ -209,6 +209,15 @@ export default function PuzzleRun() {
         ...(invalidMovesRef.current > 0 ? (["misread"] as const) : []),
         ...(runDurationMs !== null && runDurationMs > 45_000 ? (["slow"] as const) : []),
       ],
+      runContext: {
+        pressureScore: Math.round(
+          Math.min(
+            100,
+            invalidMovesRef.current * 30 + (runDurationMs !== null && runDurationMs > 45_000 ? 25 : 10)
+          )
+        ),
+        stageIndex: piecesPlaced,
+      },
     });
     if (invalidMovesRef.current === 0 && !holdUsed) {
       recordTetrobotEvent({ type: "rookie_tip_followed" });
@@ -245,6 +254,7 @@ export default function PuzzleRun() {
     holdUsed,
     linesCleared,
     movesUsed,
+    piecesPlaced,
     puzzle,
     recordTetrobotEvent,
     recordPlayerBehavior,
@@ -288,8 +298,12 @@ export default function PuzzleRun() {
         "misread",
         ...(failureReason ? (["top_out"] as const) : []),
       ],
+      runContext: {
+        pressureScore: Math.round(Math.min(100, 45 + invalidMovesRef.current * 20)),
+        stageIndex: piecesPlaced,
+      },
     });
-  }, [failureReason, puzzle, recordPlayerBehavior, status]);
+  }, [failureReason, piecesPlaced, puzzle, recordPlayerBehavior, status]);
 
   useEffect(() => {
     if (!puzzle || !id) return;

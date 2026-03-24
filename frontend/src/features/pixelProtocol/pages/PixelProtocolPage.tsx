@@ -481,6 +481,17 @@ export default function PixelProtocolPage() {
           ? (["slow"] as const)
           : []),
       ],
+      runContext: {
+        livesRemaining: runtime.player.hp,
+        pressureScore: Math.round(
+          Math.min(
+            100,
+            ((runtime.player.maxHealth - runtime.player.hp) / Math.max(1, runtime.player.maxHealth)) *
+              70 + (runtime.status === "lost" ? 20 : 10)
+          )
+        ),
+        stageIndex: levelIndex + 1,
+      },
     });
   }, [
     communityLevel?.id,
@@ -488,6 +499,7 @@ export default function PixelProtocolPage() {
     isCommunityLevel,
     isCustomLevel,
     level.id,
+    levelIndex,
     recordPlayerBehavior,
     runtime.player.hp,
     runtime.player.maxHealth,

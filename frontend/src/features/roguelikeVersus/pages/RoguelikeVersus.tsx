@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import TetrisBoard from "../../game/components/board/TetrisBoard";
@@ -11,7 +11,11 @@ import {
   updateTetrobotsProfile,
   type PlayerProfile,
 } from "../../game/services/scoreService";
-import type { PlayerMistakeKey } from "../../achievements/types/tetrobots";
+import type {
+  PlayerMistakeKey,
+  PlayerRunTimelineSample,
+  PlayerRunTimelineTag,
+} from "../../achievements/types/tetrobots";
 import {
   useAchievements,
 } from "../../achievements/hooks/useAchievements";
@@ -55,6 +59,27 @@ import { useKeyboardControls } from "../../game/hooks/useKeyboardControls";
 
 function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
+}
+
+function pushTimelineSample(
+  ref: MutableRefObject<PlayerRunTimelineSample[]>,
+  startTime: number | null,
+  phase: "early" | "mid" | "late",
+  tags: PlayerRunTimelineTag[],
+  runContext: PlayerRunTimelineSample["runContext"]
+) {
+  if (!startTime) return;
+  const atMs = Math.max(0, Date.now() - startTime);
+  const previous = ref.current[ref.current.length - 1];
+  if (
+    previous &&
+    previous.phase === phase &&
+    previous.tags.join("|") === tags.join("|") &&
+    Math.abs((previous.runContext.pressureScore ?? 0) - (runContext.pressureScore ?? 0)) < 8
+  ) {
+    return;
+  }
+  ref.current = [...ref.current, { atMs, phase, tags, runContext }].slice(-6);
 }
 
 const RED_ZONE_HEIGHT = 16;
@@ -1485,6 +1510,8 @@ function RoguelikeVersusTetrobots() {
   const comboSampleCountRef = useRef(0);
   const comboValueSumRef = useRef(0);
   const lastTrollAtRef = useRef(0);
+  const timelineSamplesRef = useRef<PlayerRunTimelineSample[]>([]);
+  const lastTimelineHeightRef = useRef(0);
 
   const matchOver = started && (!!playerResult || !!botResult);
   const botPersonality = getTetrobotsPersonality(botPersonalityId);
@@ -2291,6 +2318,42 @@ function RoguelikeVersusTetrobots() {
       won: win,
       durationMs,
       mistakes,
+      contextualMistakes: mistakes.map((mistake) => ({
+        key: mistake,
+        phase:
+          mistake === "top_out" || mistake === "panic_stack"
+            ? "late"
+            : durationMs < 90_000
+              ? "early"
+              : durationMs < 240_000
+                ? "mid"
+                : "late",
+        pressure:
+          mistake === "top_out" || mistake === "panic_stack" || mistake === "unsafe_stack"
+            ? "high"
+            : mistake === "damage_taken" || mistake === "slow_decision"
+              ? "medium"
+              : "low",
+        trigger:
+          mistake === "slow" || mistake === "slow_decision"
+            ? "timeout"
+            : mistake === "top_out" || mistake === "unsafe_stack"
+              ? botHadChaosRef.current
+                ? "attrition"
+                : "collapse"
+              : durationMs < 90_000
+                ? "tilt"
+                : "unknown",
+      })),
+      runContext: {
+        boardMaxHeight: maxStackHeightRef.current,
+        comboPeak: maxComboRef.current,
+        pressureScore: Math.round(
+          Math.min(100, redZoneRate * 100 + (botHadChaosRef.current ? 12 : 0))
+        ),
+        stageIndex: level,
+      },
+      timelineSamples: timelineSamplesRef.current,
     });
 
     if (win && mistakes.length === 0 && !botHadChaosRef.current) {
@@ -2443,6 +2506,8 @@ function RoguelikeVersusTetrobots() {
     comboSampleCountRef.current = 0;
     comboValueSumRef.current = 0;
     lastTrollAtRef.current = 0;
+    timelineSamplesRef.current = [];
+    lastTimelineHeightRef.current = 0;
 
     setBotMessage(null);
     setBotMood("idle");
@@ -2720,6 +2785,20 @@ function RoguelikeVersusTetrobots() {
               comboStreakRef.current += linesCleared;
               playerAggressionScoreRef.current += linesCleared * 2;
               maxComboRef.current = Math.max(maxComboRef.current, comboStreakRef.current);
+              if (comboStreakRef.current >= 4) {
+                pushTimelineSample(
+                  timelineSamplesRef,
+                  startTimeRef.current,
+                  "mid",
+                  ["execution_peak"],
+                  {
+                    comboPeak: comboStreakRef.current,
+                    boardMaxHeight: lastTimelineHeightRef.current,
+                    pressureScore: Math.round((lastTimelineHeightRef.current / 20) * 100),
+                    stageIndex: levelRef.current,
+                  }
+                );
+              }
               if (
                 comboStreakRef.current >= ADAPTIVE.comboSpam.minComboStreak &&
                 !comboSpamAnnouncedRef.current
@@ -2778,6 +2857,35 @@ function RoguelikeVersusTetrobots() {
             }
             const height = rows - topFilled;
             maxStackHeightRef.current = Math.max(maxStackHeightRef.current, height);
+            if (height >= RED_ZONE_HEIGHT && lastTimelineHeightRef.current < RED_ZONE_HEIGHT) {
+              pushTimelineSample(
+                timelineSamplesRef,
+                startTimeRef.current,
+                "late",
+                ["pressure_spike"],
+                {
+                  boardMaxHeight: height,
+                  comboPeak: maxComboRef.current,
+                  pressureScore: Math.round((height / 20) * 100),
+                  stageIndex: levelRef.current,
+                }
+              );
+            }
+            if (lastTimelineHeightRef.current >= RED_ZONE_HEIGHT && height <= RED_ZONE_HEIGHT - 4) {
+              pushTimelineSample(
+                timelineSamplesRef,
+                startTimeRef.current,
+                "late",
+                ["recovery"],
+                {
+                  boardMaxHeight: height,
+                  comboPeak: maxComboRef.current,
+                  pressureScore: Math.round((height / 20) * 100),
+                  stageIndex: levelRef.current,
+                }
+              );
+            }
+            lastTimelineHeightRef.current = height;
             playerStackSumRef.current += height;
             playerStackSamplesRef.current += 1;
             inRedZoneRef.current = height >= RED_ZONE_HEIGHT;

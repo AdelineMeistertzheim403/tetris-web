@@ -375,6 +375,13 @@ export default function BrickfallSoloPlay() {
         ...(noMiss ? [] : (["damage_taken"] as const)),
         ...(durationMs > 60_000 ? (["slow"] as const) : []),
       ],
+      runContext: {
+        livesRemaining: lives,
+        pressureScore: Math.round(
+          Math.min(100, (startLives - lives) * 28 + malusLevelRef.current * 12)
+        ),
+        stageIndex: levelIndex,
+      },
     });
     if (noMiss && durationMs <= 60_000) {
       recordTetrobotEvent({ type: "rookie_tip_followed" });
