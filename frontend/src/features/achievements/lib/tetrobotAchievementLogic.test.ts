@@ -266,6 +266,18 @@ describe("tetrobotAchievementLogic", () => {
     expect(getDerivedCustomAchievementValue(stats, "met_all_bots", {})).toBe(true);
   });
 
+  it("derives exclusive tetrobot achievements from exclusive reward counters", () => {
+    const stats = createStats();
+    stats.counters.tetrobot_exclusive_reward_rookie = 1;
+    stats.counters.tetrobot_exclusive_reward_pulse = 1;
+    stats.counters.tetrobot_exclusive_reward_apex = 1;
+
+    expect(getDerivedCustomAchievementValue(stats, "rookie_exclusive_line", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "pulse_exclusive_line", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "apex_exclusive_line", {})).toBe(true);
+    expect(getDerivedCustomAchievementValue(stats, "three_paths_seen", {})).toBe(true);
+  });
+
   it("detects weak mode play and weak mode win", () => {
     const stats = createStats();
     stats.lowestWinrateMode = "PUZZLE";

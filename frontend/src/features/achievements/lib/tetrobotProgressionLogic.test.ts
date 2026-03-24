@@ -542,6 +542,9 @@ describe("tetrobotProgressionLogic", () => {
     expect(
       result.tetrobotMemories.pulse.some((entry) => entry.text.includes("ligne exclusive"))
     ).toBe(true);
+    expect(
+      result.tetrobotMemories.rookie.some((entry) => entry.text.includes("encaisse mal"))
+    ).toBe(true);
   });
 
   it("penalizes ignored recommendations after enough real time passes", () => {
