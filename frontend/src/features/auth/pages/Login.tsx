@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { PATHS } from "../../../routes/paths";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ export default function Login() {
       const loggedUser = await login(email, password);
       setUser(loggedUser);
       recordLoginDay();
-      navigate("/dashboard");
+      navigate(PATHS.dashboard);
     } catch (err) {
       setError("Email ou mot de passe invalide");
     }
@@ -69,7 +70,7 @@ export default function Login() {
 
         <p className="text-center text-sm text-pink-300 mt-2">
           Pas encore de compte ?{" "}
-          <Link to="/register" className="text-yellow-400 hover:text-pink-300">
+          <Link to={PATHS.register} className="text-yellow-400 hover:text-pink-300">
             Inscris-toi
           </Link>
         </p>

@@ -11,6 +11,7 @@ import {
   perkIconPath,
   synergyIconPath,
 } from "../../../shared/utils/assetPaths";
+import { PATHS } from "../../../routes/paths";
 
 const fallbackIcon = "/vite.svg";
 const perkIconMap: Record<string, string> = {
@@ -103,7 +104,7 @@ export default function RoguelikeLexicon() {
           </p>
         </div>
         <div className="lexicon-actions">
-          <Link className="lexicon-btn" to="/roguelike">
+          <Link className="lexicon-btn" to={PATHS.roguelike}>
             Retour au mode roguelike
           </Link>
         </div>

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../auth/context/AuthContext";
 import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/tetrobots.css";
 
 type LoreCharacter = {
@@ -226,7 +227,7 @@ export default function TetrobotsPage() {
                   Ouvrir sa relation
                 </Link>
               ) : (
-                <Link to="/login" className="tetrobots-section-nav__link">
+                <Link to={PATHS.login} className="tetrobots-section-nav__link">
                   Se connecter pour debloquer la relation
                 </Link>
               )}

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 
 export default function Home() {
   // Page d'accueil publique (avant authentification).
@@ -13,10 +14,10 @@ export default function Home() {
       </p>
 
       <div className="flex flex-col md:flex-row gap-6">
-        <Link to="/login" className="retro-btn">
+        <Link to={PATHS.login} className="retro-btn">
           Connexion
         </Link>
-        <Link to="/register" className="retro-btn">
+        <Link to={PATHS.register} className="retro-btn">
           Inscription
         </Link>
       </div>
