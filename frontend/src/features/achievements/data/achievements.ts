@@ -1850,6 +1850,46 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "custom", key: "success_after_apex_refusal" },
   },
 
+  {
+    id: "rookie-exclusive-line",
+    name: "Sous la garde de Rookie",
+    description: "Valider une ligne exclusive de Rookie",
+    icon: "T_rookie_listen",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "rookie_exclusive_line" },
+  },
+
+  {
+    id: "pulse-exclusive-line",
+    name: "Correction froide",
+    description: "Valider une ligne exclusive de Pulse",
+    icon: "T_pulse_analysis",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "pulse_exclusive_line" },
+  },
+
+  {
+    id: "apex-exclusive-line",
+    name: "Le vrai travail",
+    description: "Valider une ligne exclusive d’Apex",
+    icon: "T_apex_respect",
+    mode: "ALL",
+    group: "TETROBOTS",
+    condition: { type: "custom", key: "apex_exclusive_line" },
+  },
+
+  {
+    id: "three-exclusive-paths",
+    name: "Trois lignes, un joueur",
+    description: "Valider au moins une ligne exclusive pour Rookie, Pulse et Apex",
+    icon: "T_first_contact",
+    mode: "ALL",
+    group: "NARRATIVE",
+    condition: { type: "custom", key: "three_paths_seen" },
+  },
+
   // 🎭 NARRATIF
 
   {
