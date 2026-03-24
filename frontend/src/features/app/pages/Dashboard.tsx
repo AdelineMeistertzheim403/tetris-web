@@ -200,6 +200,7 @@ const CHATBOT_LEVEL_COLORS: Record<DashboardBot, Record<BotLevel, string>> = {
 const DASHBOARD_CHAT_LAST_SEEN_KEY = "tetris-dashboard-last-seen-at";
 const DASHBOARD_TIP_MEMORY_KEY = "tetris-dashboard-tip-memory-v1";
 const DASHBOARD_RELATION_POPUP_SEEN_KEY = "tetris-dashboard-relation-popup-seen-v1";
+const DASHBOARD_BOT_ROTATION_MS = 60_000;
 
 const EVOLVED_CHAT_LINES: ChatLineMap = {
   rookie: {
@@ -1100,6 +1101,9 @@ export default function Dashboard() {
   const inactiveRef = useRef(false);
   const levelUpDismissTimerRef = useRef<number | null>(null);
   const relationPopupTimerRef = useRef<number | null>(null);
+  const rookieLevel = stats.tetrobotProgression.rookie.level;
+  const pulseLevel = stats.tetrobotProgression.pulse.level;
+  const apexLevel = stats.tetrobotProgression.apex.level;
   const modeCards: ModeCard[] = [
     {
       title: "Mode Tetris",
@@ -1182,7 +1186,8 @@ export default function Dashboard() {
       }
 
       const bot = pickRandom<DashboardBot>(["rookie", "pulse", "apex"]);
-      const level = stats.tetrobotProgression[bot]?.level ?? 1;
+      const level =
+        bot === "rookie" ? rookieLevel : bot === "pulse" ? pulseLevel : apexLevel;
       return { bot, text: pickRandom(getChatLinesForLevel(bot, level)) };
     };
 
@@ -1190,11 +1195,10 @@ export default function Dashboard() {
       if (chatTimerRef.current) {
         window.clearTimeout(chatTimerRef.current);
       }
-      const nextDelay = 20000 + Math.floor(Math.random() * 20001);
       chatTimerRef.current = window.setTimeout(() => {
         setChatLine(generateLine());
         scheduleNext();
-      }, nextDelay);
+      }, DASHBOARD_BOT_ROTATION_MS);
     };
 
     setChatLine(generateLine());
@@ -1210,9 +1214,11 @@ export default function Dashboard() {
     stats.botMatches,
     stats.botWins,
     stats.brickfallWins,
+    apexLevel,
+    pulseLevel,
+    rookieLevel,
     stats.roguelikeVersusMatches,
     stats.roguelikeVersusWins,
-    stats.tetrobotProgression,
     stats.tetromazeWins,
     stats.versusMatches,
     stats.versusWins,
@@ -1400,33 +1406,42 @@ export default function Dashboard() {
       lastPlayedMode: "mode classique",
     })
   );
+  const activeBotProgression = stats.tetrobotProgression[chatLine.bot];
+  const activeRecommendation = stats.playerLongTermMemory.activeRecommendations[chatLine.bot];
+  const rookieRecommendation = stats.playerLongTermMemory.activeRecommendations.rookie;
+  const pulseRecommendation = stats.playerLongTermMemory.activeRecommendations.pulse;
+  const apexRecommendation = stats.playerLongTermMemory.activeRecommendations.apex;
   const apexTrustState = getApexTrustState(
     stats.playerLongTermMemory,
     stats.tetrobotProgression.apex?.affinity ?? 0
   );
 
   useEffect(() => {
-    const level = stats.tetrobotProgression[chatLine.bot]?.level ?? 1;
-    const mood = stats.tetrobotProgression[chatLine.bot]?.mood ?? "neutral";
+    const level = activeBotProgression?.level ?? 1;
+    const mood = activeBotProgression?.mood ?? "neutral";
     const nextTip =
       chatLine.bot === "apex" && apexTrustState === "refusing"
         ? "Non. Tu veux des conseils, mais tu refuses encore d'affronter ce qu'il faut travailler."
         : getBotTip(chatLine.bot, level, mood, {
             ...playerContext,
-            recommendation: stats.playerLongTermMemory.activeRecommendations[chatLine.bot],
-            rookieRecommendation: stats.playerLongTermMemory.activeRecommendations.rookie,
-            pulseRecommendation: stats.playerLongTermMemory.activeRecommendations.pulse,
-            apexRecommendation: stats.playerLongTermMemory.activeRecommendations.apex,
+            recommendation: activeRecommendation,
+            rookieRecommendation,
+            pulseRecommendation,
+            apexRecommendation,
           });
     setLastTetrobotTip(chatLine.bot, nextTip);
     setTetrobotTip(nextTip);
   }, [
+    activeBotProgression?.level,
+    activeBotProgression?.mood,
+    activeRecommendation,
     apexTrustState,
+    apexRecommendation,
     chatLine.bot,
     playerContext,
+    pulseRecommendation,
+    rookieRecommendation,
     setLastTetrobotTip,
-    stats.playerLongTermMemory.activeRecommendations,
-    stats.tetrobotProgression,
   ]);
 
   useEffect(() => {
