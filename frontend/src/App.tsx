@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Navbar from "./features/app/components/Navbar";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
@@ -60,7 +60,6 @@ const PixelInvasionPage = lazy(() => import("./features/pixelInvasion/pages/Pixe
 function App() {
   const { user } = useAuth();
   const { checkAchievements } = useAchievements();
-  const location = useLocation();
 
   useEffect(() => {
     // Marque la création de compte comme “achievement” une seule fois après login.
@@ -73,7 +72,7 @@ function App() {
       {/* Navbar globale affichée sur toutes les routes */}
       <Navbar />
       <Suspense fallback={<div className="panel">Chargement...</div>}>
-        <Routes location={location} key={location.pathname}>
+        <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/game" element={<Game />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
