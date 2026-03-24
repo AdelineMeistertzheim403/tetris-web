@@ -3,6 +3,15 @@ const AUTH_TOKEN_KEY = "tetris-auth-token";
 let currentUserRequest: Promise<any> | null = null;
 let currentUserCache: any = undefined;
 
+function getNoStoreHeaders(headers: HeadersInit = {}): HeadersInit {
+  return {
+    "Cache-Control": "no-cache, no-store, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    ...headers,
+  };
+}
+
 export class AuthApiError extends Error {
   status: number;
 
@@ -46,7 +55,8 @@ export function getAuthHeader(): HeadersInit {
 export async function login(email: string, password: string) {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    headers: getNoStoreHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ email, password }),
     credentials: "include",
   });
@@ -72,7 +82,8 @@ export async function login(email: string, password: string) {
 export async function register(pseudo: string, email: string, password: string) {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    headers: getNoStoreHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ pseudo, email, password }),
     credentials: "include",
   });
@@ -86,9 +97,10 @@ export async function logout() {
   setAuthToken(null);
   await fetch(`${API_URL}/auth/logout`, {
     method: "POST",
-    headers: {
+    cache: "no-store",
+    headers: getNoStoreHeaders({
       ...getAuthHeader(),
-    },
+    }),
     credentials: "include",
   });
 }
@@ -101,9 +113,10 @@ export async function getCurrentUser() {
 
   if (!currentUserRequest) {
     currentUserRequest = fetch(`${API_URL}/auth/me`, {
-      headers: {
+      cache: "no-store",
+      headers: getNoStoreHeaders({
         ...getAuthHeader(),
-      },
+      }),
       credentials: "include",
     })
       .then(async (res) => {
