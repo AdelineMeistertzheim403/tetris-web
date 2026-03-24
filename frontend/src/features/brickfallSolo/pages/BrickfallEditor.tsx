@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { useAuth } from "../../auth/context/AuthContext";
 import {
@@ -264,7 +265,7 @@ export default function BrickfallEditor() {
             type="button"
             title="Aide"
             aria-label="Aide editeur"
-            onClick={() => navigate("/brickfall/help/editor")}
+            onClick={() => navigate(PATHS.brickfallEditorHelp)}
           >
             <i className="fa-solid fa-circle-question" />
           </button>
@@ -337,7 +338,7 @@ export default function BrickfallEditor() {
             type="button"
             title="Retour Solo"
             aria-label="Retour hub Brickfall Solo"
-            onClick={() => navigate("/brickfall-solo")}
+            onClick={() => navigate(PATHS.brickfallSolo)}
           >
             <i className="fa-solid fa-arrow-left" />
           </button>

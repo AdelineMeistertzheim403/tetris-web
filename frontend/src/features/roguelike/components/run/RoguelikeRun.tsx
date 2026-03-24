@@ -8,6 +8,7 @@ import { useRoguelikeRun } from "../../hooks/useRoguelikeRun";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../../game/types/GameMode";
 import RoguelikeRunSummary from "./RoguelikeRunSummary";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../../routes/paths";
 import { createRng } from "../../../../shared/utils/rng";
 import { SYNERGIES } from "../../data/synergies";
 import { useActiveSynergies } from "../../hooks/useActiveSynergies";
@@ -732,7 +733,7 @@ export default function RoguelikeRun({
             seed,
           });
         }}
-        onExit={() => navigate("/dashboard")}
+        onExit={() => navigate(PATHS.dashboard)}
       />
       <AchievementToast
         achievement={recentUnlocks[0] ?? null}

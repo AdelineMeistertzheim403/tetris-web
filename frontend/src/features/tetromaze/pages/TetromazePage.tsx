@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { useAuth } from "../../auth/context/AuthContext";
 import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
@@ -876,7 +877,7 @@ export default function TetromazePage() {
             setCommunityLevel(null);
             setCommunityError(err instanceof Error ? err.message : "Niveau joueur introuvable");
             setCommunityLoading(false);
-            navigate("/tetromaze");
+            navigate(PATHS.tetromazeHub);
           }
           return;
         }
@@ -894,7 +895,7 @@ export default function TetromazePage() {
           }
         }
         if (!customLevel) {
-          if (!cancelled) navigate("/tetromaze");
+          if (!cancelled) navigate(PATHS.tetromazeHub);
           return;
         }
         if (cancelled) return;
@@ -2005,7 +2006,7 @@ export default function TetromazePage() {
   };
 
   const quitTetromaze = () => {
-    navigate("/tetromaze");
+    navigate(PATHS.tetromazeHub);
   };
 
   useEffect(() => {

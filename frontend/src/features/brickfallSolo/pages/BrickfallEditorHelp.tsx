@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/pixel-protocol-editor.css";
 import "../../../styles/pixel-protocol-editor-help.css";
 import "../../../styles/brickfall-editor-help.css";
@@ -198,7 +199,7 @@ export default function BrickfallEditorHelp() {
               className="pp-editor-icon-btn"
               title="Retour editeur"
               aria-label="Retour editeur"
-              onClick={() => navigate("/brickfall-editor")}
+              onClick={() => navigate(PATHS.brickfallEditor)}
             >
               <i className="fa-solid fa-arrow-left" aria-hidden="true" />
             </button>

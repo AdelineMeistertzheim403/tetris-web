@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { useAuth } from "../../auth/context/AuthContext";
 import {
   fetchBrickfallSoloCommunityLevels,
@@ -154,7 +155,7 @@ export default function BrickfallSoloCommunityHub() {
               className="pp-hub-icon-btn pp-hub-icon-btn--secondary"
               title="Retour hub"
               aria-label="Retour hub"
-              onClick={() => navigate("/brickfall-solo")}
+              onClick={() => navigate(PATHS.brickfallSolo)}
             >
               <i className="fa-solid fa-arrow-left" aria-hidden="true" />
             </button>

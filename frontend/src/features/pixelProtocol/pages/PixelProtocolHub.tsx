@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { PATHS } from "../../../routes/paths";
 import {
   fetchPixelProtocolCommunityLevels,
   fetchPixelProtocolCustomLevels,
@@ -188,7 +189,7 @@ export default function PixelProtocolHub() {
                   className="pp-hub-icon-btn"
                   title="Nouvelle campagne"
                   aria-label="Nouvelle campagne"
-                  onClick={() => navigate("/pixel-protocol/play?level=1")}
+                  onClick={() => navigate(`${PATHS.pixelProtocolPlay}?level=1`)}
                 >
                   <i className="fa-solid fa-rotate-right" aria-hidden="true" />
                 </button>
@@ -208,7 +209,7 @@ export default function PixelProtocolHub() {
                   className="pp-hub-icon-btn"
                   title="Aide editeur"
                   aria-label="Aide editeur"
-                  onClick={() => navigate("/pixel-protocol/help/editor")}
+                  onClick={() => navigate(PATHS.pixelProtocolEditorHelp)}
                 >
                   <i className="fa-solid fa-circle-question" aria-hidden="true" />
                 </button>
@@ -219,7 +220,7 @@ export default function PixelProtocolHub() {
                     className="pp-hub-icon-btn"
                     title="Editeur mode niveau"
                     aria-label="Editeur mode niveau"
-                    onClick={() => navigate("/pixel-protocol/editor?mode=level")}
+                    onClick={() => navigate(`${PATHS.pixelProtocolEditor}?mode=level`)}
                   >
                     <i className="fa-solid fa-layer-group" aria-hidden="true" />
                   </button>
@@ -227,7 +228,7 @@ export default function PixelProtocolHub() {
                     className="pp-hub-icon-btn"
                     title="Editeur mode monde"
                     aria-label="Editeur mode monde"
-                    onClick={() => navigate("/pixel-protocol/editor?mode=world")}
+                    onClick={() => navigate(`${PATHS.pixelProtocolEditor}?mode=world`)}
                   >
                     <i className="fa-solid fa-mountain-city" aria-hidden="true" />
                   </button>
@@ -303,7 +304,7 @@ export default function PixelProtocolHub() {
                 className="pp-hub-icon-btn"
                 title="Niveaux joueurs"
                 aria-label="Niveaux joueurs"
-                onClick={() => navigate("/pixel-protocol/community")}
+                onClick={() => navigate(PATHS.pixelProtocolCommunity)}
               >
                 <i className="fa-solid fa-users" aria-hidden="true" />
               </button>
@@ -311,7 +312,7 @@ export default function PixelProtocolHub() {
                 className="pp-hub-icon-btn pp-hub-icon-btn--secondary"
                 title="Retour dashboard"
                 aria-label="Retour dashboard"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate(PATHS.dashboard)}
               >
                 <i className="fa-solid fa-arrow-left" aria-hidden="true" />
               </button>
