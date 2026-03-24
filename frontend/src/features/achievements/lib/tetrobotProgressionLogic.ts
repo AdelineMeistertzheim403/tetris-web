@@ -802,6 +802,14 @@ function buildRecommendation(
         : prevRecommendation.ignoredSessions + Math.max(0, gainedTotalSessions);
     const ignoredMs = gainedTargetSessions > 0 ? 0 : Math.max(0, now - prevRecommendation.issuedAt);
 
+    if (
+      gainedTargetSessions === 0 &&
+      gainedTotalSessions === 0 &&
+      prevRecommendation.reason === reason
+    ) {
+      return prevRecommendation;
+    }
+
     return {
       ...prevRecommendation,
       reason,
