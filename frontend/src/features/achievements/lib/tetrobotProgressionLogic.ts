@@ -747,6 +747,30 @@ function getExclusiveRewardDialogue(bot: TetrobotId, objectiveLabel: string) {
   }
 }
 
+function getExclusiveRivalDialogue(
+  favoredBot: TetrobotId,
+  blockedBot: TetrobotId,
+  objectiveLabel: string
+) {
+  const pairId = `${favoredBot}:${blockedBot}`;
+  switch (pairId) {
+    case "rookie:apex":
+      return `Apex voit que Rookie t'a stabilise sur ${objectiveLabel}, mais refuse encore de parler de vraie victoire.`;
+    case "pulse:rookie":
+      return `Rookie encaisse mal la validation de Pulse sur ${objectiveLabel}. Il pense encore que tu avances trop froidement.`;
+    case "apex:rookie":
+      return `Rookie n'aime pas l'admettre, mais Apex t'a fait tenir ${objectiveLabel} jusqu'au bout.`;
+    case "apex:pulse":
+      return `Pulse note la performance, mais critique encore la brutalite d'Apex sur ${objectiveLabel}.`;
+    case "pulse:apex":
+      return `Apex ne l'admet pas vraiment, mais Pulse a corrige quelque chose d'utile sur ${objectiveLabel}.`;
+    case "rookie:pulse":
+      return `Pulse voit que Rookie t'a remis en mouvement sur ${objectiveLabel}, meme si sa methode lui parait trop floue.`;
+    default:
+      return `${blockedBot} reagit encore a la validation de ${objectiveLabel} par ${favoredBot}.`;
+  }
+}
+
 function buildRecommendation(
   bot: TetrobotId,
   prevRecommendation: TetrobotRecommendation | null,
@@ -1377,6 +1401,16 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
           "player_progress",
           getExclusiveRewardDialogue(alignment.favoredBot, alignment.objectiveLabel),
           5
+        );
+        pushMemory(
+          alignment.blockedBot,
+          "player_failure",
+          getExclusiveRivalDialogue(
+            alignment.favoredBot,
+            alignment.blockedBot,
+            alignment.objectiveLabel
+          ),
+          4
         );
         bumpCounter(`tetrobot_exclusive_reward_${alignment.favoredBot}`);
         bumpCounter(`tetrobot_exclusive_dialogue_${alignment.favoredBot}`);

@@ -249,6 +249,18 @@ export function getDerivedCustomAchievementValue(
           hasBotMemory(stats, "rookie", "player_comeback") ||
           hasBotMemory(stats, "pulse", "player_progress")
         );
+    case "rookie_exclusive_line":
+      return (stats.counters.tetrobot_exclusive_reward_rookie ?? 0) > 0;
+    case "pulse_exclusive_line":
+      return (stats.counters.tetrobot_exclusive_reward_pulse ?? 0) > 0;
+    case "apex_exclusive_line":
+      return (stats.counters.tetrobot_exclusive_reward_apex ?? 0) > 0;
+    case "three_paths_seen":
+      return (
+        (stats.counters.tetrobot_exclusive_reward_rookie ?? 0) > 0 &&
+        (stats.counters.tetrobot_exclusive_reward_pulse ?? 0) > 0 &&
+        (stats.counters.tetrobot_exclusive_reward_apex ?? 0) > 0
+      );
     default:
       return Boolean(ctx.custom?.[key]);
   }
