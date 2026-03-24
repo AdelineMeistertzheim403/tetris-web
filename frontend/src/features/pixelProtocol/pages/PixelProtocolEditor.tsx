@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type ChangeEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { PixelProtocolDraftPreview } from "../components/PixelProtocolDraftPreview";
 import { PixelProtocolEditorHeader } from "../components/PixelProtocolEditorHeader";
 import { PixelProtocolEditorForm } from "../components/PixelProtocolEditorForm";
@@ -443,11 +444,11 @@ export default function PixelProtocolEditor() {
   }, [refreshLevels]);
 
   const handleOpenHelp = useCallback(() => {
-    navigate("/pixel-protocol/help/editor");
+    navigate(PATHS.pixelProtocolEditorHelp);
   }, [navigate]);
 
   const handleBack = useCallback(() => {
-    navigate("/pixel-protocol");
+    navigate(PATHS.pixelProtocolHub);
   }, [navigate]);
 
   const toggleExamplesExpanded = useCallback(() => {

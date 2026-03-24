@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/pixel-protocol-editor.css";
 import "../../../styles/pixel-protocol-editor-help.css";
 
@@ -258,7 +259,7 @@ export default function PixelProtocolEditorHelp() {
               className="pp-editor-icon-btn"
               title="Retour editeur"
               aria-label="Retour editeur"
-              onClick={() => navigate("/pixel-protocol/editor")}
+              onClick={() => navigate(PATHS.pixelProtocolEditor)}
             >
               <i className="fa-solid fa-arrow-left" aria-hidden="true" />
             </button>

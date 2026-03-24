@@ -3,6 +3,16 @@ const AUTH_TOKEN_KEY = "tetris-auth-token";
 let currentUserRequest: Promise<any> | null = null;
 let currentUserCache: any = undefined;
 
+export class AuthApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "AuthApiError";
+    this.status = status;
+  }
+}
+
 export function getAuthToken(): string | null {
   try {
     return localStorage.getItem(AUTH_TOKEN_KEY);
@@ -41,7 +51,15 @@ export async function login(email: string, password: string) {
     credentials: "include",
   });
 
-  if (!res.ok) throw new Error("Échec de la connexion");
+  if (!res.ok) {
+    if (res.status === 429) {
+      throw new AuthApiError("Trop de tentatives, reessaie dans quelques minutes.", 429);
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new AuthApiError("Email ou mot de passe invalide.", res.status);
+    }
+    throw new AuthApiError("Echec de la connexion.", res.status);
+  }
   const data = (await res.json()) as { user: any; token?: string };
   if (data.token) {
     setAuthToken(data.token);
