@@ -8,6 +8,7 @@ import {
 import { getApexRequirement } from "../logic/apexTrustEngine";
 import ApexLockedPanel from "./ApexLockedPanel";
 import TetrobotCard, { type TetrobotRelationProgressItem } from "./TetrobotCard";
+import { PATHS } from "../../../routes/paths";
 
 const BOT_META: Record<TetrobotId, { name: string; accent: string; relationGoal: string }> = {
   rookie: {
@@ -609,7 +610,7 @@ export default function TetrobotRelationsPanel({
             Lis ce qu&apos;ils pensent de toi, ce dont ils se souviennent, et ce qu&apos;il faut
             faire pour gagner leur confiance.
           </p>
-          <Link to="/tetrobots/help" className="tetrobots-help-link">
+          <Link to={PATHS.tetrobotsHelp} className="tetrobots-help-link">
             Comprendre les Tetrobots
           </Link>
         </div>

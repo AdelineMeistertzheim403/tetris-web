@@ -14,6 +14,7 @@ import { getApexTrustState } from "../../achievements/lib/tetrobotAchievementLog
 import {
   useAchievements,
 } from "../../achievements/hooks/useAchievements";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/dashboard.scss";
 
 type ModeCard = {
@@ -1311,7 +1312,7 @@ export default function Dashboard() {
         title: "Pixel Protocol",
         detail: `Checkpoint campagne: niveau ${pixelProtocolProgress.currentLevel}`,
         action: () => navigate(`/pixel-protocol/play?level=${pixelProtocolProgress.currentLevel}`),
-        secondary: () => navigate("/pixel-protocol"),
+        secondary: () => navigate(PATHS.pixelProtocolHub),
         primaryLabel: "Reprendre",
         secondaryLabel: "Voir le hub",
       };
@@ -1321,7 +1322,7 @@ export default function Dashboard() {
         title: "Tetromaze",
         detail: `Checkpoint campagne: niveau ${tetromazeProgress.currentLevel}`,
         action: () => navigate(`/tetromaze/play?level=${tetromazeProgress.currentLevel}`),
-        secondary: () => navigate("/tetromaze"),
+        secondary: () => navigate(PATHS.tetromazeHub),
         primaryLabel: "Reprendre",
         secondaryLabel: "Voir le hub",
       };
@@ -1331,7 +1332,7 @@ export default function Dashboard() {
         title: "Brickfall Solo",
         detail: `Checkpoint campagne: niveau ${brickfallProgress}`,
         action: () => navigate(`/brickfall-solo/play?level=${brickfallProgress}`),
-        secondary: () => navigate("/brickfall-solo"),
+        secondary: () => navigate(PATHS.brickfallSolo),
         primaryLabel: "Reprendre",
         secondaryLabel: "Voir le hub",
       };
@@ -1339,8 +1340,8 @@ export default function Dashboard() {
     return {
       title: "Mode Tetris",
       detail: "Aucune progression recente detectee, repars sur le hub central.",
-      action: () => navigate("/tetris-hub"),
-      secondary: () => navigate("/tetris-hub"),
+      action: () => navigate(PATHS.tetrisHub),
+      secondary: () => navigate(PATHS.tetrisHub),
       primaryLabel: "Ouvrir le hub",
       secondaryLabel: "Explorer les modes",
     };
@@ -1469,19 +1470,19 @@ export default function Dashboard() {
       label: "Editeur Brickfall Solo",
       tooltip: "Ouvrir l'editeur de niveaux Brickfall Solo.",
       icon: "editor",
-      action: () => navigate("/brickfall-editor"),
+      action: () => navigate(PATHS.brickfallEditor),
     },
     {
       label: "Editeur Tetromaze",
       tooltip: "Ouvrir l'editeur de niveaux Tetromaze.",
       icon: "editor",
-      action: () => navigate("/tetromaze/editor"),
+      action: () => navigate(PATHS.tetromazeEditor),
     },
     {
       label: "Editeur Pixel Protocol",
       tooltip: "Ouvrir l'editeur de niveaux Pixel Protocol.",
       icon: "editor",
-      action: () => navigate("/pixel-protocol/editor"),
+      action: () => navigate(PATHS.pixelProtocolEditor),
     },
   ];
 
@@ -1490,19 +1491,19 @@ export default function Dashboard() {
       label: "Galerie Brickfall Solo",
       tooltip: "Explorer les niveaux publies par la communaute Brickfall Solo.",
       icon: "gallery",
-      action: () => navigate("/brickfall-solo/community"),
+      action: () => navigate(PATHS.brickfallSoloCommunity),
     },
     {
       label: "Galerie Tetromaze",
       tooltip: "Explorer les niveaux publies par la communaute Tetromaze.",
       icon: "gallery",
-      action: () => navigate("/tetromaze/community"),
+      action: () => navigate(PATHS.tetromazeCommunity),
     },
     {
       label: "Galerie Pixel Protocol",
       tooltip: "Explorer les niveaux publies par la communaute Pixel Protocol.",
       icon: "gallery",
-      action: () => navigate("/pixel-protocol/community"),
+      action: () => navigate(PATHS.pixelProtocolCommunity),
     },
   ];
 
@@ -1593,7 +1594,7 @@ export default function Dashboard() {
 
     if (choice.action === "open_tetris_hub") {
       closeRelationPopup();
-      navigate("/tetris-hub");
+      navigate(PATHS.tetrisHub);
       return;
     }
 
@@ -1765,7 +1766,7 @@ export default function Dashboard() {
                 className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--help"
                 onClick={() => {
                   recordTetrobotEvent({ type: "tip_read", bot: chatLine.bot });
-                  navigate("/tetrobots/help");
+                  navigate(PATHS.tetrobotsHelp);
                 }}
                 data-tooltip="Comprendre l'XP, l'affinite, l'humeur et les defis des Tetrobots."
                 aria-label="Comprendre les Tetrobots"

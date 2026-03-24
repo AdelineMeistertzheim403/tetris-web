@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyScores } from "../../game/services/scoreService";
 import type { GameMode } from "../../game/types/GameMode";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/dashboard.scss";
 
 type ModeCard = {
@@ -83,7 +84,7 @@ export default function TetroVerseHub() {
         <button
           type="button"
           className="dashboard-mode-back"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(PATHS.dashboard)}
         >
           Retour dashboard
         </button>

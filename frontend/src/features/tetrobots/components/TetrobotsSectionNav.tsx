@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import type { BotMood, TetrobotId } from "../../achievements/types/tetrobots";
+import { PATHS } from "../../../routes/paths";
 
 type TetrobotsSectionNavProps = {
   isLoggedIn: boolean;
@@ -42,7 +43,7 @@ export default function TetrobotsSectionNav({
     <div className="tetrobots-section-nav-wrap">
       <nav className="tetrobots-section-nav tetrobots-section-nav--primary" aria-label="Navigation Tetrobots">
         <NavLink
-          to="/tetrobots"
+          to={PATHS.tetrobots}
           end
           className={({ isActive }) =>
             `tetrobots-section-nav__link${isActive ? " tetrobots-section-nav__link--active" : ""}`
@@ -51,7 +52,7 @@ export default function TetrobotsSectionNav({
           Profils
         </NavLink>
         <NavLink
-          to="/tetrobots/help"
+          to={PATHS.tetrobotsHelp}
           className={({ isActive }) =>
             `tetrobots-section-nav__link${isActive ? " tetrobots-section-nav__link--active" : ""}`
           }
@@ -60,7 +61,7 @@ export default function TetrobotsSectionNav({
         </NavLink>
         {isLoggedIn ? (
           <NavLink
-            to="/tetrobots/relations"
+            to={PATHS.tetrobotsRelations}
             className={({ isActive }) =>
               `tetrobots-section-nav__link${isActive ? " tetrobots-section-nav__link--active" : ""}`
             }
