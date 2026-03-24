@@ -45,6 +45,7 @@ import {
   fetchAchievementStats,
   saveAchievementStats,
   unlockAchievements,
+  type AchievementStatsPayload,
 } from "../services/achievementService";
 import {
   getApexTrustState as getApexTrustStateFromLogic,
@@ -695,6 +696,21 @@ type UseAchievementsValue = {
 
 const AchievementsContext = createContext<UseAchievementsValue | null>(null);
 
+function buildAchievementStatsPayload(stats: AchievementStats): AchievementStatsPayload {
+  return {
+    stats,
+    loginDays: stats.loginDays,
+    tetrobotProgression: stats.tetrobotProgression as unknown as Record<string, unknown>,
+    tetrobotXpLedger: stats.tetrobotXpLedger as unknown as Record<string, unknown>,
+    tetrobotAffinityLedger: stats.tetrobotAffinityLedger as unknown as Record<string, unknown>,
+    playerLongTermMemory: stats.playerLongTermMemory as unknown as Record<string, unknown>,
+    tetrobotMemories: stats.tetrobotMemories as unknown as Record<string, unknown>,
+    lastTetrobotLevelUp: stats.lastTetrobotLevelUp as unknown as Record<string, unknown> | null,
+    activeTetrobotChallenge:
+      stats.activeTetrobotChallenge as unknown as Record<string, unknown> | null,
+  };
+}
+
 function useAchievementsValue(): UseAchievementsValue {
   const { user } = useAuth();
   const [unlocked, setUnlocked] = useState<AchievementState[]>([]);
@@ -706,6 +722,8 @@ function useAchievementsValue(): UseAchievementsValue {
   const statsRef = useRef(stats);
   const unlockedRef = useRef(unlocked);
   const remoteStatsReadyRef = useRef(false);
+  const lastSyncedStatsPayloadRef = useRef<string | null>(null);
+  const saveStatsTimeoutRef = useRef<number | null>(null);
 
   const areArraysEqual = (a: string[], b: string[]) => {
     if (a === b) return true;
@@ -914,6 +932,16 @@ function useAchievementsValue(): UseAchievementsValue {
   useEffect(() => {
     unlockedRef.current = unlocked;
   }, [unlocked]);
+
+  useEffect(() => {
+    remoteStatsReadyRef.current = false;
+    lastSyncedStatsPayloadRef.current = null;
+
+    if (saveStatsTimeoutRef.current) {
+      window.clearTimeout(saveStatsTimeoutRef.current);
+      saveStatsTimeoutRef.current = null;
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -2285,6 +2313,7 @@ function useAchievementsValue(): UseAchievementsValue {
               prev.activeTetrobotChallenge,
           };
         });
+        lastSyncedStatsPayloadRef.current = JSON.stringify(buildAchievementStatsPayload(next));
         remoteStatsReadyRef.current = true;
         checkAchievements({
           custom: {
@@ -2371,19 +2400,29 @@ function useAchievementsValue(): UseAchievementsValue {
   useEffect(() => {
     if (!user) return;
     if (!remoteStatsReadyRef.current) return;
+    const payload = buildAchievementStatsPayload(stats);
+    const serializedPayload = JSON.stringify(payload);
+    if (serializedPayload === lastSyncedStatsPayloadRef.current) return;
 
-    saveAchievementStats({
-      stats: stats,
-      loginDays: stats.loginDays,
-      tetrobotProgression: stats.tetrobotProgression as unknown as Record<string, unknown>,
-      tetrobotXpLedger: stats.tetrobotXpLedger as unknown as Record<string, unknown>,
-      tetrobotAffinityLedger: stats.tetrobotAffinityLedger as unknown as Record<string, unknown>,
-      playerLongTermMemory: stats.playerLongTermMemory as unknown as Record<string, unknown>,
-      tetrobotMemories: stats.tetrobotMemories as unknown as Record<string, unknown>,
-      lastTetrobotLevelUp: stats.lastTetrobotLevelUp as unknown as Record<string, unknown> | null,
-      activeTetrobotChallenge:
-        stats.activeTetrobotChallenge as unknown as Record<string, unknown> | null,
-    }).catch(() => {});
+    if (saveStatsTimeoutRef.current) {
+      window.clearTimeout(saveStatsTimeoutRef.current);
+    }
+
+    saveStatsTimeoutRef.current = window.setTimeout(() => {
+      saveAchievementStats(payload)
+        .then(() => {
+          lastSyncedStatsPayloadRef.current = serializedPayload;
+        })
+        .catch(() => {});
+      saveStatsTimeoutRef.current = null;
+    }, 600);
+
+    return () => {
+      if (saveStatsTimeoutRef.current) {
+        window.clearTimeout(saveStatsTimeoutRef.current);
+        saveStatsTimeoutRef.current = null;
+      }
+    };
   }, [
     stats.activeTetrobotChallenge,
     stats.lastTetrobotLevelUp,
