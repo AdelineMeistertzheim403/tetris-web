@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import TetrisBoard from "../components/board/TetrisBoard";
-import type { PlayerMistakeKey } from "../../achievements/types/tetrobots";
+import type {
+  PlayerMistakeKey,
+  PlayerRunTimelineSample,
+  PlayerRunTimelineTag,
+} from "../../achievements/types/tetrobots";
 import {
   useAchievements,
 } from "../../achievements/hooks/useAchievements";
@@ -40,6 +44,8 @@ export default function Game() {
   const levelRef = useRef(1);
   const visitedRef = useRef(false);
   const boardRef = useRef<number[][]>([]);
+  const timelineSamplesRef = useRef<PlayerRunTimelineSample[]>([]);
+  const lastHeightRef = useRef(0);
 
   const resetRunTracking = () => {
     // Remise à zéro des compteurs de run.
@@ -50,6 +56,30 @@ export default function Game() {
     tetrisCountRef.current = 0;
     maxStackHeightRef.current = 0;
     startTimeRef.current = null;
+    timelineSamplesRef.current = [];
+    lastHeightRef.current = 0;
+  };
+
+  const pushTimelineSample = (
+    phase: "early" | "mid" | "late",
+    tags: PlayerRunTimelineTag[],
+    runContext: PlayerRunTimelineSample["runContext"]
+  ) => {
+    if (!startTimeRef.current) return;
+    const atMs = Math.max(0, Date.now() - startTimeRef.current);
+    const previous = timelineSamplesRef.current[timelineSamplesRef.current.length - 1];
+    if (
+      previous &&
+      previous.phase === phase &&
+      previous.tags.join("|") === tags.join("|") &&
+      Math.abs((previous.runContext.pressureScore ?? 0) - (runContext.pressureScore ?? 0)) < 8
+    ) {
+      return;
+    }
+    timelineSamplesRef.current = [
+      ...timelineSamplesRef.current,
+      { atMs, phase, tags, runContext },
+    ].slice(-6);
   };
 
   const countTrue = (values: Record<string, boolean>) =>
@@ -96,6 +126,14 @@ export default function Game() {
           if (linesCleared === 4) {
             tetrisCountRef.current += 1;
           }
+          if (comboStreakRef.current >= 4) {
+            pushTimelineSample("mid", ["execution_peak"], {
+              comboPeak: comboStreakRef.current,
+              boardMaxHeight: lastHeightRef.current,
+              pressureScore: Math.round((lastHeightRef.current / 20) * 100),
+              stageIndex: levelRef.current,
+            });
+          }
         }}
         onBoardUpdate={(board) => {
           // Détecte la hauteur max pour les succès "demi plateau".
@@ -109,9 +147,26 @@ export default function Game() {
             }
           }
           const height = rows - topFilled;
+          if (height >= 14 && lastHeightRef.current < 14) {
+            pushTimelineSample(height >= 17 ? "late" : "mid", ["pressure_spike"], {
+              boardMaxHeight: height,
+              comboPeak: maxComboRef.current,
+              pressureScore: Math.round((height / 20) * 100),
+              stageIndex: levelRef.current,
+            });
+          }
+          if (lastHeightRef.current >= 15 && height <= lastHeightRef.current - 4) {
+            pushTimelineSample(height <= 10 ? "mid" : "late", ["recovery"], {
+              boardMaxHeight: height,
+              comboPeak: maxComboRef.current,
+              pressureScore: Math.round((height / 20) * 100),
+              stageIndex: levelRef.current,
+            });
+          }
           if (height > maxStackHeightRef.current) {
             maxStackHeightRef.current = height;
           }
+          lastHeightRef.current = height;
         }}
         onLevelChange={(level) => {
           // Vérifie certaines conditions de succès à partir du niveau.
@@ -131,11 +186,49 @@ export default function Game() {
           const noHardDrop = hardDropCountRef.current === 0;
           const level = levelRef.current;
           const mistakes: PlayerMistakeKey[] = [];
+          const contextualMistakes: Array<{
+            key: PlayerMistakeKey;
+            phase: "early" | "mid" | "late";
+            pressure: "low" | "medium" | "high";
+            trigger: "timeout" | "collapse" | "tilt" | "attrition" | "unknown";
+          }> = [];
           const holeCount = countBoardHoles(boardRef.current);
-          if (holeCount >= 3) mistakes.push("holes" as const);
-          if (maxStackHeightRef.current >= 16) mistakes.push("unsafe_stack" as const);
-          if (maxStackHeightRef.current >= 18) mistakes.push("top_out" as const);
-          if (durationMs >= 8 * 60 * 1000 && score < 2500) mistakes.push("slow" as const);
+          if (holeCount >= 3) {
+            mistakes.push("holes" as const);
+            contextualMistakes.push({
+              key: "holes",
+              phase: durationMs < 90_000 ? "early" : durationMs < 240_000 ? "mid" : "late",
+              pressure: holeCount >= 6 ? "high" : "medium",
+              trigger: "collapse",
+            });
+          }
+          if (maxStackHeightRef.current >= 16) {
+            mistakes.push("unsafe_stack" as const);
+            contextualMistakes.push({
+              key: "unsafe_stack",
+              phase: "late",
+              pressure: maxStackHeightRef.current >= 18 ? "high" : "medium",
+              trigger: "collapse",
+            });
+          }
+          if (maxStackHeightRef.current >= 18) {
+            mistakes.push("top_out" as const);
+            contextualMistakes.push({
+              key: "top_out",
+              phase: "late",
+              pressure: "high",
+              trigger: durationMs < 90_000 ? "tilt" : "collapse",
+            });
+          }
+          if (durationMs >= 8 * 60 * 1000 && score < 2500) {
+            mistakes.push("slow" as const);
+            contextualMistakes.push({
+              key: "slow",
+              phase: "late",
+              pressure: "medium",
+              trigger: "timeout",
+            });
+          }
           let sameScoreTwice = false;
           let reachedClassicScoreMilestone = false;
           let reachedClassicLevelMilestone = false;
@@ -181,6 +274,14 @@ export default function Game() {
             won: false,
             durationMs,
             mistakes,
+            contextualMistakes,
+            runContext: {
+              boardMaxHeight: maxStackHeightRef.current,
+              comboPeak: maxComboRef.current,
+              pressureScore: Math.round((maxStackHeightRef.current / 20) * 100),
+              stageIndex: level,
+            },
+            timelineSamples: timelineSamplesRef.current,
           });
 
           if (mistakes.length === 0 && durationMs >= 60_000) {

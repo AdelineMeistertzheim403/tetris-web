@@ -2052,6 +2052,13 @@ export default function TetromazePage() {
           ...(state.lives < 3 ? (["damage_taken"] as const) : []),
           ...(elapsedMs > 60_000 ? (["slow"] as const) : []),
         ],
+        runContext: {
+          livesRemaining: state.lives,
+          pressureScore: Math.round(
+            Math.min(100, (3 - state.lives) * 30 + (elapsedMs > 60_000 ? 20 : 10))
+          ),
+          stageIndex: levelIndex + 1,
+        },
       });
       const nextStats = updateStats((old) => ({
         ...old,
@@ -2094,6 +2101,11 @@ export default function TetromazePage() {
         won: false,
         durationMs: Math.max(0, Date.now() - state.startedAt),
         mistakes: ["top_out", ...(state.lives < 3 ? (["damage_taken"] as const) : [])],
+        runContext: {
+          livesRemaining: state.lives,
+          pressureScore: Math.round(Math.min(100, 55 + (3 - state.lives) * 20)),
+          stageIndex: levelIndex + 1,
+        },
       });
       checkAchievements({
         mode: "TETROMAZE",

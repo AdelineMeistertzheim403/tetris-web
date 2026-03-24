@@ -81,6 +81,77 @@ export type MistakeMemory = {
   trend: "up" | "down" | "stable";
 };
 
+export type MistakePhase = "early" | "mid" | "late";
+export type MistakePressure = "low" | "medium" | "high";
+export type MistakeTrigger = "timeout" | "collapse" | "tilt" | "attrition" | "unknown";
+
+export type ContextualMistakeEntry = {
+  key: PlayerMistakeKey;
+  phase: MistakePhase;
+  pressure: MistakePressure;
+  trigger: MistakeTrigger;
+};
+
+export type ContextualMistakePattern = {
+  key: PlayerMistakeKey;
+  phase: MistakePhase;
+  pressure: MistakePressure;
+  trigger: MistakeTrigger;
+  count: number;
+  trend: "up" | "down" | "stable";
+};
+
+export type PlayerRunContext = {
+  boardMaxHeight?: number;
+  comboPeak?: number;
+  livesRemaining?: number;
+  pressureScore?: number;
+  stageIndex?: number;
+};
+
+export type PlayerRunTimelineTag =
+  | "pressure_spike"
+  | "recovery"
+  | "execution_peak"
+  | "resource_loss";
+
+export type PlayerRunTimelineSample = {
+  atMs: number;
+  phase: MistakePhase;
+  runContext: PlayerRunContext;
+  tags: PlayerRunTimelineTag[];
+};
+
+export type PlayerRunSnapshot = {
+  at: number;
+  won: boolean;
+  durationMs: number;
+  mistakeCount: number;
+  mistakes: PlayerMistakeKey[];
+  contextualMistakes: ContextualMistakeEntry[];
+  rageQuitEstimate: boolean;
+  runContext?: PlayerRunContext;
+  timelineSamples: PlayerRunTimelineSample[];
+};
+
+export type PlayerModeProfile = {
+  recentRuns: number;
+  recentWinRate: number;
+  recentMistakeRate: number;
+  averageDurationMs: number;
+  resilienceScore: number;
+  pressureIndex: number;
+  averagePressureScore: number;
+  averageBoardHeight: number;
+  resourceStability: number;
+  executionPeak: number;
+  averageStageIndex: number;
+  volatilityIndex: number;
+  recoveryScore: number;
+  improvementTrend: "up" | "down" | "stable";
+  dominantMistakes: PlayerMistakeKey[];
+};
+
 export type PlayerLongTermMemory = {
   recurringMistakes: MistakeMemory[];
   avoidedModes: Record<string, number>;
@@ -91,6 +162,73 @@ export type PlayerLongTermMemory = {
   consistencyScore: number;
   courageScore: number;
   disciplineScore: number;
+  regularityScore: number;
+  strategyScore: number;
+  weakestModeFocus: PlayerBehaviorMode | null;
+  strongestModeFocus: PlayerBehaviorMode | null;
+  lingeringResentment: Record<TetrobotId, number>;
+  activeRecommendations: Record<TetrobotId, TetrobotRecommendation | null>;
+  activeConflict: TetrobotConflict | null;
+  activeExclusiveAlignment: TetrobotExclusiveAlignment | null;
+  recentRunsByMode: Record<PlayerBehaviorMode, PlayerRunSnapshot[]>;
+  modeProfiles: Record<PlayerBehaviorMode, PlayerModeProfile>;
+  contextualMistakePatterns: Record<PlayerBehaviorMode, ContextualMistakePattern[]>;
+};
+
+export type TetrobotRecommendationKind =
+  | "play_underplayed_mode"
+  | "reduce_mistakes"
+  | "train_weak_mode";
+
+export type TetrobotRecommendation = {
+  bot: TetrobotId;
+  kind: TetrobotRecommendationKind;
+  targetMode: PlayerBehaviorMode | null;
+  reason: string;
+  issuedAt: number;
+  lastEvaluatedAt: number;
+  totalSessionsAtIssue: number;
+  targetModeSessionsAtIssue: number;
+  ignoredSessions: number;
+  ignoreThreshold: number;
+  ignoredMs: number;
+  ignoreThresholdMs: number;
+  penaltyCount: number;
+};
+
+export type TetrobotConflict = {
+  id: string;
+  challenger: TetrobotId;
+  opponent: TetrobotId;
+  challengerMode: PlayerBehaviorMode | null;
+  opponentMode: PlayerBehaviorMode | null;
+  issuedAt: number;
+  totalSessionsAtIssue: number;
+  challengerModeSessionsAtIssue: number;
+  opponentModeSessionsAtIssue: number;
+  resolvedAt: number | null;
+  chosenBot: TetrobotId | null;
+  summary: string;
+};
+
+export type TetrobotExclusiveAlignment = {
+  favoredBot: TetrobotId;
+  blockedBot: TetrobotId;
+  issuedAt: number;
+  expiresAt: number;
+  sessionsRemaining: number;
+  reason: string;
+  favoredLine: string;
+  blockedLine: string;
+  lockedAdvice: string[];
+  objectiveLabel: string;
+  objectiveMode: PlayerBehaviorMode | null;
+  objectiveStartSessions: number;
+  objectiveTargetSessions: number;
+  objectiveProgress: number;
+  rewardAffinity: number;
+  rewardXp: number;
+  rewardClaimed: boolean;
 };
 
 export type BotMemoryEntry = {
@@ -137,6 +275,9 @@ export type PlayerBehaviorEvent = {
   won?: boolean;
   durationMs?: number;
   mistakes?: PlayerMistakeKey[];
+  contextualMistakes?: ContextualMistakeEntry[];
+  runContext?: PlayerRunContext;
+  timelineSamples?: PlayerRunTimelineSample[];
 };
 
 export type TetrobotAchievementEvent =

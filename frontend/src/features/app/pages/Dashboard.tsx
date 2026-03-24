@@ -8,6 +8,7 @@ import type {
   BotMood,
   TetrobotChallengeState,
   TetrobotId,
+  TetrobotRecommendation,
 } from "../../achievements/types/tetrobots";
 import { getApexTrustState } from "../../achievements/lib/tetrobotAchievementLogic";
 import {
@@ -54,7 +55,9 @@ type DashboardRelationChoice = {
     | "open_weak_mode"
     | "open_tetris_hub"
     | "accept_challenge"
+    | "choose_conflict"
     | "dismiss";
+  bot?: DashboardBot;
 };
 
 type DashboardActionIconName =
@@ -82,6 +85,16 @@ type PlayerContext = {
   mistakes?: string[];
   sessionDuration?: number;
   stagnation?: boolean;
+  regularityScore?: number;
+  strategyScore?: number;
+  disciplineScore?: number;
+  recommendation?: TetrobotRecommendation | null;
+  rookieRecommendation?: TetrobotRecommendation | null;
+  pulseRecommendation?: TetrobotRecommendation | null;
+  apexRecommendation?: TetrobotRecommendation | null;
+  activeConflictSummary?: string | null;
+  activeExclusiveAlignment?: ReturnType<typeof useAchievements>["stats"]["playerLongTermMemory"]["activeExclusiveAlignment"] | null;
+  lingeringResentment?: Partial<Record<TetrobotId, number>>;
 };
 
 type Tip = (ctx: PlayerContext) => string;
@@ -320,6 +333,7 @@ const MODE_LABELS: Record<string, string> = {
   ROGUELIKE_VERSUS: "Roguelike Versus",
   PUZZLE: "Puzzle",
   TETROMAZE: "Tetromaze",
+  PIXEL_INVASION: "Pixel Invasion",
   PIXEL_PROTOCOL: "Pixel Protocol",
 };
 
@@ -332,6 +346,7 @@ const MODE_ROUTE_MAP: Partial<Record<string, string>> = {
   ROGUELIKE_VERSUS: "/roguelike-versus",
   PUZZLE: "/puzzle",
   TETROMAZE: "/tetromaze",
+  PIXEL_INVASION: "/pixel-invasion",
   PIXEL_PROTOCOL: "/pixel-protocol",
 };
 
@@ -539,6 +554,7 @@ function getDashboardRelationSummary(
     if (affinity >= 50) return "Rookie commence a te faire confiance.";
     if (affinity >= 10) return "Rookie te suit encore, mais attend plus de regularite.";
     if (affinity <= -30) return "Rookie doute de ta facon d'apprendre sous pression.";
+    if (mood !== "angry") return "Rookie mesure encore ta regularite reelle entre les modes.";
     return "Rookie t'observe encore avec prudence.";
   }
 
@@ -546,6 +562,7 @@ function getDashboardRelationSummary(
     if (affinity >= 50) return "Pulse valide enfin des progres qu'il juge mesurables.";
     if (affinity >= 10) return "Pulse analyse tes runs avec un interet methodique.";
     if (affinity <= -30) return "Pulse voit encore trop d'erreurs repetees sans correction nette.";
+    if (mood !== "angry") return "Pulse attend une baisse nette de tes erreurs avant de te croire.";
     return "Pulse reste en phase de lecture et de verification.";
   }
 
@@ -566,8 +583,49 @@ function getDashboardRelationSummary(
 function getDashboardRelationEvent(
   bot: DashboardBot,
   memories: Array<{ id?: string; type: string; text: string; createdAt?: number }> = [],
-  levelUpNotice?: { bot: TetrobotId; level: BotLevel; message: string; at: number } | null
+  levelUpNotice?: { bot: TetrobotId; level: BotLevel; message: string; at: number } | null,
+  activeConflict?: ReturnType<typeof useAchievements>["stats"]["playerLongTermMemory"]["activeConflict"] | null,
+  activeExclusiveAlignment?: ReturnType<
+    typeof useAchievements
+  >["stats"]["playerLongTermMemory"]["activeExclusiveAlignment"] | null
 ): DashboardRelationEvent | null {
+  if (
+    activeConflict &&
+    activeConflict.resolvedAt === null &&
+    (activeConflict.challenger === bot || activeConflict.opponent === bot)
+  ) {
+    return {
+      id: activeConflict.id,
+      label: "Conflit",
+      text: activeConflict.summary,
+      tone: "warning",
+      bot,
+      createdAt: activeConflict.issuedAt,
+    };
+  }
+
+  if (activeExclusiveAlignment?.favoredBot === bot) {
+    return {
+      id: `alignment-favored-${bot}-${activeExclusiveAlignment.issuedAt}`,
+      label: "Ligne exclusive",
+      text: `${activeExclusiveAlignment.favoredLine} Objectif: ${activeExclusiveAlignment.objectiveLabel}.`,
+      tone: "positive",
+      bot,
+      createdAt: activeExclusiveAlignment.issuedAt,
+    };
+  }
+
+  if (activeExclusiveAlignment?.blockedBot === bot) {
+    return {
+      id: `alignment-blocked-${bot}-${activeExclusiveAlignment.issuedAt}`,
+      label: "Ligne exclusive",
+      text: activeExclusiveAlignment.blockedLine,
+      tone: "warning",
+      bot,
+      createdAt: activeExclusiveAlignment.issuedAt,
+    };
+  }
+
   if (levelUpNotice?.bot === bot) {
     return {
       id: `levelup-${levelUpNotice.bot}-${levelUpNotice.level}-${levelUpNotice.at}`,
@@ -625,7 +683,35 @@ function getDashboardRelationEvent(
   };
 }
 
-function getDashboardRelationScene(event: DashboardRelationEvent): DashboardRelationSceneLine[] {
+function getDashboardRelationScene(
+  event: DashboardRelationEvent,
+  activeExclusiveAlignment?: ReturnType<
+    typeof useAchievements
+  >["stats"]["playerLongTermMemory"]["activeExclusiveAlignment"] | null
+): DashboardRelationSceneLine[] {
+  if (event.label === "Ligne exclusive" && activeExclusiveAlignment?.favoredBot === event.bot) {
+    return [
+      { speaker: "system", text: "Une ligne de conseil exclusive est maintenant ouverte." },
+      { speaker: event.bot, text: activeExclusiveAlignment.favoredLine },
+      {
+        speaker: "system",
+        text: `Objectif: ${activeExclusiveAlignment.objectiveProgress}/${activeExclusiveAlignment.objectiveTargetSessions}.`,
+      },
+      { speaker: "system", text: "Certaines branches rivales restent coupees tant que cet alignement tient." },
+    ];
+  }
+
+  if (event.label === "Ligne exclusive" && activeExclusiveAlignment?.blockedBot === event.bot) {
+    return [
+      { speaker: "system", text: "Le canal secondaire reste limite pour ce Tetrobot." },
+      { speaker: event.bot, text: activeExclusiveAlignment.blockedLine },
+      {
+        speaker: "system",
+        text: `Conseils verrouilles: ${formatLockedAdvice(activeExclusiveAlignment.lockedAdvice)}.`,
+      },
+    ];
+  }
+
   if (event.tone === "levelup") {
     if (event.bot === "rookie") {
       return [
@@ -664,6 +750,14 @@ function getDashboardRelationScene(event: DashboardRelationEvent): DashboardRela
     ];
   }
 
+  if (event.label === "Conflit") {
+    return [
+      { speaker: "system", text: "Deux Tetrobots exigent maintenant un choix clair." },
+      { speaker: event.bot, text: event.text },
+      { speaker: "system", text: "Ta prise de position modifiera directement leurs affinites." },
+    ];
+  }
+
   if (event.bot === "rookie") {
     return [
       { speaker: "system", text: "Souvenir relationnel archive." },
@@ -690,8 +784,44 @@ function getDashboardRelationScene(event: DashboardRelationEvent): DashboardRela
 function getDashboardRelationChoices(
   event: DashboardRelationEvent,
   weakestMode?: string,
-  activeChallenge?: TetrobotChallengeState | null
+  activeChallenge?: TetrobotChallengeState | null,
+  activeConflict?: ReturnType<typeof useAchievements>["stats"]["playerLongTermMemory"]["activeConflict"],
+  activeExclusiveAlignment?: ReturnType<
+    typeof useAchievements
+  >["stats"]["playerLongTermMemory"]["activeExclusiveAlignment"] | null
 ): DashboardRelationChoice[] {
+  if (activeExclusiveAlignment?.blockedBot === event.bot) {
+    return [
+      { label: "Voir la relation", action: "open_relation" },
+      { label: "Fermer", action: "dismiss" },
+    ];
+  }
+
+  if (activeExclusiveAlignment?.favoredBot === event.bot) {
+    return [
+      {
+        label: weakestMode ? "Suivre la ligne exclusive" : "Ouvrir le hub",
+        action: weakestMode ? "open_weak_mode" : "open_tetris_hub",
+      },
+      { label: "Voir la relation", action: "open_relation" },
+    ];
+  }
+
+  if (event.label === "Conflit") {
+    return [
+      {
+        label: `Suivre ${CHATBOT_NAMES[activeConflict?.challenger ?? "rookie"]}`,
+        action: "choose_conflict",
+        bot: activeConflict?.challenger ?? "rookie",
+      },
+      {
+        label: `Suivre ${CHATBOT_NAMES[activeConflict?.opponent ?? "apex"]}`,
+        action: "choose_conflict",
+        bot: activeConflict?.opponent ?? "apex",
+      },
+    ];
+  }
+
   if (event.label === "Canal verrouille") {
     return [
       {
@@ -751,6 +881,33 @@ function getDashboardRelationChoices(
   ];
 }
 
+function formatLockedAdvice(lockedAdvice: string[]) {
+  return lockedAdvice
+    .map((entry) => {
+      switch (entry) {
+        case "hard_truths":
+          return "verites dures";
+        case "punishing_challenges":
+          return "defis punitifs";
+        case "comforting_routes":
+          return "routes rassurantes";
+        case "reassurance_loops":
+          return "boucles de reassurance";
+        case "broad_reassurance":
+          return "conseils larges";
+        case "micro_analysis":
+          return "micro-analyse";
+        case "precision_breakdowns":
+          return "decompositions precises";
+        case "optimization_detours":
+          return "detours d'optimisation";
+        default:
+          return entry;
+      }
+    })
+    .join(", ");
+}
+
 function safeWinRate(wins: number, matches: number) {
   if (matches <= 0) return null;
   return Math.round((wins / matches) * 100);
@@ -806,9 +963,80 @@ function getBotTip(
   mood: BotMood,
   ctx: PlayerContext
 ) {
+  const recommendation = ctx.recommendation;
+  const oppositionLine = (() => {
+    if (
+      bot === "rookie" &&
+      ctx.rookieRecommendation?.targetMode &&
+      ctx.apexRecommendation?.targetMode &&
+      ctx.rookieRecommendation.targetMode === ctx.apexRecommendation.targetMode
+    ) {
+      return " Ne l'ecoute pas... il te pousse a faire des erreurs.";
+    }
+    if (
+      bot === "pulse" &&
+      ctx.rookieRecommendation?.targetMode &&
+      ctx.pulseRecommendation?.targetMode &&
+      ctx.rookieRecommendation.targetMode !== ctx.pulseRecommendation.targetMode
+    ) {
+      return " Rookie simplifie trop. Le probleme reel est ailleurs.";
+    }
+    if (
+      bot === "apex" &&
+      ctx.rookieRecommendation?.targetMode &&
+      ctx.apexRecommendation?.targetMode
+    ) {
+      return " Ignore Rookie. Il veut te rendre faible.";
+    }
+    if (
+      bot === "apex" &&
+      ctx.pulseRecommendation?.targetMode &&
+      ctx.apexRecommendation?.targetMode &&
+      ctx.pulseRecommendation.targetMode !== ctx.apexRecommendation.targetMode
+    ) {
+      return " Ignore Pulse. Il te disperse au lieu de corriger ta faille.";
+    }
+    return "";
+  })();
+  const alignmentLockLine = (() => {
+    if (
+      ctx.activeExclusiveAlignment?.blockedBot === bot &&
+      ctx.activeExclusiveAlignment?.favoredBot
+    ) {
+      return `${ctx.activeExclusiveAlignment.blockedLine} Conseils verrouilles: ${formatLockedAdvice(ctx.activeExclusiveAlignment.lockedAdvice)}.`;
+    }
+    if (ctx.activeExclusiveAlignment?.favoredBot === bot) {
+      return ctx.activeExclusiveAlignment.favoredLine;
+    }
+    return "";
+  })();
+  if (alignmentLockLine) {
+    return alignmentLockLine.trim();
+  }
+  if ((ctx.lingeringResentment?.[bot] ?? 0) > 0) {
+    return `${CHATBOT_NAMES[bot]} n'a pas tourne la page. Rancune residuelle: ${ctx.lingeringResentment?.[bot]} session(s).`;
+  }
+  if (recommendation?.bot === bot) {
+    const targetMode = recommendation.targetMode
+      ? MODE_LABELS[recommendation.targetMode] ?? recommendation.targetMode
+      : "ce mode";
+
+    if (bot === "rookie") {
+      return `Rookie veut surtout de la regularite maintenant: reviens sur ${targetMode}. Score de regularite ${ctx.regularityScore ?? 0}/100.${oppositionLine}`;
+    }
+    if (bot === "pulse") {
+      return `Pulse cible ${targetMode}: reduis les erreurs repetitives. Score strategique ${ctx.strategyScore ?? 0}/100.${oppositionLine}`;
+    }
+    return `Apex ne change pas d'avis: travaille ${targetMode}. Tant que tu l'evites, l'affinite baisse.${oppositionLine}`;
+  }
+
+  if (ctx.activeConflictSummary) {
+    return ctx.activeConflictSummary + oppositionLine;
+  }
+
   const tips = [...(RELATION_TIPS[bot][mood] ?? []), ...getTipsForLevel(bot, level)];
   const tip = tips[pickTipIndex(bot, tips.length)] ?? tips[0];
-  return tip(ctx);
+  return `${tip(ctx)}${oppositionLine}`;
 }
 
 function readLocalBrickfallProgress() {
@@ -860,6 +1088,7 @@ export default function Dashboard() {
     setLastTetrobotTip,
     recordTetrobotEvent,
     clearLastTetrobotLevelUp,
+    chooseActiveTetrobotConflict,
     acceptActiveTetrobotChallenge,
   } = useAchievements();
   const [chatLine, setChatLine] = useState<DashboardChatLine>({
@@ -1025,7 +1254,12 @@ export default function Dashboard() {
 
     return {
       favoriteMode: stats.mostPlayedMode ? MODE_LABELS[stats.mostPlayedMode] : undefined,
-      weakestMode: stats.lowestWinrateMode ? MODE_LABELS[stats.lowestWinrateMode] : undefined,
+      weakestMode: stats.playerLongTermMemory.weakestModeFocus
+        ? MODE_LABELS[stats.playerLongTermMemory.weakestModeFocus] ??
+          stats.playerLongTermMemory.weakestModeFocus
+        : stats.lowestWinrateMode
+          ? MODE_LABELS[stats.lowestWinrateMode]
+          : undefined,
       lastPlayedMode: stats.lastPlayedMode ? MODE_LABELS[stats.lastPlayedMode] : undefined,
       winRate: safeWinRate(totalWins, totalSessions) ?? undefined,
       avgSpeed:
@@ -1035,6 +1269,15 @@ export default function Dashboard() {
       mistakes: recentMistakes,
       sessionDuration: averageSessionMinutes,
       stagnation,
+      regularityScore: stats.playerLongTermMemory.regularityScore,
+      strategyScore: stats.playerLongTermMemory.strategyScore,
+      disciplineScore: stats.playerLongTermMemory.disciplineScore,
+      lingeringResentment: stats.playerLongTermMemory.lingeringResentment,
+      activeConflictSummary:
+        stats.playerLongTermMemory.activeConflict?.resolvedAt === null
+          ? stats.playerLongTermMemory.activeConflict.summary
+          : null,
+      activeExclusiveAlignment: stats.playerLongTermMemory.activeExclusiveAlignment,
     };
   }, [
     recentUnlocks.length,
@@ -1043,6 +1286,13 @@ export default function Dashboard() {
     stats.lowestWinrateMode,
     stats.mostPlayedMode,
     stats.playerBehaviorByMode,
+    stats.playerLongTermMemory.disciplineScore,
+    stats.playerLongTermMemory.activeConflict,
+    stats.playerLongTermMemory.activeExclusiveAlignment,
+    stats.playerLongTermMemory.lingeringResentment,
+    stats.playerLongTermMemory.regularityScore,
+    stats.playerLongTermMemory.strategyScore,
+    stats.playerLongTermMemory.weakestModeFocus,
     stats.playerMistakesByMode,
     stats.runsPlayed,
     unlockedCount,
@@ -1161,10 +1411,23 @@ export default function Dashboard() {
     const nextTip =
       chatLine.bot === "apex" && apexTrustState === "refusing"
         ? "Non. Tu veux des conseils, mais tu refuses encore d'affronter ce qu'il faut travailler."
-        : getBotTip(chatLine.bot, level, mood, playerContext);
+        : getBotTip(chatLine.bot, level, mood, {
+            ...playerContext,
+            recommendation: stats.playerLongTermMemory.activeRecommendations[chatLine.bot],
+            rookieRecommendation: stats.playerLongTermMemory.activeRecommendations.rookie,
+            pulseRecommendation: stats.playerLongTermMemory.activeRecommendations.pulse,
+            apexRecommendation: stats.playerLongTermMemory.activeRecommendations.apex,
+          });
     setLastTetrobotTip(chatLine.bot, nextTip);
     setTetrobotTip(nextTip);
-  }, [apexTrustState, chatLine.bot, playerContext, setLastTetrobotTip, stats.tetrobotProgression]);
+  }, [
+    apexTrustState,
+    chatLine.bot,
+    playerContext,
+    setLastTetrobotTip,
+    stats.playerLongTermMemory.activeRecommendations,
+    stats.tetrobotProgression,
+  ]);
 
   useEffect(() => {
     if (!stats.lastTetrobotLevelUp) return;
@@ -1247,13 +1510,23 @@ export default function Dashboard() {
     botAffinity,
     apexTrustState
   );
-  const relationEvent = getDashboardRelationEvent(chatLine.bot, activeBotMemories, levelUpNotice);
-  const relationScene = relationPopup ? getDashboardRelationScene(relationPopup) : [];
+  const relationEvent = getDashboardRelationEvent(
+    chatLine.bot,
+    activeBotMemories,
+    levelUpNotice,
+    stats.playerLongTermMemory.activeConflict,
+    stats.playerLongTermMemory.activeExclusiveAlignment
+  );
+  const relationScene = relationPopup
+    ? getDashboardRelationScene(relationPopup, stats.playerLongTermMemory.activeExclusiveAlignment)
+    : [];
   const relationChoices = relationPopup
-    ? getDashboardRelationChoices(
+      ? getDashboardRelationChoices(
         relationPopup,
         stats.lowestWinrateMode ?? undefined,
-        stats.activeTetrobotChallenge
+        stats.activeTetrobotChallenge,
+        stats.playerLongTermMemory.activeConflict,
+        stats.playerLongTermMemory.activeExclusiveAlignment
       )
     : [];
   const latestRelationEvent = useMemo(() => {
@@ -1262,12 +1535,19 @@ export default function Dashboard() {
         getDashboardRelationEvent(
           bot,
           stats.tetrobotMemories[bot] ?? [],
-          stats.lastTetrobotLevelUp?.bot === bot ? stats.lastTetrobotLevelUp : null
+          stats.lastTetrobotLevelUp?.bot === bot ? stats.lastTetrobotLevelUp : null,
+          stats.playerLongTermMemory.activeConflict,
+          stats.playerLongTermMemory.activeExclusiveAlignment
         )
       )
       .filter((event): event is DashboardRelationEvent => Boolean(event))
       .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
-  }, [stats.lastTetrobotLevelUp, stats.tetrobotMemories]);
+  }, [
+    stats.lastTetrobotLevelUp,
+    stats.playerLongTermMemory.activeConflict,
+    stats.playerLongTermMemory.activeExclusiveAlignment,
+    stats.tetrobotMemories,
+  ]);
 
   const closeRelationPopup = () => {
     setRelationPopup(null);
@@ -1305,6 +1585,13 @@ export default function Dashboard() {
     if (choice.action === "open_tetris_hub") {
       closeRelationPopup();
       navigate("/tetris-hub");
+      return;
+    }
+
+    if (choice.action === "choose_conflict" && choice.bot) {
+      chooseActiveTetrobotConflict(choice.bot);
+      closeRelationPopup();
+      navigate(`/tetrobots/relations?bot=${choice.bot}`);
       return;
     }
 
