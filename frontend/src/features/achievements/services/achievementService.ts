@@ -5,6 +5,15 @@ const API_URL = import.meta.env.VITE_API_URL;
 let unlockedAchievementsRequest: Promise<{ id: string; unlockedAt: number }[]> | null = null;
 let achievementStatsRequest: Promise<AchievementStatsPayload> | null = null;
 
+function getNoStoreHeaders(headers: HeadersInit = {}): HeadersInit {
+  return {
+    "Cache-Control": "no-cache, no-store, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    ...headers,
+  };
+}
+
 export type AchievementStatsPayload = {
   stats?: Partial<AchievementStats>;
   loginDays: string[];
@@ -31,9 +40,10 @@ export async function fetchUnlockedAchievements(): Promise<
 > {
   if (!unlockedAchievementsRequest) {
     unlockedAchievementsRequest = fetch(`${API_URL}/achievements`, {
-      headers: {
+      cache: "no-store",
+      headers: getNoStoreHeaders({
         ...getAuthHeader(),
-      },
+      }),
       credentials: "include",
     })
       .then(async (res) => {
@@ -57,11 +67,12 @@ export async function unlockAchievements(
 ): Promise<void> {
   const res = await fetch(`${API_URL}/achievements/unlock`, {
     method: "POST",
+    cache: "no-store",
     credentials: "include",
-    headers: {
+    headers: getNoStoreHeaders({
       "Content-Type": "application/json",
       ...getAuthHeader(),
-    },
+    }),
     body: JSON.stringify({ achievements }),
   });
 
@@ -73,9 +84,10 @@ export async function unlockAchievements(
 export async function fetchAchievementStats(): Promise<AchievementStatsPayload> {
   if (!achievementStatsRequest) {
     achievementStatsRequest = fetch(`${API_URL}/achievements/stats`, {
-      headers: {
+      cache: "no-store",
+      headers: getNoStoreHeaders({
         ...getAuthHeader(),
-      },
+      }),
       credentials: "include",
     })
       .then(async (res) => {
@@ -107,11 +119,12 @@ export async function fetchAchievementStats(): Promise<AchievementStatsPayload> 
 export async function saveAchievementStats(payload: AchievementStatsPayload): Promise<void> {
   const res = await fetch(`${API_URL}/achievements/stats`, {
     method: "POST",
+    cache: "no-store",
     credentials: "include",
-    headers: {
+    headers: getNoStoreHeaders({
       "Content-Type": "application/json",
       ...getAuthHeader(),
-    },
+    }),
     body: JSON.stringify(payload),
   });
 

@@ -4,6 +4,15 @@ import type { Settings } from "../types/Settings";
 const API_URL = import.meta.env.VITE_API_URL;
 let settingsRequest: Promise<Settings | null> | null = null;
 
+function getNoStoreHeaders(headers: HeadersInit = {}): HeadersInit {
+  return {
+    "Cache-Control": "no-cache, no-store, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    ...headers,
+  };
+}
+
 type SettingsResponse = {
   settings?: Settings | null;
 };
@@ -21,9 +30,10 @@ export async function fetchUserSettings(): Promise<Settings | null> {
   if (!settingsRequest) {
     settingsRequest = fetch(`${API_URL}/auth/settings`, {
       method: "GET",
-      headers: {
+      cache: "no-store",
+      headers: getNoStoreHeaders({
         ...getAuthHeader(),
-      },
+      }),
       credentials: "include",
     })
       .then(async (res) => {
@@ -46,10 +56,11 @@ export async function fetchUserSettings(): Promise<Settings | null> {
 export async function saveUserSettings(settings: Settings): Promise<void> {
   const res = await fetch(`${API_URL}/auth/settings`, {
     method: "PUT",
-    headers: {
+    cache: "no-store",
+    headers: getNoStoreHeaders({
       "Content-Type": "application/json",
       ...getAuthHeader(),
-    },
+    }),
     credentials: "include",
     body: JSON.stringify({ settings }),
   });
