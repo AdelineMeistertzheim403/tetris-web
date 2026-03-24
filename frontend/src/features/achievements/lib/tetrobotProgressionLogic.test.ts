@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { syncTetrobotProgressionState } from "./tetrobotProgressionLogic";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function createBaseStats() {
   return {
@@ -50,6 +54,15 @@ function createBaseStats() {
       consistencyScore: 0,
       courageScore: 0,
       disciplineScore: 0,
+      regularityScore: 0,
+      strategyScore: 0,
+      weakestModeFocus: null,
+      strongestModeFocus: null,
+      activeRecommendations: {
+        rookie: null,
+        pulse: null,
+        apex: null,
+      },
     },
     playerMistakesByMode: {
       CLASSIQUE: {
@@ -380,5 +393,70 @@ describe("tetrobotProgressionLogic", () => {
     expect(result.tetrobotMemories.pulse.some((entry) => entry.type === "player_progress")).toBe(
       true
     );
+  });
+
+  it("creates a persistent Apex focus on the weakest mode and penalizes avoidance", () => {
+    const stats = createBaseStats();
+    stats.playerBehaviorByMode.CLASSIQUE.sessions = 6;
+    stats.playerBehaviorByMode.CLASSIQUE.losses = 5;
+    stats.playerBehaviorByMode.SPRINT.sessions = 4;
+    stats.playerBehaviorByMode.SPRINT.wins = 3;
+
+    const first = syncTetrobotProgressionState(stats);
+    expect(first.playerLongTermMemory.activeRecommendations.apex?.targetMode).toBe("CLASSIQUE");
+
+    const avoided = {
+      ...stats,
+      playerLongTermMemory: first.playerLongTermMemory,
+      tetrobotProgression: first.tetrobotProgression,
+      tetrobotXpLedger: first.tetrobotXpLedger,
+      tetrobotAffinityLedger: first.tetrobotAffinityLedger,
+      tetrobotMemories: first.tetrobotMemories,
+      counters: { ...stats.counters, ...first.counterDeltas },
+      playerBehaviorByMode: {
+        ...stats.playerBehaviorByMode,
+        SPRINT: { ...stats.playerBehaviorByMode.SPRINT, sessions: 6, wins: 5 },
+      },
+    };
+
+    const second = syncTetrobotProgressionState(avoided);
+    expect(second.tetrobotProgression.apex.affinity).toBeLessThan(
+      first.tetrobotProgression.apex.affinity
+    );
+    expect(second.tetrobotMemories.apex.some((entry) => entry.type === "player_avoidance")).toBe(
+      true
+    );
+  });
+
+  it("penalizes ignored recommendations after enough real time passes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-24T09:00:00Z"));
+
+    const stats = createBaseStats();
+    stats.playerBehaviorByMode.CLASSIQUE.sessions = 6;
+    stats.playerBehaviorByMode.CLASSIQUE.losses = 5;
+    stats.playerBehaviorByMode.SPRINT.sessions = 4;
+    stats.playerBehaviorByMode.SPRINT.wins = 3;
+
+    const first = syncTetrobotProgressionState(stats);
+    expect(first.playerLongTermMemory.activeRecommendations.apex?.targetMode).toBe("CLASSIQUE");
+
+    vi.setSystemTime(new Date("2026-03-26T00:00:00Z"));
+
+    const delayed = {
+      ...stats,
+      playerLongTermMemory: first.playerLongTermMemory,
+      tetrobotProgression: first.tetrobotProgression,
+      tetrobotXpLedger: first.tetrobotXpLedger,
+      tetrobotAffinityLedger: first.tetrobotAffinityLedger,
+      tetrobotMemories: first.tetrobotMemories,
+      counters: { ...stats.counters, ...first.counterDeltas },
+    };
+
+    const second = syncTetrobotProgressionState(delayed);
+    expect(second.tetrobotProgression.apex.affinity).toBeLessThan(
+      first.tetrobotProgression.apex.affinity
+    );
+    expect(second.playerLongTermMemory.activeRecommendations.apex?.ignoredMs).toBeGreaterThan(0);
   });
 });

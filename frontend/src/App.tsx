@@ -3,44 +3,58 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./features/app/components/Navbar";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
-import Dashboard from "./features/app/pages/Dashboard";
-import TetrisHub from "./features/app/pages/TetrisHub";
-import TetroVerseHub from "./features/app/pages/TetroVerseHub";
-import Game from "./features/game/pages/Game";
-import Leaderboard from "./features/game/pages/Leaderboard";
 import ProtectedRoute from "./features/auth/components/ProtectedRoute";
 import Home from "./features/app/pages/Home";
-import Sprint from "./features/game/pages/Sprint";
-import Versus from "./features/versus/pages/Versus";
-import RoguelikePage from "./features/roguelike/pages/RoguelikePage";
-import RoguelikeLexicon from "./features/roguelike/pages/RoguelikeLexicon";
-import RoguelikeVersus from "./features/roguelikeVersus/pages/RoguelikeVersus";
-import BrickfallSolo from "./features/brickfallSolo/pages/BrickfallSolo";
-import BrickfallSoloPlay from "./features/brickfallSolo/pages/BrickfallSoloPlay";
-import BrickfallEditor from "./features/brickfallSolo/pages/BrickfallEditor";
-import BrickfallEditorHelp from "./features/brickfallSolo/pages/BrickfallEditorHelp";
-import BrickfallSoloCommunityHub from "./features/brickfallSolo/pages/BrickfallSoloCommunityHub";
-import AchievementsPage from "./features/achievements/pages/AchievementsPage";
-import Settings from "./features/settings/pages/Settings";
-import PuzzleSelect from "./features/puzzle/pages/PuzzleSelect";
-import PuzzleRun from "./features/puzzle/pages/PuzzleRun";
-import TetromazePage from "./features/tetromaze/pages/TetromazePage";
-import TetromazeHub from "./features/tetromaze/pages/TetromazeHub";
-import TetromazeEditor from "./features/tetromaze/pages/TetromazeEditor";
-import TetromazeEditorHelp from "./features/tetromaze/pages/TetromazeEditorHelp";
-import TetromazeCommunityHub from "./features/tetromaze/pages/TetromazeCommunityHub";
-import TetrobotsPage from "./features/tetrobots/pages/TetrobotsPage";
-import TetrobotsHelpPage from "./features/tetrobots/pages/TetrobotsHelpPage";
-import TetrobotsRelationsPage from "./features/tetrobots/pages/TetrobotsRelationsPage";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
 
+const Dashboard = lazy(() => import("./features/app/pages/Dashboard"));
+const TetrisHub = lazy(() => import("./features/app/pages/TetrisHub"));
+const TetroVerseHub = lazy(() => import("./features/app/pages/TetroVerseHub"));
+const Game = lazy(() => import("./features/game/pages/Game"));
+const Leaderboard = lazy(() => import("./features/game/pages/Leaderboard"));
+const Sprint = lazy(() => import("./features/game/pages/Sprint"));
+const Versus = lazy(() => import("./features/versus/pages/Versus"));
+const RoguelikePage = lazy(() => import("./features/roguelike/pages/RoguelikePage"));
+const RoguelikeLexicon = lazy(() => import("./features/roguelike/pages/RoguelikeLexicon"));
+const RoguelikeVersus = lazy(() => import("./features/roguelikeVersus/pages/RoguelikeVersus"));
+const BrickfallSolo = lazy(() => import("./features/brickfallSolo/pages/BrickfallSolo"));
+const BrickfallSoloPlay = lazy(() => import("./features/brickfallSolo/pages/BrickfallSoloPlay"));
+const BrickfallEditor = lazy(() => import("./features/brickfallSolo/pages/BrickfallEditor"));
+const BrickfallEditorHelp = lazy(() => import("./features/brickfallSolo/pages/BrickfallEditorHelp"));
+const BrickfallSoloCommunityHub = lazy(
+  () => import("./features/brickfallSolo/pages/BrickfallSoloCommunityHub")
+);
+const AchievementsPage = lazy(() => import("./features/achievements/pages/AchievementsPage"));
+const Settings = lazy(() => import("./features/settings/pages/Settings"));
+const PuzzleSelect = lazy(() => import("./features/puzzle/pages/PuzzleSelect"));
+const PuzzleRun = lazy(() => import("./features/puzzle/pages/PuzzleRun"));
+const TetromazePage = lazy(() => import("./features/tetromaze/pages/TetromazePage"));
+const TetromazeHub = lazy(() => import("./features/tetromaze/pages/TetromazeHub"));
+const TetromazeEditor = lazy(() => import("./features/tetromaze/pages/TetromazeEditor"));
+const TetromazeEditorHelp = lazy(() => import("./features/tetromaze/pages/TetromazeEditorHelp"));
+const TetromazeCommunityHub = lazy(
+  () => import("./features/tetromaze/pages/TetromazeCommunityHub")
+);
+const TetrobotsPage = lazy(() => import("./features/tetrobots/pages/TetrobotsPage"));
+const TetrobotsHelpPage = lazy(() => import("./features/tetrobots/pages/TetrobotsHelpPage"));
+const TetrobotsRelationsPage = lazy(
+  () => import("./features/tetrobots/pages/TetrobotsRelationsPage")
+);
 const PixelProtocolHub = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolHub"));
 const PixelProtocolPage = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolPage"));
-const PixelProtocolEditor = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolEditor"));
-const PixelProtocolEditorHelp = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolEditorHelp"));
-const PixelProtocolCommunityHub = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityHub"));
-const PixelProtocolCommunityLevelPage = lazy(() => import("./features/pixelProtocol/pages/PixelProtocolCommunityLevelPage"));
+const PixelProtocolEditor = lazy(
+  () => import("./features/pixelProtocol/pages/PixelProtocolEditor")
+);
+const PixelProtocolEditorHelp = lazy(
+  () => import("./features/pixelProtocol/pages/PixelProtocolEditorHelp")
+);
+const PixelProtocolCommunityHub = lazy(
+  () => import("./features/pixelProtocol/pages/PixelProtocolCommunityHub")
+);
+const PixelProtocolCommunityLevelPage = lazy(
+  () => import("./features/pixelProtocol/pages/PixelProtocolCommunityLevelPage")
+);
 const PixelInvasionPage = lazy(() => import("./features/pixelInvasion/pages/PixelInvasionPage"));
 
 function App() {

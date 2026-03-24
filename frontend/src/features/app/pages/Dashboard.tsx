@@ -8,6 +8,7 @@ import type {
   BotMood,
   TetrobotChallengeState,
   TetrobotId,
+  TetrobotRecommendation,
 } from "../../achievements/types/tetrobots";
 import { getApexTrustState } from "../../achievements/lib/tetrobotAchievementLogic";
 import {
@@ -82,6 +83,10 @@ type PlayerContext = {
   mistakes?: string[];
   sessionDuration?: number;
   stagnation?: boolean;
+  regularityScore?: number;
+  strategyScore?: number;
+  disciplineScore?: number;
+  recommendation?: TetrobotRecommendation | null;
 };
 
 type Tip = (ctx: PlayerContext) => string;
@@ -320,6 +325,7 @@ const MODE_LABELS: Record<string, string> = {
   ROGUELIKE_VERSUS: "Roguelike Versus",
   PUZZLE: "Puzzle",
   TETROMAZE: "Tetromaze",
+  PIXEL_INVASION: "Pixel Invasion",
   PIXEL_PROTOCOL: "Pixel Protocol",
 };
 
@@ -332,6 +338,7 @@ const MODE_ROUTE_MAP: Partial<Record<string, string>> = {
   ROGUELIKE_VERSUS: "/roguelike-versus",
   PUZZLE: "/puzzle",
   TETROMAZE: "/tetromaze",
+  PIXEL_INVASION: "/pixel-invasion",
   PIXEL_PROTOCOL: "/pixel-protocol",
 };
 
@@ -539,6 +546,7 @@ function getDashboardRelationSummary(
     if (affinity >= 50) return "Rookie commence a te faire confiance.";
     if (affinity >= 10) return "Rookie te suit encore, mais attend plus de regularite.";
     if (affinity <= -30) return "Rookie doute de ta facon d'apprendre sous pression.";
+    if (mood !== "angry") return "Rookie mesure encore ta regularite reelle entre les modes.";
     return "Rookie t'observe encore avec prudence.";
   }
 
@@ -546,6 +554,7 @@ function getDashboardRelationSummary(
     if (affinity >= 50) return "Pulse valide enfin des progres qu'il juge mesurables.";
     if (affinity >= 10) return "Pulse analyse tes runs avec un interet methodique.";
     if (affinity <= -30) return "Pulse voit encore trop d'erreurs repetees sans correction nette.";
+    if (mood !== "angry") return "Pulse attend une baisse nette de tes erreurs avant de te croire.";
     return "Pulse reste en phase de lecture et de verification.";
   }
 
@@ -806,6 +815,21 @@ function getBotTip(
   mood: BotMood,
   ctx: PlayerContext
 ) {
+  const recommendation = ctx.recommendation;
+  if (recommendation?.bot === bot) {
+    const targetMode = recommendation.targetMode
+      ? MODE_LABELS[recommendation.targetMode] ?? recommendation.targetMode
+      : "ce mode";
+
+    if (bot === "rookie") {
+      return `Rookie veut surtout de la regularite maintenant: reviens sur ${targetMode}. Score de regularite ${ctx.regularityScore ?? 0}/100.`;
+    }
+    if (bot === "pulse") {
+      return `Pulse cible ${targetMode}: reduis les erreurs repetitives. Score strategique ${ctx.strategyScore ?? 0}/100.`;
+    }
+    return `Apex ne change pas d'avis: travaille ${targetMode}. Tant que tu l'evites, l'affinite baisse.`;
+  }
+
   const tips = [...(RELATION_TIPS[bot][mood] ?? []), ...getTipsForLevel(bot, level)];
   const tip = tips[pickTipIndex(bot, tips.length)] ?? tips[0];
   return tip(ctx);
@@ -1025,7 +1049,12 @@ export default function Dashboard() {
 
     return {
       favoriteMode: stats.mostPlayedMode ? MODE_LABELS[stats.mostPlayedMode] : undefined,
-      weakestMode: stats.lowestWinrateMode ? MODE_LABELS[stats.lowestWinrateMode] : undefined,
+      weakestMode: stats.playerLongTermMemory.weakestModeFocus
+        ? MODE_LABELS[stats.playerLongTermMemory.weakestModeFocus] ??
+          stats.playerLongTermMemory.weakestModeFocus
+        : stats.lowestWinrateMode
+          ? MODE_LABELS[stats.lowestWinrateMode]
+          : undefined,
       lastPlayedMode: stats.lastPlayedMode ? MODE_LABELS[stats.lastPlayedMode] : undefined,
       winRate: safeWinRate(totalWins, totalSessions) ?? undefined,
       avgSpeed:
@@ -1035,6 +1064,9 @@ export default function Dashboard() {
       mistakes: recentMistakes,
       sessionDuration: averageSessionMinutes,
       stagnation,
+      regularityScore: stats.playerLongTermMemory.regularityScore,
+      strategyScore: stats.playerLongTermMemory.strategyScore,
+      disciplineScore: stats.playerLongTermMemory.disciplineScore,
     };
   }, [
     recentUnlocks.length,
@@ -1043,6 +1075,10 @@ export default function Dashboard() {
     stats.lowestWinrateMode,
     stats.mostPlayedMode,
     stats.playerBehaviorByMode,
+    stats.playerLongTermMemory.disciplineScore,
+    stats.playerLongTermMemory.regularityScore,
+    stats.playerLongTermMemory.strategyScore,
+    stats.playerLongTermMemory.weakestModeFocus,
     stats.playerMistakesByMode,
     stats.runsPlayed,
     unlockedCount,
@@ -1161,10 +1197,20 @@ export default function Dashboard() {
     const nextTip =
       chatLine.bot === "apex" && apexTrustState === "refusing"
         ? "Non. Tu veux des conseils, mais tu refuses encore d'affronter ce qu'il faut travailler."
-        : getBotTip(chatLine.bot, level, mood, playerContext);
+        : getBotTip(chatLine.bot, level, mood, {
+            ...playerContext,
+            recommendation: stats.playerLongTermMemory.activeRecommendations[chatLine.bot],
+          });
     setLastTetrobotTip(chatLine.bot, nextTip);
     setTetrobotTip(nextTip);
-  }, [apexTrustState, chatLine.bot, playerContext, setLastTetrobotTip, stats.tetrobotProgression]);
+  }, [
+    apexTrustState,
+    chatLine.bot,
+    playerContext,
+    setLastTetrobotTip,
+    stats.playerLongTermMemory.activeRecommendations,
+    stats.tetrobotProgression,
+  ]);
 
   useEffect(() => {
     if (!stats.lastTetrobotLevelUp) return;

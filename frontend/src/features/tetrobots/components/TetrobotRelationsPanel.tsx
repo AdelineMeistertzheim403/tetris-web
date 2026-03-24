@@ -68,17 +68,33 @@ function getStatusLabel(bot: TetrobotId, affinity: number) {
   return "Jugement froid";
 }
 
-function getThought(bot: TetrobotId, affinity: number, memories: BotMemoryEntry[]) {
+function getThought(
+  bot: TetrobotId,
+  affinity: number,
+  memories: BotMemoryEntry[],
+  stats: RelationsStats
+) {
   const latest = memories[0]?.text;
+  const recommendation = stats.playerLongTermMemory.activeRecommendations[bot];
+  const targetMode = recommendation?.targetMode ? getModeLabel(recommendation.targetMode) : null;
   if (bot === "rookie") {
+    if (recommendation && targetMode) {
+      return latest ?? `Rookie attend plus de regularite: il veut te revoir sur ${targetMode}.`;
+    }
     if (affinity >= 50) return latest ?? "Tu reviens apres tes echecs. Rookie y voit de la vraie perseverance.";
     if (affinity <= -30) return latest ?? "Rookie pense que tu abandonnes trop vite quand la pression monte.";
     return latest ?? "Rookie observe encore ta maniere d'apprendre.";
   }
   if (bot === "pulse") {
+    if (recommendation && targetMode) {
+      return latest ?? `Pulse cible ${targetMode}: il veut voir moins d'erreurs repetitives.`;
+    }
     if (affinity >= 50) return latest ?? "Pulse estime que tes progres deviennent enfin mesurables.";
     if (affinity <= -30) return latest ?? "Pulse voit surtout des erreurs repetees sans correction claire.";
     return latest ?? "Pulse compile encore des donnees sur ton execution.";
+  }
+  if (recommendation && targetMode) {
+    return latest ?? `Apex fixe toujours la meme cible: ${targetMode}. Il ne lachera pas tant que tu l'evites.`;
   }
   if (affinity >= 50) return latest ?? "Apex admet enfin que tu affrontes parfois ce que tu evites.";
   if (affinity <= -60) return latest ?? "Apex considere que tu refuses encore le vrai travail.";
@@ -147,13 +163,14 @@ function getProgressItems(
   stats: RelationsStats,
   apexTrustState: ReturnType<typeof getApexTrustState>
 ): TetrobotRelationProgressItem[] {
-  const weakMode = stats.lowestWinrateMode;
+  const weakMode = stats.playerLongTermMemory.weakestModeFocus ?? stats.lowestWinrateMode;
   const weakModeLabel = getModeLabel(weakMode);
   const weakModeActionTarget = getModeActionTarget(weakMode);
   const weakModeSessions = weakMode ? stats.playerBehaviorByMode[weakMode]?.sessions ?? 0 : 0;
   const weakModeWins = weakMode ? stats.playerBehaviorByMode[weakMode]?.wins ?? 0 : 0;
 
   if (bot === "rookie") {
+    const rookieRecommendation = stats.playerLongTermMemory.activeRecommendations.rookie;
     return sortProgressItems([
       {
         id: "rookie-affinity",
@@ -178,26 +195,28 @@ function getProgressItems(
         tone: stats.tetrobotProgression.rookie.affinity >= 60 ? "success" : "neutral",
       },
       {
-        id: "rookie-tips",
-        label: "Je t'ecoute",
-        current: stats.counters.rookie_tips_followed ?? 0,
-        target: 3,
-        detail: "Suis ses conseils utiles sur plusieurs sessions propres.",
+        id: "rookie-regularity",
+        label: "Regularite mesuree",
+        current: stats.playerLongTermMemory.regularityScore,
+        target: 70,
+        detail: rookieRecommendation?.targetMode
+          ? `Rookie veut un vrai retour sur ${getModeLabel(rookieRecommendation.targetMode)}.`
+          : "Rookie valorise une pratique plus reguliere entre les modes.",
         stateLabel:
-          (stats.counters.rookie_tips_followed ?? 0) >= 3
+          stats.playerLongTermMemory.regularityScore >= 70
             ? "termine"
-            : (stats.counters.rookie_tips_followed ?? 0) >= 2
+            : stats.playerLongTermMemory.regularityScore >= 55
               ? "presque pret"
-              : (stats.counters.rookie_tips_followed ?? 0) > 0
+              : stats.playerLongTermMemory.regularityScore > 0
               ? "en cours"
               : "bloque",
         actionLabel:
-          (stats.counters.rookie_tips_followed ?? 0) >= 3 ? undefined : "Relire l'aide Rookie",
+          rookieRecommendation?.targetMode ? `Jouer ${getModeLabel(rookieRecommendation.targetMode)}` : undefined,
         actionTo:
-          (stats.counters.rookie_tips_followed ?? 0) >= 3
-            ? undefined
-            : "/tetrobots/help#rookie-relationship",
-        tone: (stats.counters.rookie_tips_followed ?? 0) >= 3 ? "success" : "neutral",
+          rookieRecommendation?.targetMode
+            ? getModeActionTarget(rookieRecommendation.targetMode) ?? undefined
+            : undefined,
+        tone: stats.playerLongTermMemory.regularityScore >= 70 ? "success" : "neutral",
       },
       {
         id: "rookie-read",
@@ -221,21 +240,31 @@ function getProgressItems(
   }
 
   if (bot === "pulse") {
+    const pulseRecommendation = stats.playerLongTermMemory.activeRecommendations.pulse;
     return sortProgressItems([
       {
         id: "pulse-analysis",
         label: "Analyse en cours",
-        current: stats.counters.pulse_advice_success ?? 0,
-        target: 1,
-        detail: "Une progression mesurable suffit pour convaincre Pulse.",
-        stateLabel: (stats.counters.pulse_advice_success ?? 0) >= 1 ? "termine" : "en cours",
+        current: stats.playerLongTermMemory.strategyScore,
+        target: 75,
+        detail: pulseRecommendation?.targetMode
+          ? `Pulse attend une baisse d'erreurs sur ${getModeLabel(pulseRecommendation.targetMode)}.`
+          : "Une progression mesurable suffit pour convaincre Pulse.",
+        stateLabel:
+          stats.playerLongTermMemory.strategyScore >= 75
+            ? "termine"
+            : stats.playerLongTermMemory.strategyScore >= 60
+              ? "presque pret"
+              : "en cours",
         actionLabel:
-          (stats.counters.pulse_advice_success ?? 0) >= 1 ? undefined : "Voir l'aide Pulse",
+          pulseRecommendation?.targetMode ? `Corriger ${getModeLabel(pulseRecommendation.targetMode)}` : "Voir l'aide Pulse",
         actionTo:
-          (stats.counters.pulse_advice_success ?? 0) >= 1
-            ? undefined
-            : "/tetrobots/help#pulse-overview",
-        tone: (stats.counters.pulse_advice_success ?? 0) >= 1 ? "success" : "neutral",
+          pulseRecommendation?.targetMode
+            ? getModeActionTarget(pulseRecommendation.targetMode) ?? undefined
+            : stats.playerLongTermMemory.strategyScore >= 75
+              ? undefined
+              : "/tetrobots/help#pulse-overview",
+        tone: stats.playerLongTermMemory.strategyScore >= 75 ? "success" : "neutral",
       },
       {
         id: "pulse-consistency",
@@ -423,9 +452,12 @@ export default function TetrobotRelationsPanel({
   const state = stats.tetrobotProgression[bot];
   const memories = stats.tetrobotMemories[bot] ?? [];
   const trustState = bot === "apex" ? apexTrustState : undefined;
+  const recommendation = stats.playerLongTermMemory.activeRecommendations[bot];
   const requirement =
     bot === "apex"
       ? getApexRequirement(stats.playerLongTermMemory, apexTrustState)
+      : recommendation?.reason
+        ? recommendation.reason
       : BOT_META[bot].relationGoal;
 
   return (
@@ -446,6 +478,14 @@ export default function TetrobotRelationsPanel({
           <div>
             <span>Consistance</span>
             <strong>{stats.playerLongTermMemory.consistencyScore}</strong>
+          </div>
+          <div>
+            <span>Regularite</span>
+            <strong>{stats.playerLongTermMemory.regularityScore}</strong>
+          </div>
+          <div>
+            <span>Strategie</span>
+            <strong>{stats.playerLongTermMemory.strategyScore}</strong>
           </div>
           <div>
             <span>Courage</span>
@@ -471,7 +511,7 @@ export default function TetrobotRelationsPanel({
           mood={state.mood}
           status={getStatusLabel(bot, state.affinity)}
           signature={state.lastTip ?? "Aucune observation recente."}
-          thoughts={getThought(bot, state.affinity, memories)}
+          thoughts={getThought(bot, state.affinity, memories, stats)}
           requirement={requirement}
           progressItems={getProgressItems(bot, stats, apexTrustState)}
           memories={memories}

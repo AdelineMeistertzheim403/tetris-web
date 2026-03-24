@@ -91,6 +91,32 @@ export type PlayerLongTermMemory = {
   consistencyScore: number;
   courageScore: number;
   disciplineScore: number;
+  regularityScore: number;
+  strategyScore: number;
+  weakestModeFocus: PlayerBehaviorMode | null;
+  strongestModeFocus: PlayerBehaviorMode | null;
+  activeRecommendations: Record<TetrobotId, TetrobotRecommendation | null>;
+};
+
+export type TetrobotRecommendationKind =
+  | "play_underplayed_mode"
+  | "reduce_mistakes"
+  | "train_weak_mode";
+
+export type TetrobotRecommendation = {
+  bot: TetrobotId;
+  kind: TetrobotRecommendationKind;
+  targetMode: PlayerBehaviorMode | null;
+  reason: string;
+  issuedAt: number;
+  lastEvaluatedAt: number;
+  totalSessionsAtIssue: number;
+  targetModeSessionsAtIssue: number;
+  ignoredSessions: number;
+  ignoreThreshold: number;
+  ignoredMs: number;
+  ignoreThresholdMs: number;
+  penaltyCount: number;
 };
 
 export type BotMemoryEntry = {

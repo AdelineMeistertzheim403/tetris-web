@@ -54,6 +54,15 @@ function createStats(): AchievementDerivedStats {
       consistencyScore: 0,
       courageScore: 0,
       disciplineScore: 0,
+      regularityScore: 0,
+      strategyScore: 0,
+      weakestModeFocus: null,
+      strongestModeFocus: null,
+      activeRecommendations: {
+        rookie: null,
+        pulse: null,
+        apex: null,
+      },
     },
     playerMistakesByMode: {
       CLASSIQUE: {

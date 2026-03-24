@@ -195,6 +195,15 @@ const DEFAULT_PLAYER_LONG_TERM_MEMORY: PlayerLongTermMemory = {
   consistencyScore: 0,
   courageScore: 0,
   disciplineScore: 0,
+  regularityScore: 0,
+  strategyScore: 0,
+  weakestModeFocus: null,
+  strongestModeFocus: null,
+  activeRecommendations: {
+    rookie: null,
+    pulse: null,
+    apex: null,
+  },
 };
 
 const createTetrobotMemories = (): Record<TetrobotId, BotMemoryEntry[]> => ({
@@ -385,6 +394,10 @@ const mergeStats = (raw: Partial<AchievementStats> | null): AchievementStats => 
       ...(raw.playerLongTermMemory ?? {}),
       recurringMistakes:
         (raw.playerLongTermMemory?.recurringMistakes as MistakeMemory[] | undefined) ?? [],
+      activeRecommendations: {
+        ...DEFAULT_PLAYER_LONG_TERM_MEMORY.activeRecommendations,
+        ...((raw.playerLongTermMemory?.activeRecommendations as PlayerLongTermMemory["activeRecommendations"] | undefined) ?? {}),
+      },
     },
     tetrobotMemories: {
       ...createTetrobotMemories(),
@@ -1884,6 +1897,55 @@ function useAchievementsValue(): UseAchievementsValue {
     stats.tetrobotAffinityLedger,
     stats.tetrobotMemories,
     stats.tetrobotProgression,
+  ]);
+
+  useEffect(() => {
+    updateStats((prev) => {
+      const next = syncTetrobotProgressionState(prev);
+
+      if (
+        !next.changed &&
+        areRecordNumbersEqual(prev.tetrobotXpLedger, next.tetrobotXpLedger) &&
+        areRecordNumbersEqual(prev.tetrobotAffinityLedger, next.tetrobotAffinityLedger) &&
+        JSON.stringify(prev.playerLongTermMemory) === JSON.stringify(next.playerLongTermMemory) &&
+        areMemoriesEqual(prev.tetrobotMemories, next.tetrobotMemories) &&
+        areChallengesEqual(prev.activeTetrobotChallenge, next.activeTetrobotChallenge) &&
+        areTetrobotLevelUpsEqual(prev.lastTetrobotLevelUp, next.lastTetrobotLevelUp)
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        counters: Object.entries(next.counterDeltas).length
+          ? Object.entries(next.counterDeltas).reduce(
+              (acc, [key, value]) => {
+                acc[key] = (acc[key] ?? 0) + value;
+                return acc;
+              },
+              { ...prev.counters } as Record<string, number>
+            )
+          : prev.counters,
+        tetrobotProgression: next.tetrobotProgression,
+        tetrobotXpLedger: next.tetrobotXpLedger,
+        tetrobotAffinityLedger: next.tetrobotAffinityLedger,
+        playerLongTermMemory: next.playerLongTermMemory,
+        tetrobotMemories: next.tetrobotMemories,
+        lastTetrobotLevelUp: next.lastTetrobotLevelUp,
+        activeTetrobotChallenge: next.activeTetrobotChallenge,
+      };
+    });
+  }, [
+    stats.botApexWins,
+    stats.counters,
+    stats.level10Modes,
+    stats.modesVisited,
+    stats.playerBehaviorByMode,
+    stats.playerMistakeLastSeenByMode,
+    stats.playerMistakesByMode,
+    stats.scoredModes,
+    stats.tetromazeEscapesTotal,
+    updateStats,
   ]);
 
   useEffect(() => {

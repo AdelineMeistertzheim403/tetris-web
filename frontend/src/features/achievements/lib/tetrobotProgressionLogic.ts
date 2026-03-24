@@ -18,6 +18,7 @@ import type {
   TetrobotChallengeState,
   TetrobotId,
   TetrobotLevelUp,
+  TetrobotRecommendation,
   TetrobotXpEvent,
   TetrobotXpLedger,
 } from "../types/tetrobots";
@@ -117,6 +118,24 @@ const TETROBOT_LEVEL_UP_MESSAGES: Record<TetrobotId, Partial<Record<BotLevel, st
   },
 };
 
+const BOT_IGNORE_THRESHOLDS: Record<TetrobotId, number> = {
+  rookie: 5,
+  pulse: 4,
+  apex: 2,
+};
+
+const BOT_IGNORE_TIME_THRESHOLDS_MS: Record<TetrobotId, number> = {
+  rookie: 5 * 24 * 60 * 60 * 1000,
+  pulse: 3 * 24 * 60 * 60 * 1000,
+  apex: 36 * 60 * 60 * 1000,
+};
+
+const BOT_IGNORE_AFFINITY_PENALTIES: Record<TetrobotId, number> = {
+  rookie: -4,
+  pulse: -6,
+  apex: -12,
+};
+
 export const BOT_LEVEL_XP_BANDS: Array<{
   level: BotLevel;
   minXp: number;
@@ -211,19 +230,92 @@ export function getMood(affinity: number): BotMood {
 function updateAffinity(bot: TetrobotId, event: TetrobotAffinityEvent) {
   switch (bot) {
     case "rookie":
-      if (event === "play_regularly") return 5;
-      if (event === "rage_quit") return -10;
+      if (event === "play_regularly") return 3;
+      if (event === "rage_quit") return -12;
       break;
     case "pulse":
-      if (event === "improve_stat") return 10;
-      if (event === "repeat_mistake") return -5;
+      if (event === "improve_stat") return 5;
+      if (event === "repeat_mistake") return -8;
       break;
     case "apex":
-      if (event === "challenge_yourself") return 15;
-      if (event === "avoid_weakness") return -15;
+      if (event === "challenge_yourself") return 6;
+      if (event === "avoid_weakness") return -18;
       break;
   }
   return 0;
+}
+
+function getModeWinRate(stats: ModeBehaviorStats) {
+  return stats.sessions > 0 ? stats.wins / stats.sessions : 0;
+}
+
+function getModeMistakeCount(stats: MistakeStats) {
+  return Object.values(stats).reduce((sum, value) => sum + value, 0);
+}
+
+function clampScore(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function buildRecommendation(
+  bot: TetrobotId,
+  prevRecommendation: TetrobotRecommendation | null,
+  totalSessions: number,
+  targetMode: PlayerBehaviorMode | null,
+  targetModeSessions: number,
+  reason: string,
+  kind: TetrobotRecommendation["kind"],
+  now: number
+): TetrobotRecommendation | null {
+  if (!targetMode) return null;
+
+  if (
+    prevRecommendation &&
+    prevRecommendation.kind === kind &&
+    prevRecommendation.targetMode === targetMode
+  ) {
+    const gainedTargetSessions = Math.max(
+      0,
+      targetModeSessions - prevRecommendation.targetModeSessionsAtIssue
+    );
+    const gainedTotalSessions = Math.max(
+      0,
+      totalSessions - prevRecommendation.totalSessionsAtIssue
+    );
+    const ignoredSessions =
+      gainedTargetSessions > 0
+        ? 0
+        : prevRecommendation.ignoredSessions + Math.max(0, gainedTotalSessions);
+    const ignoredMs = gainedTargetSessions > 0 ? 0 : Math.max(0, now - prevRecommendation.issuedAt);
+
+    return {
+      ...prevRecommendation,
+      reason,
+      ignoredSessions,
+      ignoredMs,
+      lastEvaluatedAt: now,
+      issuedAt: gainedTargetSessions > 0 ? now : prevRecommendation.issuedAt,
+      totalSessionsAtIssue: gainedTargetSessions > 0 ? totalSessions : prevRecommendation.totalSessionsAtIssue,
+      targetModeSessionsAtIssue:
+        gainedTargetSessions > 0 ? targetModeSessions : prevRecommendation.targetModeSessionsAtIssue,
+    };
+  }
+
+  return {
+    bot,
+    kind,
+    targetMode,
+    reason,
+    issuedAt: now,
+    lastEvaluatedAt: now,
+    totalSessionsAtIssue: totalSessions,
+    targetModeSessionsAtIssue: targetModeSessions,
+    ignoredSessions: 0,
+    ignoreThreshold: BOT_IGNORE_THRESHOLDS[bot],
+    ignoredMs: 0,
+    ignoreThresholdMs: BOT_IGNORE_TIME_THRESHOLDS_MS[bot],
+    penaltyCount: 0,
+  };
 }
 
 export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotSyncResult {
@@ -254,11 +346,51 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   const weakestModeSessions = prev.lowestWinrateMode
     ? prev.playerBehaviorByMode[prev.lowestWinrateMode]?.sessions ?? 0
     : 0;
+  const playedModes = Object.entries(prev.playerBehaviorByMode).filter(([, value]) => value.sessions > 0) as Array<
+    [PlayerBehaviorMode, ModeBehaviorStats]
+  >;
+  const modeCount = playedModes.length;
+  const sessionsByMode = playedModes.map(([, value]) => value.sessions);
+  const minModeSessions = sessionsByMode.length ? Math.min(...sessionsByMode) : 0;
+  const maxModeSessions = sessionsByMode.length ? Math.max(...sessionsByMode) : 0;
+  const totalMistakeWeight = Object.values(prev.playerMistakesByMode).reduce(
+    (sum, modeStats) => sum + getModeMistakeCount(modeStats),
+    0
+  );
   const improvementSignals =
     Object.values(prev.level10Modes).filter(Boolean).length +
     Object.values(prev.scoredModes).filter(Boolean).length +
     Math.floor(prev.botApexWins / 3) +
     Math.floor(prev.tetromazeEscapesTotal / 10);
+
+  const strongestModeFocus =
+    playedModes
+      .sort((a, b) => {
+        const leftRate = getModeWinRate(a[1]);
+        const rightRate = getModeWinRate(b[1]);
+        return rightRate - leftRate || b[1].sessions - a[1].sessions;
+      })[0]?.[0] ?? null;
+  const weakestModeFocus =
+    playedModes
+      .sort((a, b) => {
+        const leftMistakes = getModeMistakeCount(prev.playerMistakesByMode[a[0]]) / Math.max(1, a[1].sessions);
+        const rightMistakes = getModeMistakeCount(prev.playerMistakesByMode[b[0]]) / Math.max(1, b[1].sessions);
+        const leftSeverity = (1 - getModeWinRate(a[1])) * 100 + leftMistakes * 10;
+        const rightSeverity = (1 - getModeWinRate(b[1])) * 100 + rightMistakes * 10;
+        return rightSeverity - leftSeverity || b[1].sessions - a[1].sessions;
+      })[0]?.[0] ?? null;
+  const weakFocusWins = weakestModeFocus ? prev.playerBehaviorByMode[weakestModeFocus]?.wins ?? 0 : 0;
+  const regularityScore = clampScore(
+    Math.min(40, modeCount * 10) +
+      (modeCount > 1 && maxModeSessions > 0 ? (minModeSessions / maxModeSessions) * 45 : 0) +
+      Math.min(15, totalSessions * 1.5)
+  );
+  const strategyScore = clampScore(
+    100 -
+      (totalMistakeWeight / Math.max(1, totalSessions)) * 12 -
+      (prev.counters.rage_quit_estimate ?? 0) * 6 +
+      improvementSignals * 8
+  );
 
   const nextLedger: TetrobotXpLedger = {
     play_game: totalSessions,
@@ -277,13 +409,18 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   };
 
   const nextAffinityLedger: TetrobotAffinityLedger = {
-    play_regularly: Math.floor(totalSessions / 2),
-    rage_quit: totalLosses,
-    improve_stat: improvementSignals,
-    repeat_mistake: Math.floor(totalMistakes / 4),
+    play_regularly: Math.floor(totalSessions / 4) + Math.floor(regularityScore / 25),
+    rage_quit: prev.counters.rage_quit_estimate ?? totalLosses,
+    improve_stat: improvementSignals + Math.floor(strategyScore / 30),
+    repeat_mistake: Math.floor(totalMistakes / 5),
     challenge_yourself:
-      Object.values(prev.level10Modes).filter(Boolean).length + visitedModesCount,
-    avoid_weakness: Math.floor(Math.max(0, totalSessions - weakestModeSessions * 2) / 3),
+      Math.floor(weakFocusWins / 2) +
+      prev.playerBehaviorByMode.ROGUELIKE.wins +
+      prev.playerBehaviorByMode.ROGUELIKE_VERSUS.wins +
+      prev.playerBehaviorByMode.PUZZLE.wins,
+    avoid_weakness: weakestModeFocus
+      ? Math.floor((prev.playerLongTermMemory.avoidedModes[weakestModeFocus] ?? 0) / 3)
+      : Math.floor(Math.max(0, totalSessions - weakestModeSessions * 2) / 3),
   };
 
   const affinityDeltas: TetrobotAffinityLedger = {
@@ -499,6 +636,60 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
       )
     )
   );
+  const rookieTargetMode =
+    modeCount < 3
+      ? (PLAYER_BEHAVIOR_MODES.find((mode) => prev.playerBehaviorByMode[mode].sessions === 0) ?? null)
+      : (playedModes
+          .slice()
+          .sort((a, b) => a[1].sessions - b[1].sessions || (a[1].lastPlayedAt ?? 0) - (b[1].lastPlayedAt ?? 0))[0]?.[0] ?? null);
+  const pulseTargetMode =
+    playedModes
+      .slice()
+      .sort((a, b) => {
+        const leftDensity = getModeMistakeCount(prev.playerMistakesByMode[a[0]]) / Math.max(1, a[1].sessions);
+        const rightDensity = getModeMistakeCount(prev.playerMistakesByMode[b[0]]) / Math.max(1, b[1].sessions);
+        return rightDensity - leftDensity || b[1].sessions - a[1].sessions;
+      })[0]?.[0] ?? null;
+  const rookieRecommendation =
+    regularityScore < 65 && rookieTargetMode
+      ? buildRecommendation(
+          "rookie",
+          prev.playerLongTermMemory.activeRecommendations.rookie,
+          totalSessions,
+          rookieTargetMode,
+          prev.playerBehaviorByMode[rookieTargetMode].sessions,
+          modeCount < 3
+            ? `Rookie veut te voir revenir aussi sur ${rookieTargetMode}, pas seulement sur ton confort.`
+            : `Rookie attend plus de regularite sur ${rookieTargetMode}.`,
+          "play_underplayed_mode",
+          now
+        )
+      : null;
+  const pulseRecommendation =
+    strategyScore < 72 && pulseTargetMode
+      ? buildRecommendation(
+          "pulse",
+          prev.playerLongTermMemory.activeRecommendations.pulse,
+          totalSessions,
+          pulseTargetMode,
+          prev.playerBehaviorByMode[pulseTargetMode].sessions,
+          `Pulse veut une baisse nette des erreurs sur ${pulseTargetMode}.`,
+          "reduce_mistakes",
+          now
+        )
+      : null;
+  const apexRecommendation = weakestModeFocus
+    ? buildRecommendation(
+        "apex",
+        prev.playerLongTermMemory.activeRecommendations.apex,
+        totalSessions,
+        weakestModeFocus,
+        prev.playerBehaviorByMode[weakestModeFocus].sessions,
+        `Apex refuse les detours. Travaille ${weakestModeFocus} jusqu'a ce que ce ne soit plus ton point faible.`,
+        "train_weak_mode",
+        now
+      )
+    : null;
   const playerLongTermMemory: PlayerLongTermMemory = {
     recurringMistakes: aggregatedMistakes
       .sort((a, b) => b.count - a.count || b.lastSeenAt - a.lastSeenAt)
@@ -511,6 +702,15 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     consistencyScore,
     courageScore,
     disciplineScore,
+    regularityScore,
+    strategyScore,
+    weakestModeFocus,
+    strongestModeFocus,
+    activeRecommendations: {
+      rookie: rookieRecommendation,
+      pulse: pulseRecommendation,
+      apex: apexRecommendation,
+    },
   };
 
   if (affinityDeltas.play_regularly > 0) {
@@ -523,6 +723,42 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   if ((playerLongTermMemory.avoidedModes[prev.lowestWinrateMode ?? ""] ?? 0) >= 5) {
     pushMemory("apex", "player_avoidance", `Tu evites encore ${prev.lowestWinrateMode ?? "ton point faible"}.`, 5);
   }
+
+  (["rookie", "pulse", "apex"] as TetrobotId[]).forEach((bot) => {
+    const recommendation = playerLongTermMemory.activeRecommendations[bot];
+    if (!recommendation) return;
+    const expectedPenaltyCount = Math.max(
+      Math.floor(recommendation.ignoredSessions / Math.max(1, recommendation.ignoreThreshold)),
+      Math.floor(recommendation.ignoredMs / Math.max(1, recommendation.ignoreThresholdMs))
+    );
+    const newPenaltyCount = Math.max(0, expectedPenaltyCount - recommendation.penaltyCount);
+    if (newPenaltyCount <= 0) return;
+
+    const current = progression[bot];
+    const nextAffinity = clampAffinity(
+      current.affinity + BOT_IGNORE_AFFINITY_PENALTIES[bot] * newPenaltyCount
+    );
+    progression[bot] = {
+      ...current,
+      affinity: nextAffinity,
+      mood: getMood(nextAffinity),
+    };
+    playerLongTermMemory.activeRecommendations[bot] = {
+      ...recommendation,
+      penaltyCount: recommendation.penaltyCount + newPenaltyCount,
+    };
+    changed = true;
+    pushMemory(
+      bot,
+      bot === "apex" ? "player_avoidance" : "player_failure",
+      bot === "rookie"
+        ? `Rookie remarque que tu ignores encore sa demande sur ${recommendation.targetMode}.`
+        : bot === "pulse"
+          ? `Pulse constate que tu laisses les memes erreurs revenir sur ${recommendation.targetMode}.`
+          : `Apex note que tu contournes encore ${recommendation.targetMode}.`,
+      bot === "apex" ? 5 : 4
+    );
+  });
   if (getApexTrustState(playerLongTermMemory, progression.apex.affinity) === "refusing") {
     pushMemory("apex", "trust_break", "Je refuse de te conseiller tant que tu contournes le vrai travail.", 5);
     bumpCounter("apex_refusal_count");
