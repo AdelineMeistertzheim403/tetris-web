@@ -1432,15 +1432,9 @@ export default function Dashboard() {
     setLastTetrobotTip(chatLine.bot, nextTip);
     setTetrobotTip(nextTip);
   }, [
-    activeBotProgression?.level,
-    activeBotProgression?.mood,
-    activeRecommendation,
     apexTrustState,
-    apexRecommendation,
     chatLine.bot,
-    playerContext,
-    pulseRecommendation,
-    rookieRecommendation,
+    chatLine.text,
     setLastTetrobotTip,
   ]);
 

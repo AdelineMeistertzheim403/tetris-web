@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./features/app/components/Navbar";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
 import ProtectedRoute from "./features/auth/components/ProtectedRoute";
 import Home from "./features/app/pages/Home";
+import NotFound from "./features/app/pages/NotFound";
 import { useAuth } from "./features/auth/context/AuthContext";
 import { useAchievements } from "./features/achievements/hooks/useAchievements";
 
@@ -60,17 +61,33 @@ const PixelInvasionPage = lazy(() => import("./features/pixelInvasion/pages/Pixe
 function App() {
   const { user } = useAuth();
   const { checkAchievements } = useAchievements();
+  const location = useLocation();
+  const checkAchievementsRef = useRef(checkAchievements);
+
+  useEffect(() => {
+    checkAchievementsRef.current = checkAchievements;
+  }, [checkAchievements]);
 
   useEffect(() => {
     // Marque la création de compte comme “achievement” une seule fois après login.
-    if (!user) return;
-    checkAchievements({ custom: { created_account: true } });
-  }, [checkAchievements, user]);
+    if (!user?.id) return;
+
+    const storageKey = `achievement-created-account:${user.id}`;
+    try {
+      if (sessionStorage.getItem(storageKey)) return;
+      checkAchievementsRef.current({ custom: { created_account: true } });
+      sessionStorage.setItem(storageKey, "1");
+    } catch {
+      checkAchievementsRef.current({ custom: { created_account: true } });
+    }
+  }, [user?.id]);
+
+  const shouldHideNavbar = location.pathname === "/login" || location.pathname === "/register";
 
   return (
     <>
       {/* Navbar globale affichée sur toutes les routes */}
-      <Navbar />
+      {!shouldHideNavbar ? <Navbar /> : null}
       <Suspense fallback={<div className="panel">Chargement...</div>}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -127,6 +144,7 @@ function App() {
           <Route path="/tetrobots/relations" element={<TetrobotsRelationsPage />} />
           <Route path="/achievements" element={<AchievementsPage />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </>
