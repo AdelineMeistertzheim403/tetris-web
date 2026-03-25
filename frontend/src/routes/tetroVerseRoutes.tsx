@@ -1,34 +1,20 @@
-import { lazy } from "react";
 import { Route } from "react-router-dom";
+import TetroVerseHub from "../features/app/pages/TetroVerseHub";
+import TetromazePage from "../features/tetromaze/pages/TetromazePage";
+import TetromazeHub from "../features/tetromaze/pages/TetromazeHub";
+import TetromazeEditor from "../features/tetromaze/pages/TetromazeEditor";
+import TetromazeEditorHelp from "../features/tetromaze/pages/TetromazeEditorHelp";
+import TetromazeCommunityHub from "../features/tetromaze/pages/TetromazeCommunityHub";
+import PixelProtocolHub from "../features/pixelProtocol/pages/PixelProtocolHub";
+import PixelProtocolPage from "../features/pixelProtocol/pages/PixelProtocolPage";
+import PixelProtocolEditor from "../features/pixelProtocol/pages/PixelProtocolEditor";
+import PixelProtocolEditorHelp from "../features/pixelProtocol/pages/PixelProtocolEditorHelp";
+import PixelProtocolCommunityHub from "../features/pixelProtocol/pages/PixelProtocolCommunityHub";
+import PixelProtocolCommunityLevelPage from "../features/pixelProtocol/pages/PixelProtocolCommunityLevelPage";
+import PixelInvasionPage from "../features/pixelInvasion/pages/PixelInvasionPage";
 import { withRouteElement } from "./routeElement";
 import { PATHS } from "./paths";
 import type { AppRouteSpec } from "./routeTypes";
-
-const TetroVerseHub = lazy(() => import("../features/app/pages/TetroVerseHub"));
-const TetromazePage = lazy(() => import("../features/tetromaze/pages/TetromazePage"));
-const TetromazeHub = lazy(() => import("../features/tetromaze/pages/TetromazeHub"));
-const TetromazeEditor = lazy(() => import("../features/tetromaze/pages/TetromazeEditor"));
-const TetromazeEditorHelp = lazy(
-  () => import("../features/tetromaze/pages/TetromazeEditorHelp")
-);
-const TetromazeCommunityHub = lazy(
-  () => import("../features/tetromaze/pages/TetromazeCommunityHub")
-);
-const PixelProtocolHub = lazy(() => import("../features/pixelProtocol/pages/PixelProtocolHub"));
-const PixelProtocolPage = lazy(() => import("../features/pixelProtocol/pages/PixelProtocolPage"));
-const PixelProtocolEditor = lazy(
-  () => import("../features/pixelProtocol/pages/PixelProtocolEditor")
-);
-const PixelProtocolEditorHelp = lazy(
-  () => import("../features/pixelProtocol/pages/PixelProtocolEditorHelp")
-);
-const PixelProtocolCommunityHub = lazy(
-  () => import("../features/pixelProtocol/pages/PixelProtocolCommunityHub")
-);
-const PixelProtocolCommunityLevelPage = lazy(
-  () => import("../features/pixelProtocol/pages/PixelProtocolCommunityLevelPage")
-);
-const PixelInvasionPage = lazy(() => import("../features/pixelInvasion/pages/PixelInvasionPage"));
 
 export const tetroVerseRouteSpecs: AppRouteSpec[] = [
   { key: "tetro-verse", path: PATHS.tetroVerse, element: <TetroVerseHub /> },
