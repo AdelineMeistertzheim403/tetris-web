@@ -4,11 +4,11 @@ import Home from "../features/app/pages/Home";
 import Login from "../features/auth/pages/Login";
 import Register from "../features/auth/pages/Register";
 import NotFound from "../features/app/pages/NotFound";
+import Dashboard from "../features/app/pages/Dashboard";
 import { withRouteElement } from "./routeElement";
 import { PATHS } from "./paths";
 import type { AppRouteSpec } from "./routeTypes";
 
-const Dashboard = lazy(() => import("../features/app/pages/Dashboard"));
 const Leaderboard = lazy(() => import("../features/game/pages/Leaderboard"));
 const AchievementsPage = lazy(() => import("../features/achievements/pages/AchievementsPage"));
 const Settings = lazy(() => import("../features/settings/pages/Settings"));
