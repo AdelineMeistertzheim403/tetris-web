@@ -10,6 +10,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, "JWT_SECRET doit faire au moins 16 caracteres"),
   RUN_TOKEN_SECRET: z.string().min(16).optional(),
   ALLOWED_ORIGINS: z.string().optional(),
+  TRUST_PROXY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -21,6 +22,27 @@ if (!parsed.success) {
 
 const values = parsed.data;
 
+export function parseTrustProxy(
+  value: string | undefined,
+  nodeEnv: string
+): boolean | number | string {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return nodeEnv === "production" ? 1 : false;
+  }
+
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+
+  const asNumber = Number(normalized);
+  if (Number.isInteger(asNumber) && asNumber >= 0) {
+    return asNumber;
+  }
+
+  return value!.trim();
+}
+
 export const env = {
   nodeEnv: values.NODE_ENV ?? "development",
   port: values.PORT,
@@ -28,4 +50,5 @@ export const env = {
   jwtSecret: values.JWT_SECRET,
   runTokenSecret: values.RUN_TOKEN_SECRET ?? values.JWT_SECRET,
   allowedOrigins: values.ALLOWED_ORIGINS ?? "http://localhost:5173",
+  trustProxy: parseTrustProxy(values.TRUST_PROXY, values.NODE_ENV ?? "development"),
 };

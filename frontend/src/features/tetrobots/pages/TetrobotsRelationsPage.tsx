@@ -5,6 +5,7 @@ import type { TetrobotId } from "../../achievements/types/tetrobots";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import TetrobotRelationsPanel from "../components/TetrobotRelationsPanel";
 import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/tetrobots.css";
 
 const BOTS: TetrobotId[] = ["rookie", "pulse", "apex"];
@@ -118,10 +119,10 @@ export default function TetrobotsRelationsPage() {
             affinite et les conditions pour regagner la confiance d&apos;Apex.
           </p>
           <div className="tetrobots-gate__actions">
-            <Link to="/login" className="tetrobots-section-nav__link tetrobots-section-nav__link--active">
+            <Link to={PATHS.login} className="tetrobots-section-nav__link tetrobots-section-nav__link--active">
               Connexion
             </Link>
-            <Link to="/tetrobots" className="tetrobots-section-nav__link">
+            <Link to={PATHS.tetrobots} className="tetrobots-section-nav__link">
               Voir les profils
             </Link>
           </div>

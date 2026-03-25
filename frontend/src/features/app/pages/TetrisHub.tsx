@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { getLeaderboard, getMyScores } from "../../game/services/scoreService";
 import type { GameMode } from "../../game/types/GameMode";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/dashboard.scss";
 
 type ModeCard = {
@@ -133,7 +134,7 @@ export default function TetrisHub() {
         <button
           type="button"
           className="dashboard-mode-back"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(PATHS.dashboard)}
         >
           Retour dashboard
         </button>
@@ -298,7 +299,7 @@ export default function TetrisHub() {
                 className="retro-btn text-left"
                 onClick={() => {
                   setShowVersusChoice(false);
-                  navigate("/versus?queue=bot");
+                  navigate(`${PATHS.versus}?queue=bot`);
                 }}
               >
                 Solo vs Tetrobots
@@ -307,7 +308,7 @@ export default function TetrisHub() {
                 className="retro-btn text-left"
                 onClick={() => {
                   setShowVersusChoice(false);
-                  navigate("/versus?queue=pvp");
+                  navigate(`${PATHS.versus}?queue=pvp`);
                 }}
               >
                 Joueur vs Joueur
@@ -335,7 +336,7 @@ export default function TetrisHub() {
                 className="retro-btn text-left"
                 onClick={() => {
                   setShowRoguelikeVersusChoice(false);
-                  navigate("/roguelike-versus?queue=bot");
+                  navigate(`${PATHS.roguelikeVersus}?queue=bot`);
                 }}
               >
                 Solo vs Tetrobots
@@ -344,7 +345,7 @@ export default function TetrisHub() {
                 className="retro-btn text-left"
                 onClick={() => {
                   setShowRoguelikeVersusChoice(false);
-                  navigate("/roguelike-versus?queue=pvp");
+                  navigate(`${PATHS.roguelikeVersus}?queue=pvp`);
                 }}
               >
                 Joueur vs Joueur

@@ -11,6 +11,7 @@ import {
   submitPuzzleAttempt,
   submitPuzzleSolution,
 } from "../services/puzzleService";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/puzzle.css";
 
 type RunStatus = "running" | "success" | "failed";
@@ -367,7 +368,7 @@ export default function PuzzleRun() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-pink-300 bg-black">
         <p>{error ?? "Puzzle introuvable."}</p>
-        <Link to="/puzzle" className="text-pink-400 underline">
+        <Link to={PATHS.puzzle} className="text-pink-400 underline">
           Retour
         </Link>
       </div>
@@ -404,7 +405,7 @@ export default function PuzzleRun() {
           <p className="text-sm text-pink-200">{puzzle.description}</p>
         </div>
         <div className="flex gap-3">
-          <Link to="/puzzle" className="px-3 py-2 rounded bg-pink-900/60">
+          <Link to={PATHS.puzzle} className="px-3 py-2 rounded bg-pink-900/60">
             Liste des puzzles
           </Link>
           <button onClick={resetRun} className="px-3 py-2 rounded bg-pink-600">
@@ -494,7 +495,7 @@ export default function PuzzleRun() {
                   <button onClick={resetRun} className="px-4 py-2 rounded bg-pink-600">
                     Rejouer
                   </button>
-                  <Link to="/puzzle" className="px-4 py-2 rounded bg-pink-900/60">
+                  <Link to={PATHS.puzzle} className="px-4 py-2 rounded bg-pink-900/60">
                     Liste des puzzles
                   </Link>
                 </div>

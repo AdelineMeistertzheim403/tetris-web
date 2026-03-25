@@ -145,6 +145,8 @@ const BOT_IGNORE_AFFINITY_PENALTIES: Record<TetrobotId, number> = {
   apex: -12,
 };
 
+const RECOMMENDATION_REEVALUATION_INTERVAL_MS = 60_000;
+
 export const BOT_LEVEL_XP_BANDS: Array<{
   level: BotLevel;
   minXp: number;
@@ -805,7 +807,8 @@ function buildRecommendation(
     if (
       gainedTargetSessions === 0 &&
       gainedTotalSessions === 0 &&
-      prevRecommendation.reason === reason
+      prevRecommendation.reason === reason &&
+      now - prevRecommendation.lastEvaluatedAt < RECOMMENDATION_REEVALUATION_INTERVAL_MS
     ) {
       return prevRecommendation;
     }

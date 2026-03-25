@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
+import { PATHS } from "../../../routes/paths";
 import {
   fetchTetromazeCommunityLevels,
   fetchTetromazeCustomLevels,
@@ -152,7 +153,7 @@ export default function TetromazeHub() {
                   className="pp-hub-icon-btn"
                   title="Nouvelle campagne"
                   aria-label="Nouvelle campagne"
-                  onClick={() => navigate("/tetromaze/play?level=1")}
+                  onClick={() => navigate(`${PATHS.tetromazePlay}?level=1`)}
                 >
                   <i className="fa-solid fa-rotate-right" aria-hidden="true" />
                 </button>
@@ -162,7 +163,7 @@ export default function TetromazeHub() {
                   className="pp-hub-icon-btn"
                   title="Ouvrir editeur"
                   aria-label="Ouvrir editeur"
-                  onClick={() => navigate("/tetromaze/editor")}
+                  onClick={() => navigate(PATHS.tetromazeEditor)}
                 >
                   <i className="fa-solid fa-pen-ruler" aria-hidden="true" />
                 </button>
@@ -170,7 +171,7 @@ export default function TetromazeHub() {
                   className="pp-hub-icon-btn"
                   title="Aide editeur"
                   aria-label="Aide editeur"
-                  onClick={() => navigate("/tetromaze/help/editor")}
+                  onClick={() => navigate(PATHS.tetromazeEditorHelp)}
                 >
                   <i className="fa-solid fa-circle-question" aria-hidden="true" />
                 </button>
@@ -237,7 +238,7 @@ export default function TetromazeHub() {
                 className="pp-hub-icon-btn"
                 title="Niveaux joueurs"
                 aria-label="Niveaux joueurs"
-                onClick={() => navigate("/tetromaze/community")}
+                onClick={() => navigate(PATHS.tetromazeCommunity)}
               >
                 <i className="fa-solid fa-users" aria-hidden="true" />
               </button>
@@ -245,7 +246,7 @@ export default function TetromazeHub() {
                 className="pp-hub-icon-btn pp-hub-icon-btn--secondary"
                 title="Retour dashboard"
                 aria-label="Retour dashboard"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate(PATHS.dashboard)}
               >
                 <i className="fa-solid fa-arrow-left" aria-hidden="true" />
               </button>

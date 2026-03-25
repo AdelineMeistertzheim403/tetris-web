@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import type { JSX } from "react";
+import { PATHS } from "../../../routes/paths";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
@@ -14,7 +15,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
   if (!user) {
     // Redirection vers login si non authentifié.
-    return <Navigate to="/login" replace />;
+    return <Navigate to={PATHS.login} replace />;
   }
   // L'utilisateur est authentifié: on affiche la page demandée.
   return children;

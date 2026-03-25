@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { register } from "../services/authService";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { PATHS } from "../../../routes/paths";
 
 export default function Register() {
   const [pseudo, setPseudo] = useState("");
@@ -9,7 +10,6 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [, setError] = useState("");
-  const navigate = useNavigate();
   const { checkAchievements } = useAchievements();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +23,7 @@ export default function Register() {
     try {
       await register(pseudo, email, password);
       checkAchievements({ custom: { created_account: true } });
-      navigate("/login");
+      window.location.assign(PATHS.login);
     } catch (err) {
       setError("Erreur lors de l'inscription");
     }
@@ -103,7 +103,11 @@ export default function Register() {
         {/* Lien vers la page de connexion */}
         <p className="text-center text-sm text-pink-300 mt-2">
           Déjà un compte ?{" "}
-          <Link to="/login" className="text-yellow-400 hover:text-pink-300">
+          <Link
+            to={PATHS.login}
+            className="text-yellow-400 hover:text-pink-300"
+            reloadDocument
+          >
             Connecte-toi
           </Link>
         </p>

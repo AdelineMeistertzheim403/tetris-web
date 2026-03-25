@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { useAuth } from "../../auth/context/AuthContext";
 import {
   fetchTetromazeCommunityLevels,
@@ -162,7 +163,7 @@ export default function TetromazeCommunityHub() {
               className="pp-hub-icon-btn pp-hub-icon-btn--secondary"
               title="Retour hub"
               aria-label="Retour hub"
-              onClick={() => navigate("/tetromaze")}
+              onClick={() => navigate(PATHS.tetromazeHub)}
             >
               <i className="fa-solid fa-arrow-left" aria-hidden="true" />
             </button>

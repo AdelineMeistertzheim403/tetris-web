@@ -1,27 +1,38 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { login } from "../services/authService";
+import { Link } from "react-router-dom";
+import { AuthApiError, login } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
+import { PATHS } from "../../../routes/paths";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { setUser } = useAuth(); // accès au contexte auth global
   const { recordLoginDay } = useAchievements();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setError("");
+    setIsSubmitting(true);
+
     try {
       // Auth + mise à jour du contexte global.
       const loggedUser = await login(email, password);
       setUser(loggedUser);
       recordLoginDay();
-      navigate("/dashboard");
+      window.location.assign(PATHS.dashboard);
     } catch (err) {
-      setError("Email ou mot de passe invalide");
+      if (err instanceof AuthApiError) {
+        setError(err.message);
+      } else {
+        setError("Impossible de se connecter pour le moment.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -63,13 +74,17 @@ export default function Login() {
 
         {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
-        <button type="submit" className="retro-btn mt-4">
-          Se connecter
+        <button type="submit" className="retro-btn mt-4" disabled={isSubmitting}>
+          {isSubmitting ? "Connexion..." : "Se connecter"}
         </button>
 
         <p className="text-center text-sm text-pink-300 mt-2">
           Pas encore de compte ?{" "}
-          <Link to="/register" className="text-yellow-400 hover:text-pink-300">
+          <Link
+            to={PATHS.register}
+            className="text-yellow-400 hover:text-pink-300"
+            reloadDocument
+          >
             Inscris-toi
           </Link>
         </p>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import {
@@ -181,7 +182,7 @@ export default function PixelProtocolCommunityHub() {
               className="pp-hub-icon-btn pp-hub-icon-btn--secondary"
               title="Retour hub"
               aria-label="Retour hub"
-              onClick={() => navigate("/pixel-protocol")}
+              onClick={() => navigate(PATHS.pixelProtocolHub)}
             >
               <i className="fa-solid fa-arrow-left" aria-hidden="true" />
             </button>

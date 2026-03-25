@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { PixelProtocolControlsPanel } from "../components/PixelProtocolControlsPanel";
 import { PixelProtocolInfoPanel } from "../components/PixelProtocolInfoPanel";
 import { PixelProtocolWorld } from "../components/PixelProtocolWorld";
@@ -532,11 +533,11 @@ export default function PixelProtocolPage() {
               <p>Niveau custom introuvable.</p>
             </div>
             <div className="pp-actions">
-              <button type="button" onClick={() => navigate("/pixel-protocol")}>
+              <button type="button" onClick={() => navigate(PATHS.pixelProtocolHub)}>
                 Retour menu
               </button>
               {user && (
-                <button type="button" onClick={() => navigate("/pixel-protocol/editor")}>
+                <button type="button" onClick={() => navigate(PATHS.pixelProtocolEditor)}>
                   Ouvrir l'editeur
                 </button>
               )}
@@ -557,7 +558,7 @@ export default function PixelProtocolPage() {
               <p>{communityError ?? "Niveau joueur introuvable."}</p>
             </div>
             <div className="pp-actions">
-              <button type="button" onClick={() => navigate("/pixel-protocol")}>
+              <button type="button" onClick={() => navigate(PATHS.pixelProtocolHub)}>
                 Retour menu
               </button>
             </div>
@@ -581,11 +582,11 @@ export default function PixelProtocolPage() {
               <p>Reviens plus tard ou ouvre l'editeur pour tes niveaux custom.</p>
             </div>
             <div className="pp-actions">
-              <button type="button" onClick={() => navigate("/dashboard")}>
+              <button type="button" onClick={() => navigate(PATHS.dashboard)}>
                 Retour dashboard
               </button>
               {user && (
-                <button type="button" onClick={() => navigate("/pixel-protocol/editor")}>
+                <button type="button" onClick={() => navigate(PATHS.pixelProtocolEditor)}>
                   Editeur de niveaux
                 </button>
               )}
@@ -693,7 +694,7 @@ export default function PixelProtocolPage() {
                     <button
                       type="button"
                       className="pp-endScreen__action pp-endScreen__action--gallery"
-                      onClick={() => navigate("/pixel-protocol/community")}
+                      onClick={() => navigate(PATHS.pixelProtocolCommunity)}
                     >
                       <i className="fa-solid fa-users" aria-hidden="true" />
                       <span>Galerie</span>
@@ -702,7 +703,7 @@ export default function PixelProtocolPage() {
                     <button
                       type="button"
                       className="pp-endScreen__action pp-endScreen__action--exit"
-                      onClick={() => navigate("/pixel-protocol")}
+                      onClick={() => navigate(PATHS.pixelProtocolHub)}
                     >
                       <i className="fa-solid fa-arrow-left" aria-hidden="true" />
                       <span>Retour hub</span>
@@ -720,8 +721,8 @@ export default function PixelProtocolPage() {
         <PixelProtocolControlsPanel
           ability={ability}
           onReset={resetLevel}
-          onExit={() => navigate("/pixel-protocol")}
-          onEditor={user ? () => navigate("/pixel-protocol/editor") : undefined}
+          onExit={() => navigate(PATHS.pixelProtocolHub)}
+          onEditor={user ? () => navigate(PATHS.pixelProtocolEditor) : undefined}
           statusMessage={
             loading || syncLoading
               ? "Chargement des niveaux..."

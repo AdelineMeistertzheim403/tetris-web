@@ -6,6 +6,7 @@ import RoguelikeHistory from "../components/history/RoguelikeHistory";
 import RoguelikeLeaderboard from "../components/history/RoguelikeLeaderboard";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
+import { PATHS } from "../../../routes/paths";
 
 export default function RoguelikePage() {
   const { updateStats, checkAchievements } = useAchievements();
@@ -73,7 +74,7 @@ export default function RoguelikePage() {
             >
               🔮 Jouer une seed
             </button>
-            <Link className="lexicon-btn" to="/roguelike/lexique">
+            <Link className="lexicon-btn" to={PATHS.roguelikeLexicon}>
               Lexique
             </Link>
           </div>

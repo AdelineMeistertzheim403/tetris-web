@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import AchievementToast from "../../achievements/components/AchievementToast";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import type {
@@ -582,7 +583,7 @@ export default function PixelInvasionPage() {
 
     try {
       await persistPausedCheckpoint(checkpoint);
-      navigate("/tetro-verse");
+      navigate(PATHS.tetroVerse);
     } finally {
       setQuittingRun(false);
     }
@@ -658,7 +659,7 @@ export default function PixelInvasionPage() {
             <button type="button" className="retro-btn" onClick={handleRestart}>
               Relancer
             </button>
-            <button type="button" className="retro-btn" onClick={() => navigate("/tetro-verse")}>
+            <button type="button" className="retro-btn" onClick={() => navigate(PATHS.tetroVerse)}>
               Retour hub
             </button>
           </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { useAuth } from "../../auth/context/AuthContext";
 import BrickfallBoard from "../../brickfall/components/BrickfallBoard";
 import FullScreenOverlay from "../../../shared/components/ui/overlays/FullScreenOverlay";
@@ -266,7 +267,7 @@ export default function BrickfallSoloPlay() {
             setCommunityLevel(null);
             setCommunityLoading(false);
             setCommunityError(err instanceof Error ? err.message : "Niveau joueur introuvable");
-            navigate("/brickfall-solo");
+            navigate(PATHS.brickfallSolo);
           }
           return;
         }
@@ -592,7 +593,7 @@ export default function BrickfallSoloPlay() {
             <button className="retro-btn" onClick={() => loadLevel(levelIndex, isCustomLevel || isCommunityLevel ? level : null)}>
               Rejouer
             </button>
-            <button className="retro-btn" onClick={() => navigate("/brickfall-solo")}>
+            <button className="retro-btn" onClick={() => navigate(PATHS.brickfallSolo)}>
               Quitter
             </button>
           </div>
@@ -622,7 +623,7 @@ export default function BrickfallSoloPlay() {
             <button className="retro-btn" onClick={() => loadLevel(levelIndex, isCustomLevel ? level : null)}>
               Reessayer
             </button>
-            <button className="retro-btn" onClick={() => navigate("/brickfall-solo")}>
+            <button className="retro-btn" onClick={() => navigate(PATHS.brickfallSolo)}>
               Quitter
             </button>
           </div>

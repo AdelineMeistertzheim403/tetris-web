@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import { useAuth } from "../../auth/context/AuthContext";
 import { defaultTetromazeLevel } from "../data/defaultLevel";
 import type { TetromazeLevel, TetromazeOrbType } from "../types";
@@ -489,7 +490,7 @@ export default function TetromazeEditor() {
               type="button"
               title="Aide editeur"
               aria-label="Aide editeur"
-              onClick={() => navigate("/tetromaze/help/editor")}
+              onClick={() => navigate(PATHS.tetromazeEditorHelp)}
             >
               <i className="fa-solid fa-circle-question" />
             </button>
@@ -559,7 +560,7 @@ export default function TetromazeEditor() {
               type="button"
               title="Retour Hub"
               aria-label="Retour hub Tetromaze"
-              onClick={() => navigate("/tetromaze")}
+              onClick={() => navigate(PATHS.tetromazeHub)}
             >
               <i className="fa-solid fa-arrow-left" />
             </button>

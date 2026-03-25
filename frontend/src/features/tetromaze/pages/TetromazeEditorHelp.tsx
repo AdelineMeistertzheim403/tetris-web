@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { PATHS } from "../../../routes/paths";
 import "../../../styles/pixel-protocol-editor.css";
 import "../../../styles/pixel-protocol-editor-help.css";
 import "../../../styles/tetromaze-editor-help.css";
@@ -198,7 +199,7 @@ export default function TetromazeEditorHelp() {
               className="pp-editor-icon-btn"
               title="Retour hub"
               aria-label="Retour hub"
-              onClick={() => navigate("/tetromaze")}
+              onClick={() => navigate(PATHS.tetromazeHub)}
             >
               <i className="fa-solid fa-arrow-left" aria-hidden="true" />
             </button>
