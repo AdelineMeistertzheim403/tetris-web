@@ -13,10 +13,67 @@ function App() {
   const { checkAchievements } = useAchievements();
   const location = useLocation();
   const checkAchievementsRef = useRef(checkAchievements);
+  const historyPatchedRef = useRef(false);
 
   useEffect(() => {
     checkAchievementsRef.current = checkAchievements;
   }, [checkAchievements]);
+
+  useEffect(() => {
+    if (historyPatchedRef.current) return;
+    historyPatchedRef.current = true;
+
+    const originalPushState = window.history.pushState.bind(window.history);
+    const originalReplaceState = window.history.replaceState.bind(window.history);
+
+    const shouldForceDocumentNavigation = (url?: string | URL | null) => {
+      if (!url) return null;
+
+      const nextUrl = new URL(url.toString(), window.location.href);
+      const currentUrl = new URL(window.location.href);
+
+      if (nextUrl.origin !== currentUrl.origin) return null;
+
+      const routeChanged =
+        nextUrl.pathname !== currentUrl.pathname || nextUrl.search !== currentUrl.search;
+
+      return routeChanged ? nextUrl : null;
+    };
+
+    window.history.pushState = function pushState(
+      data: unknown,
+      unused: string,
+      url?: string | URL | null
+    ) {
+      const nextUrl = shouldForceDocumentNavigation(url);
+      if (nextUrl) {
+        window.location.assign(nextUrl.toString());
+        return;
+      }
+
+      originalPushState(data, unused, url);
+    };
+
+    window.history.replaceState = function replaceState(
+      data: unknown,
+      unused: string,
+      url?: string | URL | null
+    ) {
+      const nextUrl = shouldForceDocumentNavigation(url);
+      if (nextUrl) {
+        window.location.replace(nextUrl.toString());
+        return;
+      }
+
+      originalReplaceState(data, unused, url);
+    };
+
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      historyPatchedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     // Marque la création de compte comme “achievement” une seule fois après login.
