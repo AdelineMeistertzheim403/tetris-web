@@ -1,15 +1,14 @@
 // Composant UI Navbar.tsx.
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { PATHS } from "../../../routes/paths";
 
 export default function Navbar() {
-  const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
 
   const handleLogout = async () => {
     await logoutUser();
-    navigate(PATHS.home);
+    window.location.assign(PATHS.home);
   };
 
   return (
@@ -32,31 +31,31 @@ export default function Navbar() {
       <div className="flex gap-16 text-lg items-center">
         {user ? (
           <>
-            <Link to={PATHS.dashboard} className="neon-link text-pink-400">
+            <Link to={PATHS.dashboard} className="neon-link text-pink-400" reloadDocument>
               Dashboard
             </Link>
-            <Link to={PATHS.achievements} className="neon-link text-pink-400">
+            <Link to={PATHS.achievements} className="neon-link text-pink-400" reloadDocument>
               Succès
             </Link>
-            <Link to={PATHS.tetrobots} className="neon-link text-pink-400">
+            <Link to={PATHS.tetrobots} className="neon-link text-pink-400" reloadDocument>
               Tetrobots
             </Link>
-            <Link to={PATHS.settings} className="neon-link text-pink-400">
+            <Link to={PATHS.settings} className="neon-link text-pink-400" reloadDocument>
               Paramètres
             </Link>
-            <Link to={PATHS.leaderboard} className="neon-link text-pink-400">
+            <Link to={PATHS.leaderboard} className="neon-link text-pink-400" reloadDocument>
               Classement
             </Link>
           </>
         ) : (
           <>
-            <Link to={PATHS.home} className="neon-link text-pink-400">
+            <Link to={PATHS.home} className="neon-link text-pink-400" reloadDocument>
               Accueil
             </Link>
-            <Link to={PATHS.leaderboard} className="neon-link text-pink-400">
+            <Link to={PATHS.leaderboard} className="neon-link text-pink-400" reloadDocument>
               Classement
             </Link>
-            <Link to={PATHS.tetrobots} className="neon-link text-pink-400">
+            <Link to={PATHS.tetrobots} className="neon-link text-pink-400" reloadDocument>
               Tetrobots
             </Link>
           </>
@@ -79,7 +78,7 @@ export default function Navbar() {
             </button>
           </>
         ) : (
-          <Link to={PATHS.login} className="neon-link text-pink-400">
+          <Link to={PATHS.login} className="neon-link text-pink-400" reloadDocument>
             Connexion
           </Link>
         )}
