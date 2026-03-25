@@ -1,3 +1,4 @@
+import { createStoredCollection } from "../../app/logic/localStorageCollection";
 import type { DecorationDef, WorldTemplate } from "../types";
 
 const STORAGE_KEY = "pixel-protocol-world-templates-v1";
@@ -29,56 +30,21 @@ export function isWorldTemplate(value: unknown): value is WorldTemplate {
   );
 }
 
-function persist(worlds: WorldTemplate[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(worlds));
-}
-
 function sortWorldTemplates(worlds: WorldTemplate[]) {
   return [...worlds].sort((a, b) => a.name.localeCompare(b.name, "fr"));
 }
 
-export function listPixelProtocolWorldTemplates(): WorldTemplate[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return sortWorldTemplates(parsed.filter(isWorldTemplate));
-  } catch {
-    return [];
-  }
-}
+const normalizeWorldTemplate = (value: unknown) => (isWorldTemplate(value) ? value : null);
 
-export function upsertPixelProtocolWorldTemplate(world: WorldTemplate): WorldTemplate[] {
-  if (!isWorldTemplate(world)) return listPixelProtocolWorldTemplates();
-  const worlds = listPixelProtocolWorldTemplates();
-  const index = worlds.findIndex((item) => item.id === world.id);
-  if (index >= 0) worlds[index] = world;
-  else worlds.unshift(world);
-  const next = sortWorldTemplates(worlds);
-  persist(next);
-  return next;
-}
+const worldTemplatesStore = createStoredCollection<WorldTemplate>({
+  storageKey: STORAGE_KEY,
+  getId: (world) => world.id,
+  normalize: normalizeWorldTemplate,
+  sort: sortWorldTemplates,
+});
 
-export function mergePixelProtocolWorldTemplates(worlds: WorldTemplate[]): WorldTemplate[] {
-  const merged = [...listPixelProtocolWorldTemplates()];
-  for (const world of worlds) {
-    if (!isWorldTemplate(world)) continue;
-    const index = merged.findIndex((item) => item.id === world.id);
-    if (index >= 0) merged[index] = world;
-    else merged.unshift(world);
-  }
-  const next = sortWorldTemplates(merged);
-  persist(next);
-  return next;
-}
-
-export function removePixelProtocolWorldTemplate(worldId: string): WorldTemplate[] {
-  const next = listPixelProtocolWorldTemplates().filter((world) => world.id !== worldId);
-  persist(next);
-  return next;
-}
-
-export function findPixelProtocolWorldTemplate(worldId: string): WorldTemplate | null {
-  return listPixelProtocolWorldTemplates().find((world) => world.id === worldId) ?? null;
-}
+export const listPixelProtocolWorldTemplates = worldTemplatesStore.list;
+export const upsertPixelProtocolWorldTemplate = worldTemplatesStore.upsert;
+export const mergePixelProtocolWorldTemplates = worldTemplatesStore.merge;
+export const removePixelProtocolWorldTemplate = worldTemplatesStore.remove;
+export const findPixelProtocolWorldTemplate = worldTemplatesStore.find;

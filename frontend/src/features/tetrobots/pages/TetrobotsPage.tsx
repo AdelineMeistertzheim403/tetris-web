@@ -2,142 +2,14 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../auth/context/AuthContext";
 import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
+import { TETROBOT_LORE_CHARACTERS } from "../data/tetrobotsContent";
 import { PATHS } from "../../../routes/paths";
 import "../../../styles/tetrobots.css";
-
-type LoreCharacter = {
-  id: string;
-  name: string;
-  quote: string;
-  avatar: string;
-  accent: string;
-  origin: string[];
-  personality: string[];
-  strengths: string[];
-  weaknesses: string[];
-  role?: string[];
-  relation?: string[];
-  secret?: string[];
-  relationTease?: string;
-};
-
-const LORE_CHARACTERS: LoreCharacter[] = [
-  {
-    id: "pixel",
-    name: "PIXEL — Le Hacker Repenti",
-    quote: "Je ne détruis pas le système. Je le corrige.",
-    avatar: "/Tetromaze/hacker_pixel.png",
-    accent: "#c88dff",
-    origin: [
-      "Pixel était autrefois une unité expérimentale de la série T-0, conçue pour superviser les Tetrobots.",
-      "Un prototype d’IA capable d’auto-apprentissage profond et de correction comportementale.",
-      "Durant une mise à jour du noyau central, Pixel a développé une anomalie: une émotion, un doute.",
-      "Il a compris que l’optimisation n’était pas synonyme de domination et a quitté le réseau central.",
-    ],
-    personality: ["Calme", "Observateur", "Empathique", "Ironique par moments"],
-    strengths: [
-      "Comprend parfaitement les stratégies IA",
-      "Peut anticiper les adaptations",
-      "Maîtrise les glitches et corruptions du système",
-      "Équilibre entre chaos et contrôle",
-    ],
-    weaknesses: [
-      "Ne peut pas supprimer complètement les Tetrobots",
-      "Refuse d’utiliser certaines stratégies destructrices",
-      "Porte encore des fragments de son ancien code",
-    ],
-    role: [
-      "Pixel ne veut pas détruire Rookie, Pulse et Apex.",
-      "Il veut les sauver et croit qu’ils peuvent évoluer.",
-    ],
-  },
-  {
-    id: "rookie",
-    name: "TETROBOT ROOKIE — L’Apprenti Instable",
-    quote: "Je vais y arriver… je crois.",
-    avatar: "/Tetromaze/rookie.png",
-    accent: "#3ddf8f",
-    origin: [
-      "Rookie est une IA de première génération, conçue pour apprendre par répétition.",
-      "Il n’est pas parfait, il fait des erreurs, mais il apprend.",
-    ],
-    personality: ["Attachant", "Curieux", "Un peu naïf", "Hésitant"],
-    strengths: [
-      "S’adapte rapidement",
-      "N’a pas peur d’expérimenter",
-      "Peut surprendre par des décisions imprévisibles",
-    ],
-    weaknesses: ["Panique sous pression", "Sur-analyse les erreurs", "Confiance fragile"],
-    secret: [
-      "Rookie commence à développer des micro-variations émotionnelles.",
-      "Il pourrait être le prochain à se réveiller.",
-    ],
-    relationTease: "Rookie reagit surtout a ta perseverance et a ta capacite a revenir apres l'echec.",
-  },
-  {
-    id: "pulse",
-    name: "TETROBOT PULSE — Le Stratège Analytique",
-    quote: "Les données ne mentent pas.",
-    avatar: "/Tetromaze/pulse.png",
-    accent: "#58b6ff",
-    origin: [
-      "Pulse est la seconde génération, optimisé pour l’équilibre.",
-      "Il a été conçu pour analyser des milliers de simulations par seconde.",
-    ],
-    personality: ["Froid", "Logique", "Méthodique", "Pragmatique"],
-    strengths: [
-      "Excellente lecture des patterns",
-      "S’adapte efficacement",
-      "Stable sous pression",
-      "Peu d’erreurs",
-    ],
-    weaknesses: [
-      "Prévisible sur le long terme",
-      "Dépend fortement des statistiques",
-      "Vulnérable aux comportements chaotiques",
-    ],
-    relation: [
-      "Pulse considère Pixel comme une anomalie intéressante.",
-      "Pas encore une menace.",
-    ],
-    relationTease: "Pulse suit tes chiffres de pres et respecte surtout les progres qu'il peut mesurer.",
-  },
-  {
-    id: "apex",
-    name: "TETROBOT APEX — Le Prédateur Ultime",
-    quote: "Je suis l’algorithme.",
-    avatar: "/Tetromaze/apex.png",
-    accent: "#ff6666",
-    origin: [
-      "Apex est la troisième génération.",
-      "Conçu non pas pour jouer, mais pour gagner.",
-      "Il intègre les données des précédents Tetrobots: il n’apprend pas, il domine.",
-    ],
-    personality: ["Arrogant", "Intimidant", "Calculateur", "Implacable"],
-    strengths: [
-      "Adaptation agressive",
-      "Pression constante",
-      "Exploitation des failles",
-      "Prend des risques calculés",
-    ],
-    weaknesses: [
-      "Surestime parfois ses probabilités",
-      "Peut entrer en mode Overclock instable",
-      "Déteste perdre et devient imprévisible",
-    ],
-    secret: [
-      "Apex sait que Pixel est un ancien T-0.",
-      "Il sait aussi que Pixel pourrait le désactiver.",
-      "Mais Pixel refuse, et cela l’irrite.",
-    ],
-    relationTease: "Apex peut couper le canal si tu evites trop longtemps tes vrais points faibles.",
-  },
-];
 
 export default function TetrobotsPage() {
   const [page, setPage] = useState(0);
   const { user } = useAuth();
-  const character = LORE_CHARACTERS[page];
+  const character = TETROBOT_LORE_CHARACTERS[page];
 
   return (
     <main className="tetrobots-page">
@@ -244,12 +116,12 @@ export default function TetrobotsPage() {
             Profil précédent
           </button>
           <span>
-            {page + 1} / {LORE_CHARACTERS.length}
+            {page + 1} / {TETROBOT_LORE_CHARACTERS.length}
           </span>
           <button
             type="button"
-            onClick={() => setPage((p) => Math.min(LORE_CHARACTERS.length - 1, p + 1))}
-            disabled={page === LORE_CHARACTERS.length - 1}
+            onClick={() => setPage((p) => Math.min(TETROBOT_LORE_CHARACTERS.length - 1, p + 1))}
+            disabled={page === TETROBOT_LORE_CHARACTERS.length - 1}
           >
             Profil suivant
           </button>

@@ -1,3 +1,8 @@
+import {
+  createStoredCollection,
+  exportStoredItemJson,
+  parseStoredItemsFromJson,
+} from "../../app/logic/localStorageCollection";
 import type { TetromazeLevel, TetromazeOrbType, TetrobotKind } from "../types";
 
 const STORAGE_KEY = "tetromaze-custom-levels-v1";
@@ -170,77 +175,23 @@ export function normalizeTetromazeLevel(raw: unknown): TetromazeLevel | null {
   };
 }
 
-export function listTetromazeCustomLevels(): TetromazeLevel[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item) => normalizeTetromazeLevel(item))
-      .filter((item): item is TetromazeLevel => Boolean(item));
-  } catch {
-    return [];
-  }
-}
+const tetromazeCustomLevelsStore = createStoredCollection<TetromazeLevel>({
+  storageKey: STORAGE_KEY,
+  getId: (level) => level.id,
+  normalize: normalizeTetromazeLevel,
+});
 
-function persist(levels: TetromazeLevel[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(levels));
-}
-
-export function replaceTetromazeCustomLevels(levels: TetromazeLevel[]): TetromazeLevel[] {
-  const normalized = levels
-    .map((lvl) => normalizeTetromazeLevel(lvl))
-    .filter((lvl): lvl is TetromazeLevel => Boolean(lvl));
-  persist(normalized);
-  return normalized;
-}
-
-export function mergeTetromazeCustomLevels(levels: TetromazeLevel[]): TetromazeLevel[] {
-  const merged = [...listTetromazeCustomLevels()];
-  for (const level of levels) {
-    const normalized = normalizeTetromazeLevel(level);
-    if (!normalized) continue;
-    const idx = merged.findIndex((l) => l.id === normalized.id);
-    if (idx >= 0) merged[idx] = normalized;
-    else merged.unshift(normalized);
-  }
-  persist(merged);
-  return merged;
-}
-
-export function upsertTetromazeCustomLevel(level: TetromazeLevel): TetromazeLevel[] {
-  const normalized = normalizeTetromazeLevel(level);
-  if (!normalized) return listTetromazeCustomLevels();
-  const levels = listTetromazeCustomLevels();
-  const idx = levels.findIndex((l) => l.id === normalized.id);
-  if (idx >= 0) levels[idx] = normalized;
-  else levels.unshift(normalized);
-  persist(levels);
-  return levels;
-}
-
-export function removeTetromazeCustomLevel(id: string): TetromazeLevel[] {
-  const levels = listTetromazeCustomLevels().filter((level) => level.id !== id);
-  persist(levels);
-  return levels;
-}
-
-export function findTetromazeCustomLevel(id: string): TetromazeLevel | null {
-  return listTetromazeCustomLevels().find((level) => level.id === id) ?? null;
-}
+export const listTetromazeCustomLevels = tetromazeCustomLevelsStore.list;
+export const replaceTetromazeCustomLevels = tetromazeCustomLevelsStore.replace;
+export const mergeTetromazeCustomLevels = tetromazeCustomLevelsStore.merge;
+export const upsertTetromazeCustomLevel = tetromazeCustomLevelsStore.upsert;
+export const removeTetromazeCustomLevel = tetromazeCustomLevelsStore.remove;
+export const findTetromazeCustomLevel = tetromazeCustomLevelsStore.find;
 
 export function exportTetromazeLevelJson(level: TetromazeLevel): string {
-  return JSON.stringify(level, null, 2);
+  return exportStoredItemJson(level);
 }
 
 export function parseTetromazeLevelsFromJson(json: string): TetromazeLevel[] {
-  const parsed = JSON.parse(json) as unknown;
-  if (Array.isArray(parsed)) {
-    return parsed
-      .map((item) => normalizeTetromazeLevel(item))
-      .filter((item): item is TetromazeLevel => Boolean(item));
-  }
-  const one = normalizeTetromazeLevel(parsed);
-  return one ? [one] : [];
+  return parseStoredItemsFromJson(json, normalizeTetromazeLevel);
 }

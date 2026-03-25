@@ -1,29 +1,7 @@
+import { createCommunityCompletionTracker } from "../../app/logic/communityCompletionTracker";
 import type { LevelDef } from "../types";
 
 const STORAGE_KEY = "pixel-protocol-community-completion-v1";
-
-type CommunityCompletionRecord = {
-  levelId: string;
-  fingerprint: string;
-  completedAt: string;
-};
-
-type CommunityCompletionStore = Record<string, CommunityCompletionRecord>;
-
-function normalizeForHash(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeForHash(item));
-  }
-  if (value && typeof value === "object") {
-    return Object.keys(value as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = normalizeForHash((value as Record<string, unknown>)[key]);
-        return acc;
-      }, {});
-  }
-  return value;
-}
 
 function canonicalGameplayLevel(level: LevelDef) {
   return {
@@ -99,51 +77,14 @@ function canonicalGameplayLevel(level: LevelDef) {
   };
 }
 
-function readStore(): CommunityCompletionStore {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed as CommunityCompletionStore;
-  } catch {
-    return {};
-  }
-}
+const completionTracker = createCommunityCompletionTracker<LevelDef>({
+  storageKey: STORAGE_KEY,
+  prefix: "pp",
+  getLevelId: (level) => level.id,
+  canonicalize: canonicalGameplayLevel,
+});
 
-function writeStore(store: CommunityCompletionStore) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-}
-
-export function fingerprintPixelProtocolLevel(level: LevelDef): string {
-  const normalized = normalizeForHash(canonicalGameplayLevel(level));
-  const json = JSON.stringify(normalized);
-  let hash = 2166136261;
-  for (let index = 0; index < json.length; index += 1) {
-    hash ^= json.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `pp-${(hash >>> 0).toString(16)}`;
-}
-
-export function markPixelProtocolCustomLevelCompleted(level: LevelDef) {
-  const store = readStore();
-  store[level.id] = {
-    levelId: level.id,
-    fingerprint: fingerprintPixelProtocolLevel(level),
-    completedAt: new Date().toISOString(),
-  };
-  writeStore(store);
-}
-
-export function getPixelProtocolCustomLevelCompletion(level: LevelDef) {
-  const record = readStore()[level.id];
-  if (!record) return null;
-  return record;
-}
-
-export function hasCompletedCurrentPixelProtocolLevel(level: LevelDef) {
-  const record = getPixelProtocolCustomLevelCompletion(level);
-  if (!record) return false;
-  return record.fingerprint === fingerprintPixelProtocolLevel(level);
-}
+export const fingerprintPixelProtocolLevel = completionTracker.fingerprint;
+export const markPixelProtocolCustomLevelCompleted = completionTracker.markCompleted;
+export const getPixelProtocolCustomLevelCompletion = completionTracker.getCompletion;
+export const hasCompletedCurrentPixelProtocolLevel = completionTracker.hasCompletedCurrent;

@@ -21,6 +21,13 @@ import {
 import { findTetromazeCustomLevel, mergeTetromazeCustomLevels } from "../utils/customLevels";
 import { markTetromazeCustomLevelCompleted } from "../utils/communityCompletion";
 import {
+  applyTetromazeProgressUpdate,
+  clampTetromazeCampaignLevel,
+  mergeTetromazeProgress,
+  readLocalTetromazeProgress,
+  writeLocalTetromazeProgress,
+} from "../utils/progress";
+import {
   canMoveTo,
   chooseRandom,
   findNextStepBfs,
@@ -504,31 +511,6 @@ function clampTarget(grid: string[], target: GridPos, fallback: GridPos): GridPo
   return fallback;
 }
 
-function clampLevelIndex(levelIndex: number) {
-  return Math.max(1, Math.min(TETROMAZE_TOTAL_LEVELS, levelIndex));
-}
-
-const LOCAL_PROGRESS_KEY = "tetromaze-campaign-progress-v1";
-
-function readLocalProgress(): TetromazeProgress {
-  try {
-    const raw = localStorage.getItem(LOCAL_PROGRESS_KEY);
-    if (!raw) return { highestLevel: 1, currentLevel: 1, levelScores: {} };
-    const parsed = JSON.parse(raw) as TetromazeProgress;
-    return {
-      highestLevel: clampLevelIndex(Number(parsed.highestLevel) || 1),
-      currentLevel: clampLevelIndex(Number(parsed.currentLevel) || 1),
-      levelScores: parsed.levelScores ?? {},
-    };
-  } catch {
-    return { highestLevel: 1, currentLevel: 1, levelScores: {} };
-  }
-}
-
-function writeLocalProgress(progress: TetromazeProgress) {
-  localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(progress));
-}
-
 function oppositeDir(dir: Direction): Direction {
   if (dir === "UP") return "DOWN";
   if (dir === "DOWN") return "UP";
@@ -744,7 +726,9 @@ export default function TetromazePage() {
 
   const [assetsReady, setAssetsReady] = useState(false);
   const [state, setState] = useState<GameState>(() => createInitialState("CLASSIC", level));
-  const [savedProgress, setSavedProgress] = useState<TetromazeProgress>(() => readLocalProgress());
+  const [savedProgress, setSavedProgress] = useState<TetromazeProgress>(() =>
+    readLocalTetromazeProgress()
+  );
   const [isCustomLevel, setIsCustomLevel] = useState(false);
   const [communityLevel, setCommunityLevel] = useState<TetromazeCommunityLevel | null>(null);
   const [communityError, setCommunityError] = useState<string | null>(null);
@@ -825,27 +809,15 @@ export default function TetromazePage() {
     levelIndex?: number;
     score?: number;
   }) => {
-    const local = readLocalProgress();
-    const nextLocal: TetromazeProgress = {
-      highestLevel: payload.highestLevel ? Math.max(local.highestLevel, payload.highestLevel) : local.highestLevel,
-      currentLevel: payload.currentLevel ? Math.max(local.currentLevel, payload.currentLevel) : local.currentLevel,
-      levelScores: { ...local.levelScores },
-    };
-    if (payload.levelIndex !== undefined && payload.score !== undefined) {
-      const key = String(payload.levelIndex);
-      nextLocal.levelScores[key] = Math.max(nextLocal.levelScores[key] ?? 0, payload.score);
-    }
-    writeLocalProgress(nextLocal);
+    const local = readLocalTetromazeProgress();
+    const nextLocal = applyTetromazeProgressUpdate(local, payload);
+    writeLocalTetromazeProgress(nextLocal);
     setSavedProgress(nextLocal);
 
     saveTetromazeProgress(payload)
       .then((next) => {
-        const merged: TetromazeProgress = {
-          highestLevel: Math.max(next.highestLevel, nextLocal.highestLevel),
-          currentLevel: Math.max(next.currentLevel, nextLocal.currentLevel),
-          levelScores: { ...nextLocal.levelScores, ...next.levelScores },
-        };
-        writeLocalProgress(merged);
+        const merged = mergeTetromazeProgress(nextLocal, next);
+        writeLocalTetromazeProgress(merged);
         setSavedProgress(merged);
       })
       .catch(() => {});
@@ -854,7 +826,7 @@ export default function TetromazePage() {
   useEffect(() => {
     let cancelled = false;
     const bootstrap = async () => {
-      const localProgress = readLocalProgress();
+      const localProgress = readLocalTetromazeProgress();
       const requestedCommunityId = Number.parseInt(communityParam ?? "", 10);
       if (Number.isFinite(requestedCommunityId) && requestedCommunityId > 0) {
         if (!cancelled) {
@@ -912,24 +884,22 @@ export default function TetromazePage() {
       let merged = localProgress;
       try {
         const remote = await fetchTetromazeProgress();
-        merged = {
-          highestLevel: Math.max(localProgress.highestLevel, remote.highestLevel),
-          currentLevel: Math.max(localProgress.currentLevel, remote.currentLevel),
-          levelScores: { ...localProgress.levelScores, ...remote.levelScores },
-        };
+        merged = mergeTetromazeProgress(localProgress, remote);
       } catch {
         // hors ligne: local only
       }
 
       if (cancelled) return;
-      writeLocalProgress(merged);
+      writeLocalTetromazeProgress(merged);
       setIsCustomLevel(false);
       setCommunityLevel(null);
       setCommunityError(null);
       setSavedProgress(merged);
 
-      const requestedLevel = levelParam ? clampLevelIndex(Number.parseInt(levelParam, 10) || merged.currentLevel) : merged.currentLevel;
-      const safeLevel = clampLevelIndex(Math.min(requestedLevel, merged.highestLevel));
+      const requestedLevel = levelParam
+        ? clampTetromazeCampaignLevel(Number.parseInt(levelParam, 10) || merged.currentLevel)
+        : merged.currentLevel;
+      const safeLevel = clampTetromazeCampaignLevel(Math.min(requestedLevel, merged.highestLevel));
       const resumeData = getTetromazeCampaignLevel(safeLevel);
       setLevelIndex(safeLevel);
       setLevel(resumeData);
@@ -1956,7 +1926,7 @@ export default function TetromazePage() {
   };
 
   const loadLevel = (nextIndex: number, keepMode: TetromazeMode = state.mode) => {
-    const safe = clampLevelIndex(nextIndex);
+    const safe = clampTetromazeCampaignLevel(nextIndex);
     const nextLevel = getTetromazeCampaignLevel(safe);
     setIsCustomLevel(false);
     setLevelIndex(safe);
@@ -2033,7 +2003,7 @@ export default function TetromazePage() {
     }
 
     const nextLevelOnWin =
-      state.status === "won" ? clampLevelIndex(levelIndex + 1) : levelIndex;
+      state.status === "won" ? clampTetromazeCampaignLevel(levelIndex + 1) : levelIndex;
 
     persistProgress({
       levelIndex,
