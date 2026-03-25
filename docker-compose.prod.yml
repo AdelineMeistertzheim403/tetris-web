@@ -37,6 +37,7 @@ services:
       - ./.env
     environment:
       ALLOWED_ORIGINS: "https://tetroworld.fr,https://www.tetroworld.fr"
+      TRUST_PROXY: "1"
     command: >
       sh -c "until npx prisma migrate deploy; do echo 'waiting for db'; sleep 2; done; npx prisma db seed; npm run start"
     depends_on:

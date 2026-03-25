@@ -20,6 +20,10 @@ import { logger } from "./logger";
 
 const app = express();
 
+// En prod, l'API est exposee derriere Traefik. Express doit donc faire confiance
+// au proxy pour exploiter correctement X-Forwarded-For (rate limit, IP, etc.).
+app.set("trust proxy", env.trustProxy);
+
 // Logger HTTP
 app.use(
   pinoHttp({
