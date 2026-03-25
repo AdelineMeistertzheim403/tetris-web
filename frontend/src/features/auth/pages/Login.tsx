@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthApiError, login } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
@@ -12,6 +12,7 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { setUser } = useAuth(); // accès au contexte auth global
   const { recordLoginDay } = useAchievements();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +25,7 @@ export default function Login() {
       const loggedUser = await login(email, password);
       setUser(loggedUser);
       recordLoginDay();
-      window.location.assign(PATHS.dashboard);
+      navigate(PATHS.dashboard, { replace: true });
     } catch (err) {
       if (err instanceof AuthApiError) {
         setError(err.message);
@@ -80,11 +81,7 @@ export default function Login() {
 
         <p className="text-center text-sm text-pink-300 mt-2">
           Pas encore de compte ?{" "}
-          <Link
-            to={PATHS.register}
-            className="text-yellow-400 hover:text-pink-300"
-            reloadDocument
-          >
+          <Link to={PATHS.register} className="text-yellow-400 hover:text-pink-300">
             Inscris-toi
           </Link>
         </p>

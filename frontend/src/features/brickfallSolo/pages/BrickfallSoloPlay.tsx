@@ -14,6 +14,12 @@ import {
   getCampaignLevel,
 } from "../data/campaignLevels";
 import {
+  clampBrickfallSoloCampaignLevel,
+  mergeBrickfallSoloProgress,
+  readLocalBrickfallSoloProgress,
+  writeLocalBrickfallSoloProgress,
+} from "../utils/progress";
+import {
   fetchBrickfallSoloCommunityLevel,
   fetchBrickfallSoloCustomLevels,
   fetchBrickfallSoloProgress,
@@ -40,9 +46,6 @@ const ROWS = 20;
 const COLS = 25;
 const LEVELS_PER_WORLD = 9;
 const TOTAL_LEVELS = CAMPAIGN_TOTAL_LEVELS;
-const PROGRESS_STORAGE_KEY = "brickfall-solo-campaign-progress-v1";
-
-const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 function modeCount(values: Record<string, boolean>) {
@@ -53,26 +56,6 @@ function toWorldStage(index: number) {
   const world = Math.floor((index - 1) / LEVELS_PER_WORLD) + 1;
   const stage = ((index - 1) % LEVELS_PER_WORLD) + 1;
   return { world, stage };
-}
-
-function readLocalProgress() {
-  try {
-    const raw = localStorage.getItem(PROGRESS_STORAGE_KEY);
-    if (!raw) return 1;
-    const parsed = Number.parseInt(raw, 10);
-    if (!Number.isFinite(parsed)) return 1;
-    return clamp(parsed, 1, TOTAL_LEVELS);
-  } catch {
-    return 1;
-  }
-}
-
-function writeLocalProgress(level: number) {
-  try {
-    localStorage.setItem(PROGRESS_STORAGE_KEY, String(clamp(level, 1, TOTAL_LEVELS)));
-  } catch {
-    // no-op
-  }
 }
 
 function levelToBoard(level: BrickfallLevel) {
@@ -156,7 +139,7 @@ export default function BrickfallSoloPlay() {
   const [communityError, setCommunityError] = useState<string | null>(null);
   const [communityLikeBusy, setCommunityLikeBusy] = useState(false);
   const [roundNote, setRoundNote] = useState<string | null>(null);
-  const [savedCampaignLevel, setSavedCampaignLevel] = useState(() => readLocalProgress());
+  const [savedCampaignLevel, setSavedCampaignLevel] = useState(() => readLocalBrickfallSoloProgress());
   const visitedRef = useRef(false);
   const levelStartRef = useRef(Date.now());
   const multiBallLevelRef = useRef(0);
@@ -167,7 +150,9 @@ export default function BrickfallSoloPlay() {
   const customParam = searchParams.get("custom");
   const communityParam = searchParams.get("community");
   const levelParamRaw = searchParams.get("level");
-  const levelParam = levelParamRaw ? clamp(Number.parseInt(levelParamRaw, 10) || 1, 1, TOTAL_LEVELS) : null;
+  const levelParam = levelParamRaw
+    ? clampBrickfallSoloCampaignLevel(Number.parseInt(levelParamRaw, 10) || 1)
+    : null;
   const specialBlocks = useMemo(
     () =>
       level.bricks
@@ -246,7 +231,7 @@ export default function BrickfallSoloPlay() {
     let cancelled = false;
     const bootstrap = async () => {
       let levels = listCustomLevels();
-      let checkpoint = readLocalProgress();
+      let checkpoint = readLocalBrickfallSoloProgress();
       setSavedCampaignLevel(checkpoint);
 
       const requestedCommunityId = Number.parseInt(communityParam ?? "", 10);
@@ -282,8 +267,8 @@ export default function BrickfallSoloPlay() {
 
       try {
         const remoteProgress = await fetchBrickfallSoloProgress();
-        checkpoint = Math.max(checkpoint, remoteProgress);
-        writeLocalProgress(checkpoint);
+        checkpoint = mergeBrickfallSoloProgress(checkpoint, remoteProgress);
+        writeLocalBrickfallSoloProgress(checkpoint);
       } catch {
         // non bloquant
       }
@@ -419,7 +404,7 @@ export default function BrickfallSoloPlay() {
       const capped = TOTAL_LEVELS;
       if (capped > savedCampaignLevel) {
         setSavedCampaignLevel(capped);
-        writeLocalProgress(capped);
+        writeLocalBrickfallSoloProgress(capped);
         void saveBrickfallSoloProgress(capped).catch(() => { });
       }
       setStatus("campaign_clear");
@@ -427,10 +412,10 @@ export default function BrickfallSoloPlay() {
     }
 
     if (!isCustomLevel && !isCommunityLevel) {
-      const unlocked = clamp(levelIndex + 1, 1, TOTAL_LEVELS);
+      const unlocked = clampBrickfallSoloCampaignLevel(levelIndex + 1);
       if (unlocked > savedCampaignLevel) {
         setSavedCampaignLevel(unlocked);
-        writeLocalProgress(unlocked);
+        writeLocalBrickfallSoloProgress(unlocked);
         void saveBrickfallSoloProgress(unlocked).catch(() => { });
       }
     }
@@ -583,7 +568,7 @@ export default function BrickfallSoloPlay() {
                   loadLevel(levelIndex, level);
                   return;
                 }
-                const nextIndex = clamp(levelIndex + 1, 1, TOTAL_LEVELS);
+                const nextIndex = clampBrickfallSoloCampaignLevel(levelIndex + 1);
                 setLevelIndex(nextIndex);
                 loadLevel(nextIndex, null);
               }}

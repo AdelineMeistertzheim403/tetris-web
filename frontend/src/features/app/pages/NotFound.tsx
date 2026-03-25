@@ -10,10 +10,10 @@ export default function NotFound() {
         La page demandee n'existe pas ou n'est plus accessible.
       </p>
       <div className="flex flex-col gap-4 md:flex-row">
-        <Link to={PATHS.home} className="retro-btn" reloadDocument>
+        <Link to={PATHS.home} className="retro-btn">
           Retour accueil
         </Link>
-        <Link to={PATHS.dashboard} className="retro-btn" reloadDocument>
+        <Link to={PATHS.dashboard} className="retro-btn">
           Aller dashboard
         </Link>
       </div>
