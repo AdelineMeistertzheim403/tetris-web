@@ -1,27 +1,21 @@
-import { lazy } from "react";
 import { Route } from "react-router-dom";
+import Game from "../features/game/pages/Game";
+import Sprint from "../features/game/pages/Sprint";
+import TetrisHub from "../features/app/pages/TetrisHub";
+import Versus from "../features/versus/pages/Versus";
+import RoguelikePage from "../features/roguelike/pages/RoguelikePage";
+import RoguelikeLexicon from "../features/roguelike/pages/RoguelikeLexicon";
+import RoguelikeVersus from "../features/roguelikeVersus/pages/RoguelikeVersus";
+import PuzzleSelect from "../features/puzzle/pages/PuzzleSelect";
+import PuzzleRun from "../features/puzzle/pages/PuzzleRun";
+import BrickfallSolo from "../features/brickfallSolo/pages/BrickfallSolo";
+import BrickfallSoloPlay from "../features/brickfallSolo/pages/BrickfallSoloPlay";
+import BrickfallEditor from "../features/brickfallSolo/pages/BrickfallEditor";
+import BrickfallEditorHelp from "../features/brickfallSolo/pages/BrickfallEditorHelp";
+import BrickfallSoloCommunityHub from "../features/brickfallSolo/pages/BrickfallSoloCommunityHub";
 import { withRouteElement } from "./routeElement";
 import { PATHS } from "./paths";
 import type { AppRouteSpec } from "./routeTypes";
-
-const Game = lazy(() => import("../features/game/pages/Game"));
-const Sprint = lazy(() => import("../features/game/pages/Sprint"));
-const TetrisHub = lazy(() => import("../features/app/pages/TetrisHub"));
-const Versus = lazy(() => import("../features/versus/pages/Versus"));
-const RoguelikePage = lazy(() => import("../features/roguelike/pages/RoguelikePage"));
-const RoguelikeLexicon = lazy(() => import("../features/roguelike/pages/RoguelikeLexicon"));
-const RoguelikeVersus = lazy(() => import("../features/roguelikeVersus/pages/RoguelikeVersus"));
-const PuzzleSelect = lazy(() => import("../features/puzzle/pages/PuzzleSelect"));
-const PuzzleRun = lazy(() => import("../features/puzzle/pages/PuzzleRun"));
-const BrickfallSolo = lazy(() => import("../features/brickfallSolo/pages/BrickfallSolo"));
-const BrickfallSoloPlay = lazy(() => import("../features/brickfallSolo/pages/BrickfallSoloPlay"));
-const BrickfallEditor = lazy(() => import("../features/brickfallSolo/pages/BrickfallEditor"));
-const BrickfallEditorHelp = lazy(
-  () => import("../features/brickfallSolo/pages/BrickfallEditorHelp")
-);
-const BrickfallSoloCommunityHub = lazy(
-  () => import("../features/brickfallSolo/pages/BrickfallSoloCommunityHub")
-);
 
 export const gameRouteSpecs: AppRouteSpec[] = [
   { key: "game", path: PATHS.game, element: <Game /> },

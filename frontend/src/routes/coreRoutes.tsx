@@ -1,22 +1,18 @@
-import { lazy } from "react";
 import { Route } from "react-router-dom";
 import Home from "../features/app/pages/Home";
 import Login from "../features/auth/pages/Login";
 import Register from "../features/auth/pages/Register";
 import NotFound from "../features/app/pages/NotFound";
 import Dashboard from "../features/app/pages/Dashboard";
+import Leaderboard from "../features/game/pages/Leaderboard";
+import AchievementsPage from "../features/achievements/pages/AchievementsPage";
+import Settings from "../features/settings/pages/Settings";
+import TetrobotsPage from "../features/tetrobots/pages/TetrobotsPage";
+import TetrobotsHelpPage from "../features/tetrobots/pages/TetrobotsHelpPage";
+import TetrobotsRelationsPage from "../features/tetrobots/pages/TetrobotsRelationsPage";
 import { withRouteElement } from "./routeElement";
 import { PATHS } from "./paths";
 import type { AppRouteSpec } from "./routeTypes";
-
-const Leaderboard = lazy(() => import("../features/game/pages/Leaderboard"));
-const AchievementsPage = lazy(() => import("../features/achievements/pages/AchievementsPage"));
-const Settings = lazy(() => import("../features/settings/pages/Settings"));
-const TetrobotsPage = lazy(() => import("../features/tetrobots/pages/TetrobotsPage"));
-const TetrobotsHelpPage = lazy(() => import("../features/tetrobots/pages/TetrobotsHelpPage"));
-const TetrobotsRelationsPage = lazy(
-  () => import("../features/tetrobots/pages/TetrobotsRelationsPage")
-);
 
 export const coreRouteSpecs: AppRouteSpec[] = [
   { key: "home", path: PATHS.home, element: <Home /> },
