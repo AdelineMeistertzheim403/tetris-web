@@ -21,6 +21,7 @@ DATABASE_URL=postgresql://tetris_user:tetris_pass@localhost:5432/tetris_db?schem
 JWT_SECRET=super_secret_tetris_key
 PORT=8080
 ALLOWED_ORIGINS=http://localhost:5173
+TRUST_PROXY=false
 ```
 
 ## Démarrage
@@ -33,6 +34,7 @@ npm run dev
 ## Notes
 - En prod : `npx prisma migrate deploy`.
 - Le WebSocket est exposé sur `/ws` (même hôte/port que l’API).
+- `TRUST_PROXY=1` est recommandé derrière un reverse proxy unique (ex: Traefik/Nginx).
 
 ## Routes principales
 - `POST /api/auth/register`
