@@ -5,16 +5,9 @@ import type { TetrobotId } from "../../achievements/types/tetrobots";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import TetrobotRelationsPanel from "../components/TetrobotRelationsPanel";
 import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
+import { isTetrobotId, TETROBOT_IDS, TETROBOT_LABELS } from "../data/tetrobotsContent";
 import { PATHS } from "../../../routes/paths";
 import "../../../styles/tetrobots.css";
-
-const BOTS: TetrobotId[] = ["rookie", "pulse", "apex"];
-
-const BOT_LABELS: Record<TetrobotId, string> = {
-  rookie: "Rookie",
-  pulse: "Pulse",
-  apex: "Apex",
-};
 
 const LAST_TETROBOT_RELATION_KEY = "tetris-last-tetrobot-relation";
 
@@ -29,14 +22,14 @@ export default function TetrobotsRelationsPage() {
       ? window.localStorage.getItem(LAST_TETROBOT_RELATION_KEY)
       : null;
   const activeBot =
-    focusParam === "rookie" || focusParam === "pulse" || focusParam === "apex"
-      ? (focusParam as TetrobotId)
-      : savedBot === "rookie" || savedBot === "pulse" || savedBot === "apex"
-        ? (savedBot as TetrobotId)
+    isTetrobotId(focusParam)
+      ? focusParam
+      : isTetrobotId(savedBot)
+        ? savedBot
         : "rookie";
-  const activeIndex = BOTS.indexOf(activeBot);
-  const previousBot = BOTS[(activeIndex - 1 + BOTS.length) % BOTS.length];
-  const nextBot = BOTS[(activeIndex + 1) % BOTS.length];
+  const activeIndex = TETROBOT_IDS.indexOf(activeBot);
+  const previousBot = TETROBOT_IDS[(activeIndex - 1 + TETROBOT_IDS.length) % TETROBOT_IDS.length];
+  const nextBot = TETROBOT_IDS[(activeIndex + 1) % TETROBOT_IDS.length];
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -102,7 +95,7 @@ export default function TetrobotsRelationsPage() {
                 Precedent
               </button>
               <span>
-                {BOT_LABELS[activeBot]} · {activeIndex + 1}/{BOTS.length}
+                {TETROBOT_LABELS[activeBot]} · {activeIndex + 1}/{TETROBOT_IDS.length}
               </span>
               <button type="button" onClick={() => setActiveBot(nextBot)}>
                 Suivant

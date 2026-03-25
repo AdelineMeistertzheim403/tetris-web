@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import type { BotMood, TetrobotId } from "../../achievements/types/tetrobots";
+import { TETROBOT_IDS, TETROBOT_LABELS, TETROBOT_MOOD_LABELS } from "../data/tetrobotsContent";
 import { PATHS } from "../../../routes/paths";
 
 type TetrobotsSectionNavProps = {
@@ -16,21 +17,6 @@ type TetrobotsSectionNavProps = {
       }
     >
   >;
-};
-
-const BOTS: TetrobotId[] = ["rookie", "pulse", "apex"];
-
-const BOT_LABELS: Record<TetrobotId, string> = {
-  rookie: "Rookie",
-  pulse: "Pulse",
-  apex: "Apex",
-};
-
-const MOOD_LABELS: Record<BotMood, string> = {
-  angry: "colere",
-  neutral: "neutre",
-  friendly: "ouvert",
-  respect: "respect",
 };
 
 export default function TetrobotsSectionNav({
@@ -73,7 +59,7 @@ export default function TetrobotsSectionNav({
 
       {isLoggedIn && activeBot && onBotChange ? (
         <div className="tetrobots-section-nav tetrobots-section-nav--bots" aria-label="Selection Tetrobot">
-          {BOTS.map((bot) => (
+          {TETROBOT_IDS.map((bot) => (
             <button
               key={bot}
               type="button"
@@ -86,11 +72,11 @@ export default function TetrobotsSectionNav({
                 {botSummaries?.[bot] ? (
                   <span
                     className={`tetrobots-section-nav__bot-mood tetrobots-section-nav__bot-mood--${botSummaries[bot]?.mood}`}
-                    aria-label={`Humeur ${MOOD_LABELS[botSummaries[bot]!.mood]}`}
-                    title={`Humeur ${MOOD_LABELS[botSummaries[bot]!.mood]}`}
+                    aria-label={`Humeur ${TETROBOT_MOOD_LABELS[botSummaries[bot]!.mood as BotMood]}`}
+                    title={`Humeur ${TETROBOT_MOOD_LABELS[botSummaries[bot]!.mood as BotMood]}`}
                   />
                 ) : null}
-                <span>{BOT_LABELS[bot]}</span>
+                <span>{TETROBOT_LABELS[bot]}</span>
               </span>
               {botSummaries?.[bot] ? (
                 <span className="tetrobots-section-nav__bot-meta">

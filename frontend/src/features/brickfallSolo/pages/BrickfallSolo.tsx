@@ -1,10 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  GameModeHubLayout,
+  HubActionRow,
+  HubIconButton,
+  HubInlineControl,
+  HubSection,
+  HubStack,
+  type GameModeHubStat,
+} from "../../app/components/hub/GameModeHub";
+import { useGameModeHubBootstrap } from "../../app/hooks/useGameModeHubBootstrap";
 import { useAuth } from "../../auth/context/AuthContext";
 import { PATHS } from "../../../routes/paths";
 import type { BrickfallLevel } from "../types/levels";
 import { listCustomLevels, mergeCustomLevels } from "../utils/customLevels";
 import { CAMPAIGN_TOTAL_LEVELS } from "../data/campaignLevels";
+import {
+  mergeBrickfallSoloProgress,
+  readLocalBrickfallSoloProgress,
+} from "../utils/progress";
 import {
   fetchBrickfallSoloCommunityLevels,
   fetchBrickfallSoloCustomLevels,
@@ -14,20 +28,6 @@ import {
 import "../../../styles/pixel-protocol-hub.css";
 
 const LEVELS_PER_WORLD = 9;
-const PROGRESS_STORAGE_KEY = "brickfall-solo-campaign-progress-v1";
-const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-
-function readLocalProgress() {
-  try {
-    const raw = localStorage.getItem(PROGRESS_STORAGE_KEY);
-    if (!raw) return 1;
-    const parsed = Number.parseInt(raw, 10);
-    if (!Number.isFinite(parsed)) return 1;
-    return clamp(parsed, 1, CAMPAIGN_TOTAL_LEVELS);
-  } catch {
-    return 1;
-  }
-}
 
 function toWorldStage(index: number) {
   const world = Math.floor((index - 1) / LEVELS_PER_WORLD) + 1;
@@ -38,53 +38,46 @@ function toWorldStage(index: number) {
 export default function BrickfallSolo() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [savedLevel, setSavedLevel] = useState(() => readLocalProgress());
-  const [customLevels, setCustomLevels] = useState<BrickfallLevel[]>([]);
+  const [savedLevel, setSavedLevel] = useState(() => readLocalBrickfallSoloProgress());
+  const [customLevels, setCustomLevels] = useState<BrickfallLevel[]>(() => listCustomLevels());
   const [communityLevels, setCommunityLevels] = useState<BrickfallSoloCommunityLevel[]>([]);
   const [selectedCustomId, setSelectedCustomId] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const { loading, syncError } = useGameModeHubBootstrap({
+    deps: [],
+    loadLocal: () => ({
+      progress: readLocalBrickfallSoloProgress(),
+      customLevels: listCustomLevels(),
+    }),
+    applyLocal: ({ progress, customLevels: localCustomLevels }) => {
+      setSavedLevel(progress);
+      setCustomLevels(localCustomLevels);
+    },
+    fetchRemote: async ({ progress }) => {
+      const [remoteProgress, remoteLevels] = await Promise.all([
+        fetchBrickfallSoloProgress(),
+        fetchBrickfallSoloCustomLevels(),
+      ]);
+      return {
+        progress: mergeBrickfallSoloProgress(progress, remoteProgress),
+        customLevels: mergeCustomLevels(remoteLevels),
+      };
+    },
+    applyRemote: ({ progress, customLevels: remoteCustomLevels }) => {
+      setSavedLevel(progress);
+      setCustomLevels(remoteCustomLevels);
+    },
+    offlineMessage: "Mode hors ligne: donnees locales utilisees.",
+    fetchCommunity: fetchBrickfallSoloCommunityLevels,
+    applyCommunity: setCommunityLevels,
+    communityFallback: [],
+  });
 
   useEffect(() => {
-    let cancelled = false;
-
-    const bootstrap = async () => {
-      setLoading(true);
-      setSyncError(null);
-
-      let levels = listCustomLevels();
-      let checkpoint = readLocalProgress();
-
-      try {
-        const [remoteProgress, remoteLevels] = await Promise.all([
-          fetchBrickfallSoloProgress(),
-          fetchBrickfallSoloCustomLevels(),
-        ]);
-        checkpoint = Math.max(checkpoint, remoteProgress);
-        levels = mergeCustomLevels(remoteLevels);
-      } catch {
-        if (!cancelled) setSyncError("Mode hors ligne: donnees locales utilisees.");
-      }
-
-      try {
-        const remoteCommunityLevels = await fetchBrickfallSoloCommunityLevels();
-        if (!cancelled) setCommunityLevels(remoteCommunityLevels);
-      } catch {
-        if (!cancelled) setCommunityLevels([]);
-      }
-
-      if (cancelled) return;
-      setSavedLevel(clamp(checkpoint, 1, CAMPAIGN_TOTAL_LEVELS));
-      setCustomLevels(levels);
-      if (levels.length > 0) setSelectedCustomId((prev) => prev || levels[0].id);
-      setLoading(false);
-    };
-
-    bootstrap();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (customLevels.length && !selectedCustomId) {
+      setSelectedCustomId(customLevels[0].id);
+    }
+  }, [customLevels, selectedCustomId]);
 
   const stage = useMemo(() => toWorldStage(savedLevel), [savedLevel]);
   const ownPublishedLevelIds = useMemo(() => {
@@ -95,120 +88,93 @@ export default function BrickfallSolo() {
     return map;
   }, [communityLevels]);
 
+  const stats: GameModeHubStat[] = [
+    { content: <>Niveau max atteint: {savedLevel}/{CAMPAIGN_TOTAL_LEVELS}</> },
+    { content: <>Monde atteint: {stage.world}</> },
+    { content: <>Stage atteint: {stage.stage}</> },
+    { content: <>Niveaux custom: {customLevels.length}</> },
+    { content: <>Galerie joueurs: {communityLevels.length}</> },
+    { content: <>Publication: {user ? "active" : "connexion requise"}</> },
+  ];
+
+  if (syncError) {
+    stats.push({ content: syncError, className: "text-yellow-300" });
+  }
+
+  if (loading) {
+    stats.push({ content: "Chargement...", className: "text-gray-300" });
+  }
+
   return (
-    <div className="pp-hub font-['Press_Start_2P']">
-      <div className="pp-hub-shell">
-        <h1 className="pp-hub-title">Brickfall Solo</h1>
+    <GameModeHubLayout title="Brickfall Solo" stats={stats}>
+      <HubStack>
+        <HubActionRow>
+          <HubIconButton
+            icon="fa-forward"
+            title="Reprendre campagne"
+            onClick={() => navigate(`/brickfall-solo/play?level=${savedLevel}`)}
+          />
+          <HubIconButton
+            icon="fa-rotate-right"
+            title="Nouvelle campagne"
+            onClick={() => navigate(`${PATHS.brickfallSoloPlay}?level=1`)}
+          />
+        </HubActionRow>
+        <HubActionRow>
+          <HubIconButton
+            icon="fa-pen-ruler"
+            title="Ouvrir editeur"
+            onClick={() => navigate(PATHS.brickfallEditor)}
+          />
+          <HubIconButton
+            icon="fa-circle-question"
+            title="Aide editeur"
+            onClick={() => navigate(PATHS.brickfallEditorHelp)}
+          />
+        </HubActionRow>
+      </HubStack>
 
-        <div className="pp-hub-grid">
-          <section className="panel pp-hub-card">
-            <h2 className="text-cyan-200">
-              <i className="fa-solid fa-chart-line pp-hub-section-icon pp-hub-section-icon--campaign" aria-hidden="true" /> Profil campagne
-            </h2>
-            <div className="pp-hub-stat">Niveau max atteint: {savedLevel}/{CAMPAIGN_TOTAL_LEVELS}</div>
-            <div className="pp-hub-stat">Monde atteint: {stage.world}</div>
-            <div className="pp-hub-stat">Stage atteint: {stage.stage}</div>
-            <div className="pp-hub-stat">Niveaux custom: {customLevels.length}</div>
-            <div className="pp-hub-stat">Galerie joueurs: {communityLevels.length}</div>
-            <div className="pp-hub-stat">Publication: {user ? "active" : "connexion requise"}</div>
-            {syncError && <div className="pp-hub-stat text-yellow-300">{syncError}</div>}
-            {loading && <div className="pp-hub-stat text-gray-300">Chargement...</div>}
-          </section>
+      <HubSection title="Jouer niveau custom">
+        <HubInlineControl>
+          <select
+            className="pp-hub-select"
+            value={selectedCustomId}
+            onChange={(event) => setSelectedCustomId(event.target.value)}
+          >
+            <option value="">-- choisir --</option>
+            {customLevels.map((level) => (
+              <option key={level.id} value={level.id}>
+                {level.name} ({level.id})
+              </option>
+            ))}
+          </select>
+          <HubIconButton
+            icon="fa-play"
+            title="Lancer niveau custom"
+            disabled={!selectedCustomId}
+            onClick={() =>
+              navigate(`/brickfall-solo/play?custom=${encodeURIComponent(selectedCustomId)}`)
+            }
+          />
+        </HubInlineControl>
+        {selectedCustomId && ownPublishedLevelIds.has(selectedCustomId) && (
+          <div className="pp-hub-stat text-cyan-200">Deja publie dans la galerie joueurs</div>
+        )}
+      </HubSection>
 
-          <section className="panel pp-hub-card">
-            <h2 className="text-pink-300">
-              <i className="fa-solid fa-bolt" aria-hidden="true" /> Actions
-            </h2>
-            <div className="pp-hub-stack">
-              <div className="pp-hub-action-row">
-                <button
-                  className="pp-hub-icon-btn"
-                  title="Reprendre campagne"
-                  aria-label="Reprendre campagne"
-                  onClick={() => navigate(`/brickfall-solo/play?level=${savedLevel}`)}
-                >
-                  <i className="fa-solid fa-forward" aria-hidden="true" />
-                </button>
-                <button
-                  className="pp-hub-icon-btn"
-                  title="Nouvelle campagne"
-                  aria-label="Nouvelle campagne"
-                  onClick={() => navigate(`${PATHS.brickfallSoloPlay}?level=1`)}
-                >
-                  <i className="fa-solid fa-rotate-right" aria-hidden="true" />
-                </button>
-              </div>
-              <div className="pp-hub-action-row">
-                <button
-                  className="pp-hub-icon-btn"
-                  title="Ouvrir editeur"
-                  aria-label="Ouvrir editeur"
-                  onClick={() => navigate(PATHS.brickfallEditor)}
-                >
-                  <i className="fa-solid fa-pen-ruler" aria-hidden="true" />
-                </button>
-                <button
-                  className="pp-hub-icon-btn"
-                  title="Aide editeur"
-                  aria-label="Aide editeur"
-                  onClick={() => navigate(PATHS.brickfallEditorHelp)}
-                >
-                  <i className="fa-solid fa-circle-question" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-
-            <div className="pp-hub-divider pp-hub-stack">
-              <div className="text-cyan-200">Jouer niveau custom</div>
-              <div className="pp-hub-inline-control">
-                <select
-                  className="pp-hub-select"
-                  value={selectedCustomId}
-                  onChange={(e) => setSelectedCustomId(e.target.value)}
-                >
-                  <option value="">-- choisir --</option>
-                  {customLevels.map((lvl) => (
-                    <option key={lvl.id} value={lvl.id}>
-                      {lvl.name} ({lvl.id})
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="pp-hub-icon-btn"
-                  title="Lancer niveau custom"
-                  aria-label="Lancer niveau custom"
-                  disabled={!selectedCustomId}
-                  onClick={() => navigate(`/brickfall-solo/play?custom=${encodeURIComponent(selectedCustomId)}`)}
-                >
-                  <i className="fa-solid fa-play" aria-hidden="true" />
-                </button>
-              </div>
-              {selectedCustomId && ownPublishedLevelIds.has(selectedCustomId) && (
-                <div className="pp-hub-stat text-cyan-200">Deja publie dans la galerie joueurs</div>
-              )}
-            </div>
-
-            <div className="pp-hub-divider pp-hub-action-row">
-              <button
-                className="pp-hub-icon-btn"
-                title="Niveaux joueurs"
-                aria-label="Niveaux joueurs"
-                onClick={() => navigate(PATHS.brickfallSoloCommunity)}
-              >
-                <i className="fa-solid fa-users" aria-hidden="true" />
-              </button>
-              <button
-                className="pp-hub-icon-btn pp-hub-icon-btn--secondary"
-                title="Retour dashboard"
-                aria-label="Retour dashboard"
-                onClick={() => navigate(PATHS.dashboard)}
-              >
-                <i className="fa-solid fa-arrow-left" aria-hidden="true" />
-              </button>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
+      <HubActionRow className="pp-hub-divider">
+        <HubIconButton
+          icon="fa-users"
+          title="Niveaux joueurs"
+          onClick={() => navigate(PATHS.brickfallSoloCommunity)}
+        />
+        <HubIconButton
+          icon="fa-arrow-left"
+          title="Retour dashboard"
+          variant="secondary"
+          onClick={() => navigate(PATHS.dashboard)}
+        />
+      </HubActionRow>
+    </GameModeHubLayout>
   );
 }

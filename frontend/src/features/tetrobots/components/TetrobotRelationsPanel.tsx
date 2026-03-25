@@ -5,49 +5,17 @@ import { getApexTrustState } from "../../achievements/lib/tetrobotAchievementLog
 import {
   useAchievements,
 } from "../../achievements/hooks/useAchievements";
+import {
+  TETROBOT_MODE_LABELS,
+  TETROBOT_MODE_PLAY_ROUTE_MAP,
+  TETROBOT_RELATION_META,
+} from "../data/tetrobotsContent";
 import { getApexRequirement } from "../logic/apexTrustEngine";
 import ApexLockedPanel from "./ApexLockedPanel";
 import TetrobotCard, { type TetrobotRelationProgressItem } from "./TetrobotCard";
 import { PATHS } from "../../../routes/paths";
 
-const BOT_META: Record<TetrobotId, { name: string; accent: string; relationGoal: string }> = {
-  rookie: {
-    name: "Rookie",
-    accent: "#5de0a4",
-    relationGoal: "Rookie aime la regularite, les retours apres echec et les sessions utiles.",
-  },
-  pulse: {
-    name: "Pulse",
-    accent: "#65b7ff",
-    relationGoal: "Pulse respecte les progres mesurables et les corrections methodiques.",
-  },
-  apex: {
-    name: "Apex",
-    accent: "#ff7f66",
-    relationGoal: "Apex ne respecte que le courage, la discipline et le travail sur les vraies faiblesses.",
-  },
-};
-
-const AVATARS: Record<TetrobotId, string> = {
-  rookie: "/chatbots/rookie_neutral.png",
-  pulse: "/chatbots/pulse_neutral.png",
-  apex: "/chatbots/apex_neutral.png",
-};
-
 type RelationsStats = ReturnType<typeof useAchievements>["stats"];
-
-const MODE_LABELS: Partial<Record<NonNullable<RelationsStats["lowestWinrateMode"]>, string>> = {
-  CLASSIQUE: "Classique",
-  SPRINT: "Sprint",
-  VERSUS: "Versus",
-  BRICKFALL_SOLO: "Brickfall Solo",
-  ROGUELIKE: "Roguelike",
-  ROGUELIKE_VERSUS: "Roguelike Versus",
-  PUZZLE: "Puzzle",
-  TETROMAZE: "Tetromaze",
-  PIXEL_INVASION: "Pixel Invasion",
-  PIXEL_PROTOCOL: "Pixel Protocol",
-};
 
 function formatLockedAdvice(lockedAdvice: string[]) {
   return lockedAdvice
@@ -122,7 +90,7 @@ function getThought(
     return `${activeExclusiveAlignment.favoredLine} ${oppositionLine ?? ""}`.trim();
   }
   if (resentment > 0) {
-    return `${BOT_META[bot].name} n'a pas completement tourne la page. Rancune residuelle: ${resentment} session(s).`;
+    return `${TETROBOT_RELATION_META[bot].name} n'a pas completement tourne la page. Rancune residuelle: ${resentment} session(s).`;
   }
   if (bot === "rookie") {
     if (
@@ -224,34 +192,12 @@ function getOppositionLine(bot: TetrobotId, stats: RelationsStats) {
 
 function getModeLabel(mode: RelationsStats["lowestWinrateMode"]) {
   if (!mode) return "ton point faible";
-  return MODE_LABELS[mode] ?? mode;
+  return TETROBOT_MODE_LABELS[mode] ?? mode;
 }
 
 function getModeActionTarget(mode: RelationsStats["lowestWinrateMode"]) {
-  switch (mode) {
-    case "CLASSIQUE":
-      return "/game";
-    case "SPRINT":
-      return "/sprint";
-    case "VERSUS":
-      return "/versus";
-    case "BRICKFALL_SOLO":
-      return "/brickfall-solo/play";
-    case "ROGUELIKE":
-      return "/roguelike";
-    case "ROGUELIKE_VERSUS":
-      return "/roguelike-versus";
-    case "PUZZLE":
-      return "/puzzle";
-    case "TETROMAZE":
-      return "/tetromaze/play";
-    case "PIXEL_INVASION":
-      return "/pixel-invasion";
-    case "PIXEL_PROTOCOL":
-      return "/pixel-protocol/play";
-    default:
-      return null;
-  }
+  if (!mode) return null;
+  return TETROBOT_MODE_PLAY_ROUTE_MAP[mode] ?? null;
 }
 
 function getProgressPriority(item: TetrobotRelationProgressItem) {
@@ -598,7 +544,7 @@ export default function TetrobotRelationsPanel({
         : getApexRequirement(stats.playerLongTermMemory, apexTrustState)
       : recommendation?.reason
         ? recommendation.reason
-        : BOT_META[bot].relationGoal;
+        : TETROBOT_RELATION_META[bot].relationGoal;
 
   return (
     <section className="tetrobots-relations">
@@ -642,9 +588,9 @@ export default function TetrobotRelationsPanel({
         <TetrobotCard
           key={bot}
           bot={bot}
-          name={BOT_META[bot].name}
-          avatar={AVATARS[bot]}
-          accent={BOT_META[bot].accent}
+          name={TETROBOT_RELATION_META[bot].name}
+          avatar={TETROBOT_RELATION_META[bot].avatar}
+          accent={TETROBOT_RELATION_META[bot].accent}
           level={state.level}
           xp={state.xp}
           affinity={state.affinity}
@@ -671,14 +617,14 @@ export default function TetrobotRelationsPanel({
               className="tetrobots-help-link"
               onClick={() => chooseActiveTetrobotConflict(activeConflict.challenger)}
             >
-              Suivre {BOT_META[activeConflict.challenger].name}
+              Suivre {TETROBOT_RELATION_META[activeConflict.challenger].name}
             </button>
             <button
               type="button"
               className="tetrobots-help-link"
               onClick={() => chooseActiveTetrobotConflict(activeConflict.opponent)}
             >
-              Suivre {BOT_META[activeConflict.opponent].name}
+              Suivre {TETROBOT_RELATION_META[activeConflict.opponent].name}
             </button>
           </div>
           <p>
@@ -704,7 +650,7 @@ export default function TetrobotRelationsPanel({
               : ""}
           </p>
           <p>
-            {BOT_META[stats.playerLongTermMemory.activeExclusiveAlignment.blockedBot].name} reste en
+            {TETROBOT_RELATION_META[stats.playerLongTermMemory.activeExclusiveAlignment.blockedBot].name} reste en
             retrait pour {stats.playerLongTermMemory.activeExclusiveAlignment.sessionsRemaining} session(s).
           </p>
           <p>

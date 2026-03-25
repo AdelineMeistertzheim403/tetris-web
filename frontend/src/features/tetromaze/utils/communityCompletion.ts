@@ -1,29 +1,7 @@
+import { createCommunityCompletionTracker } from "../../app/logic/communityCompletionTracker";
 import type { TetromazeLevel } from "../types";
 
 const STORAGE_KEY = "tetromaze-community-completion-v1";
-
-type CommunityCompletionRecord = {
-  levelId: string;
-  fingerprint: string;
-  completedAt: string;
-};
-
-type CommunityCompletionStore = Record<string, CommunityCompletionRecord>;
-
-function normalizeForHash(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeForHash(item));
-  }
-  if (value && typeof value === "object") {
-    return Object.keys(value as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = normalizeForHash((value as Record<string, unknown>)[key]);
-        return acc;
-      }, {});
-  }
-  return value;
-}
 
 function canonicalTetromazeLevel(level: TetromazeLevel) {
   return {
@@ -78,49 +56,14 @@ function canonicalTetromazeLevel(level: TetromazeLevel) {
   };
 }
 
-function readStore(): CommunityCompletionStore {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed as CommunityCompletionStore;
-  } catch {
-    return {};
-  }
-}
+const completionTracker = createCommunityCompletionTracker<TetromazeLevel>({
+  storageKey: STORAGE_KEY,
+  prefix: "tmz",
+  getLevelId: (level) => level.id,
+  canonicalize: canonicalTetromazeLevel,
+});
 
-function writeStore(store: CommunityCompletionStore) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-}
-
-export function fingerprintTetromazeLevel(level: TetromazeLevel): string {
-  const normalized = normalizeForHash(canonicalTetromazeLevel(level));
-  const json = JSON.stringify(normalized);
-  let hash = 2166136261;
-  for (let index = 0; index < json.length; index += 1) {
-    hash ^= json.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `tmz-${(hash >>> 0).toString(16)}`;
-}
-
-export function markTetromazeCustomLevelCompleted(level: TetromazeLevel) {
-  const store = readStore();
-  store[level.id] = {
-    levelId: level.id,
-    fingerprint: fingerprintTetromazeLevel(level),
-    completedAt: new Date().toISOString(),
-  };
-  writeStore(store);
-}
-
-export function getTetromazeCustomLevelCompletion(level: TetromazeLevel) {
-  return readStore()[level.id] ?? null;
-}
-
-export function hasCompletedCurrentTetromazeLevel(level: TetromazeLevel) {
-  const record = getTetromazeCustomLevelCompletion(level);
-  if (!record) return false;
-  return record.fingerprint === fingerprintTetromazeLevel(level);
-}
+export const fingerprintTetromazeLevel = completionTracker.fingerprint;
+export const markTetromazeCustomLevelCompleted = completionTracker.markCompleted;
+export const getTetromazeCustomLevelCompletion = completionTracker.getCompletion;
+export const hasCompletedCurrentTetromazeLevel = completionTracker.hasCompletedCurrent;

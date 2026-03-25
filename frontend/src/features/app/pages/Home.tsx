@@ -14,10 +14,10 @@ export default function Home() {
       </p>
 
       <div className="flex flex-col md:flex-row gap-6">
-        <Link to={PATHS.login} className="retro-btn" reloadDocument>
+        <Link to={PATHS.login} className="retro-btn">
           Connexion
         </Link>
-        <Link to={PATHS.register} className="retro-btn" reloadDocument>
+        <Link to={PATHS.register} className="retro-btn">
           Inscription
         </Link>
       </div>

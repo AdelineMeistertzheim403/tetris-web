@@ -1,3 +1,4 @@
+import { createStoredJsonValue } from "../../app/logic/localStorageValue";
 import type { PixelSkill } from "../types";
 
 const STORAGE_KEY = "pixel-protocol-unlocked-skills-v1";
@@ -13,22 +14,20 @@ function normalizeSkills(value: unknown): PixelSkill[] {
     "TIME_BUFFER",
     "PLATFORM_SPAWN",
   ];
-  return value.filter((skill): skill is PixelSkill => allowed.includes(skill as PixelSkill));
+  return Array.from(
+    new Set(value.filter((skill): skill is PixelSkill => allowed.includes(skill as PixelSkill)))
+  );
 }
 
-export function readLocalPixelProtocolSkills(): PixelSkill[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return normalizeSkills(JSON.parse(raw));
-  } catch {
-    return [];
-  }
-}
+const skillsStore = createStoredJsonValue<PixelSkill[]>({
+  storageKey: STORAGE_KEY,
+  fallback: [],
+  normalize: normalizeSkills,
+  serialize: normalizeSkills,
+});
 
-export function writeLocalPixelProtocolSkills(skills: PixelSkill[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(new Set(skills))));
-}
+export const readLocalPixelProtocolSkills = skillsStore.read;
+export const writeLocalPixelProtocolSkills = skillsStore.write;
 
 export function mergePixelProtocolSkills(
   current: PixelSkill[],
