@@ -1,3 +1,4 @@
+import type { PixelRuntimeEvent } from "../../pixelMode/context/pixelModeContext";
 import {
   DASH_COOLDOWN,
   MAX_LIVES,
@@ -13,6 +14,7 @@ type PixelInvasionSidebarProps = {
   bestScore: number;
   bestWave: number;
   side: "left" | "right";
+  pixelAnomaly?: PixelRuntimeEvent | null;
 };
 
 export function PixelInvasionSidebar({
@@ -21,6 +23,7 @@ export function PixelInvasionSidebar({
   bestScore,
   bestWave,
   side,
+  pixelAnomaly = null,
 }: PixelInvasionSidebarProps) {
   const activeBotLabel = game.message.bot.toUpperCase();
 
@@ -145,6 +148,22 @@ export function PixelInvasionSidebar({
           </div>
         </div>
       </section>
+
+      {pixelAnomaly ? (
+        <section
+          className={`pixel-invasion-card ${
+            pixelAnomaly.severity === "high"
+              ? "pixel-invasion-card--boss"
+              : pixelAnomaly.severity === "medium"
+                ? "pixel-invasion-card--warning"
+                : ""
+          }`}
+        >
+          <div className="pixel-invasion-card-title">Anomalie Pixel</div>
+          <div className="pixel-invasion-anomaly-title">{pixelAnomaly.title}</div>
+          <p className="pixel-invasion-anomaly-text">{pixelAnomaly.description}</p>
+        </section>
+      ) : null}
     </aside>
   );
 }

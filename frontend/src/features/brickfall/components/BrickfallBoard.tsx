@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 import { BRICKFALL_BALANCE } from "../shared/balance";
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -271,11 +272,30 @@ export default function BrickfallBoard({
   const chaosWavesRef = useRef<ChaosWave[]>([]);
   const previousVelocityRef = useRef<Record<number, { vx: number; vy: number }>>({});
   const corePlacedRef = useRef(false);
+  const pixelInvertUntilRef = useRef(0);
+  const pixelNextEventAtRef = useRef(0);
+  const pixelInvertAppliedRef = useRef(false);
+  const pixelModeActiveRef = useRef(false);
+  const pixelInstabilityRef = useRef(0);
+  const {
+    gameplayRouteActive: pixelModeActive,
+    instabilityLevel,
+    reportRuntimeEvent,
+  } = usePixelMode();
 
   const width = cols * cellW;
   const height = rows * cellH;
   const paddleY = height - cellH * 1.2;
   const ballRadius = cellUnit * 0.35;
+
+  useEffect(() => {
+    pixelModeActiveRef.current = pixelModeActive;
+    pixelInstabilityRef.current = instabilityLevel;
+    if (pixelModeActive) return;
+    pixelInvertUntilRef.current = 0;
+    pixelNextEventAtRef.current = 0;
+    pixelInvertAppliedRef.current = false;
+  }, [instabilityLevel, pixelModeActive]);
 
   useEffect(() => {
     if (!targetBoard || targetBoard.length === 0) return;
@@ -513,23 +533,27 @@ export default function BrickfallBoard({
     []
   );
 
+  const syncPaddleVelocity = useCallback(() => {
+    const { left, right } = pressedKeysRef.current;
+    if (left === right) {
+      paddleVelRef.current = 0;
+      return;
+    }
+    const invert = debuffRef.current === "invert_controls";
+    const pixelInvert =
+      pixelModeActiveRef.current && Date.now() < pixelInvertUntilRef.current;
+    const effectiveInvert = pixelInvert ? !invert : invert;
+    if (left) {
+      paddleVelRef.current = effectiveInvert ? 1 : -1;
+      return;
+    }
+    paddleVelRef.current = effectiveInvert ? -1 : 1;
+  }, []);
+
   useEffect(() => {
     if (!interactive) return;
     wrapperRef.current?.focus();
-
-    const syncPaddleVelocity = () => {
-      const { left, right } = pressedKeysRef.current;
-      if (left === right) {
-        paddleVelRef.current = 0;
-        return;
-      }
-      const invert = debuffRef.current === "invert_controls";
-      if (left) {
-        paddleVelRef.current = invert ? 1 : -1;
-        return;
-      }
-      paddleVelRef.current = invert ? -1 : 1;
-    };
+    const pressedKeys = pressedKeysRef.current;
 
     const isLeftKey = (key: string) => key === "ArrowLeft" || key === "a" || key === "A";
     const isRightKey = (key: string) => key === "ArrowRight" || key === "d" || key === "D";
@@ -537,12 +561,12 @@ export default function BrickfallBoard({
     const handleKeyDown = (evt: KeyboardEvent) => {
       if (isLeftKey(evt.key)) {
         evt.preventDefault();
-        pressedKeysRef.current.left = true;
+        pressedKeys.left = true;
         syncPaddleVelocity();
       }
       if (isRightKey(evt.key)) {
         evt.preventDefault();
-        pressedKeysRef.current.right = true;
+        pressedKeys.right = true;
         syncPaddleVelocity();
       }
       if (evt.key === " " || evt.code === "Space") {
@@ -556,18 +580,18 @@ export default function BrickfallBoard({
         evt.preventDefault();
       }
       if (isLeftKey(evt.key)) {
-        pressedKeysRef.current.left = false;
+        pressedKeys.left = false;
         syncPaddleVelocity();
       }
       if (isRightKey(evt.key)) {
-        pressedKeysRef.current.right = false;
+        pressedKeys.right = false;
         syncPaddleVelocity();
       }
     };
 
     const handleBlur = () => {
-      pressedKeysRef.current.left = false;
-      pressedKeysRef.current.right = false;
+      pressedKeys.left = false;
+      pressedKeys.right = false;
       paddleVelRef.current = 0;
     };
 
@@ -578,11 +602,11 @@ export default function BrickfallBoard({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleBlur);
-      pressedKeysRef.current.left = false;
-      pressedKeysRef.current.right = false;
+      pressedKeys.left = false;
+      pressedKeys.right = false;
       paddleVelRef.current = 0;
     };
-  }, [interactive, launchBall]);
+  }, [interactive, launchBall, syncPaddleVelocity]);
 
   useEffect(() => {
     if (!interactive) return;
@@ -721,6 +745,64 @@ export default function BrickfallBoard({
       accumulatorRef.current += delta;
 
       const now = Date.now();
+      const pixelModeRuntime = pixelModeActiveRef.current;
+      const pixelInstability = pixelInstabilityRef.current;
+      const pixelInvertActive = pixelModeRuntime && now < pixelInvertUntilRef.current;
+      if (pixelInvertAppliedRef.current !== pixelInvertActive) {
+        pixelInvertAppliedRef.current = pixelInvertActive;
+        syncPaddleVelocity();
+      }
+      if (pixelModeRuntime && pixelInstability > 0 && now >= pixelNextEventAtRef.current) {
+        const eventInterval = Math.max(1_700, 4_300 - pixelInstability * 280);
+        pixelNextEventAtRef.current = now + eventInterval + Math.random() * 1_000;
+
+        const roll = Math.random();
+        if (roll < 0.42) {
+          pixelInvertUntilRef.current = now + 900 + pixelInstability * 160;
+          pixelInvertAppliedRef.current = true;
+          syncPaddleVelocity();
+          reportRuntimeEvent({
+            sourceLabel: "Brickfall",
+            title: "Raquette retournee",
+            description: "Les commandes de la raquette s'inversent pendant une breve fenetre.",
+            severity: "medium",
+            ttlMs: 2100,
+          });
+        } else if (roll < 0.78) {
+          effectsRef.current.chaoticBallUntil = Math.max(
+            effectsRef.current.chaoticBallUntil,
+            now + 1_000 + pixelInstability * 240
+          );
+          reportRuntimeEvent({
+            sourceLabel: "Brickfall",
+            title: "Trajectoire chaotique",
+            description: "La balle se met a zigzaguer comme si le mur mentait sur les rebonds.",
+            severity: "medium",
+            ttlMs: 2100,
+          });
+        } else {
+          ballsRef.current = ballsRef.current.map((ball) => ({
+            ...ball,
+            vx: clamp(
+              ball.vx + (Math.random() - 0.5) * (0.18 + pixelInstability * 0.03),
+              -1.2,
+              1.2
+            ),
+            vy: clamp(
+              ball.vy + (Math.random() - 0.5) * (0.12 + pixelInstability * 0.025),
+              -1.15,
+              1.15
+            ),
+          }));
+          reportRuntimeEvent({
+            sourceLabel: "Brickfall",
+            title: "Impulsion parasite",
+            description: "Pixel injecte une derive directe dans la vitesse de la balle.",
+            severity: "high",
+            ttlMs: 2100,
+          });
+        }
+      }
       const effects = effectsRef.current;
       const hasSlow = now < effects.slowMotionUntil;
       const hasPiercing = now < effects.piercingUntil;
@@ -1119,8 +1201,10 @@ export default function BrickfallBoard({
     interactive,
     paused,
     paddleY,
+    reportRuntimeEvent,
     resetBallOnPaddle,
     rows,
+    syncPaddleVelocity,
     width,
   ]);
 

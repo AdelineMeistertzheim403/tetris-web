@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildPixelProtocolChatLine,
   type PixelProtocolChatLine,
@@ -11,11 +11,52 @@ import {
   RUN_ANIMATION_FRAME_MS,
 } from "../constants";
 import { updateRuntime } from "../game/updateRuntime";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 import { usePixelProtocolControls } from "./usePixelProtocolControls";
 import { usePixelProtocolViewport } from "./usePixelProtocolViewport";
 import { LEVELS as DEFAULT_LEVELS } from "../levels";
 import { abilityFlags, cloneLevel, levelTopPadding, selectGrappleTarget } from "../logic";
-import type { EnemyKind, GameRuntime, LevelDef, PixelSkill } from "../types";
+import type {
+  EnemyKind,
+  GameRuntime,
+  InputSnapshot,
+  LevelDef,
+  PixelSkill,
+} from "../types";
+
+function applyPixelProtocolInput(
+  input: InputSnapshot,
+  now: number,
+  {
+    jamUntil,
+    mirrorUntil,
+  }: {
+    jamUntil: number;
+    mirrorUntil: number;
+  }
+): InputSnapshot {
+  const jamActive = now < jamUntil;
+  const mirrorActive = now < mirrorUntil;
+
+  if (!jamActive && !mirrorActive) return input;
+
+  return {
+    ...input,
+    left: mirrorActive ? input.right : input.left,
+    right: mirrorActive ? input.left : input.right,
+    up: mirrorActive ? input.down : input.up,
+    down: mirrorActive ? input.up : input.down,
+    wantJump: jamActive ? false : input.wantJump,
+    wantDash: jamActive ? false : input.wantDash,
+    wantHack: jamActive ? false : input.wantHack,
+    wantGrapple: jamActive ? false : input.wantGrapple,
+    wantPhaseShift: jamActive ? false : input.wantPhaseShift,
+    wantPulseShock: jamActive ? false : input.wantPulseShock,
+    wantOverclock: jamActive ? false : input.wantOverclock,
+    wantTimeBuffer: jamActive ? false : input.wantTimeBuffer,
+    wantPlatformSpawn: jamActive ? false : input.wantPlatformSpawn,
+  };
+}
 
 export function usePixelProtocolGame(
   levels: LevelDef[],
@@ -38,13 +79,22 @@ export function usePixelProtocolGame(
   const idleSinceRef = useRef<number | null>(null);
   const jumpChainRef = useRef(0);
   const lastJumpAtRef = useRef(0);
+  const pixelMirrorUntilRef = useRef(0);
+  const pixelJamUntilRef = useRef(0);
+  const pixelNextEventAtRef = useRef(0);
   const { clearJustPressed, readInput } = usePixelProtocolControls();
   const { gameViewportRef, viewportHeight, viewportWidth } =
     usePixelProtocolViewport();
+  const {
+    gameplayRouteActive: pixelModeActive,
+    instabilityLevel,
+    reportRuntimeEvent,
+  } = usePixelMode();
   const [chatLine, setChatLine] = useState<PixelProtocolChatLine | null>(null);
   const [unlockedSkills, setUnlockedSkills] = useState<PixelSkill[]>(
     () => options?.initialUnlockedSkills ?? []
   );
+  const onUnlockSkills = options?.onUnlockSkills;
 
   const level = safeLevels[levelIndex] ?? safeLevels[0];
   const ability = useMemo(
@@ -56,7 +106,7 @@ export function usePixelProtocolGame(
     [level.enemies]
   );
 
-  const pushDialogue = (
+  const pushDialogue = useCallback((
     event: PlatformerEvent,
     preferredSpeaker: EnemyKind | null = null
   ) => {
@@ -70,9 +120,9 @@ export function usePixelProtocolGame(
     if (!line) return;
     setChatLine(line);
     lastChatAtRef.current = now;
-  };
+  }, [availableSpeakers]);
 
-  const getNearestSpeaker = (game: GameRuntime): EnemyKind | null => {
+  const getNearestSpeaker = useCallback((game: GameRuntime): EnemyKind | null => {
     let nearest: { kind: EnemyKind; distance: number } | null = null;
     for (const enemy of game.enemies) {
       const dx = enemy.x - game.player.x;
@@ -83,7 +133,7 @@ export function usePixelProtocolGame(
       }
     }
     return nearest?.kind ?? availableSpeakers[0] ?? null;
-  };
+  }, [availableSpeakers]);
 
   useEffect(() => {
     const requested = options?.initialLevelIndex ?? 0;
@@ -106,9 +156,12 @@ export function usePixelProtocolGame(
     idleSinceRef.current = null;
     jumpChainRef.current = 0;
     lastJumpAtRef.current = 0;
+    pixelMirrorUntilRef.current = 0;
+    pixelJamUntilRef.current = 0;
+    pixelNextEventAtRef.current = 0;
     pushDialogue("level_start");
     setRenderTick((v) => v + 1);
-  }, [level]);
+  }, [level, pushDialogue]);
 
   useEffect(() => {
     const loop = (ts: number) => {
@@ -116,9 +169,69 @@ export function usePixelProtocolGame(
       lastTsRef.current = ts;
       const game = runtimeRef.current;
       const now = ts;
-      const input = readInput();
+      const rawInput = readInput();
+      const input = pixelModeActive
+        ? applyPixelProtocolInput(rawInput, now, {
+            jamUntil: pixelJamUntilRef.current,
+            mirrorUntil: pixelMirrorUntilRef.current,
+          })
+        : rawInput;
 
       if (game.status === "running") {
+        if (pixelModeActive && instabilityLevel > 0 && now >= pixelNextEventAtRef.current) {
+          const eventInterval = Math.max(1_250, 3_900 - instabilityLevel * 260);
+          pixelNextEventAtRef.current = now + eventInterval + Math.random() * 900;
+
+          const roll = Math.random();
+          if (roll < 0.34) {
+            pixelMirrorUntilRef.current = now + 900 + instabilityLevel * 170;
+            game.message = "Signal parasite: axes inverses.";
+            reportRuntimeEvent({
+              sourceLabel: "Pixel Protocol",
+              title: "Signal retourne",
+              description: "Les axes de deplacement sont inverses pendant un instant.",
+              severity: "medium",
+              ttlMs: 2100,
+            });
+          } else if (roll < 0.68) {
+            pixelJamUntilRef.current = now + 520 + instabilityLevel * 130;
+            game.message = "Canal bloque. Recalibre tes modules.";
+            reportRuntimeEvent({
+              sourceLabel: "Pixel Protocol",
+              title: "Canal brouille",
+              description: "Les modules actifs refusent temporairement de repondre.",
+              severity: "medium",
+              ttlMs: 2100,
+            });
+          } else if (roll < 0.84) {
+            game.player.gravityInvertedUntil = Math.max(
+              game.player.gravityInvertedUntil,
+              now + 1_200 + instabilityLevel * 220
+            );
+            game.message = "Gravite incoherente. Le plafond repond.";
+            reportRuntimeEvent({
+              sourceLabel: "Pixel Protocol",
+              title: "Gravite instable",
+              description: "La gravite se renverse et les surfaces reagissent a contre-sens.",
+              severity: "high",
+              ttlMs: 2200,
+            });
+          } else {
+            game.player.corruptedUntil = Math.max(
+              game.player.corruptedUntil,
+              now + 1_500 + instabilityLevel * 240
+            );
+            game.message = "Corruption profonde. Ta vitesse s'effondre.";
+            reportRuntimeEvent({
+              sourceLabel: "Pixel Protocol",
+              title: "Corruption profonde",
+              description: "Pixel ralentit. Le systeme essaie de te retenir dans la couche profonde.",
+              severity: "high",
+              ttlMs: 2200,
+            });
+          }
+        }
+
         const prevCollected = game.collected;
         const prevHp = game.player.hp;
         const prevGrounded = game.player.grounded;
@@ -167,7 +280,7 @@ export function usePixelProtocolGame(
         if (newlyUnlocked.length > 0) {
           setUnlockedSkills((current) => {
             const next = Array.from(new Set([...current, ...newlyUnlocked]));
-            options?.onUnlockSkills?.(next);
+            onUnlockSkills?.(next);
             return next;
           });
           game.message = `Module debloque: ${newlyUnlocked[0].replaceAll("_", " ")}`;
@@ -243,21 +356,29 @@ export function usePixelProtocolGame(
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
   }, [
-    ability.airDash,
-    ability.doubleJump,
-    ability.hackWave,
-    ability.shield,
+    ability,
     clearJustPressed,
+    getNearestSpeaker,
     level,
     levelIndex,
+    instabilityLevel,
+    onUnlockSkills,
+    pixelModeActive,
+    pushDialogue,
     readInput,
+    reportRuntimeEvent,
     safeLevels.length,
     viewportHeight,
     viewportWidth,
   ]);
 
   const runtime = runtimeRef.current;
-  const currentInput = readInput();
+  const currentInput = pixelModeActive
+    ? applyPixelProtocolInput(readInput(), performance.now(), {
+        jamUntil: pixelJamUntilRef.current,
+        mirrorUntil: pixelMirrorUntilRef.current,
+      })
+    : readInput();
   const grapplePreview =
     ability.dataGrapple
       ? selectGrappleTarget({
@@ -281,6 +402,9 @@ export function usePixelProtocolGame(
 
   const resetLevel = () => {
     runtimeRef.current = cloneLevel(level);
+    pixelMirrorUntilRef.current = 0;
+    pixelJamUntilRef.current = 0;
+    pixelNextEventAtRef.current = 0;
     setRenderTick((v) => v + 1);
   };
 

@@ -56,6 +56,7 @@ import { BotSpeechBubble } from "../../versus/components/BotSpeechBubble";
 import "../../../styles/tetrobots-avatar.css";
 import "../../../styles/roguelike-perks.css";
 import { useKeyboardControls } from "../../game/hooks/useKeyboardControls";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 
 function randomMatchId() {
   return Math.random().toString(36).slice(2, 8);
@@ -176,6 +177,7 @@ const computeBombBlast = (board: number[][] | null, rng: () => number) => {
 
 function RoguelikeVersusPvp() {
   const { user } = useAuth();
+  const { gameplayRouteActive: pixelModeActive } = usePixelMode();
   const { checkAchievements, updateStats } = useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
   const [chosenMatchId, setChosenMatchId] = useState<string | undefined>(undefined);
@@ -960,7 +962,7 @@ function RoguelikeVersusPvp() {
   };
 
   useEffect(() => {
-    if (!matchOver || !results || slot === null || !user || hasSavedResult) return;
+    if (!matchOver || !results || slot === null || !user || hasSavedResult || pixelModeActive) return;
     if (slot !== 1) return;
     if (results.length < 2) return;
 
@@ -983,7 +985,7 @@ function RoguelikeVersusPvp() {
       console.error("Erreur enregistrement match roguelike versus :", err)
     );
     setHasSavedResult(true);
-  }, [currentMatchId, hasSavedResult, matchOver, playersInfo, results, slot, user]);
+  }, [currentMatchId, hasSavedResult, matchOver, pixelModeActive, playersInfo, results, slot, user]);
 
   useEffect(() => {
     if (!matchOver || !results || slot === null) return;
@@ -1394,6 +1396,7 @@ function RoguelikeVersusPvp() {
 
 function RoguelikeVersusTetrobots() {
   const { user } = useAuth();
+  const { gameplayRouteActive: pixelModeActive } = usePixelMode();
   const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
     useAchievements();
   const [roundSeed, setRoundSeed] = useState(() => `rv-tetrobots-${Date.now()}`);
@@ -2440,7 +2443,7 @@ function RoguelikeVersusTetrobots() {
   ]);
 
   useEffect(() => {
-    if (!matchOver || !playerResult || !botResult || !user || hasSavedResult) return;
+    if (!matchOver || !playerResult || !botResult || !user || hasSavedResult || pixelModeActive) return;
     const payload = {
       matchId: roundSeed,
       players: [
@@ -2453,7 +2456,7 @@ function RoguelikeVersusTetrobots() {
       console.error("Erreur enregistrement match roguelike versus (Tetrobots) :", err)
     );
     setHasSavedResult(true);
-  }, [botPersonality.name, botResult, hasSavedResult, matchOver, playerResult, roundSeed, user]);
+  }, [botPersonality.name, botResult, hasSavedResult, matchOver, pixelModeActive, playerResult, roundSeed, user]);
 
   const effectiveGravityMultiplier = baseGravityMultiplier * effectGravityMultiplier;
   const effectiveScoreMultiplier = scoreMultiplier * bonusScoreMultiplier;

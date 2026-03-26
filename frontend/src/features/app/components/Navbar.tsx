@@ -2,10 +2,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { PATHS } from "../../../routes/paths";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 
 export default function Navbar() {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
+  const { enabled, toggle, unlocked } = usePixelMode();
 
   const handleLogout = async () => {
     await logoutUser();
@@ -67,6 +69,15 @@ export default function Navbar() {
       <div className="flex items-center gap-6">
         {user ? (
           <>
+            {unlocked ? (
+              <button
+                type="button"
+                className={`pixel-mode-toggle${enabled ? " pixel-mode-toggle--active" : ""}`}
+                onClick={toggle}
+              >
+                {enabled ? "Mode Pixel ON" : "Mode Pixel OFF"}
+              </button>
+            ) : null}
             <span className="text-3xl text-pink-400 hover:text-yellow-400 transition duration-300 drop-shadow-[0_0_6px_rgba(255,0,150,0.5)] relative neon-link">
               {user.pseudo}
             </span>
