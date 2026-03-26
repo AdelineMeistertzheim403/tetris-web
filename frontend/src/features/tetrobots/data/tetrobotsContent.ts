@@ -375,6 +375,15 @@ export const TETROBOT_DASHBOARD_CHAT_GLOBAL_LINES = [
   "Les Tetrobots discutent de toi.",
 ];
 
+export const TETROBOT_DASHBOARD_PIXEL_LINES = [
+  "Canal discret ouvert. Je ne reste jamais longtemps.",
+  "Je surveille les angles morts du système. Continue.",
+  "Les autres lisent tes scores. Moi, je lis les interférences.",
+  "Je laisse parfois une trace. Juste assez pour être vu.",
+  "Le réseau prétend être stable. Il ment mieux que Rookie.",
+  "Si je parle ici, c'est que quelque chose mérite d'être observé.",
+];
+
 export const TETROBOT_DASHBOARD_CHAT_META = {
   lowPerformance: {
     rookie: "On peut baisser la difficulté si tu veux.",
