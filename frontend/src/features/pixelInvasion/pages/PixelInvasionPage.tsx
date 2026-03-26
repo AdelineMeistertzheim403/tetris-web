@@ -11,12 +11,16 @@ import { addScore, getMyScores, getScoreRunToken } from "../../game/services/sco
 import { GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
 import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 import { useAutoClearRecentAchievements } from "../../roguelike/hooks/useAutoClearRecentAchievements";
+import { useSettings } from "../../settings/context/SettingsContext";
 import "../../../styles/pixel-invasion.css";
 import { PixelInvasionBoard } from "../components/PixelInvasionBoard";
-import { PixelInvasionSidebar } from "../components/PixelInvasionSidebar";
+import {
+  PixelInvasionLeftSidebar,
+  PixelInvasionRightSidebar,
+} from "../components/PixelInvasionSidebar";
 import { usePixelInvasionAudio } from "../hooks/usePixelInvasionAudio";
 import { usePixelInvasionGame } from "../hooks/usePixelInvasionGame";
-import { createStars } from "../model";
+import { createStars, isPixelInvasionHighDensity } from "../model";
 import type { GameState } from "../model";
 import {
   fetchPixelInvasionProgress,
@@ -99,6 +103,7 @@ function pickNewestSnapshot(
 
 export default function PixelInvasionPage() {
   const navigate = useNavigate();
+  const { settings } = useSettings();
   const {
     gameplayRouteActive: pixelModeActive,
     activeRuntimeEvent,
@@ -121,15 +126,19 @@ export default function PixelInvasionPage() {
   const visitedModeRef = useRef(false);
   const trackedPowerupsRef = useRef(new Set<string>(["multi_shot"]));
   const waveCheckpointRef = useRef<GameState | null>(null);
+  const waveTransitionCheckpointCapturedRef = useRef(false);
   const lastWeaponPowerupRef = useRef<string | null>(null);
   const lastSlowFieldTimerRef = useRef(0);
   const latestWaveRef = useRef(1);
+  const lastProgressSyncWaveRef = useRef(1);
   const timelineSamplesRef = useRef<PlayerRunTimelineSample[]>([]);
   const lastSampledLivesRef = useRef(game.lives);
   const lastSampledWaveRef = useRef(game.wave);
   const lastSampledComboRef = useRef(game.maxCombo);
   const [resumeSnapshot, setResumeSnapshot] = useState<PausedRunSnapshot | null>(null);
   const [quittingRun, setQuittingRun] = useState(false);
+  const performanceMode =
+    settings.reducedMotion || settings.reducedNeon || isPixelInvasionHighDensity(game);
   const campaignTone =
     game.wave >= 98
       ? "finale"
@@ -309,10 +318,12 @@ export default function PixelInvasionPage() {
   }, [game.lives, game.maxCombo, game.wave]);
 
   useEffect(() => {
-    if (game.gameOver || game.victory) return;
-    if (game.waveTransition <= 0) return;
-    waveCheckpointRef.current = structuredClone(game);
-  }, [game]);
+    const inWaveTransition = !game.gameOver && !game.victory && game.waveTransition > 0;
+    if (inWaveTransition && !waveTransitionCheckpointCapturedRef.current) {
+      waveCheckpointRef.current = structuredClone(game);
+    }
+    waveTransitionCheckpointCapturedRef.current = inWaveTransition;
+  }, [game.gameOver, game.victory, game.waveTransition]);
 
   useEffect(() => {
     const nextBestWave = Math.max(bestWave, latestWaveRef.current);
@@ -324,6 +335,9 @@ export default function PixelInvasionPage() {
 
   useEffect(() => {
     if (game.gameOver || game.victory || game.wave <= 1) return;
+    if (lastProgressSyncWaveRef.current === game.wave) return;
+
+    lastProgressSyncWaveRef.current = game.wave;
 
     const nextBestWave = Math.max(bestWave, latestWaveRef.current);
     void savePixelInvasionProgress({
@@ -333,7 +347,7 @@ export default function PixelInvasionPage() {
     }).catch(() => {
       // Fallback local uniquement.
     });
-  }, [bestScore, bestWave, game.gameOver, game.kills, game.lineBursts, game.score, game.victory, game.wave]);
+  }, [bestScore, bestWave, game.gameOver, game.score, game.victory, game.wave]);
 
   useEffect(() => {
     if (!game.gameOver && !game.victory) return;
@@ -513,12 +527,14 @@ export default function PixelInvasionPage() {
     resolvedOutcomeRef.current = null;
     startTimeRef.current = Date.now();
     latestWaveRef.current = 1;
+    lastProgressSyncWaveRef.current = 1;
     timelineSamplesRef.current = [];
     lastSampledLivesRef.current = 3;
     lastSampledWaveRef.current = 1;
     lastSampledComboRef.current = 0;
     trackedPowerupsRef.current = new Set(["multi_shot"]);
     waveCheckpointRef.current = null;
+    waveTransitionCheckpointCapturedRef.current = false;
     lastWeaponPowerupRef.current = "multi_shot";
     lastSlowFieldTimerRef.current = 0;
     setResumeSnapshot(null);
@@ -542,10 +558,12 @@ export default function PixelInvasionPage() {
     resolvedOutcomeRef.current = null;
     startTimeRef.current = Date.now();
     latestWaveRef.current = Math.max(resumeSnapshot.highestWaveReached, resumeSnapshot.game.wave);
+    lastProgressSyncWaveRef.current = Math.max(1, resumeSnapshot.game.wave);
     trackedPowerupsRef.current = new Set(resumeSnapshot.trackedPowerups);
     lastWeaponPowerupRef.current = resumeSnapshot.game.weaponPowerup;
     lastSlowFieldTimerRef.current = resumeSnapshot.game.slowFieldTimer;
     waveCheckpointRef.current = structuredClone(resumeSnapshot.game);
+    waveTransitionCheckpointCapturedRef.current = resumeSnapshot.game.waveTransition > 0;
     loadGame(resumeSnapshot.game);
     clearPausedRun();
     resumeGame();
@@ -643,7 +661,11 @@ export default function PixelInvasionPage() {
   ) : null;
 
   return (
-    <div className={`pixel-invasion-page pixel-invasion-page--${campaignTone} font-['Press_Start_2P']`}>
+    <div
+      className={`pixel-invasion-page pixel-invasion-page--${campaignTone}${
+        performanceMode ? " pixel-invasion-page--performance" : ""
+      } font-['Press_Start_2P']`}
+    >
       <div className="pixel-invasion-shell">
         <header className="pixel-invasion-header">
           <div>
@@ -674,26 +696,36 @@ export default function PixelInvasionPage() {
         </header>
 
         <div className="pixel-invasion-layout">
-          <PixelInvasionSidebar
-            side="left"
-            game={game}
-            shieldRatio={shieldRatio}
-            bestScore={bestScore}
-            bestWave={bestWave}
-            pixelAnomaly={pixelAnomaly}
+          <PixelInvasionLeftSidebar
+            bot={game.message.bot}
+            tone={game.message.tone}
+            text={game.message.text}
           />
           <PixelInvasionBoard
             game={game}
             stars={stars}
             onRestart={handleRestart}
             customOverlay={customOverlay}
+            performanceMode={performanceMode}
           />
-          <PixelInvasionSidebar
-            side="right"
-            game={game}
+          <PixelInvasionRightSidebar
+            score={game.score}
             shieldRatio={shieldRatio}
             bestScore={bestScore}
             bestWave={bestWave}
+            wave={game.wave}
+            weaponLevel={game.weaponLevel}
+            weaponPowerup={game.weaponPowerup}
+            dropsCount={game.drops.length}
+            queuedDropsCount={game.queuedDrops.length}
+            kills={game.kills}
+            lineBursts={game.lineBursts}
+            maxCombo={game.maxCombo}
+            bombs={game.bombs}
+            waveTheme={game.waveTheme}
+            lives={game.lives}
+            dashCooldown={game.dashCooldown}
+            slowFieldTimer={game.slowFieldTimer}
             pixelAnomaly={pixelAnomaly}
           />
         </div>

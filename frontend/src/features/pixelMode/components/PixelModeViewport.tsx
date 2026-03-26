@@ -83,7 +83,10 @@ export default function PixelModeViewport() {
         }`}
         aria-hidden="true"
       />
-      <div className="pixel-mode-hud" aria-live="polite">
+      <div
+        className={`pixel-mode-hud${performanceSensitiveRoute ? " pixel-mode-hud--performance" : ""}`}
+        aria-live="polite"
+      >
         <p className="pixel-mode-hud__eyebrow">COUCHE PROFONDE // MODE PIXEL</p>
         <div className="pixel-mode-hud__meter">
           <span
@@ -101,6 +104,7 @@ export default function PixelModeViewport() {
           className={`pixel-mode-message${
             activeRuntimeEvent ? " pixel-mode-message--event" : ""
           }${activeRuntimeEvent ? ` pixel-mode-message--${activeRuntimeEvent.severity}` : ""}`}
+          data-performance={performanceSensitiveRoute ? "true" : "false"}
           aria-live="polite"
         >
           <img

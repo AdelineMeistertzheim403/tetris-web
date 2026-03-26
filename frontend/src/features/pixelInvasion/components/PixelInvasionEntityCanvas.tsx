@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -15,6 +15,12 @@ type PixelInvasionEntityCanvasProps = {
   enemyBullets: Bullet[];
   drops: Drop[];
   reducedFx: boolean;
+};
+
+type CanvasMetrics = {
+  width: number;
+  height: number;
+  dpr: number;
 };
 
 function impactColor(type: Impact["type"]) {
@@ -422,6 +428,29 @@ function drawEnemy(
   ctx.restore();
 }
 
+function syncCanvasSize(
+  canvas: HTMLCanvasElement,
+  width: number,
+  height: number,
+  dpr: number
+) {
+  const scaledWidth = Math.floor(width * dpr);
+  const scaledHeight = Math.floor(height * dpr);
+
+  if (canvas.width !== scaledWidth) {
+    canvas.width = scaledWidth;
+  }
+  if (canvas.height !== scaledHeight) {
+    canvas.height = scaledHeight;
+  }
+  if (canvas.style.width !== `${width}px`) {
+    canvas.style.width = `${width}px`;
+  }
+  if (canvas.style.height !== `${height}px`) {
+    canvas.style.height = `${height}px`;
+  }
+}
+
 export function PixelInvasionEntityCanvas({
   enemies,
   telegraphs,
@@ -432,20 +461,63 @@ export function PixelInvasionEntityCanvas({
   reducedFx,
 }: PixelInvasionEntityCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [canvasMetrics, setCanvasMetrics] = useState<CanvasMetrics>({
+    width: 0,
+    height: 0,
+    dpr: 1,
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const parent = canvas?.parentElement;
     if (!canvas || !parent) return;
 
-    const rect = parent.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.max(1, Math.floor(rect.width));
-    const height = Math.max(1, Math.floor(rect.height));
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    let frameId = 0;
+
+    const updateCanvasMetrics = () => {
+      const rect = parent.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.floor(rect.width));
+      const height = Math.max(1, Math.floor(rect.height));
+
+      syncCanvasSize(canvas, width, height, dpr);
+      setCanvasMetrics((current) =>
+        current.width === width && current.height === height && current.dpr === dpr
+          ? current
+          : { width, height, dpr }
+      );
+    };
+
+    const scheduleCanvasSync = () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        updateCanvasMetrics();
+      });
+    };
+
+    scheduleCanvasSync();
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleCanvasSync);
+    resizeObserver?.observe(parent);
+    window.addEventListener("resize", scheduleCanvasSync);
+
+    return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", scheduleCanvasSync);
+    };
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const { width, height, dpr } = canvasMetrics;
+    if (!canvas || width === 0 || height === 0) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -464,7 +536,11 @@ export function PixelInvasionEntityCanvas({
       drawEnemy(ctx, enemy, scaleX, scaleY, reducedFx);
     }
 
-    for (const bullet of [...playerBullets, ...enemyBullets]) {
+    for (const bullet of playerBullets) {
+      drawBullet(ctx, bullet, scaleX, scaleY, reducedFx);
+    }
+
+    for (const bullet of enemyBullets) {
       drawBullet(ctx, bullet, scaleX, scaleY, reducedFx);
     }
 
@@ -495,7 +571,7 @@ export function PixelInvasionEntityCanvas({
     for (const impact of impacts) {
       drawImpact(ctx, impact, scaleX, scaleY, reducedFx);
     }
-  }, [drops, enemies, enemyBullets, impacts, playerBullets, reducedFx, telegraphs]);
+  }, [canvasMetrics, drops, enemies, enemyBullets, impacts, playerBullets, reducedFx, telegraphs]);
 
   return <canvas ref={canvasRef} className="pixel-invasion-entity-canvas" aria-hidden="true" />;
 }
