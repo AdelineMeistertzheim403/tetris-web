@@ -1,5 +1,5 @@
 import { useAuth } from "../../auth/context/AuthContext";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useAchievements,
 } from "../../achievements/hooks/useAchievements";
@@ -26,16 +26,21 @@ import { DashboardRelationPopup } from "../components/dashboard/DashboardRelatio
 import { DashboardTipPanel } from "../components/dashboard/DashboardTipPanel";
 import { useDashboardNavigation } from "../hooks/useDashboardNavigation";
 import { useDashboardTetrobotState } from "../hooks/useDashboardTetrobotState";
+import TetrobotFinaleOverlay from "../../tetrobots/components/TetrobotFinaleOverlay";
+import { getTetrobotFinaleState } from "../../tetrobots/logic/tetrobotAnomalies";
 import "../../../styles/dashboard.scss";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [finaleOpen, setFinaleOpen] = useState(false);
   const {
     stats,
     achievements,
     recentUnlocks,
+    resolveTetrobotFinaleChoice,
     syncTetrobotProgression,
     setLastTetrobotTip,
+    recordTetrobotAnomaly,
     recordTetrobotEvent,
     clearLastTetrobotLevelUp,
     chooseActiveTetrobotConflict,
@@ -50,6 +55,7 @@ export default function Dashboard() {
     [achievements, stats.modesVisited]
   );
   const quickResume = getDashboardQuickResume(campaignProgress);
+  const finaleState = useMemo(() => getTetrobotFinaleState(stats.counters), [stats.counters]);
   const achievementFocus = getDashboardAchievementFocus(
     achievementProgress,
     stats.tetromazeWins
@@ -62,6 +68,7 @@ export default function Dashboard() {
     pixelProtocolLevel: campaignProgress.pixelProtocol.currentLevel,
   });
   const {
+    analyzeCurrentLine,
     chatbot,
     closeRelationPopup,
     openLatestRelationPopup,
@@ -71,6 +78,7 @@ export default function Dashboard() {
     achievementProgress,
     clearLastTetrobotLevelUp,
     recentUnlockCount: recentUnlocks.length,
+    recordTetrobotAnomaly,
     setLastTetrobotTip,
     stats,
     syncTetrobotProgression,
@@ -81,7 +89,7 @@ export default function Dashboard() {
     openPath,
   } = useDashboardNavigation({
     acceptActiveTetrobotChallenge,
-    activeBot: chatbot.chatLine.bot,
+    activeBot: chatbot.activeBot.bot,
     chooseActiveTetrobotConflict,
     closeRelationPopup,
     lowestWinrateMode: stats.lowestWinrateMode,
@@ -90,8 +98,21 @@ export default function Dashboard() {
     relationPopup: relationOverlay.popup,
   });
 
+  useEffect(() => {
+    if (finaleState.canTrigger) {
+      setFinaleOpen(true);
+    }
+  }, [finaleState.canTrigger]);
+
   return (
     <div className="min-h-screen flex flex-col text-pink-300 font-['Press_Start_2P'] py-4 px-2 md:px-3 overflow-x-hidden">
+      <TetrobotFinaleOverlay
+        open={finaleOpen}
+        onResolve={(choice) => {
+          resolveTetrobotFinaleChoice(choice);
+          setFinaleOpen(false);
+        }}
+      />
       <DashboardRelationPopup
         relationOverlay={relationOverlay}
         onChoice={handleRelationChoice}
@@ -100,7 +121,10 @@ export default function Dashboard() {
       <div className="dashboard-top-row">
         <DashboardChatbotPanel
           chatbot={chatbot}
-          actions={chatbotActions}
+          actions={{
+            ...chatbotActions,
+            analyzeAnomaly: analyzeCurrentLine,
+          }}
           userPseudo={user?.pseudo}
         />
 

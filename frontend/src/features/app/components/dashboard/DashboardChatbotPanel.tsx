@@ -1,4 +1,4 @@
-import { TETROBOT_DASHBOARD_AVATAR_FALLBACKS, TETROBOT_DASHBOARD_NAMES } from "../../../tetrobots/data/tetrobotsContent";
+import { TETROBOT_DASHBOARD_AVATAR_FALLBACKS } from "../../../tetrobots/data/tetrobotsContent";
 import { getRelationLabel } from "../../../tetrobots/logic/dashboardNarrative";
 import type {
   DashboardChatbotActions,
@@ -17,23 +17,38 @@ export function DashboardChatbotPanel({
   actions,
   userPseudo,
 }: DashboardChatbotPanelProps) {
-  const { activeBot, canReopenLatestEvent, chatLine, relationEvent, relationSummary } = chatbot;
+  const {
+    activeBot,
+    anomalyFeedback,
+    anomalyProgress,
+    canReopenLatestEvent,
+    chatLine,
+    hasActiveAnomaly,
+    relationEvent,
+    relationSummary,
+    speaker,
+  } = chatbot;
 
   return (
     <section
-      className={`dashboard-chatbot dashboard-chatbot--${chatLine.bot} dashboard-chatbot--level-${activeBot.state?.level ?? 1} dashboard-chatbot--mood-${activeBot.mood}`}
+      className={`dashboard-chatbot dashboard-chatbot--${speaker.id} dashboard-chatbot--level-${activeBot.state?.level ?? 1} dashboard-chatbot--mood-${activeBot.mood}${
+        hasActiveAnomaly ? " dashboard-chatbot--anomaly" : ""
+      }`}
       aria-live="polite"
     >
       <div
-        className={`dashboard-chatbot__avatar-shell dashboard-chatbot__avatar-shell--${chatLine.bot} dashboard-chatbot__avatar-shell--${activeBot.mood}`}
+        className={`dashboard-chatbot__avatar-shell dashboard-chatbot__avatar-shell--${speaker.id} dashboard-chatbot__avatar-shell--${activeBot.mood}`}
       >
         <img
-          src={activeBot.avatar}
-          alt={TETROBOT_DASHBOARD_NAMES[chatLine.bot]}
+          src={speaker.avatar}
+          alt={speaker.label}
           className="dashboard-chatbot__avatar"
           onError={(event) => {
             event.currentTarget.onerror = null;
-            event.currentTarget.src = TETROBOT_DASHBOARD_AVATAR_FALLBACKS[chatLine.bot];
+            event.currentTarget.src =
+              speaker.id === "pixel"
+                ? speaker.fallbackAvatar
+                : TETROBOT_DASHBOARD_AVATAR_FALLBACKS[chatLine.bot];
           }}
           loading="lazy"
         />
@@ -48,35 +63,84 @@ export function DashboardChatbotPanel({
         )}
         <p
           className="dashboard-chatbot__name"
-          style={{ color: activeBot.accentColor }}
+          style={{ color: speaker.accent }}
         >
-          {TETROBOT_DASHBOARD_NAMES[chatLine.bot]} LVL {activeBot.state?.level ?? 1}
+          {speaker.label}
+          {speaker.showRelationData ? ` LVL ${activeBot.state?.level ?? 1}` : " // SIGNAL PIRATE"}
         </p>
         <p className="dashboard-chatbot__text">{chatLine.text}</p>
-        <div className="dashboard-chatbot__meta">
-          <span>XP {activeBot.state?.xp ?? 0}</span>
-          <span>Affinite {activeBot.affinity}</span>
-          <span>{getRelationLabel(activeBot.mood)}</span>
-          <span>{activeBot.state?.unlockedTraits.length ?? 0} traits</span>
+        {speaker.showRelationData ? (
+          <>
+            <div className="dashboard-chatbot__meta">
+              <span>XP {activeBot.state?.xp ?? 0}</span>
+              <span>Affinite {activeBot.affinity}</span>
+              <span>{getRelationLabel(activeBot.mood)}</span>
+              <span>{activeBot.state?.unlockedTraits.length ?? 0} traits</span>
+            </div>
+            <p className="dashboard-chatbot__relation-summary">{relationSummary}</p>
+            {relationEvent ? (
+              <div className={`dashboard-chatbot__event dashboard-chatbot__event--${relationEvent.tone}`}>
+                <span className="dashboard-chatbot__event-label">{relationEvent.label}</span>
+                <p>{relationEvent.text}</p>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="dashboard-chatbot__relation-summary dashboard-chatbot__relation-summary--pixel">
+            Pixel parasite temporairement le canal pour injecter un fragment corrompu.
+          </p>
+        )}
+        <div
+          className={`dashboard-chatbot__anomaly-tools${
+            hasActiveAnomaly ? " dashboard-chatbot__anomaly-tools--active" : ""
+          }`}
+        >
+          <div className="dashboard-chatbot__anomaly-copy">
+            <span className="dashboard-chatbot__anomaly-label">Journal des anomalies</span>
+            <span className="dashboard-chatbot__anomaly-progress">
+              {anomalyProgress.totalFound}/{anomalyProgress.totalCount} fragments ·{" "}
+              {anomalyProgress.popFound}/{anomalyProgress.popCount} archives pop
+            </span>
+          </div>
+          <div className="dashboard-chatbot__anomaly-actions">
+            <button
+              type="button"
+              className={`dashboard-chatbot__anomaly-button${
+                hasActiveAnomaly ? " dashboard-chatbot__anomaly-button--active" : ""
+              }`}
+              onClick={actions.analyzeAnomaly}
+            >
+              {hasActiveAnomaly ? "Analyser le fragment" : "Signaler une anomalie"}
+            </button>
+            <button
+              type="button"
+              className="dashboard-chatbot__anomaly-link"
+              onClick={actions.openAnomalies}
+            >
+              Ouvrir le journal
+            </button>
+          </div>
         </div>
-        <p className="dashboard-chatbot__relation-summary">{relationSummary}</p>
-        {relationEvent ? (
-          <div className={`dashboard-chatbot__event dashboard-chatbot__event--${relationEvent.tone}`}>
-            <span className="dashboard-chatbot__event-label">{relationEvent.label}</span>
-            <p>{relationEvent.text}</p>
+        {anomalyFeedback ? (
+          <div
+            className={`dashboard-chatbot__anomaly-feedback dashboard-chatbot__anomaly-feedback--${anomalyFeedback.tone}`}
+          >
+            {anomalyFeedback.text}
           </div>
         ) : null}
         <div className="dashboard-chatbot__actions">
-          <button
-            type="button"
-            className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--relation"
-            onClick={actions.openRelation}
-            data-tooltip="Voir la relation complete de ce Tetrobot."
-            aria-label="Voir la relation complete"
-          >
-            <DashboardActionIcon name="relation" />
-          </button>
-          {canReopenLatestEvent ? (
+          {speaker.showRelationData ? (
+            <button
+              type="button"
+              className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--relation"
+              onClick={actions.openRelation}
+              data-tooltip="Voir la relation complete de ce Tetrobot."
+              aria-label="Voir la relation complete"
+            >
+              <DashboardActionIcon name="relation" />
+            </button>
+          ) : null}
+          {speaker.showRelationData && canReopenLatestEvent ? (
             <button
               type="button"
               className="dashboard-shortcut dashboard-chatbot__icon-action dashboard-chatbot__icon-action--message"

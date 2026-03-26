@@ -57,6 +57,12 @@ import {
   getMood,
   syncTetrobotProgressionState,
 } from "../lib/tetrobotProgressionLogic";
+import {
+  applyTetrobotFinaleChoice,
+  buildTetrobotAnomalyCounters,
+  getTetrobotAnomalyProgress,
+  type TetrobotFinaleChoice,
+} from "../../tetrobots/logic/tetrobotAnomalies";
 
 type AchievementState = {
   id: string;
@@ -685,6 +691,8 @@ type UseAchievementsValue = {
   syncTetrobotProgression: () => AchievementStats;
   setLastTetrobotTip: (bot: TetrobotId, tip: string) => AchievementStats;
   recordTetrobotEvent: (event: TetrobotAchievementEvent) => AchievementStats;
+  recordTetrobotAnomaly: (anomalyId: string) => AchievementStats;
+  resolveTetrobotFinaleChoice: (choice: TetrobotFinaleChoice) => AchievementStats;
   setTetrobotMood: (bot: TetrobotId, affinity: number) => AchievementStats;
   clearLastTetrobotLevelUp: () => AchievementStats;
   acceptActiveTetrobotChallenge: () => AchievementStats;
@@ -2217,6 +2225,45 @@ function useAchievementsValue(): UseAchievementsValue {
     [isUnlocked, user]
   );
 
+  const recordTetrobotAnomaly = useCallback(
+    (anomalyId: string) => {
+      const next = updateStats((prev) => {
+        const counters = buildTetrobotAnomalyCounters(prev.counters, anomalyId);
+        if (counters === prev.counters) return prev;
+
+        return {
+          ...prev,
+          counters,
+        };
+      });
+
+      const progress = getTetrobotAnomalyProgress(next.counters);
+      checkAchievements({
+        counters: {
+          easter_egg_pop: progress.popFound,
+          all_easter_egg: progress.totalFound,
+        },
+      });
+
+      return next;
+    },
+    [checkAchievements, updateStats]
+  );
+
+  const resolveTetrobotFinaleChoice = useCallback(
+    (choice: TetrobotFinaleChoice) =>
+      updateStats((prev) => {
+        const counters = applyTetrobotFinaleChoice(prev.counters, choice);
+        if (counters === prev.counters) return prev;
+
+        return {
+          ...prev,
+          counters,
+        };
+      }),
+    [updateStats]
+  );
+
   const recordLoginDay = useCallback(
     (day = getTodayLoginDay()) => {
       const next = updateStats((prev) => {
@@ -2457,6 +2504,8 @@ function useAchievementsValue(): UseAchievementsValue {
     syncTetrobotProgression,
     setLastTetrobotTip,
     recordTetrobotEvent,
+    recordTetrobotAnomaly,
+    resolveTetrobotFinaleChoice,
     setTetrobotMood,
     clearLastTetrobotLevelUp,
     acceptActiveTetrobotChallenge,
