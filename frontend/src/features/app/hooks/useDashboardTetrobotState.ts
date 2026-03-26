@@ -78,14 +78,21 @@ export function useDashboardTetrobotState({
   });
   const [relationPopup, setRelationPopup] = useState<DashboardRelationEvent | null>(null);
   const [tetrobotTip, setTetrobotTip] = useState(() =>
-    getBotTip("rookie", 1, "neutral", {
-      favoriteMode: "ton mode prefere",
-      lastPlayedMode: "mode classique",
-    })
+    getBotTip(
+      "rookie",
+      1,
+      "neutral",
+      {
+        favoriteMode: "ton mode prefere",
+        lastPlayedMode: "mode classique",
+      },
+      "boot:rookie:1:neutral"
+    )
   );
   const [anomalyFeedback, setAnomalyFeedback] = useState<DashboardChatbotFeedback | null>(null);
   const chatTimerRef = useRef<number | null>(null);
   const inactiveRef = useRef(false);
+  const hasInitializedChatRef = useRef(false);
   const levelUpDismissTimerRef = useRef<number | null>(null);
   const relationPopupTimerRef = useRef<number | null>(null);
   const anomalyCountersRef = useRef(stats.counters);
@@ -237,13 +244,19 @@ export function useDashboardTetrobotState({
     const nextTip =
       chatLine.bot === "apex" && apexTrustState === "refusing"
         ? "Non. Tu veux des conseils, mais tu refuses encore d'affronter ce qu'il faut travailler."
-        : getBotTip(chatLine.bot, activeBotLevel, activeBotMood, {
-            ...playerContext,
-            recommendation: activeRecommendation,
-            rookieRecommendation,
-            pulseRecommendation,
-            apexRecommendation,
-          });
+        : getBotTip(
+            chatLine.bot,
+            activeBotLevel,
+            activeBotMood,
+            {
+              ...playerContext,
+              recommendation: activeRecommendation,
+              rookieRecommendation,
+              pulseRecommendation,
+              apexRecommendation,
+            },
+            tipContextKey
+          );
 
     tipComputationRef.current = {
       key: tipContextKey,
@@ -493,7 +506,10 @@ export function useDashboardTetrobotState({
       }, DASHBOARD_BOT_ROTATION_MS);
     };
 
-    setChatLine(generateLine());
+    if (!hasInitializedChatRef.current) {
+      setChatLine(generateLine());
+      hasInitializedChatRef.current = true;
+    }
     scheduleNext();
 
     return () => {
