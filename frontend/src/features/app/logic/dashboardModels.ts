@@ -9,10 +9,18 @@ import type {
   DashboardRelationEvent,
   DashboardRelationSceneLine,
 } from "../../tetrobots/logic/dashboardNarrative";
+import type {
+  TetrobotAnomaly,
+  TetrobotAnomalyProgress,
+  TetrobotAnomalySpeaker,
+  TetrobotAnomalySpeakerMeta,
+} from "../../tetrobots/logic/tetrobotAnomalies";
 
 export type DashboardChatLine = {
   bot: DashboardBot;
+  speaker: TetrobotAnomalySpeaker;
   text: string;
+  anomaly?: TetrobotAnomaly | null;
 };
 
 export type DashboardActiveBotViewModel = {
@@ -24,12 +32,24 @@ export type DashboardActiveBotViewModel = {
   avatar: string;
 };
 
+export type DashboardChatbotFeedback = {
+  tone: "success" | "error" | "info";
+  text: string;
+};
+
 export type DashboardChatbotViewModel = {
   activeBot: DashboardActiveBotViewModel;
   chatLine: DashboardChatLine;
   canReopenLatestEvent: boolean;
   relationEvent: DashboardRelationEvent | null;
   relationSummary: string;
+  speaker: TetrobotAnomalySpeakerMeta & {
+    id: TetrobotAnomalySpeaker;
+    showRelationData: boolean;
+  };
+  anomalyFeedback: DashboardChatbotFeedback | null;
+  anomalyProgress: TetrobotAnomalyProgress;
+  hasActiveAnomaly: boolean;
 };
 
 export type DashboardTipViewModel = {
@@ -45,7 +65,9 @@ export type DashboardRelationOverlayViewModel = {
 };
 
 export type DashboardChatbotActions = {
+  analyzeAnomaly: () => void;
   openHelp: () => void;
   openLatestEvent: () => void;
+  openAnomalies: () => void;
   openRelation: () => void;
 };

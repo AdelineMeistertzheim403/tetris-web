@@ -59,11 +59,18 @@ export function useDashboardNavigation({
 
   const chatbotActions = useMemo<DashboardChatbotActions>(() => {
     return {
+      analyzeAnomaly: () => undefined,
       openHelp: openActiveTetrobotHelp,
       openLatestEvent: openLatestRelationPopup,
+      openAnomalies: () => navigate(PATHS.tetrobotsAnomalies),
       openRelation: openActiveTetrobotRelation,
     };
-  }, [openActiveTetrobotHelp, openActiveTetrobotRelation, openLatestRelationPopup]);
+  }, [
+    navigate,
+    openActiveTetrobotHelp,
+    openActiveTetrobotRelation,
+    openLatestRelationPopup,
+  ]);
 
   const handleRelationChoice = useCallback((choice: DashboardRelationChoice) => {
     if (!relationPopup) return;

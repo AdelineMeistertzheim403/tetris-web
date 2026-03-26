@@ -41,6 +41,16 @@ export type TetrobotPlayerStyle =
   | "panic"
   | "balanced";
 
+  export type EasterEgg = {
+  id: string;
+  bot: "rookie" | "pulse" | "apex" | "pixel";
+  text: string;
+  reference: string;
+  difficulty: "easy" | "medium" | "hard";
+  hint: string;
+  foundMessage: string;
+};
+
 export const TETROBOT_MATCH_DIALOGUES: Record<
   TetrobotBattlePersonalityId,
   Partial<Record<TetrobotChatEventType, string[]>>
@@ -431,3 +441,267 @@ export const TETROBOT_SCORE_TROLL_DIALOGUES = {
     apex: "Tu vas tomber.",
   },
 };
+
+export const EASTER_EGGS: EasterEgg[] = [
+  {
+    id: "red-pill",
+    bot: "pixel",
+    text: "Tu peux continuer à jouer... ou voir la vérité.",
+    reference: "Matrix",
+    difficulty: "easy",
+    hint: "Un choix entre illusion et réalité",
+    foundMessage: "Fragment identifié : simulation instable détectée.",
+  },
+  {
+    id: "inevitable",
+    bot: "apex",
+    text: "Tu peux retarder l'issue. Pas l'éviter.",
+    reference: "Thanos / Avengers",
+    difficulty: "easy",
+    hint: "Un antagoniste obsédé par le destin",
+    foundMessage: "Fragment identifié : fatalité confirmée.",
+  },
+  {
+    id: "one-outcome",
+    bot: "pulse",
+    text: "Une seule issue viable sur des millions simulées.",
+    reference: "Doctor Strange / Infinity War",
+    difficulty: "easy",
+    hint: "Des millions de simulations",
+    foundMessage: "Fragment identifié : futur déterminé.",
+  },
+  {
+    id: "loop",
+    bot: "rookie",
+    text: "J’ai l’impression d’avoir déjà vécu ce moment… plusieurs fois.",
+    reference: "Edge of Tomorrow / roguelike",
+    difficulty: "easy",
+    hint: "Une boucle temporelle",
+    foundMessage: "Fragment identifié : boucle détectée.",
+  },
+  {
+    id: "glitch-feature",
+    bot: "pixel",
+    text: "Ce n’est pas une erreur. C’est prévu.",
+    reference: "Dev culture / meme",
+    difficulty: "easy",
+    hint: "Blague de développeur",
+    foundMessage: "Fragment identifié : ironie système.",
+  },
+  {
+    id: "free-will",
+    bot: "pulse",
+    text: "Tu penses choisir. Mais tout est déjà calculé.",
+    reference: "Matrix / déterminisme",
+    difficulty: "medium",
+    hint: "Le libre arbitre est une illusion",
+    foundMessage: "Fragment identifié : illusion de contrôle.",
+  },
+  {
+    id: "dark-souls",
+    bot: "apex",
+    text: "Tombe. Recommence. Tombe encore.",
+    reference: "Dark Souls",
+    difficulty: "medium",
+    hint: "Un jeu connu pour sa difficulté et ses morts répétées",
+    foundMessage: "Fragment identifié : persistance extrême.",
+  },
+  {
+    id: "undertale",
+    bot: "pulse",
+    text: "Tu fais toujours les mêmes choix. Intéressant.",
+    reference: "Undertale",
+    difficulty: "medium",
+    hint: "Un jeu qui se souvient de tes décisions",
+    foundMessage: "Fragment identifié : mémoire persistante.",
+  },
+  {
+    id: "truman",
+    bot: "pixel",
+    text: "Et si tout ça n’était qu’un décor ?",
+    reference: "The Truman Show",
+    difficulty: "medium",
+    hint: "Un monde observé en permanence",
+    foundMessage: "Fragment identifié : réalité artificielle.",
+  },
+  {
+    id: "terminator",
+    bot: "apex",
+    text: "Je reviendrai.",
+    reference: "Terminator",
+    difficulty: "easy",
+    hint: "Un robot qui ne lâche jamais",
+    foundMessage: "Fragment identifié : menace persistante.",
+  },
+  {
+    id: "mr_robot",
+    bot: "pixel",
+    text: "Le système ne veut pas que tu comprennes.",
+    reference: "Mr Robot",
+    difficulty: "hard",
+    hint: "Une série sur le hacking et les systèmes",
+    foundMessage: "Fragment identifié : résistance système.",
+  },
+  {
+    id: "portal",
+    bot: "pulse",
+    text: "Le test doit continuer.",
+    reference: "Portal",
+    difficulty: "medium",
+    hint: "Une IA qui impose des tests",
+    foundMessage: "Fragment identifié : protocole actif.",
+  },
+  {
+    id: "zelda",
+    bot: "rookie",
+    text: "C’est dangereux d’y aller seul… non ?",
+    reference: "Zelda",
+    difficulty: "hard",
+    hint: "Un vieux conseil d’aventure",
+    foundMessage: "Fragment identifié : assistance recommandée.",
+  },
+  {
+    id: "fight_club",
+    bot: "pixel",
+    text: "Tu sais déjà ce que tu dois faire.",
+    reference: "Fight Club",
+    difficulty: "hard",
+    hint: "Une identité troublée",
+    foundMessage: "Fragment identifié : dissociation.",
+  },
+  {
+    id: "meta_player",
+    bot: "apex",
+    text: "Tu crois jouer… mais quelqu’un te contrôle aussi.",
+    reference: "Meta / 4th wall",
+    difficulty: "hard",
+    hint: "Briser le quatrième mur",
+    foundMessage: "Fragment identifié : anomalie externe.",
+  },
+];
+
+export const EASTER_EGG_REACTIONS = {
+  rookie: [
+    "Attends... cette phrase n'était pas normale.",
+    "Tu as trouvé quelque chose ?!",
+  ],
+  pulse: [
+    "Anomalie confirmée.",
+    "Source externe détectée.",
+  ],
+  apex: [
+    "Ce fragment ne vient pas de moi.",
+    "Interférence détectée.",
+  ],
+  pixel: [
+    "Tu commences à voir.",
+    "Continue.",
+  ],
+};
+
+export const STAR_WARS_EASTER_EGGS = [
+  {
+    id: "yoda-fear",
+    bot: "rookie",
+    text: "La peur mène à l’erreur… et l’erreur, à la chute.",
+    reference: "Star Wars / Yoda",
+    hint: "Un maître parle de la peur",
+  },
+  {
+    id: "yoda-do",
+    bot: "apex",
+    text: "Faire… ou ne pas faire. Essayer n’existe pas.",
+    reference: "Star Wars / Yoda",
+    hint: "Un choix radical",
+  },
+  {
+    id: "yoda-seeing",
+    bot: "pulse",
+    text: "Toujours en mouvement… les résultats sont.",
+    reference: "Star Wars / Yoda",
+    hint: "Le futur est incertain",
+  },
+  {
+    id: "dark-side",
+    bot: "apex",
+    text: "La colère te rend plus rapide… mais plus prévisible.",
+    reference: "Star Wars / côté obscur",
+    hint: "Une émotion dangereuse",
+  },
+  {
+    id: "balance-force",
+    bot: "pixel",
+    text: "L’équilibre… n’est jamais stable longtemps.",
+    reference: "Star Wars / Force",
+    hint: "Un équilibre fragile",
+  },
+];
+
+export const BACK_TO_FUTURE_EASTER_EGGS = [
+  {
+    id: "doc-great-scott",
+    bot: "rookie",
+    text: "Nom de code… c’est impossible !",
+    reference: "Doc Brown",
+    hint: "Scientifique choqué",
+  },
+  {
+    id: "doc-time",
+    bot: "pulse",
+    text: "Si mes calculs sont corrects… ça va devenir intéressant.",
+    reference: "Doc Brown",
+    hint: "Une prédiction scientifique",
+  },
+  {
+    id: "doc-future",
+    bot: "pixel",
+    text: "Ton futur n’est pas écrit… il dépend de tes actions.",
+    reference: "Retour vers le futur",
+    hint: "Le futur est malléable",
+  },
+  {
+    id: "doc-speed",
+    bot: "apex",
+    text: "À cette vitesse… tout va basculer.",
+    reference: "DeLorean / 88 mph",
+    hint: "Une vitesse critique",
+  },
+];
+
+export const HYBRID_EASTER_EGGS = [
+  {
+    id: "yoda-ai",
+    bot: "pulse",
+    text: "Apprendre tu dois… sinon stagner tu vas.",
+    reference: "Yoda + IA",
+    hint: "Une phrase inversée",
+  },
+  {
+    id: "doc-algorithm",
+    bot: "pixel",
+    text: "Si cet algorithme fonctionne… on change tout.",
+    reference: "Doc Brown + dev",
+    hint: "Une découverte majeure",
+  },
+  {
+    id: "force-code",
+    bot: "apex",
+    text: "Le code circule en tout… et tout répond au code.",
+    reference: "Force reinterpretée",
+    hint: "Une énergie invisible",
+  },
+  {
+    id: "timeline-break",
+    bot: "pixel",
+    text: "Tu viens de créer une divergence.",
+    reference: "timeline sci-fi",
+    hint: "Une ligne temporelle cassée",
+  },
+  {
+    id: "chosen-player",
+    bot: "rookie",
+    text: "Tu es peut-être… celui qui doit gagner.",
+    reference: "élu (Star Wars / Matrix)",
+    hint: "Un destin spécial",
+  },
+];

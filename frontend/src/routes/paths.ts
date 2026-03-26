@@ -9,6 +9,7 @@ export const PATHS = {
   tetrobots: "/tetrobots",
   tetrobotsHelp: "/tetrobots/help",
   tetrobotsRelations: "/tetrobots/relations",
+  tetrobotsAnomalies: "/tetrobots/anomalies",
   game: "/game",
   sprint: "/sprint",
   tetrisHub: "/tetris-hub",
