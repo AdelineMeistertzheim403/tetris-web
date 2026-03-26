@@ -2231,4 +2231,25 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: { type: "custom", key: "max_bot_level" },
   },
 
+  {
+    id: "pop_culture_hacker",
+    name: "Archiviste du Multivers",
+    description: "Identifier toutes les anomalies issues d’anciens mondes",
+    icon: "pop_culture_hacker",
+    secret: true,
+    mode: "ALL",
+    group: "SECRETS",
+    condition: { type: "counter", key: "easter_egg_pop", value:14},
+  },
+
+  {
+    id: "system_breach",
+    name: "Intrusion réussie",
+    description: "Découvrir les 29 fragments cachés dans le système",
+    icon: "glitch_core",
+    secret: true,
+    mode: "ALL",
+    group: "SECRETS",
+    condition:  {type: "counter", key: "all_easter_egg", value:29}
+  },
 ];

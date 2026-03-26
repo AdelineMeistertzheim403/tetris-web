@@ -45,6 +45,14 @@ export default function TetrobotsSectionNav({
         >
           Aide
         </NavLink>
+        <NavLink
+          to={PATHS.tetrobotsAnomalies}
+          className={({ isActive }) =>
+            `tetrobots-section-nav__link${isActive ? " tetrobots-section-nav__link--active" : ""}`
+          }
+        >
+          Journal des anomalies
+        </NavLink>
         {isLoggedIn ? (
           <NavLink
             to={PATHS.tetrobotsRelations}

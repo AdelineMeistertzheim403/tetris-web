@@ -177,6 +177,236 @@
   gap: 16px;
 }
 
+.tetrobots-anomalies {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.tetrobots-anomalies__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tetrobots-anomalies__metric,
+.tetrobots-anomalies__stage,
+.tetrobots-anomalies__detail,
+.tetrobots-anomalies__card {
+  border: 1px solid #325f9d;
+  border-radius: 14px;
+  background: rgba(8, 13, 27, 0.88);
+}
+
+.tetrobots-anomalies__metric {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.tetrobots-anomalies__metric span {
+  color: #8ec2ff;
+  font-size: 0.52rem;
+}
+
+.tetrobots-anomalies__metric strong {
+  color: #fff0b8;
+  font-size: 0.86rem;
+}
+
+.tetrobots-anomalies__metric--primary {
+  background:
+    radial-gradient(circle at top right, rgba(200, 141, 255, 0.16), transparent 32%),
+    rgba(8, 13, 27, 0.9);
+}
+
+.tetrobots-anomalies__metric--pop {
+  background:
+    radial-gradient(circle at top right, rgba(255, 210, 127, 0.14), transparent 32%),
+    rgba(8, 13, 27, 0.9);
+}
+
+.tetrobots-anomalies__bar {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(14, 22, 41, 0.9);
+  border: 1px solid rgba(97, 146, 214, 0.18);
+}
+
+.tetrobots-anomalies__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #72f0ca, #d6a7ff);
+}
+
+.tetrobots-anomalies__stage {
+  padding: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(200, 141, 255, 0.16), transparent 34%),
+    rgba(8, 13, 27, 0.9);
+}
+
+.tetrobots-anomalies__stage--choice {
+  border-color: rgba(255, 210, 127, 0.36);
+  background:
+    radial-gradient(circle at top right, rgba(255, 210, 127, 0.14), transparent 30%),
+    rgba(8, 13, 27, 0.9);
+}
+
+.tetrobots-anomalies__stage h2 {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+}
+
+.tetrobots-anomalies__stage p {
+  margin: 0;
+  font-size: 0.6rem;
+  line-height: 1.75;
+}
+
+.tetrobots-anomalies__final-line {
+  margin-top: 12px !important;
+  color: #ffe39d;
+}
+
+.tetrobots-anomalies__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.tetrobots-anomalies__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.tetrobots-anomalies__card {
+  padding: 12px;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.tetrobots-anomalies__card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 210, 127, 0.48);
+}
+
+.tetrobots-anomalies__card--found {
+  background:
+    radial-gradient(circle at top right, rgba(88, 182, 255, 0.12), transparent 30%),
+    rgba(8, 13, 27, 0.92);
+}
+
+.tetrobots-anomalies__card--active {
+  border-color: rgba(255, 210, 127, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(255, 210, 127, 0.32),
+    0 0 24px rgba(255, 210, 127, 0.12);
+}
+
+.tetrobots-anomalies__card-id {
+  color: #fff0b8;
+  font-size: 0.48rem;
+}
+
+.tetrobots-anomalies__card-status {
+  color: #8ec2ff;
+  font-size: 0.46rem;
+  letter-spacing: 0.06em;
+}
+
+.tetrobots-anomalies__card-bot {
+  font-size: 0.58rem;
+}
+
+.tetrobots-anomalies__card-hint {
+  color: #d7e9ff;
+  font-size: 0.54rem;
+  line-height: 1.55;
+}
+
+.tetrobots-anomalies__detail {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 210, 127, 0.12), transparent 34%),
+    rgba(8, 13, 27, 0.92);
+}
+
+.tetrobots-anomalies__detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tetrobots-anomalies__detail h2 {
+  margin: 0 0 8px;
+  color: #ffe39d;
+  font-size: 0.88rem;
+}
+
+.tetrobots-anomalies__detail-speaker {
+  margin: 0;
+  font-size: 0.54rem;
+}
+
+.tetrobots-anomalies__detail-state {
+  border: 1px solid rgba(97, 146, 214, 0.24);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #9ccfff;
+  font-size: 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tetrobots-anomalies__detail-state--found {
+  border-color: rgba(104, 233, 162, 0.35);
+  color: #caffb5;
+}
+
+.tetrobots-anomalies__detail-block {
+  border: 1px solid rgba(97, 146, 214, 0.18);
+  border-radius: 12px;
+  background: rgba(9, 17, 33, 0.62);
+  padding: 12px;
+}
+
+.tetrobots-anomalies__detail-block--locked {
+  border-color: rgba(200, 141, 255, 0.22);
+  background: rgba(17, 11, 25, 0.72);
+}
+
+.tetrobots-anomalies__detail-block h3 {
+  margin: 0 0 8px;
+  color: #8ec2ff;
+  font-size: 0.6rem;
+}
+
+.tetrobots-anomalies__detail-block p {
+  margin: 0;
+  font-size: 0.58rem;
+  line-height: 1.7;
+}
+
+.tetrobots-anomalies__pagination {
+  margin-top: 4px;
+}
+
 .tetrobots-help__toolbar,
 .tetrobots-help-card {
   border: 1px solid #325f9d;
@@ -879,6 +1109,11 @@
 }
 
 @media (max-width: 960px) {
+  .tetrobots-anomalies__summary,
+  .tetrobots-anomalies__layout {
+    grid-template-columns: 1fr;
+  }
+
   .tetrobots-relations__head,
   .tetrobots-memory {
     grid-template-columns: 1fr;

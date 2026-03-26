@@ -25,16 +25,26 @@ import {
 } from "../logic/dashboardOverview";
 import type {
   DashboardActiveBotViewModel,
+  DashboardChatbotFeedback,
   DashboardChatLine,
   DashboardChatbotViewModel,
   DashboardRelationOverlayViewModel,
   DashboardTipViewModel,
 } from "../logic/dashboardModels";
+import {
+  getTetrobotAnomalyProgress,
+  getTetrobotFinaleState,
+  isTetrobotAnomalyFound,
+  pickRandomTetrobotAnomaly,
+  TETROBOT_ANOMALY_SPEAKER_META,
+  TETROBOT_POST_FINALE_LINES,
+} from "../../tetrobots/logic/tetrobotAnomalies";
 
 type UseDashboardTetrobotStateArgs = {
   achievementProgress: DashboardAchievementProgress;
   clearLastTetrobotLevelUp: () => void;
   recentUnlockCount: number;
+  recordTetrobotAnomaly: (anomalyId: string) => AchievementStats;
   setLastTetrobotTip: (bot: DashboardBot, tip: string) => void;
   stats: AchievementStats;
   syncTetrobotProgression: () => void;
@@ -54,13 +64,16 @@ export function useDashboardTetrobotState({
   achievementProgress,
   clearLastTetrobotLevelUp,
   recentUnlockCount,
+  recordTetrobotAnomaly,
   setLastTetrobotTip,
   stats,
   syncTetrobotProgression,
 }: UseDashboardTetrobotStateArgs) {
   const [chatLine, setChatLine] = useState<DashboardChatLine>({
     bot: "rookie",
-    text: "Initialisation du flux Tétrobots...",
+    speaker: "rookie",
+    text: "Initialisation du flux Tetrobots...",
+    anomaly: null,
   });
   const [relationPopup, setRelationPopup] = useState<DashboardRelationEvent | null>(null);
   const [tetrobotTip, setTetrobotTip] = useState(() =>
@@ -69,10 +82,12 @@ export function useDashboardTetrobotState({
       lastPlayedMode: "mode classique",
     })
   );
+  const [anomalyFeedback, setAnomalyFeedback] = useState<DashboardChatbotFeedback | null>(null);
   const chatTimerRef = useRef<number | null>(null);
   const inactiveRef = useRef(false);
   const levelUpDismissTimerRef = useRef<number | null>(null);
   const relationPopupTimerRef = useRef<number | null>(null);
+  const anomalyCountersRef = useRef(stats.counters);
 
   const rookieLevel = stats.tetrobotProgression.rookie.level;
   const pulseLevel = stats.tetrobotProgression.pulse.level;
@@ -109,18 +124,35 @@ export function useDashboardTetrobotState({
     stats.playerLongTermMemory.activeConflict,
     stats.playerLongTermMemory.activeExclusiveAlignment
   );
-  const relationScene = relationPopup
-    ? getDashboardRelationScene(relationPopup, stats.playerLongTermMemory.activeExclusiveAlignment)
-    : [];
-  const relationChoices = relationPopup
-    ? getDashboardRelationChoices(
-        relationPopup,
-        stats.lowestWinrateMode ?? undefined,
-        stats.activeTetrobotChallenge,
-        stats.playerLongTermMemory.activeConflict,
-        stats.playerLongTermMemory.activeExclusiveAlignment
-      )
-    : [];
+  const relationScene = useMemo(
+    () =>
+      relationPopup
+        ? getDashboardRelationScene(
+            relationPopup,
+            stats.playerLongTermMemory.activeExclusiveAlignment
+          )
+        : [],
+    [relationPopup, stats.playerLongTermMemory.activeExclusiveAlignment]
+  );
+  const relationChoices = useMemo(
+    () =>
+      relationPopup
+        ? getDashboardRelationChoices(
+            relationPopup,
+            stats.lowestWinrateMode ?? undefined,
+            stats.activeTetrobotChallenge,
+            stats.playerLongTermMemory.activeConflict,
+            stats.playerLongTermMemory.activeExclusiveAlignment
+          )
+        : [],
+    [
+      relationPopup,
+      stats.activeTetrobotChallenge,
+      stats.lowestWinrateMode,
+      stats.playerLongTermMemory.activeConflict,
+      stats.playerLongTermMemory.activeExclusiveAlignment,
+    ]
+  );
   const latestRelationEvent = useMemo(() => {
     return TETROBOT_IDS
       .map((bot) =>
@@ -144,6 +176,11 @@ export function useDashboardTetrobotState({
     latestRelationEvent &&
       Date.now() - latestRelationEvent.createdAt <= DASHBOARD_RECENT_EVENT_WINDOW_MS
   );
+  const anomalyProgress = useMemo(
+    () => getTetrobotAnomalyProgress(stats.counters),
+    [stats.counters]
+  );
+  const finaleState = useMemo(() => getTetrobotFinaleState(stats.counters), [stats.counters]);
   const activeBot = useMemo<DashboardActiveBotViewModel>(() => {
     return {
       bot: chatLine.bot,
@@ -154,6 +191,29 @@ export function useDashboardTetrobotState({
       avatar: botAvatar,
     };
   }, [activeBotState, botAccentColor, botAffinity, botAvatar, botMood, chatLine.bot]);
+  const speaker = useMemo(() => {
+    if (chatLine.speaker === "pixel") {
+      const pixel = TETROBOT_ANOMALY_SPEAKER_META.pixel;
+      return {
+        id: "pixel" as const,
+        label: pixel.label,
+        accent: pixel.accent,
+        avatar: pixel.avatar,
+        fallbackAvatar: pixel.fallbackAvatar,
+        showRelationData: false,
+      };
+    }
+
+    const meta = TETROBOT_ANOMALY_SPEAKER_META[chatLine.speaker];
+    return {
+      id: chatLine.speaker,
+      label: meta.label,
+      accent: activeBot.accentColor,
+      avatar: activeBot.avatar,
+      fallbackAvatar: meta.fallbackAvatar,
+      showRelationData: true,
+    };
+  }, [activeBot.accentColor, activeBot.avatar, chatLine.speaker]);
 
   const closeRelationPopup = useCallback(() => {
     setRelationPopup(null);
@@ -180,12 +240,37 @@ export function useDashboardTetrobotState({
     }
   }, [latestRelationEvent, openRelationPopup]);
 
+  const analyzeCurrentLine = useCallback(() => {
+    const anomaly = chatLine.anomaly;
+    if (!anomaly) {
+      setAnomalyFeedback({
+        tone: "error",
+        text: "Analyse incorrecte. Aucun fragment instable detecte sur cette ligne.",
+      });
+      return;
+    }
+
+    const alreadyFound = isTetrobotAnomalyFound(anomalyCountersRef.current, anomaly.id);
+    if (!alreadyFound) {
+      recordTetrobotAnomaly(anomaly.id);
+    }
+
+    setAnomalyFeedback({
+      tone: alreadyFound ? "info" : "success",
+      text: alreadyFound ? "Fragment deja archive dans le journal." : anomaly.foundMessage,
+    });
+  }, [chatLine.anomaly, recordTetrobotAnomaly]);
+
   useEffect(() => {
     const now = Date.now();
     const previous = Number(localStorage.getItem(DASHBOARD_CHAT_LAST_SEEN_KEY) ?? "0");
     inactiveRef.current = previous > 0 && now - previous > 1000 * 60 * 60 * 24 * 4;
     localStorage.setItem(DASHBOARD_CHAT_LAST_SEEN_KEY, String(now));
   }, []);
+
+  useEffect(() => {
+    anomalyCountersRef.current = stats.counters;
+  }, [stats.counters]);
 
   useEffect(() => {
     syncTetrobotProgression();
@@ -219,15 +304,30 @@ export function useDashboardTetrobotState({
       const metaChance = Math.random();
       if (inactiveRef.current && metaChance < 0.35) {
         const bot = pickRandom(TETROBOT_IDS);
-        return { bot, text: TETROBOT_DASHBOARD_CHAT_META.inactive[bot] };
+        return {
+          bot,
+          speaker: bot,
+          text: TETROBOT_DASHBOARD_CHAT_META.inactive[bot],
+          anomaly: null,
+        };
       }
       if (totalLosses >= Math.max(5, totalWins * 1.3) && metaChance < 0.35) {
         const bot = pickRandom(TETROBOT_IDS);
-        return { bot, text: TETROBOT_DASHBOARD_CHAT_META.lowPerformance[bot] };
+        return {
+          bot,
+          speaker: bot,
+          text: TETROBOT_DASHBOARD_CHAT_META.lowPerformance[bot],
+          anomaly: null,
+        };
       }
       if (totalWins >= Math.max(8, totalLosses * 1.4) && metaChance < 0.35) {
         const bot = pickRandom(TETROBOT_IDS);
-        return { bot, text: TETROBOT_DASHBOARD_CHAT_META.highPerformance[bot] };
+        return {
+          bot,
+          speaker: bot,
+          text: TETROBOT_DASHBOARD_CHAT_META.highPerformance[bot],
+          anomaly: null,
+        };
       }
       return null;
     };
@@ -235,7 +335,36 @@ export function useDashboardTetrobotState({
     const generateLine = (): DashboardChatLine => {
       if (Math.random() < 0.01) {
         const bot = pickRandom(TETROBOT_IDS);
-        return { bot, text: pickRandom(TETROBOT_DASHBOARD_CHAT_RARE_LINES) };
+        return {
+          bot,
+          speaker: bot,
+          text: pickRandom(TETROBOT_DASHBOARD_CHAT_RARE_LINES),
+          anomaly: null,
+        };
+      }
+
+      if (finaleState.choice && Math.random() < (finaleState.choice === "break" ? 0.28 : 0.2)) {
+        const finaleLine = pickRandom(TETROBOT_POST_FINALE_LINES[finaleState.choice]);
+        const bot = finaleLine.speaker === "pixel" ? pickRandom(TETROBOT_IDS) : finaleLine.speaker;
+        return {
+          bot,
+          speaker: finaleLine.speaker,
+          text: finaleLine.text,
+          anomaly: null,
+        };
+      }
+
+      if (Math.random() < 0.14) {
+        const anomaly = pickRandomTetrobotAnomaly(anomalyCountersRef.current);
+        if (anomaly) {
+          const bot = anomaly.bot === "pixel" ? pickRandom(TETROBOT_IDS) : anomaly.bot;
+          return {
+            bot,
+            speaker: anomaly.bot,
+            text: anomaly.text,
+            anomaly,
+          };
+        }
       }
 
       const meta = pickMetaLine();
@@ -243,13 +372,23 @@ export function useDashboardTetrobotState({
 
       if (Math.random() < 0.22) {
         const bot = pickRandom(TETROBOT_IDS);
-        return { bot, text: pickRandom(TETROBOT_DASHBOARD_CHAT_GLOBAL_LINES) };
+        return {
+          bot,
+          speaker: bot,
+          text: pickRandom(TETROBOT_DASHBOARD_CHAT_GLOBAL_LINES),
+          anomaly: null,
+        };
       }
 
       const bot = pickRandom(TETROBOT_IDS);
       const level =
         bot === "rookie" ? rookieLevel : bot === "pulse" ? pulseLevel : apexLevel;
-      return { bot, text: pickRandom(getChatLinesForLevel(bot, level)) };
+      return {
+        bot,
+        speaker: bot,
+        text: pickRandom(getChatLinesForLevel(bot, level)),
+        anomaly: null,
+      };
     };
 
     const scheduleNext = () => {
@@ -276,6 +415,7 @@ export function useDashboardTetrobotState({
     stats.botWins,
     stats.brickfallWins,
     apexLevel,
+    finaleState.choice,
     pulseLevel,
     rookieLevel,
     stats.roguelikeVersusMatches,
@@ -284,6 +424,10 @@ export function useDashboardTetrobotState({
     stats.versusMatches,
     stats.versusWins,
   ]);
+
+  useEffect(() => {
+    setAnomalyFeedback(null);
+  }, [chatLine.anomaly, chatLine.speaker, chatLine.text]);
 
   useEffect(() => {
     const level = activeBotState?.level ?? 1;
@@ -362,8 +506,21 @@ export function useDashboardTetrobotState({
       canReopenLatestEvent,
       relationEvent,
       relationSummary,
+      speaker,
+      anomalyFeedback,
+      anomalyProgress,
+      hasActiveAnomaly: Boolean(chatLine.anomaly),
     };
-  }, [activeBot, canReopenLatestEvent, chatLine, relationEvent, relationSummary]);
+  }, [
+    activeBot,
+    anomalyFeedback,
+    anomalyProgress,
+    canReopenLatestEvent,
+    chatLine,
+    relationEvent,
+    relationSummary,
+    speaker,
+  ]);
 
   const tip = useMemo<DashboardTipViewModel>(() => {
     return {
@@ -383,6 +540,7 @@ export function useDashboardTetrobotState({
 
   return {
     activeBot,
+    analyzeCurrentLine,
     chatbot,
     closeRelationPopup,
     openLatestRelationPopup,

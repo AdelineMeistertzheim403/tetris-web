@@ -9,6 +9,7 @@ import AchievementsPage from "../features/achievements/pages/AchievementsPage";
 import Settings from "../features/settings/pages/Settings";
 import TetrobotsPage from "../features/tetrobots/pages/TetrobotsPage";
 import TetrobotsHelpPage from "../features/tetrobots/pages/TetrobotsHelpPage";
+import TetrobotsAnomaliesPage from "../features/tetrobots/pages/TetrobotsAnomaliesPage";
 import TetrobotsRelationsPage from "../features/tetrobots/pages/TetrobotsRelationsPage";
 import { withRouteElement } from "./routeElement";
 import { PATHS } from "./paths";
@@ -29,6 +30,11 @@ export const coreRouteSpecs: AppRouteSpec[] = [
   { key: "settings", path: PATHS.settings, element: <Settings />, requiresAuth: true },
   { key: "tetrobots", path: PATHS.tetrobots, element: <TetrobotsPage /> },
   { key: "tetrobots-help", path: PATHS.tetrobotsHelp, element: <TetrobotsHelpPage /> },
+  {
+    key: "tetrobots-anomalies",
+    path: PATHS.tetrobotsAnomalies,
+    element: <TetrobotsAnomaliesPage />,
+  },
   {
     key: "tetrobots-relations",
     path: PATHS.tetrobotsRelations,
