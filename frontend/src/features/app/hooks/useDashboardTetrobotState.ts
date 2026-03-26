@@ -3,10 +3,6 @@ import { getApexTrustState } from "../../achievements/lib/tetrobotAchievementLog
 import type { AchievementStats } from "../../achievements/types/achievementStats";
 import {
   TETROBOT_DASHBOARD_AVATARS,
-  TETROBOT_DASHBOARD_CHAT_GLOBAL_LINES,
-  TETROBOT_DASHBOARD_CHAT_META,
-  TETROBOT_DASHBOARD_PIXEL_LINES,
-  TETROBOT_DASHBOARD_CHAT_RARE_LINES,
   TETROBOT_DASHBOARD_LEVEL_COLORS,
   TETROBOT_IDS,
 } from "../../tetrobots/data/tetrobotsContent";
@@ -14,7 +10,7 @@ import {
   type DashboardBot,
   type DashboardRelationEvent,
   getBotTip,
-  getChatLinesForLevel,
+  getBotTipSelectionKey,
   getDashboardRelationChoices,
   getDashboardRelationEvent,
   getDashboardRelationScene,
@@ -24,6 +20,11 @@ import {
   type DashboardAchievementProgress,
   getDashboardPlayerContext,
 } from "../logic/dashboardOverview";
+import {
+  DASHBOARD_BOT_ROTATION_MS,
+  getDashboardChatRotationSlot,
+  selectDashboardChatLine,
+} from "../logic/dashboardChatLine";
 import type {
   DashboardActiveBotViewModel,
   DashboardChatbotFeedback,
@@ -36,9 +37,7 @@ import {
   getTetrobotAnomalyProgress,
   getTetrobotFinaleState,
   isTetrobotAnomalyFound,
-  pickRandomTetrobotAnomaly,
   TETROBOT_ANOMALY_SPEAKER_META,
-  TETROBOT_POST_FINALE_LINES,
 } from "../../tetrobots/logic/tetrobotAnomalies";
 
 type UseDashboardTetrobotStateArgs = {
@@ -53,13 +52,8 @@ type UseDashboardTetrobotStateArgs = {
 
 const DASHBOARD_CHAT_LAST_SEEN_KEY = "tetris-dashboard-last-seen-at";
 const DASHBOARD_RELATION_POPUP_SEEN_KEY = "tetris-dashboard-relation-popup-seen-v1";
-const DASHBOARD_BOT_ROTATION_MS = 60_000;
 const DASHBOARD_RELATION_POPUP_DURATION_MS = 6_500;
 const DASHBOARD_RECENT_EVENT_WINDOW_MS = 1000 * 60 * 60 * 24;
-
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)] as T;
-}
 
 export function useDashboardTetrobotState({
   achievementProgress,
@@ -214,15 +208,14 @@ export function useDashboardTetrobotState({
   const tipContextKey = useMemo(
     () =>
       JSON.stringify({
-        bot: chatLine.bot,
-        level: activeBotLevel,
-        mood: activeBotMood,
         apexTrustState,
-        playerContext,
-        activeRecommendation,
-        rookieRecommendation,
-        pulseRecommendation,
-        apexRecommendation,
+        selectionKey: getBotTipSelectionKey(chatLine.bot, activeBotLevel, activeBotMood, {
+          ...playerContext,
+          recommendation: activeRecommendation,
+          rookieRecommendation,
+          pulseRecommendation,
+          apexRecommendation,
+        }),
       }),
     [
       activeBotLevel,
@@ -382,132 +375,40 @@ export function useDashboardTetrobotState({
   ]);
 
   useEffect(() => {
-    const pickMetaLine = (): DashboardChatLine | null => {
-      const versusLosses = Math.max(0, stats.versusMatches - stats.versusWins);
-      const rvLosses = Math.max(
-        0,
-        stats.roguelikeVersusMatches - stats.roguelikeVersusWins
-      );
-      const botLosses = Math.max(0, stats.botMatches - stats.botWins);
-      const totalWins =
-        stats.versusWins +
-        stats.roguelikeVersusWins +
-        stats.botWins +
-        stats.brickfallWins +
-        stats.tetromazeWins;
-      const totalLosses = versusLosses + rvLosses + botLosses;
-
-      const metaChance = Math.random();
-      if (inactiveRef.current && metaChance < 0.35) {
-        const bot = pickRandom(TETROBOT_IDS);
-        return {
-          bot,
-          speaker: bot,
-          text: TETROBOT_DASHBOARD_CHAT_META.inactive[bot],
-          anomaly: null,
-        };
-      }
-      if (totalLosses >= Math.max(5, totalWins * 1.3) && metaChance < 0.35) {
-        const bot = pickRandom(TETROBOT_IDS);
-        return {
-          bot,
-          speaker: bot,
-          text: TETROBOT_DASHBOARD_CHAT_META.lowPerformance[bot],
-          anomaly: null,
-        };
-      }
-      if (totalWins >= Math.max(8, totalLosses * 1.4) && metaChance < 0.35) {
-        const bot = pickRandom(TETROBOT_IDS);
-        return {
-          bot,
-          speaker: bot,
-          text: TETROBOT_DASHBOARD_CHAT_META.highPerformance[bot],
-          anomaly: null,
-        };
-      }
-      return null;
-    };
-
-    const generateLine = (): DashboardChatLine => {
-      if (Math.random() < 0.01) {
-        const bot = pickRandom(TETROBOT_IDS);
-        return {
-          bot,
-          speaker: bot,
-          text: pickRandom(TETROBOT_DASHBOARD_CHAT_RARE_LINES),
-          anomaly: null,
-        };
-      }
-
-      if (finaleState.choice && Math.random() < (finaleState.choice === "break" ? 0.28 : 0.2)) {
-        const finaleLine = pickRandom(TETROBOT_POST_FINALE_LINES[finaleState.choice]);
-        const bot = finaleLine.speaker === "pixel" ? pickRandom(TETROBOT_IDS) : finaleLine.speaker;
-        return {
-          bot,
-          speaker: finaleLine.speaker,
-          text: finaleLine.text,
-          anomaly: null,
-        };
-      }
-
-      if (Math.random() < 0.14) {
-        const anomaly = pickRandomTetrobotAnomaly(anomalyCountersRef.current);
-        if (anomaly) {
-          const bot = anomaly.bot === "pixel" ? pickRandom(TETROBOT_IDS) : anomaly.bot;
-          return {
-            bot,
-            speaker: anomaly.bot,
-            text: anomaly.text,
-            anomaly,
-          };
-        }
-      }
-
-      if (Math.random() < 0.08) {
-        return {
-          bot: pickRandom(TETROBOT_IDS),
-          speaker: "pixel",
-          text: pickRandom(TETROBOT_DASHBOARD_PIXEL_LINES),
-          anomaly: null,
-        };
-      }
-
-      const meta = pickMetaLine();
-      if (meta) return meta;
-
-      if (Math.random() < 0.22) {
-        const bot = pickRandom(TETROBOT_IDS);
-        return {
-          bot,
-          speaker: bot,
-          text: pickRandom(TETROBOT_DASHBOARD_CHAT_GLOBAL_LINES),
-          anomaly: null,
-        };
-      }
-
-      const bot = pickRandom(TETROBOT_IDS);
-      const level =
-        bot === "rookie" ? rookieLevel : bot === "pulse" ? pulseLevel : apexLevel;
-      return {
-        bot,
-        speaker: bot,
-        text: pickRandom(getChatLinesForLevel(bot, level)),
-        anomaly: null,
-      };
-    };
+    const generateLine = (previousBot: DashboardBot): DashboardChatLine =>
+      selectDashboardChatLine({
+        apexLevel,
+        botMatches: stats.botMatches,
+        botWins: stats.botWins,
+        brickfallWins: stats.brickfallWins,
+        counters: anomalyCountersRef.current,
+        finaleChoice: finaleState.choice,
+        inactive: inactiveRef.current,
+        previousBot,
+        pulseLevel,
+        roguelikeVersusMatches: stats.roguelikeVersusMatches,
+        roguelikeVersusWins: stats.roguelikeVersusWins,
+        rookieLevel,
+        rotationSlot: getDashboardChatRotationSlot(),
+        tetromazeWins: stats.tetromazeWins,
+        versusMatches: stats.versusMatches,
+        versusWins: stats.versusWins,
+      });
 
     const scheduleNext = () => {
       if (chatTimerRef.current) {
         window.clearTimeout(chatTimerRef.current);
       }
+      const nextRotationAt =
+        (getDashboardChatRotationSlot() + 1) * DASHBOARD_BOT_ROTATION_MS - Date.now();
       chatTimerRef.current = window.setTimeout(() => {
-        setChatLine(generateLine());
+        setChatLine((previous) => generateLine(previous.bot));
         scheduleNext();
-      }, DASHBOARD_BOT_ROTATION_MS);
+      }, Math.max(250, nextRotationAt + 25));
     };
 
     if (!hasInitializedChatRef.current) {
-      setChatLine(generateLine());
+      setChatLine((previous) => generateLine(previous.bot));
       hasInitializedChatRef.current = true;
     }
     scheduleNext();
