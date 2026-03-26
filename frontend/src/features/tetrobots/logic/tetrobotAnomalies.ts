@@ -251,6 +251,54 @@ export function buildTetrobotAnomalyCounters(
   return nextCounters;
 }
 
+export function mergeTetrobotAnomalyArchiveCounters(
+  localCounters: AchievementStats["counters"],
+  remoteCounters: AchievementStats["counters"]
+) {
+  const localResetCount = localCounters.tetrobot_finale_resets ?? 0;
+  const remoteResetCount = remoteCounters.tetrobot_finale_resets ?? 0;
+  const nextCounters = { ...remoteCounters };
+
+  if (localResetCount !== remoteResetCount) {
+    const sourceCounters =
+      localResetCount > remoteResetCount ? localCounters : remoteCounters;
+
+    for (const anomaly of ALL_TETROBOT_ANOMALIES) {
+      const counterKey = getTetrobotAnomalyCounterKey(anomaly.id);
+      if ((sourceCounters[counterKey] ?? 0) > 0) {
+        nextCounters[counterKey] = 1;
+      } else {
+        delete nextCounters[counterKey];
+      }
+    }
+
+    nextCounters.easter_egg_pop =
+      sourceCounters.easter_egg_pop ?? getTetrobotAnomalyProgress(sourceCounters).popFound;
+    nextCounters.all_easter_egg =
+      sourceCounters.all_easter_egg ?? getTetrobotAnomalyProgress(sourceCounters).totalFound;
+    nextCounters.tetrobot_finale_resets = Math.max(localResetCount, remoteResetCount);
+    return nextCounters;
+  }
+
+  for (const anomaly of ALL_TETROBOT_ANOMALIES) {
+    const counterKey = getTetrobotAnomalyCounterKey(anomaly.id);
+    if ((localCounters[counterKey] ?? 0) > 0 || (remoteCounters[counterKey] ?? 0) > 0) {
+      nextCounters[counterKey] = 1;
+    } else {
+      delete nextCounters[counterKey];
+    }
+  }
+
+  const progress = getTetrobotAnomalyProgress(nextCounters);
+  nextCounters.easter_egg_pop = progress.popFound;
+  nextCounters.all_easter_egg = progress.totalFound;
+  if (localResetCount > 0 || remoteResetCount > 0) {
+    nextCounters.tetrobot_finale_resets = Math.max(localResetCount, remoteResetCount);
+  }
+
+  return nextCounters;
+}
+
 function clearTetrobotAnomalyCounters(counters: AchievementStats["counters"]) {
   const nextCounters = { ...counters };
 

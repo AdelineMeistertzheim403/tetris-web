@@ -411,3 +411,14 @@ export function createStars(count = 20): PixelInvasionStar[] {
     delay: `${(index % 7) * 0.6}s`,
   }));
 }
+
+export function isPixelInvasionHighDensity(
+  game: Pick<GameState, "enemies" | "enemyBullets" | "playerBullets" | "impacts">
+) {
+  return (
+    game.enemies.length >= 18 ||
+    game.enemyBullets.length >= 28 ||
+    game.playerBullets.length >= 18 ||
+    game.impacts.length >= 14
+  );
+}

@@ -61,6 +61,7 @@ import {
   applyTetrobotFinaleChoice,
   buildTetrobotAnomalyCounters,
   getTetrobotAnomalyProgress,
+  mergeTetrobotAnomalyArchiveCounters,
   type TetrobotFinaleChoice,
 } from "../../tetrobots/logic/tetrobotAnomalies";
 
@@ -2303,6 +2304,10 @@ function useAchievementsValue(): UseAchievementsValue {
             return mergeStats({
               ...prev,
               ...remote.stats,
+              counters: mergeTetrobotAnomalyArchiveCounters(
+                prev.counters,
+                remote.stats.counters ?? {}
+              ),
               loginDays: mergeLoginDays(
                 prev.loginDays,
                 remote.loginDays,
@@ -2471,14 +2476,7 @@ function useAchievementsValue(): UseAchievementsValue {
       }
     };
   }, [
-    stats.activeTetrobotChallenge,
-    stats.lastTetrobotLevelUp,
-    stats.loginDays,
-    stats.tetrobotAffinityLedger,
-    stats.playerLongTermMemory,
-    stats.tetrobotMemories,
-    stats.tetrobotProgression,
-    stats.tetrobotXpLedger,
+    stats,
     user,
   ]);
 

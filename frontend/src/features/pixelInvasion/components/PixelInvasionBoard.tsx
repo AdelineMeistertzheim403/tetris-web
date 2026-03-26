@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import type { ReactNode } from "react";
 import { PixelInvasionEntityCanvas } from "./PixelInvasionEntityCanvas";
 import {
@@ -7,6 +7,7 @@ import {
   PLAYER_HEIGHT,
   PLAYER_WIDTH,
   PLAYER_Y,
+  isPixelInvasionHighDensity,
   renderPercent,
 } from "../model";
 import type { GameState, PixelInvasionStar } from "../model";
@@ -16,6 +17,7 @@ type PixelInvasionBoardProps = {
   stars: PixelInvasionStar[];
   onRestart: () => void;
   customOverlay?: ReactNode;
+  performanceMode: boolean;
 };
 
 const ScrapGrid = memo(function ScrapGrid({ scrapGrid }: { scrapGrid: GameState["scrapGrid"] }) {
@@ -40,18 +42,44 @@ const ScrapGrid = memo(function ScrapGrid({ scrapGrid }: { scrapGrid: GameState[
   );
 });
 
-export function PixelInvasionBoard({ game, stars, onRestart, customOverlay }: PixelInvasionBoardProps) {
-  const highDensity =
-    game.enemies.length >= 18 ||
-    game.enemyBullets.length >= 28 ||
-    game.playerBullets.length >= 18 ||
-    game.impacts.length >= 14;
-  const visibleTelegraphs = game.telegraphs.slice(-(highDensity ? 6 : 12));
-  const visibleImpacts = game.impacts.slice(-(highDensity ? 8 : 18));
-  const visiblePlayerBullets = game.playerBullets.slice(-(highDensity ? 16 : 28));
-  const visibleEnemyBullets = game.enemyBullets.slice(-(highDensity ? 26 : 44));
+const BoardDecor = memo(function BoardDecor({
+  showScanlines,
+  stars,
+}: {
+  showScanlines: boolean;
+  stars: PixelInvasionStar[];
+}) {
+  return (
+    <>
+      {showScanlines ? <div className="pixel-invasion-scanlines" /> : null}
+      {stars.map((star) => (
+        <span
+          key={star.id}
+          className="pixel-invasion-star"
+          style={{ left: star.left, top: star.top, animationDelay: star.delay }}
+        />
+      ))}
+      <div className="pixel-invasion-lane pixel-invasion-lane--enemy" />
+      <div className="pixel-invasion-lane pixel-invasion-lane--scrap" />
+    </>
+  );
+});
+
+export function PixelInvasionBoard({
+  game,
+  stars,
+  onRestart,
+  customOverlay,
+  performanceMode,
+}: PixelInvasionBoardProps) {
+  const highDensity = isPixelInvasionHighDensity(game);
+  const reducedFx = performanceMode || highDensity;
+  const visibleTelegraphs = game.telegraphs.slice(-(reducedFx ? 4 : 12));
+  const visibleImpacts = game.impacts.slice(-(reducedFx ? 6 : 18));
+  const visiblePlayerBullets = game.playerBullets.slice(-(reducedFx ? 12 : 28));
+  const visibleEnemyBullets = game.enemyBullets.slice(-(reducedFx ? 18 : 44));
   const visibleDrops = game.drops.slice(0, 1);
-  const visibleStars = highDensity ? stars.slice(0, 8) : stars;
+  const visibleStars = useMemo(() => (reducedFx ? stars.slice(0, 5) : stars), [reducedFx, stars]);
   const countdown = Math.max(1, Math.ceil(game.waveTransition - 0.02));
   const chapterLabel = getWaveChapterLabel(game.wave);
   const stageLabel = getWaveStageLabel(game.wave, game.waveTheme);
@@ -59,9 +87,15 @@ export function PixelInvasionBoard({ game, stars, onRestart, customOverlay }: Pi
   const isBossWarning = game.waveTransition > 0 && Boolean(activeBossTheme);
   const chapterIntro = getChapterIntro(game.wave);
   const isChapterIntro = game.waveTransition > 0 && chapterIntro !== null;
-  const formationPhase = getFormationVisualPhase(game);
-  const shakeX = game.boardShakeTimer > 0 ? Math.sin(game.boardShakeTimer * 160) * game.boardShakeTimer * 14 : 0;
-  const shakeY = game.boardShakeTimer > 0 ? Math.cos(game.boardShakeTimer * 140) * game.boardShakeTimer * 9 : 0;
+  const formationPhase = reducedFx ? null : getFormationVisualPhase(game);
+  const shakeX =
+    game.boardShakeTimer > 0
+      ? Math.sin(game.boardShakeTimer * 160) * game.boardShakeTimer * (reducedFx ? 8 : 14)
+      : 0;
+  const shakeY =
+    game.boardShakeTimer > 0
+      ? Math.cos(game.boardShakeTimer * 140) * game.boardShakeTimer * (reducedFx ? 5 : 9)
+      : 0;
 
   return (
     <section className="pixel-invasion-board-panel">
@@ -70,38 +104,29 @@ export function PixelInvasionBoard({ game, stars, onRestart, customOverlay }: Pi
           game.flashTimer > 0 ? "pixel-invasion-board--flash" : ""
         } ${
           formationPhase ? `pixel-invasion-board--${formationPhase}` : ""
-        }`}
+        }${reducedFx ? " pixel-invasion-board--performance" : ""}`}
         style={{
           transform: game.boardShakeTimer > 0 ? `translate(${shakeX}px, ${shakeY}px)` : undefined,
         }}
       >
-        {!highDensity && <div className="pixel-invasion-scanlines" />}
-        {visibleStars.map((star) => (
-          <span
-            key={star.id}
-            className="pixel-invasion-star"
-            style={{ left: star.left, top: star.top, animationDelay: star.delay }}
-          />
-        ))}
+        <BoardDecor showScanlines={!reducedFx} stars={visibleStars} />
 
-        {!highDensity && formationPhase === "opening" && (
+        {!reducedFx && formationPhase === "opening" && (
           <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--opening" />
         )}
-        {!highDensity && formationPhase === "compression" && (
+        {!reducedFx && formationPhase === "compression" && (
           <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--compression" />
         )}
-        {!highDensity && formationPhase === "punish" && (
+        {!reducedFx && formationPhase === "punish" && (
           <div className="pixel-invasion-phase-fx pixel-invasion-phase-fx--punish" />
         )}
         {game.lineBurstFxTimer > 0 && (
           <div
             className="pixel-invasion-line-burst-fx"
-            style={{ opacity: Math.min(highDensity ? 0.2 : 0.48, game.lineBurstFxTimer * 1.8) }}
+            style={{ opacity: Math.min(reducedFx ? 0.14 : 0.48, game.lineBurstFxTimer * 1.8) }}
           />
         )}
 
-        <div className="pixel-invasion-lane pixel-invasion-lane--enemy" />
-        <div className="pixel-invasion-lane pixel-invasion-lane--scrap" />
         <PixelInvasionEntityCanvas
           enemies={game.enemies}
           telegraphs={visibleTelegraphs}
@@ -109,7 +134,7 @@ export function PixelInvasionBoard({ game, stars, onRestart, customOverlay }: Pi
           playerBullets={visiblePlayerBullets}
           enemyBullets={visibleEnemyBullets}
           drops={visibleDrops}
-          reducedFx={highDensity}
+          reducedFx={reducedFx}
         />
 
         <ScrapGrid scrapGrid={game.scrapGrid} />

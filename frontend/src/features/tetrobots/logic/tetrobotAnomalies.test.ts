@@ -6,6 +6,7 @@ import {
   getTetrobotAnomalyCounterKey,
   getTetrobotAnomalyProgress,
   getTetrobotAnomalyStage,
+  mergeTetrobotAnomalyArchiveCounters,
   TETROBOT_ANOMALY_CORE_TOTAL,
 } from "./tetrobotAnomalies";
 
@@ -59,5 +60,28 @@ describe("tetrobotAnomalies", () => {
     expect(resetCounters.easter_egg_pop).toBe(0);
     expect(resetCounters.all_easter_egg).toBe(0);
     expect(resetCounters.tetrobot_finale_resets).toBe(1);
+  });
+
+  it("preserves locally archived fragments when the remote counters are stale", () => {
+    const localCounters = buildTetrobotAnomalyCounters({}, "meta_player");
+    const mergedCounters = mergeTetrobotAnomalyArchiveCounters(localCounters, {});
+    const progress = getTetrobotAnomalyProgress(mergedCounters);
+
+    expect(mergedCounters[getTetrobotAnomalyCounterKey("meta_player")]).toBe(1);
+    expect(progress.coreFound).toBe(1);
+    expect(progress.totalFound).toBe(1);
+  });
+
+  it("does not resurrect fragments after a newer local reset", () => {
+    const remoteCounters = buildTetrobotAnomalyCounters({}, "meta_player");
+    const localResetCounters = applyTetrobotFinaleChoice(remoteCounters, "reset");
+    const mergedCounters = mergeTetrobotAnomalyArchiveCounters(
+      localResetCounters,
+      remoteCounters
+    );
+    const progress = getTetrobotAnomalyProgress(mergedCounters);
+
+    expect(progress.totalFound).toBe(0);
+    expect(mergedCounters.tetrobot_finale_resets).toBe(1);
   });
 });
