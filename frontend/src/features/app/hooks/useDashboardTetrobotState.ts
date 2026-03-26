@@ -5,6 +5,7 @@ import {
   TETROBOT_DASHBOARD_AVATARS,
   TETROBOT_DASHBOARD_CHAT_GLOBAL_LINES,
   TETROBOT_DASHBOARD_CHAT_META,
+  TETROBOT_DASHBOARD_PIXEL_LINES,
   TETROBOT_DASHBOARD_CHAT_RARE_LINES,
   TETROBOT_DASHBOARD_LEVEL_COLORS,
   TETROBOT_IDS,
@@ -365,6 +366,15 @@ export function useDashboardTetrobotState({
             anomaly,
           };
         }
+      }
+
+      if (Math.random() < 0.08) {
+        return {
+          bot: pickRandom(TETROBOT_IDS),
+          speaker: "pixel",
+          text: pickRandom(TETROBOT_DASHBOARD_PIXEL_LINES),
+          anomaly: null,
+        };
       }
 
       const meta = pickMetaLine();

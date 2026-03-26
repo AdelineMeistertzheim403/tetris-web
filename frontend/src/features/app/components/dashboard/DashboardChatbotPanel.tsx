@@ -87,7 +87,9 @@ export function DashboardChatbotPanel({
           </>
         ) : (
           <p className="dashboard-chatbot__relation-summary dashboard-chatbot__relation-summary--pixel">
-            Pixel parasite temporairement le canal pour injecter un fragment corrompu.
+            {hasActiveAnomaly
+              ? "Pixel parasite temporairement le canal pour injecter un fragment corrompu."
+              : "Pixel ouvre un canal discret hors protocole. Aucun XP, aucun niveau visible, juste un signal pirate."}
           </p>
         )}
         <div
