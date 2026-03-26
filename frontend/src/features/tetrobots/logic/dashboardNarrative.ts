@@ -70,8 +70,6 @@ type DashboardTip = (ctx: DashboardPlayerContext) => string;
 type DashboardTipMap = Record<DashboardBot, Partial<Record<BotLevel, DashboardTip[]>>>;
 type DashboardRelationTipMap = Record<DashboardBot, Record<BotMood, DashboardTip[]>>;
 
-const DASHBOARD_TIP_MEMORY_KEY = "tetris-dashboard-tip-memory-v1";
-
 const EVOLVED_TIPS: DashboardTipMap = {
   rookie: {
     1: [
@@ -239,27 +237,34 @@ function getTipsForLevel(bot: DashboardBot, level: BotLevel) {
   return levels.flatMap((tipLevel) => EVOLVED_TIPS[bot][tipLevel] ?? []);
 }
 
-function pickTipIndex(bot: DashboardBot, size: number) {
-  if (size <= 1) return 0;
+function hashTipSelectionKey(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function buildTipSelectionKey(
+  bot: DashboardBot,
+  level: BotLevel,
+  mood: BotMood,
+  ctx: DashboardPlayerContext,
+  selectionKey?: string
+) {
+  if (selectionKey) return selectionKey;
 
   try {
-    const raw = localStorage.getItem(DASHBOARD_TIP_MEMORY_KEY);
-    const memory = raw ? (JSON.parse(raw) as Partial<Record<DashboardBot, number>>) : {};
-    const previous = typeof memory[bot] === "number" ? memory[bot] ?? -1 : -1;
-    let next = Math.floor(Math.random() * size);
-
-    if (size > 1 && next === previous) {
-      next = (next + 1 + Math.floor(Math.random() * (size - 1))) % size;
-    }
-
-    localStorage.setItem(
-      DASHBOARD_TIP_MEMORY_KEY,
-      JSON.stringify({ ...memory, [bot]: next })
-    );
-    return next;
+    return JSON.stringify({ bot, level, mood, ctx });
   } catch {
-    return Math.floor(Math.random() * size);
+    return `${bot}:${level}:${mood}`;
   }
+}
+
+function pickTipIndex(size: number, selectionKey: string) {
+  if (size <= 1) return 0;
+  return hashTipSelectionKey(selectionKey) % size;
 }
 
 export function formatLockedAdvice(lockedAdvice: string[]) {
@@ -673,7 +678,8 @@ export function getBotTip(
   bot: DashboardBot,
   level: BotLevel,
   mood: BotMood,
-  ctx: DashboardPlayerContext
+  ctx: DashboardPlayerContext,
+  selectionKey?: string
 ) {
   const recommendation = ctx.recommendation;
   const oppositionLine = (() => {
@@ -747,6 +753,7 @@ export function getBotTip(
   }
 
   const tips = [...(RELATION_TIPS[bot][mood] ?? []), ...getTipsForLevel(bot, level)];
-  const tip = tips[pickTipIndex(bot, tips.length)] ?? tips[0];
+  const tipSelectionKey = buildTipSelectionKey(bot, level, mood, ctx, selectionKey);
+  const tip = tips[pickTipIndex(tips.length, tipSelectionKey)] ?? tips[0];
   return `${tip(ctx)}${oppositionLine}`;
 }
