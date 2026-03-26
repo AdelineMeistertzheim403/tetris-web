@@ -334,7 +334,8 @@ export function useDashboardTetrobotState({
 
     const alreadyFound = isTetrobotAnomalyFound(anomalyCountersRef.current, anomaly.id);
     if (!alreadyFound) {
-      recordTetrobotAnomaly(anomaly.id);
+      const next = recordTetrobotAnomaly(anomaly.id);
+      anomalyCountersRef.current = next.counters;
     }
 
     setAnomalyFeedback({
