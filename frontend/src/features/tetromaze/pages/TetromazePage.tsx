@@ -4,6 +4,8 @@ import { PATHS } from "../../../routes/paths";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { useAuth } from "../../auth/context/AuthContext";
 import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
+import { getPixelScoreFactor } from "../../pixelMode/logic/pixelMode";
 import {
   getTetromazeCampaignLevel,
   TETROMAZE_TOTAL_LEVELS,
@@ -518,6 +520,15 @@ function oppositeDir(dir: Direction): Direction {
   return "LEFT";
 }
 
+function applyTetromazePixelScore(
+  baseScore: number,
+  pixelModeActive: boolean,
+  instabilityLevel: number
+) {
+  if (!pixelModeActive || instabilityLevel <= 0) return baseScore;
+  return Math.max(1, Math.round(baseScore * getPixelScoreFactor(instabilityLevel)));
+}
+
 function canMoveDynamic(
   grid: string[],
   x: number,
@@ -718,11 +729,18 @@ export default function TetromazePage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputDirRef = useRef<Direction | null>(null);
   const movementActiveRef = useRef(false);
+  const pixelMirrorInputUntilRef = useRef(0);
+  const pixelNextEventAtRef = useRef(0);
   const visitedRef = useRef(false);
   const spritesRef = useRef<SpriteStore | null>(null);
   const { updateStats, checkAchievements, recordPlayerBehavior, recordTetrobotEvent } =
     useAchievements();
   const { user } = useAuth();
+  const {
+    gameplayRouteActive: pixelModeActive,
+    instabilityLevel,
+    reportRuntimeEvent,
+  } = usePixelMode();
 
   const [assetsReady, setAssetsReady] = useState(false);
   const [state, setState] = useState<GameState>(() => createInitialState("CLASSIC", level));
@@ -775,6 +793,11 @@ export default function TetromazePage() {
     return ordered;
   }, [level.powerOrbs]);
   const isCommunityLevel = Boolean(communityLevel);
+
+  const resetPixelCorruption = () => {
+    pixelMirrorInputUntilRef.current = 0;
+    pixelNextEventAtRef.current = 0;
+  };
 
   const pushChatLine = (
     event: TetromazeEvent,
@@ -1022,6 +1045,15 @@ export default function TetromazePage() {
   }, []);
 
   useEffect(() => {
+    if (pixelModeActive) return;
+    resetPixelCorruption();
+  }, [pixelModeActive]);
+
+  useEffect(() => {
+    resetPixelCorruption();
+  }, [level, pixelModeActive]);
+
+  useEffect(() => {
     // Boucle de simulation principale (déplacement joueur + IA bots + collisions).
     const interval = window.setInterval(() => {
       setState((prev) => {
@@ -1050,7 +1082,7 @@ export default function TetromazePage() {
         const dynamicOpenCell = corruptionActive ? prev.corruptionOpenCell : null;
         const playerSteps = overclockActive ? 2 : 1;
 
-        let nextState: GameState = {
+        const nextState: GameState = {
           ...prev,
           tick: prev.tick + 1,
           dataOrbs: new Set(prev.dataOrbs),
@@ -1063,10 +1095,66 @@ export default function TetromazePage() {
           })),
         };
 
+        if (pixelModeActive && instabilityLevel > 0 && now >= pixelNextEventAtRef.current) {
+          const eventInterval = Math.max(1_800, 4_400 - instabilityLevel * 280);
+          pixelNextEventAtRef.current = now + eventInterval + Math.random() * 900;
+
+          const roll = Math.random();
+          if (roll < 0.38) {
+            pixelMirrorInputUntilRef.current = now + 850 + instabilityLevel * 150;
+            reportRuntimeEvent({
+              sourceLabel: "Tetromaze",
+              title: "Labyrinthe inverse",
+              description: "La prochaine impulsion de mouvement est retournee par le reseau.",
+              severity: "medium",
+              ttlMs: 2100,
+            });
+          } else if (roll < 0.72) {
+            nextState.glitchUntil = Math.max(
+              nextState.glitchUntil,
+              now + 1_050 + instabilityLevel * 190
+            );
+            reportRuntimeEvent({
+              sourceLabel: "Tetromaze",
+              title: "Brouillage des bots",
+              description: "Le reseau parasite la chasse et les trajectoires deviennent instables.",
+              severity: "low",
+              ttlMs: 2000,
+            });
+          } else {
+            const destabilized = chooseRandom(
+              getValidMovesDynamic(
+                level.grid,
+                nextState.playerPos.x,
+                nextState.playerPos.y,
+                dynamicClosedCell,
+                dynamicOpenCell
+              )
+            )?.pos;
+            if (destabilized) {
+              nextState.playerPos = destabilized;
+              reportRuntimeEvent({
+                sourceLabel: "Tetromaze",
+                title: "Phase slip",
+                description: "Pixel t'arrache a ta case et te re-projette plus loin dans le couloir.",
+                severity: "high",
+                ttlMs: 2200,
+              });
+            }
+          }
+        }
+
         const shouldMovePlayer = movementActiveRef.current && inputDirRef.current;
         if (shouldMovePlayer) {
           for (let step = 0; step < playerSteps; step += 1) {
-            const desiredDir = inputDirRef.current ?? nextState.playerDir;
+            let desiredDir = inputDirRef.current ?? nextState.playerDir;
+            if (
+              pixelModeActive &&
+              instabilityLevel > 0 &&
+              now < pixelMirrorInputUntilRef.current
+            ) {
+              desiredDir = oppositeDir(desiredDir);
+            }
             let candidate = nextPos(nextState.playerPos.x, nextState.playerPos.y, desiredDir);
             let chosenDir = desiredDir;
 
@@ -1113,14 +1201,50 @@ export default function TetromazePage() {
             const orbKey = toKey(nextState.playerPos.x, nextState.playerPos.y);
             if (nextState.dataOrbs.has(orbKey)) {
               nextState.dataOrbs.delete(orbKey);
-              nextState.score += 10;
+              nextState.score += applyTetromazePixelScore(
+                10,
+                pixelModeActive,
+                instabilityLevel
+              );
             }
 
             const power = nextState.powerOrbs.get(orbKey);
-            if (!power) continue;
+            if (!power) {
+              if (
+                pixelModeActive &&
+                instabilityLevel > 0 &&
+                step === playerSteps - 1 &&
+                Math.random() < 0.022 + instabilityLevel * 0.006
+              ) {
+                const slip = chooseRandom(
+                  getValidMovesDynamic(
+                    level.grid,
+                    nextState.playerPos.x,
+                    nextState.playerPos.y,
+                    dynamicClosedCell,
+                    dynamicOpenCell
+                  )
+                )?.pos;
+                if (slip) {
+                  nextState.playerPos = slip;
+                  reportRuntimeEvent({
+                    sourceLabel: "Tetromaze",
+                    title: "Glissement force",
+                    description: "La grille te decale d'une case sans prevenir.",
+                    severity: "medium",
+                    ttlMs: 1900,
+                  });
+                }
+              }
+              continue;
+            }
 
             nextState.powerOrbs.delete(orbKey);
-            nextState.score += 50;
+            nextState.score += applyTetromazePixelScore(
+              50,
+              pixelModeActive,
+              instabilityLevel
+            );
 
             if (power === "OVERCLOCK") nextState.overclockUntil = now + OVERCLOCK_MS;
             if (power === "GLITCH") nextState.glitchUntil = now + GLITCH_MS;
@@ -1218,6 +1342,26 @@ export default function TetromazePage() {
               const host = chooseRandom(nextState.bots);
               nextState.virusUntil = now + VIRUS_MS;
               nextState.virusHostBotId = host?.id ?? null;
+            }
+
+            if (
+              pixelModeActive &&
+              instabilityLevel > 0 &&
+              step === playerSteps - 1 &&
+              Math.random() < 0.022 + instabilityLevel * 0.006
+            ) {
+              const slip = chooseRandom(
+                getValidMovesDynamic(
+                  level.grid,
+                  nextState.playerPos.x,
+                  nextState.playerPos.y,
+                  dynamicClosedCell,
+                  dynamicOpenCell
+                )
+              )?.pos;
+              if (slip) {
+                nextState.playerPos = slip;
+              }
             }
           }
         }
@@ -1348,7 +1492,11 @@ export default function TetromazePage() {
               bot.prevPos = { ...bot.spawn };
               bot.lastMoveAt = now;
               bot.respawnAt = now + 3000;
-              nextState.score += CAPTURE_BONUS;
+              nextState.score += applyTetromazePixelScore(
+                CAPTURE_BONUS,
+                pixelModeActive,
+                instabilityLevel
+              );
             } else if (!safeActive && !ghostActive) {
               if (nextState.lives > 1) {
                 nextState.lives -= 1;
@@ -1382,7 +1530,11 @@ export default function TetromazePage() {
           nextState.timeLeftMs = timeLeftMs;
           if (timeLeftMs === 0) {
             nextState.status = "won";
-            nextState.score += 500;
+            nextState.score += applyTetromazePixelScore(
+              500,
+              pixelModeActive,
+              instabilityLevel
+            );
             return nextState;
           }
         }
@@ -1392,7 +1544,13 @@ export default function TetromazePage() {
     }, TICK_MS);
 
     return () => window.clearInterval(interval);
-  }, [level.grid, level.loopPairs]);
+  }, [
+    instabilityLevel,
+    level.grid,
+    level.loopPairs,
+    pixelModeActive,
+    reportRuntimeEvent,
+  ]);
 
   useEffect(() => {
     const prev = prevStateRef.current;
@@ -1889,6 +2047,7 @@ export default function TetromazePage() {
     setState((prev) => {
       const now = Date.now();
       const next = createInitialState(prev.mode, level);
+      resetPixelCorruption();
       inputDirRef.current = null;
       movementActiveRef.current = false;
       outcomeSavedRef.current = null;
@@ -1911,6 +2070,7 @@ export default function TetromazePage() {
   };
 
   const changeMode = (nextMode: TetromazeMode) => {
+    resetPixelCorruption();
     inputDirRef.current = null;
     movementActiveRef.current = false;
     outcomeSavedRef.current = null;
@@ -1931,6 +2091,7 @@ export default function TetromazePage() {
     setIsCustomLevel(false);
     setLevelIndex(safe);
     setLevel(nextLevel);
+    resetPixelCorruption();
     inputDirRef.current = null;
     movementActiveRef.current = false;
     outcomeSavedRef.current = null;
@@ -1952,6 +2113,7 @@ export default function TetromazePage() {
 
   const replayLevel = () => {
     if (isCustomLevel) {
+      resetPixelCorruption();
       inputDirRef.current = null;
       movementActiveRef.current = false;
       outcomeSavedRef.current = null;

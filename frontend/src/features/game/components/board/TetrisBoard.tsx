@@ -10,6 +10,8 @@ import { useLineClearFx } from "../../hooks/useLineClearFx";
 import { useSettings } from "../../../settings/context/SettingsContext";
 import StatCard from "../../../../shared/components/ui/cards/StatCard";
 import FullScreenOverlay from "../../../../shared/components/ui/overlays/FullScreenOverlay";
+import { usePixelMode } from "../../../pixelMode/hooks/usePixelMode";
+import { corruptText, PIXEL_MODE_MAX_INSTABILITY } from "../../../pixelMode/logic/pixelMode";
 import {
   type BotStrategy,
   computeTetrobotsPlan,
@@ -195,6 +197,7 @@ export default function TetrisBoard({
   onTetrobotsPlan,
 }: TetrisBoardProps) {
   const { settings } = useSettings();
+  const { gameplayRouteActive: pixelModeActive, instabilityLevel } = usePixelMode();
   const effectiveRows = rows ?? DEFAULT_ROWS;
   const effectiveCols = cols ?? DEFAULT_COLS;
   const effectiveScoreMode = scoreMode === undefined ? mode : scoreMode;
@@ -256,6 +259,8 @@ export default function TetrisBoard({
     hardDropHoldReset,
     chaosDrift,
     pieceMutation,
+    pixelMode: pixelModeActive,
+    pixelInstability: instabilityLevel,
     pieceColors: settings.pieceColors,
     bombRadius,
     onInvalidMove,
@@ -270,6 +275,8 @@ export default function TetrisBoard({
   onGameOver: async (score, level, lines) => {
     // En mode classique/sprint/etc., on enregistre le score (pas en roguelike).
   if (onLocalGameOver) onLocalGameOver(score, lines);
+
+  if (pixelModeActive) return;
 
   if (
     !effectiveScoreMode ||
@@ -306,6 +313,12 @@ export default function TetrisBoard({
     explosions,
   } = state;
   const roundedScore = Math.round(score);
+  const displayScore = pixelModeActive
+    ? corruptText(
+        String(roundedScore),
+        Math.min(0.2, 0.05 + instabilityLevel * 0.02)
+      )
+    : roundedScore;
   const lastClearLabel = `+${lastClearPoints}`;
   const lastClearColor = getLineClearColor(lastClearLines);
   const {
@@ -438,14 +451,15 @@ export default function TetrisBoard({
     }
   }, [enableLastStand, lastStand]);
 
-  useEffect(() => {
+useEffect(() => {
+  if (pixelModeActive) return;
   if (!effectiveScoreMode || effectiveScoreMode === "ROGUELIKE" || effectiveScoreMode === "PUZZLE") return;
     getScoreRunToken(effectiveScoreMode)
       .then((token) => {
         scoreRunTokenRef.current = token;
       })
       .catch((err) => console.error("Erreur récupération token score :", err));
-  }, [effectiveScoreMode]);
+  }, [effectiveScoreMode, pixelModeActive]);
 
   useEffect(() => {
     onBombsChange?.(bombs);
@@ -684,6 +698,13 @@ useEffect(() => {
           boxShadow: "0 0 20px rgba(0,0,0,0.8)",
         }}
       />
+      {pixelModeActive ? (
+        <div
+          className={`pixel-mode-board-overlay${
+            instabilityLevel >= 4 ? " pixel-mode-board-overlay--high" : ""
+          }`}
+        />
+      ) : null}
       {tetrisFlash && <div className="tetris-flash" />}
       {lineClearFx.flatMap((effect) =>
         effect.rows.map((row, idx) => (
@@ -715,7 +736,7 @@ useEffect(() => {
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <StatCard
                 label="SCORE"
-                value={roundedScore}
+                value={displayScore}
                 valueColor="#00eaff"
                 accentColor="#f5f5f5"
               />
@@ -730,6 +751,27 @@ useEffect(() => {
             </div>
             <StatCard label="LIGNES" value={lines} valueColor="#9eff8c" accentColor="#cccccc" />
             <StatCard label="NIVEAU" value={level} valueColor="#facc15" accentColor="#cccccc" />
+            {pixelModeActive ? (
+              <>
+                <StatCard
+                  label="INSTABILITE"
+                  value={`${instabilityLevel}/${PIXEL_MODE_MAX_INSTABILITY}`}
+                  valueColor="#d7a4ff"
+                  accentColor="#f6e8ff"
+                />
+                <p
+                  style={{
+                    margin: 0,
+                    textAlign: "center",
+                    fontSize: "0.75rem",
+                    lineHeight: 1.6,
+                    color: "#ffbdd0",
+                  }}
+                >
+                  Scores corrompus. Cette run reste hors classement.
+                </p>
+              </>
+            ) : null}
           </>
         )}
 

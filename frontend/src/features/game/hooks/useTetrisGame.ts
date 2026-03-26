@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 import { checkCollision, clearFullLines, mergePiece, rotateMatrix } from "../logic/boardUtils";
 import { createBagGenerator, createPieceFromKey } from "../logic/pieceGenerator";
 import { SHAPES } from "../logic/shapes";
@@ -14,6 +15,8 @@ type Options = {
   speed?: number;
   gravityMultiplier?: number; 
    scoreMultiplier?: number;
+  pixelMode?: boolean;
+  pixelInstability?: number;
    secondChance?: boolean;
 onConsumeSecondChance?: () => void;
   forcedSequence?: string[];
@@ -84,6 +87,8 @@ export function useTetrisGame({
   gravityMultiplier = 1,
   extraHold = 0,
   scoreMultiplier = 1,
+  pixelMode = false,
+  pixelInstability = 1,
   onGameOver,
   onComplete,
   secondChance = false,
@@ -182,6 +187,7 @@ export function useTetrisGame({
   const [fastHoldReset, setFastHoldReset] = useState(false);
   const [lastStandAvailable, setLastStandAvailable] = useState(false);
   const [explosions, setExplosions] = useState<Explosion[]>([]);
+  const { reportRuntimeEvent } = usePixelMode();
 
   const drawNextPiece = useCallback((): Piece | null => {
     if (fixedQueueRef.current) {
@@ -213,9 +219,36 @@ export function useTetrisGame({
   const moveRef = useRef<(dir: "left" | "right" | "down" | "rotate") => void>(() => {});
   const garbageRef = useRef(0);
   const explosionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pixelEchoTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pixelEchoInFlightRef = useRef(false);
+  const pixelFeedbackAtRef = useRef<Record<string, number>>({});
   const pendingBombsRef = useRef<number[]>([]);
   const chaosBombRef = useRef<number | null>(null);
   const endAfterLockRef = useRef(false);
+
+  const maybeReportPixelEvent = useCallback(
+    (
+      key: string,
+      payload: {
+        title: string;
+        description: string;
+        severity: "low" | "medium" | "high";
+        ttlMs?: number;
+      }
+    ) => {
+      const now = Date.now();
+      if ((pixelFeedbackAtRef.current[key] ?? 0) > now) return;
+      pixelFeedbackAtRef.current[key] = now + (payload.ttlMs ?? 1800);
+      reportRuntimeEvent({
+        sourceLabel: "Tetris",
+        title: payload.title,
+        description: payload.description,
+        severity: payload.severity,
+        ttlMs: payload.ttlMs,
+      });
+    },
+    [reportRuntimeEvent]
+  );
 
   const clearActivePiece = useCallback(
     (boardState: number[][], lockedPiece: Piece) => {
@@ -415,24 +448,32 @@ const triggerBomb = useCallback(() => {
 
   useEffect(() => {
     // Chaos/cursed : gravité instable, recalculée périodiquement.
-    if (!chaosMode && !cursedMode) {
+    if (!chaosMode && !cursedMode && !pixelMode) {
       setChaosGravityFactor(1);
       return;
     }
 
     const update = () => {
-      const min = cursedMode ? 0.4 : 0.6;
-      const range = cursedMode ? 1.8 : 1.2;
+      const min = cursedMode ? 0.4 : pixelMode ? Math.max(0.58, 0.82 - pixelInstability * 0.03) : 0.6;
+      const range = cursedMode
+        ? 1.8
+        : pixelMode
+          ? Math.min(0.95, 0.42 + pixelInstability * 0.07)
+          : 1.2;
       setChaosGravityFactor(min + rngRef.current() * range);
     };
 
     update();
     const interval = setInterval(
       update,
-      cursedMode ? 800 + rngRef.current() * 800 : 1500 + rngRef.current() * 1500
+      cursedMode
+        ? 800 + rngRef.current() * 800
+        : pixelMode
+          ? 700 + rngRef.current() * 700
+          : 1500 + rngRef.current() * 1500
     );
     return () => clearInterval(interval);
-  }, [chaosMode, cursedMode]);
+  }, [chaosMode, cursedMode, pixelInstability, pixelMode]);
 
   useEffect(() => {
     // Vitesse effective = base * gravité * facteur chaos.
@@ -446,9 +487,29 @@ const triggerBomb = useCallback(() => {
       while (!checkCollision(stateBoard, current.shape, current.x, ghostY + 1)) {
         ghostY++;
       }
+      if (pixelMode) {
+        const deceptiveChance = Math.min(0.26, 0.08 + pixelInstability * 0.025);
+        if (rngRef.current() < deceptiveChance) {
+          const maxOffset = Math.max(1, Math.min(4, Math.floor(pixelInstability / 2) + 1));
+          const offset = 1 + Math.floor(rngRef.current() * maxOffset);
+          const direction = rngRef.current() < 0.5 ? -1 : 1;
+          const fakeY = Math.max(
+            0,
+            Math.min(stateBoard.length - current.shape.length, ghostY + direction * offset)
+          );
+          maybeReportPixelEvent("ghost", {
+            title: "Ghost falsifie",
+            description: "La projection ment sur le point d'impact de la piece.",
+            severity: "medium",
+            ttlMs: 1900,
+          });
+          setGhostPiece({ ...current, y: fakeY, ghost: true });
+          return;
+        }
+      }
       setGhostPiece({ ...current, y: ghostY, ghost: true });
     },
-    []
+    [maybeReportPixelEvent, pixelInstability, pixelMode]
   );
 
   const mergeAndNext = useCallback(
@@ -540,7 +601,12 @@ const triggerBomb = useCallback(() => {
       if (linesCleared > 0) {
         if (onConsumeLines) onConsumeLines(linesCleared);
         const baseScore = getLineClearScore(linesCleared);
-        setScore((prev: number) => prev + baseScore * scoreMultiplier);
+        const pixelScoreFactor = pixelMode
+          ? 0.8 + rngRef.current() * Math.min(0.7, 0.34 + pixelInstability * 0.06)
+          : 1;
+        setScore((prev: number) =>
+          prev + Math.round(baseScore * scoreMultiplier * pixelScoreFactor)
+        );
         setLines((prev: number) => {
           const total = prev + linesCleared;
           if (mode !== "SPRINT") {
@@ -642,7 +708,7 @@ const triggerBomb = useCallback(() => {
         chaosBombRef.current = null;
       }
     },
-    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece, chaosMode, cursedMode, onLinesCleared, onPieceLocked, drawNextPiece, onSequenceEnd]
+    [extraHold, nextPiece, onBombExplode, onGarbageConsumed, cols, onConsumeLines, scoreMultiplier, mode, targetLines, speed, startTime, onComplete, secondChance, lastStandAvailable, onGameOver, score, level, lines, onConsumeSecondChance, rows, clearActivePiece, shiftBoardDown, spawnNewPiece, chaosMode, cursedMode, onLinesCleared, onPieceLocked, drawNextPiece, onSequenceEnd, pixelInstability, pixelMode]
   );
 
   // ----- Movement -----
@@ -660,13 +726,42 @@ const triggerBomb = useCallback(() => {
 
       if (!checkCollision(board, newShape, newX, newY)) {
         setPiece({ ...piece, x: newX, y: newY, shape: newShape });
+        if (
+          pixelMode &&
+          !pixelEchoInFlightRef.current &&
+          dir !== "down" &&
+          rngRef.current() < Math.min(0.22, 0.08 + pixelInstability * 0.025)
+        ) {
+          const echoTimeout = setTimeout(() => {
+            pixelEchoInFlightRef.current = true;
+            moveRef.current(dir);
+            pixelEchoInFlightRef.current = false;
+          }, 55 + Math.floor(rngRef.current() * 65));
+          pixelEchoTimeoutsRef.current.push(echoTimeout);
+          maybeReportPixelEvent("echo", {
+            title: "Echo move",
+            description: "Le dernier input se repete tout seul dans la pile de commandes.",
+            severity: "medium",
+            ttlMs: 1800,
+          });
+        }
       } else if (dir === "down") {
         mergeAndNext(board, piece);
       } else {
         onInvalidMove?.(dir);
       }
     },
-    [board, gameOver, mergeAndNext, onInvalidMove, piece, running]
+    [
+      board,
+      gameOver,
+      maybeReportPixelEvent,
+      mergeAndNext,
+      onInvalidMove,
+      piece,
+      pixelInstability,
+      pixelMode,
+      running,
+    ]
   );
 
   // Hard drop
@@ -741,37 +836,73 @@ const triggerBomb = useCallback(() => {
 
   useEffect(() => {
     if (!running || gameOver) return;
-    if (!chaosDrift && !pieceMutation && !chaosMode && !cursedMode) return;
+    if (!chaosDrift && !pieceMutation && !chaosMode && !cursedMode && !pixelMode) return;
 
     setPiece((current) => {
       let updated = current;
 
-      if ((chaosDrift || chaosMode || cursedMode) && rngRef.current() < 0.2) {
+      if ((chaosDrift || chaosMode || cursedMode || pixelMode) && rngRef.current() < (pixelMode ? Math.min(0.26, 0.1 + pixelInstability * 0.025) : 0.2)) {
         const dir = rngRef.current() < 0.5 ? -1 : 1;
         if (!checkCollision(board, current.shape, current.x + dir, current.y)) {
           updated = { ...updated, x: updated.x + dir };
+          if (pixelMode) {
+            maybeReportPixelEvent("drift", {
+              title: "Derive laterale",
+              description: "La piece glisse d'une colonne hors de ton controle.",
+              severity: "low",
+              ttlMs: 1700,
+            });
+          }
         }
       }
 
-      if ((pieceMutation || chaosMode || cursedMode) && rngRef.current() < (cursedMode ? 0.18 : 0.1)) {
+      if ((pieceMutation || chaosMode || cursedMode || pixelMode) && rngRef.current() < (cursedMode ? 0.18 : pixelMode ? Math.min(0.18, 0.07 + pixelInstability * 0.018) : 0.1)) {
         const mutated = rotateMatrix(updated.shape);
         if (!checkCollision(board, mutated, updated.x, updated.y)) {
           updated = { ...updated, shape: mutated };
+          if (pixelMode) {
+            maybeReportPixelEvent("rotate", {
+              title: "Rotation forcee",
+              description: "La piece pivote sans validation du joueur.",
+              severity: "medium",
+              ttlMs: 1800,
+            });
+          }
         }
       }
 
-      if ((chaosMode || cursedMode) && rngRef.current() < (cursedMode ? 0.12 : 0.05)) {
+      if ((chaosMode || cursedMode || pixelMode) && rngRef.current() < (cursedMode ? 0.12 : pixelMode ? Math.min(0.12, 0.03 + pixelInstability * 0.015) : 0.05)) {
         const keys = Object.keys(SHAPES);
         const key = keys[Math.floor(rngRef.current() * keys.length)];
         const candidate = createPieceFromKey(key, pieceColorsRef.current);
         if (!checkCollision(board, candidate.shape, updated.x, updated.y)) {
           updated = { ...updated, shape: candidate.shape, color: candidate.color, type: key };
+          if (pixelMode) {
+            maybeReportPixelEvent("mutation", {
+              title: "Mutation de piece",
+              description: "Le systeme reecrit la piece en chute en plein vol.",
+              severity: "high",
+              ttlMs: 1900,
+            });
+          }
         }
       }
 
       return updated;
     });
-  }, [tick, running, gameOver, chaosDrift, pieceMutation, chaosMode, cursedMode, board]);
+  }, [
+    tick,
+    running,
+    gameOver,
+    chaosDrift,
+    pieceMutation,
+    chaosMode,
+    cursedMode,
+    board,
+    maybeReportPixelEvent,
+    pixelInstability,
+    pixelMode,
+  ]);
 
   // Ghost recompute
   useEffect(() => {
@@ -844,6 +975,9 @@ const triggerBomb = useCallback(() => {
     chaosBombRef.current = null;
     explosionTimeoutsRef.current.forEach((id) => clearTimeout(id));
     explosionTimeoutsRef.current = [];
+    pixelEchoTimeoutsRef.current.forEach((id) => clearTimeout(id));
+    pixelEchoTimeoutsRef.current = [];
+    pixelEchoInFlightRef.current = false;
   }, [cols, drawNextPiece, fixedSequence, gravityMultiplier, initialBoard, resetFixedQueue, rows, speed]);
 
   const state = useMemo(
@@ -868,6 +1002,13 @@ const triggerBomb = useCallback(() => {
 
   const enableFastHoldReset = useCallback(() => setFastHoldReset(true), []);
   const enableLastStand = useCallback(() => setLastStandAvailable(true), []);
+
+  useEffect(() => {
+    return () => {
+      pixelEchoTimeoutsRef.current.forEach((id) => clearTimeout(id));
+      pixelEchoTimeoutsRef.current = [];
+    };
+  }, []);
 
   return {
     state,

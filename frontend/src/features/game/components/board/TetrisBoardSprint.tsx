@@ -10,6 +10,8 @@ import type { PlayerMistakeKey } from "../../../achievements/types/tetrobots";
 import {
   useAchievements,
 } from "../../../achievements/hooks/useAchievements";
+import { usePixelMode } from "../../../pixelMode/hooks/usePixelMode";
+import { corruptText, PIXEL_MODE_MAX_INSTABILITY } from "../../../pixelMode/logic/pixelMode";
 import { TOTAL_GAME_MODES, TOTAL_SCORED_MODES } from "../../types/GameMode";
 import { useLineClearFx } from "../../hooks/useLineClearFx";
 import StatCard from "../../../../shared/components/ui/cards/StatCard";
@@ -25,6 +27,7 @@ export default function TetrisBoardSprint() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { user } = useAuth();
   const { settings } = useSettings();
+  const { gameplayRouteActive: pixelModeActive, instabilityLevel } = usePixelMode();
   const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
     useAchievements();
   const [countdown, setCountdown] = useState<number | null>(3);
@@ -55,8 +58,11 @@ export default function TetrisBoardSprint() {
     mode: "SPRINT",
     targetLines: TARGET_LINES,
     pieceColors: settings.pieceColors,
+    pixelMode: pixelModeActive,
+    pixelInstability: instabilityLevel,
     onComplete: async (elapsedMs) => {
       // Enregistrement du score Sprint (temps en secondes).
+      if (pixelModeActive) return;
       if (!user) return;
       try {
         const runToken = await getScoreRunToken("SPRINT");
@@ -332,6 +338,9 @@ export default function TetrisBoardSprint() {
   }, [gameOver, completed, elapsedMs]);
 
   const timeSec = (elapsedMs / 1000).toFixed(2);
+  const displayTime = pixelModeActive
+    ? corruptText(`${timeSec}s`, Math.min(0.18, 0.05 + instabilityLevel * 0.02))
+    : `${timeSec}s`;
 
   return (
     <div className="relative flex items-start justify-center gap-8">
@@ -348,6 +357,13 @@ export default function TetrisBoardSprint() {
                 boxShadow: "0 0 20px rgba(0,0,0,0.8)",
               }}
             />
+            {pixelModeActive ? (
+              <div
+                className={`pixel-mode-board-overlay${
+                  instabilityLevel >= 4 ? " pixel-mode-board-overlay--high" : ""
+                }`}
+              />
+            ) : null}
             {tetrisFlash && <div className="tetris-flash" />}
             {lineClearFx.flatMap((effect) =>
               effect.rows.map((row, idx) => (
@@ -377,13 +393,34 @@ export default function TetrisBoardSprint() {
             }}
           >
             <h2 style={{ color: "#facc15" }}>Mode Sprint</h2>
-            <StatCard label="Temps" value={`${timeSec}s`} valueColor="#f472b6" accentColor="#cccccc" />
+            <StatCard label="Temps" value={displayTime} valueColor="#f472b6" accentColor="#cccccc" />
             <StatCard
               label="Lignes"
               value={`${lines}/${TARGET_LINES}`}
               valueColor="#93c5fd"
               accentColor="#cccccc"
             />
+            {pixelModeActive ? (
+              <>
+                <StatCard
+                  label="INSTABILITE"
+                  value={`${instabilityLevel}/${PIXEL_MODE_MAX_INSTABILITY}`}
+                  valueColor="#d7a4ff"
+                  accentColor="#f6e8ff"
+                />
+                <p
+                  style={{
+                    margin: 0,
+                    textAlign: "center",
+                    fontSize: "0.75rem",
+                    lineHeight: 1.6,
+                    color: "#ffbdd0",
+                  }}
+                >
+                  Chrono corrompu. Cette run Sprint ne sera pas classee.
+                </p>
+              </>
+            ) : null}
 
             <div
               style={{

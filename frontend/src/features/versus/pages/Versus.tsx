@@ -40,6 +40,7 @@ import {
   updateTetrobotsProfile,
   type PlayerProfile,
 } from "../../game/services/scoreService";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 import {
   TETROBOTS_ADAPTIVE_THRESHOLDS,
   TETROBOTS_MEMORY_TIMING,
@@ -113,6 +114,7 @@ function useMarkVersusVisited() {
 
 function VersusPvp() {
   const { user } = useAuth();
+  const { gameplayRouteActive: pixelModeActive } = usePixelMode();
   const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
     useAchievements();
   const [manualMatchId, setManualMatchId] = useState("");
@@ -189,7 +191,7 @@ function VersusPvp() {
   }, [currentMatchId]);
 
   useEffect(() => {
-    if (!matchOver || !results || slot === null || !user || hasSavedResult) return;
+    if (!matchOver || !results || slot === null || !user || hasSavedResult || pixelModeActive) return;
     if (slot !== 1) return;
     if (results.length < 2) return;
 
@@ -212,7 +214,7 @@ function VersusPvp() {
       console.error("Erreur enregistrement match versus :", err)
     );
     setHasSavedResult(true);
-  }, [currentMatchId, hasSavedResult, matchOver, playersInfo, results, slot, user]);
+  }, [currentMatchId, hasSavedResult, matchOver, pixelModeActive, playersInfo, results, slot, user]);
 
   useEffect(() => {
     if (!matchOver || !results || slot === null) return;
@@ -587,6 +589,7 @@ function VersusPvp() {
 
 function VersusTetrobots() {
   const { user } = useAuth();
+  const { gameplayRouteActive: pixelModeActive } = usePixelMode();
   const { checkAchievements, updateStats, recordPlayerBehavior, recordTetrobotEvent } =
     useAchievements();
   const [roundSeed, setRoundSeed] = useState(() => `tetrobots-${Date.now()}`);
@@ -1153,7 +1156,7 @@ function VersusTetrobots() {
   ]);
 
   useEffect(() => {
-    if (!matchOver || !playerResult || !botResult || !user || hasSavedResult) return;
+    if (!matchOver || !playerResult || !botResult || !user || hasSavedResult || pixelModeActive) return;
     const payload = {
       matchId: roundSeed,
       players: [
@@ -1177,7 +1180,7 @@ function VersusTetrobots() {
       console.error("Erreur enregistrement match versus (Tetrobots) :", err)
     );
     setHasSavedResult(true);
-  }, [botPersonality.name, botResult, hasSavedResult, matchOver, playerResult, roundSeed, user]);
+  }, [botPersonality.name, botResult, hasSavedResult, matchOver, pixelModeActive, playerResult, roundSeed, user]);
 
   const startMatch = () => {
     resetBotDialogueState(botPersonalityId);

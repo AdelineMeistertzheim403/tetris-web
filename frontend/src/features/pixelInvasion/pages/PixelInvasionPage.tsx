@@ -9,6 +9,7 @@ import type {
 } from "../../achievements/types/tetrobots";
 import { addScore, getMyScores, getScoreRunToken } from "../../game/services/scoreService";
 import { GAME_MODES, TOTAL_SCORED_MODES } from "../../game/types/GameMode";
+import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 import { useAutoClearRecentAchievements } from "../../roguelike/hooks/useAutoClearRecentAchievements";
 import "../../../styles/pixel-invasion.css";
 import { PixelInvasionBoard } from "../components/PixelInvasionBoard";
@@ -98,6 +99,10 @@ function pickNewestSnapshot(
 
 export default function PixelInvasionPage() {
   const navigate = useNavigate();
+  const {
+    gameplayRouteActive: pixelModeActive,
+    activeRuntimeEvent,
+  } = usePixelMode();
   const { game, paused, pauseGame, resumeGame, loadGame, resetGame, shieldRatio } = usePixelInvasionGame();
   const { muted, toggleMute } = usePixelInvasionAudio(game);
   const {
@@ -135,6 +140,8 @@ export default function PixelInvasionPage() {
           : game.waveTheme === "pulse"
             ? "pulse"
             : "apex";
+  const pixelAnomaly =
+    activeRuntimeEvent?.sourceLabel === "Pixel Invasion" ? activeRuntimeEvent : null;
 
   useAutoClearRecentAchievements(recentUnlocks, clearRecent);
 
@@ -239,7 +246,7 @@ export default function PixelInvasionPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pauseGame]);
 
   useEffect(() => {
     latestWaveRef.current = Math.max(latestWaveRef.current, game.wave);
@@ -473,7 +480,7 @@ export default function PixelInvasionPage() {
         // Le stockage local reste disponible.
       });
 
-      if (score <= 0) return;
+      if (score <= 0 || pixelModeActive) return;
 
       try {
         const runToken = await getScoreRunToken(PIXEL_INVASION_MODE);
@@ -496,6 +503,7 @@ export default function PixelInvasionPage() {
     game.score,
     game.victory,
     game.wave,
+    pixelModeActive,
     recordPlayerBehavior,
     recordTetrobotEvent,
     updateStats,
@@ -672,6 +680,7 @@ export default function PixelInvasionPage() {
             shieldRatio={shieldRatio}
             bestScore={bestScore}
             bestWave={bestWave}
+            pixelAnomaly={pixelAnomaly}
           />
           <PixelInvasionBoard
             game={game}
@@ -685,6 +694,7 @@ export default function PixelInvasionPage() {
             shieldRatio={shieldRatio}
             bestScore={bestScore}
             bestWave={bestWave}
+            pixelAnomaly={pixelAnomaly}
           />
         </div>
       </div>

@@ -89,14 +89,36 @@ export function useDashboardTetrobotState({
   const levelUpDismissTimerRef = useRef<number | null>(null);
   const relationPopupTimerRef = useRef<number | null>(null);
   const anomalyCountersRef = useRef(stats.counters);
+  const tipComputationRef = useRef<{ key: string; tip: string } | null>(null);
 
   const rookieLevel = stats.tetrobotProgression.rookie.level;
   const pulseLevel = stats.tetrobotProgression.pulse.level;
   const apexLevel = stats.tetrobotProgression.apex.level;
   const playerContext = useMemo(() => {
     return getDashboardPlayerContext(stats, achievementProgress, recentUnlockCount);
-  }, [achievementProgress, recentUnlockCount, stats]);
+  }, [
+    achievementProgress.totalAchievements,
+    achievementProgress.unlockedCount,
+    recentUnlockCount,
+    stats.hardDropCount,
+    stats.lastPlayedMode,
+    stats.lowestWinrateMode,
+    stats.mostPlayedMode,
+    stats.playerBehaviorByMode,
+    stats.playerLongTermMemory.activeConflict,
+    stats.playerLongTermMemory.activeExclusiveAlignment,
+    stats.playerLongTermMemory.disciplineScore,
+    stats.playerLongTermMemory.lingeringResentment,
+    stats.playerLongTermMemory.regularityScore,
+    stats.playerLongTermMemory.strategyScore,
+    stats.playerLongTermMemory.weakestModeFocus,
+    stats.playerMistakesByMode,
+    stats.runsPlayed,
+  ]);
   const activeBotState = stats.tetrobotProgression[chatLine.bot];
+  const activeBotLevel = activeBotState?.level ?? 1;
+  const activeBotMood = activeBotState?.mood ?? "neutral";
+  const activeBotLastTip = activeBotState?.lastTip ?? "";
   const activeRecommendation = stats.playerLongTermMemory.activeRecommendations[chatLine.bot];
   const rookieRecommendation = stats.playerLongTermMemory.activeRecommendations.rookie;
   const pulseRecommendation = stats.playerLongTermMemory.activeRecommendations.pulse;
@@ -106,9 +128,9 @@ export function useDashboardTetrobotState({
     stats.tetrobotProgression.apex?.affinity ?? 0
   );
   const botAccentColor =
-    TETROBOT_DASHBOARD_LEVEL_COLORS[chatLine.bot][activeBotState?.level ?? 1];
+    TETROBOT_DASHBOARD_LEVEL_COLORS[chatLine.bot][activeBotLevel];
   const levelUpNotice = stats.lastTetrobotLevelUp;
-  const botMood = activeBotState?.mood ?? "neutral";
+  const botMood = activeBotMood;
   const botAffinity = activeBotState?.affinity ?? 0;
   const botAvatar = TETROBOT_DASHBOARD_AVATARS[chatLine.bot][botMood];
   const activeBotMemories = stats.tetrobotMemories[chatLine.bot] ?? [];
@@ -182,6 +204,65 @@ export function useDashboardTetrobotState({
     [stats.counters]
   );
   const finaleState = useMemo(() => getTetrobotFinaleState(stats.counters), [stats.counters]);
+  const tipContextKey = useMemo(
+    () =>
+      JSON.stringify({
+        bot: chatLine.bot,
+        level: activeBotLevel,
+        mood: activeBotMood,
+        apexTrustState,
+        playerContext,
+        activeRecommendation,
+        rookieRecommendation,
+        pulseRecommendation,
+        apexRecommendation,
+      }),
+    [
+      activeBotLevel,
+      activeBotMood,
+      activeRecommendation,
+      apexRecommendation,
+      apexTrustState,
+      chatLine.bot,
+      playerContext,
+      pulseRecommendation,
+      rookieRecommendation,
+    ]
+  );
+  const computedTip = useMemo(() => {
+    if (tipComputationRef.current?.key === tipContextKey) {
+      return tipComputationRef.current.tip;
+    }
+
+    const nextTip =
+      chatLine.bot === "apex" && apexTrustState === "refusing"
+        ? "Non. Tu veux des conseils, mais tu refuses encore d'affronter ce qu'il faut travailler."
+        : getBotTip(chatLine.bot, activeBotLevel, activeBotMood, {
+            ...playerContext,
+            recommendation: activeRecommendation,
+            rookieRecommendation,
+            pulseRecommendation,
+            apexRecommendation,
+          });
+
+    tipComputationRef.current = {
+      key: tipContextKey,
+      tip: nextTip,
+    };
+
+    return nextTip;
+  }, [
+    activeBotLevel,
+    activeBotMood,
+    activeRecommendation,
+    apexRecommendation,
+    apexTrustState,
+    chatLine.bot,
+    playerContext,
+    pulseRecommendation,
+    rookieRecommendation,
+    tipContextKey,
+  ]);
   const activeBot = useMemo<DashboardActiveBotViewModel>(() => {
     return {
       bot: chatLine.bot,
@@ -440,31 +521,18 @@ export function useDashboardTetrobotState({
   }, [chatLine.anomaly, chatLine.speaker, chatLine.text]);
 
   useEffect(() => {
-    const level = activeBotState?.level ?? 1;
-    const mood = activeBotState?.mood ?? "neutral";
-    const nextTip =
-      chatLine.bot === "apex" && apexTrustState === "refusing"
-        ? "Non. Tu veux des conseils, mais tu refuses encore d'affronter ce qu'il faut travailler."
-        : getBotTip(chatLine.bot, level, mood, {
-            ...playerContext,
-            recommendation: activeRecommendation,
-            rookieRecommendation,
-            pulseRecommendation,
-            apexRecommendation,
-          });
-    setLastTetrobotTip(chatLine.bot, nextTip);
-    setTetrobotTip(nextTip);
+    if (tetrobotTip !== computedTip) {
+      setTetrobotTip(computedTip);
+    }
+    if (activeBotLastTip !== computedTip) {
+      setLastTetrobotTip(chatLine.bot, computedTip);
+    }
   }, [
-    activeBotState,
-    activeRecommendation,
-    apexRecommendation,
-    apexTrustState,
+    activeBotLastTip,
     chatLine.bot,
-    chatLine.text,
-    playerContext,
-    pulseRecommendation,
-    rookieRecommendation,
+    computedTip,
     setLastTetrobotTip,
+    tetrobotTip,
   ]);
 
   useEffect(() => {
