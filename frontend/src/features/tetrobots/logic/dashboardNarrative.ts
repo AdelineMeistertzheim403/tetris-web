@@ -246,6 +246,65 @@ function hashTipSelectionKey(value: string) {
   return hash >>> 0;
 }
 
+function normalizeTipRecommendation(recommendation: TetrobotRecommendation | null | undefined) {
+  if (!recommendation) return null;
+
+  return {
+    bot: recommendation.bot,
+    kind: recommendation.kind,
+    targetMode: recommendation.targetMode,
+  };
+}
+
+function normalizeTipAlignment(
+  alignment: DashboardPlayerContext["activeExclusiveAlignment"] | null | undefined
+) {
+  if (!alignment) return null;
+
+  return {
+    favoredBot: alignment.favoredBot,
+    blockedBot: alignment.blockedBot,
+    favoredLine: alignment.favoredLine,
+    blockedLine: alignment.blockedLine,
+    lockedAdvice: alignment.lockedAdvice,
+  };
+}
+
+export function getBotTipSelectionKey(
+  bot: DashboardBot,
+  level: BotLevel,
+  mood: BotMood,
+  ctx: DashboardPlayerContext
+) {
+  try {
+    return JSON.stringify({
+      bot,
+      level,
+      mood,
+      favoriteMode: ctx.favoriteMode ?? null,
+      weakestMode: ctx.weakestMode ?? null,
+      lastPlayedMode: ctx.lastPlayedMode ?? null,
+      winRate: ctx.winRate ?? null,
+      avgSpeed: ctx.avgSpeed ?? null,
+      mistakes: ctx.mistakes ?? [],
+      sessionDuration: ctx.sessionDuration ?? null,
+      stagnation: ctx.stagnation ?? false,
+      regularityScore: ctx.regularityScore ?? null,
+      strategyScore: ctx.strategyScore ?? null,
+      disciplineScore: ctx.disciplineScore ?? null,
+      activeConflictSummary: ctx.activeConflictSummary ?? null,
+      activeExclusiveAlignment: normalizeTipAlignment(ctx.activeExclusiveAlignment),
+      lingeringResentment: ctx.lingeringResentment ?? null,
+      recommendation: normalizeTipRecommendation(ctx.recommendation),
+      rookieRecommendation: normalizeTipRecommendation(ctx.rookieRecommendation),
+      pulseRecommendation: normalizeTipRecommendation(ctx.pulseRecommendation),
+      apexRecommendation: normalizeTipRecommendation(ctx.apexRecommendation),
+    });
+  } catch {
+    return `${bot}:${level}:${mood}`;
+  }
+}
+
 function buildTipSelectionKey(
   bot: DashboardBot,
   level: BotLevel,
@@ -254,12 +313,7 @@ function buildTipSelectionKey(
   selectionKey?: string
 ) {
   if (selectionKey) return selectionKey;
-
-  try {
-    return JSON.stringify({ bot, level, mood, ctx });
-  } catch {
-    return `${bot}:${level}:${mood}`;
-  }
+  return getBotTipSelectionKey(bot, level, mood, ctx);
 }
 
 function pickTipIndex(size: number, selectionKey: string) {
