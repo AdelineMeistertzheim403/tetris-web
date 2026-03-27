@@ -407,6 +407,8 @@ function createBaseStats(): TetrobotSyncStats {
       improve_stat: 0,
     },
     tetromazeEscapesTotal: 0,
+    versusMatches: 0,
+    roguelikeVersusMatches: 0,
     activeTetrobotChallenge: null,
     lastTetrobotLevelUp: null,
   };
@@ -524,6 +526,37 @@ describe("tetrobotProgressionLogic", () => {
     expect(result.tetrobotMemories.apex.some((entry) => entry.type === "trust_rebuild")).toBe(
       true
     );
+  });
+
+  it("repairs stale Versus behavior stats before evaluating the Apex challenge", () => {
+    const stats = createBaseStats();
+    stats.versusMatches = 4;
+    stats.activeTetrobotChallenge = {
+      id: "apex-reconciliation-versus-stale",
+      bot: "apex",
+      kind: "apex_reconciliation",
+      status: "active",
+      title: "Defi d'Apex",
+      description: "Joue 3 sessions utiles sur VERSUS sans rage quit pour rouvrir completement le canal.",
+      targetMode: "VERSUS",
+      targetCount: 3,
+      progress: 1,
+      rewardAffinity: 24,
+      rewardXp: 30,
+      startSessions: 1,
+      startRageQuitCount: 0,
+      createdAt: 10,
+      acceptedAt: 20,
+      resolvedAt: null,
+    };
+    stats.playerBehaviorByMode.VERSUS.sessions = 2;
+    stats.playerBehaviorByMode.VERSUS.wins = 2;
+
+    const result = syncTetrobotProgressionState(stats);
+
+    expect(result.playerBehaviorByMode.VERSUS.sessions).toBe(4);
+    expect(result.activeTetrobotChallenge?.progress).toBe(3);
+    expect(result.activeTetrobotChallenge?.status).toBe("completed");
   });
 
   it("reopens Apex from -100 when the reconciliation challenge is completed", () => {

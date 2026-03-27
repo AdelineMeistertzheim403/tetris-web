@@ -57,6 +57,12 @@ import {
   getMood,
   syncTetrobotProgressionState,
 } from "../lib/tetrobotProgressionLogic";
+import {
+  mergeMistakeLastSeenStats,
+  mergeMistakeStats,
+  mergeModeBehaviorStats,
+  mergeTetrobotChallengeState,
+} from "../lib/achievementStateMerge";
 import { estimateRageQuitFromBehaviorEvent } from "../lib/playerBehaviorEventLogic";
 import {
   applyTetrobotFinaleChoice,
@@ -922,6 +928,7 @@ function useAchievementsValue(): UseAchievementsValue {
 
       if (
         !next.changed &&
+        areModeBehaviorStatsEqual(base.playerBehaviorByMode, next.playerBehaviorByMode) &&
         areRecordNumbersEqual(base.tetrobotXpLedger, next.tetrobotXpLedger) &&
         areRecordNumbersEqual(base.tetrobotAffinityLedger, next.tetrobotAffinityLedger) &&
         JSON.stringify(base.playerLongTermMemory) === JSON.stringify(next.playerLongTermMemory) &&
@@ -942,6 +949,7 @@ function useAchievementsValue(): UseAchievementsValue {
               { ...base.counters } as Record<string, number>
             )
           : base.counters,
+        playerBehaviorByMode: next.playerBehaviorByMode,
         tetrobotProgression: next.tetrobotProgression,
         tetrobotXpLedger: next.tetrobotXpLedger,
         tetrobotAffinityLedger: next.tetrobotAffinityLedger,
@@ -951,7 +959,7 @@ function useAchievementsValue(): UseAchievementsValue {
         activeTetrobotChallenge: next.activeTetrobotChallenge,
       };
     },
-    [areChallengesEqual, areMemoriesEqual, areRecordNumbersEqual]
+    [areChallengesEqual, areMemoriesEqual, areModeBehaviorStatsEqual, areRecordNumbersEqual]
   );
 
   // ─────────────────────────────
@@ -2305,7 +2313,7 @@ function useAchievementsValue(): UseAchievementsValue {
         if (!active) return;
         const next = updateStats((prev) => {
           if (remote.stats) {
-            return mergeStats({
+            const mergedStats = mergeStats({
               ...prev,
               ...remote.stats,
               counters: mergeTetrobotAnomalyArchiveCounters(
@@ -2318,10 +2326,31 @@ function useAchievementsValue(): UseAchievementsValue {
                 Array.isArray(remote.stats.loginDays) ? remote.stats.loginDays : undefined
               ),
             });
+
+            return applySyncedTetrobotProgression({
+              ...mergedStats,
+              playerBehaviorByMode: mergeModeBehaviorStats(
+                prev.playerBehaviorByMode,
+                mergedStats.playerBehaviorByMode
+              ),
+              playerMistakesByMode: mergeMistakeStats(
+                prev.playerMistakesByMode,
+                mergedStats.playerMistakesByMode
+              ),
+              playerMistakeLastSeenByMode: mergeMistakeLastSeenStats(
+                prev.playerMistakeLastSeenByMode,
+                mergedStats.playerMistakeLastSeenByMode
+              ),
+              activeTetrobotChallenge: mergeTetrobotChallengeState(
+                prev.activeTetrobotChallenge,
+                ((remote.activeTetrobotChallenge as TetrobotChallengeState | null | undefined) ??
+                  mergedStats.activeTetrobotChallenge) as TetrobotChallengeState | null
+              ),
+            });
           }
 
           const loginDays = mergeLoginDays(prev.loginDays, remote.loginDays);
-          return {
+          return applySyncedTetrobotProgression({
             ...prev,
             loginDays,
             tetrobotProgression: {
@@ -2364,10 +2393,11 @@ function useAchievementsValue(): UseAchievementsValue {
               ...((remote.tetrobotMemories ?? {}) as Partial<Record<TetrobotId, BotMemoryEntry[]>>),
             },
             lastTetrobotLevelUp: (remote.lastTetrobotLevelUp as TetrobotLevelUp | null) ?? prev.lastTetrobotLevelUp,
-            activeTetrobotChallenge:
-              (remote.activeTetrobotChallenge as TetrobotChallengeState | null | undefined) ??
+            activeTetrobotChallenge: mergeTetrobotChallengeState(
               prev.activeTetrobotChallenge,
-          };
+              (remote.activeTetrobotChallenge as TetrobotChallengeState | null | undefined) ?? null
+            ),
+          });
         });
         lastSyncedStatsPayloadRef.current = JSON.stringify(buildAchievementStatsPayload(next));
         remoteStatsReadyRef.current = true;
@@ -2410,6 +2440,7 @@ function useAchievementsValue(): UseAchievementsValue {
 
       if (
         !next.changed &&
+        areModeBehaviorStatsEqual(prev.playerBehaviorByMode, next.playerBehaviorByMode) &&
         areRecordNumbersEqual(prev.tetrobotXpLedger, next.tetrobotXpLedger) &&
         areRecordNumbersEqual(prev.tetrobotAffinityLedger, next.tetrobotAffinityLedger) &&
         JSON.stringify(prev.playerLongTermMemory) === JSON.stringify(next.playerLongTermMemory) &&
@@ -2431,6 +2462,7 @@ function useAchievementsValue(): UseAchievementsValue {
               { ...prev.counters } as Record<string, number>
             )
           : prev.counters,
+        playerBehaviorByMode: next.playerBehaviorByMode,
         tetrobotProgression: next.tetrobotProgression,
         tetrobotXpLedger: next.tetrobotXpLedger,
         tetrobotAffinityLedger: next.tetrobotAffinityLedger,
