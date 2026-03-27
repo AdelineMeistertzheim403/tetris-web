@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
 import { BOARD_WIDTH, GAME_LOOP_MS, MAX_SHIELD, PLAYER_WIDTH, clamp, createMessage } from "../model";
 import type { GameState, InputState } from "../model";
@@ -47,44 +47,44 @@ export function usePixelInvasionGame() {
   const isBombKey = (event: KeyboardEvent) =>
     event.code === "KeyB" || event.key.toLowerCase() === "b";
 
-  const clearInputs = () => {
+  const clearInputs = useCallback(() => {
     inputRef.current = { ...INITIAL_INPUT_STATE };
     queuedActionsRef.current = { dash: false, bomb: false };
-  };
+  }, []);
 
-  const clearPixelDistortions = () => {
+  const clearPixelDistortions = useCallback(() => {
     pixelMirrorUntilRef.current = 0;
     pixelJamUntilRef.current = 0;
     pixelNextEventAtRef.current = 0;
-  };
+  }, []);
 
-  const pauseGame = () => {
+  const pauseGame = useCallback(() => {
     clearInputs();
     setPaused(true);
-  };
+  }, [clearInputs]);
 
-  const resumeGame = () => {
+  const resumeGame = useCallback(() => {
     clearInputs();
     setPaused(false);
-  };
+  }, [clearInputs]);
 
-  const loadGame = (snapshot: GameState) => {
+  const loadGame = useCallback((snapshot: GameState) => {
     clearInputs();
     clearPixelDistortions();
     setGame(snapshot);
-  };
+  }, [clearInputs, clearPixelDistortions]);
 
-  const resetGame = () => {
+  const resetGame = useCallback(() => {
     clearInputs();
     clearPixelDistortions();
     setPaused(false);
     setGame(createInitialState());
-  };
+  }, [clearInputs, clearPixelDistortions]);
 
   useEffect(() => {
     if (pixelModeActive) return;
     clearPixelDistortions();
-  }, [pixelModeActive]);
+  }, [clearPixelDistortions, pixelModeActive]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
