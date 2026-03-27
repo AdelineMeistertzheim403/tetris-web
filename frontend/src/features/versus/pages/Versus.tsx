@@ -179,9 +179,11 @@ function VersusPvp() {
   const startReady = players >= 2 && bagSequence.length > 0;
   const [localFinished, setLocalFinished] = useState(false);
   const [hasSavedResult, setHasSavedResult] = useState(false);
+  const [resultCommitted, setResultCommitted] = useState(false);
 
   useEffect(() => {
     setHasSavedResult(false);
+    setResultCommitted(false);
   }, [currentMatchId]);
 
   useEffect(() => {
@@ -320,6 +322,7 @@ function VersusPvp() {
     });
 
     finalizedRef.current = true;
+    setResultCommitted(true);
   }, [
     matchOver,
     results,
@@ -479,9 +482,11 @@ function VersusPvp() {
             <h2 className="text-xl text-yellow-300">Résultats</h2>
             <p>Toi : {myResult ? `${myResult.score} pts / ${myResult.lines} lignes` : "n/a"}</p>
             <p>Adversaire : {oppResult ? `${oppResult.score} pts / ${oppResult.lines} lignes` : "n/a"}</p>
+            {!resultCommitted ? <p className="text-xs text-gray-300">Validation du match...</p> : null}
             <div className="flex gap-4 mt-2">
               <button
                 className="retro-btn"
+                disabled={!resultCommitted}
                 onClick={() => {
                   setLocalFinished(false);
                   setChosenMatchId(undefined);
@@ -602,6 +607,7 @@ function VersusTetrobots() {
   const [botResult, setBotResult] = useState<EndResult | null>(null);
   const [botPersonalityId, setBotPersonalityId] = useState<TetrobotsPersonality["id"]>("balanced");
   const [hasSavedResult, setHasSavedResult] = useState(false);
+  const [resultCommitted, setResultCommitted] = useState(false);
   const [botMessage, setBotMessage] = useState<string | null>(null);
   const [botMood, setBotMood] = useState<BotMood>("idle");
 
@@ -1144,6 +1150,7 @@ function VersusTetrobots() {
       });
 
     finalizedRef.current = true;
+    setResultCommitted(true);
   }, [
     botPersonalityId,
     botResult,
@@ -1193,6 +1200,7 @@ function VersusTetrobots() {
     setPlayerResult(null);
     setBotResult(null);
     setHasSavedResult(false);
+    setResultCommitted(false);
     resetRunTracking();
   };
 
@@ -1204,6 +1212,7 @@ function VersusTetrobots() {
     setPlayerResult(null);
     setBotResult(null);
     setHasSavedResult(false);
+    setResultCommitted(false);
     resetRunTracking();
   };
 
@@ -1690,11 +1699,12 @@ function VersusTetrobots() {
           <p>Toi : {myScore} pts / {myLines} lignes</p>
           <p>Tetrobots : {botScore} pts / {botLines} lignes</p>
           <p className="text-cyan-300">{myScore > botScore ? "Victoire" : myScore < botScore ? "Défaite" : "Égalité"}</p>
+          {!resultCommitted ? <p className="text-xs text-gray-300">Validation du match...</p> : null}
           <div className="flex gap-4 mt-2">
-            <button className="retro-btn" onClick={startMatch}>
+            <button className="retro-btn" onClick={startMatch} disabled={!resultCommitted}>
               Rejouer
             </button>
-            <button className="retro-btn" onClick={backToLobby}>
+            <button className="retro-btn" onClick={backToLobby} disabled={!resultCommitted}>
               Retour lobby
             </button>
           </div>

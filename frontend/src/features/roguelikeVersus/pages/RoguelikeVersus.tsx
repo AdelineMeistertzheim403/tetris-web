@@ -197,6 +197,7 @@ function RoguelikeVersusPvp() {
 
   const [localFinished, setLocalFinished] = useState(false);
   const [hasSavedResult, setHasSavedResult] = useState(false);
+  const [resultCommitted, setResultCommitted] = useState(false);
   const [currentScore, setCurrentScore] = useState(0);
   const [currentLines, setCurrentLines] = useState(0);
   const [totalLines, setTotalLines] = useState(0);
@@ -299,6 +300,7 @@ function RoguelikeVersusPvp() {
 
   useEffect(() => {
     setHasSavedResult(false);
+    setResultCommitted(false);
   }, [currentMatchId]);
 
   useEffect(() => {
@@ -1053,6 +1055,7 @@ function RoguelikeVersusPvp() {
     });
 
     finalizedRef.current = true;
+    setResultCommitted(true);
   }, [matchOver, results, slot, updateStats, checkAchievements]);
 
   if (startReady) {
@@ -1284,9 +1287,11 @@ function RoguelikeVersusPvp() {
               Adversaire :{" "}
               {oppResult ? `${oppResult.score} pts / ${oppResult.lines} lignes` : "n/a"}
             </p>
+            {!resultCommitted ? <p className="text-xs text-gray-300">Validation du match...</p> : null}
             <div className="flex gap-4 mt-2">
               <button
                 className="retro-btn"
+                disabled={!resultCommitted}
                 onClick={() => {
                   setLocalFinished(false);
                   setChosenMatchId(undefined);
@@ -1404,6 +1409,7 @@ function RoguelikeVersusTetrobots() {
   const [started, setStarted] = useState(false);
   const [botPersonalityId, setBotPersonalityId] = useState<TetrobotsPersonality["id"]>("balanced");
   const [hasSavedResult, setHasSavedResult] = useState(false);
+  const [resultCommitted, setResultCommitted] = useState(false);
   const [playerIncomingGarbage, setPlayerIncomingGarbage] = useState(0);
   const [botIncomingGarbage, setBotIncomingGarbage] = useState(0);
   const [botBoard, setBotBoard] = useState<number[][] | null>(null);
@@ -2429,6 +2435,7 @@ function RoguelikeVersusTetrobots() {
       });
 
     finalizedRef.current = true;
+    setResultCommitted(true);
   }, [
     activeMutations.length,
     botMutations,
@@ -2572,6 +2579,7 @@ function RoguelikeVersusTetrobots() {
     setRoundKey((v) => v + 1);
     setStarted(true);
     setHasSavedResult(false);
+    setResultCommitted(false);
     setPlayerIncomingGarbage(0);
     setBotIncomingGarbage(0);
     setBotBoard(null);
@@ -2583,6 +2591,7 @@ function RoguelikeVersusTetrobots() {
   const backToLobby = () => {
     setStarted(false);
     setHasSavedResult(false);
+    setResultCommitted(false);
     setPlayerIncomingGarbage(0);
     setBotIncomingGarbage(0);
     setBotBoard(null);
@@ -3249,11 +3258,12 @@ function RoguelikeVersusTetrobots() {
           <p className="text-cyan-300">
             {myScore > enemyScore ? "Victoire" : myScore < enemyScore ? "Défaite" : "Égalité"}
           </p>
+          {!resultCommitted ? <p className="text-xs text-gray-300">Validation du match...</p> : null}
           <div className="flex gap-4 mt-2">
-            <button className="retro-btn" onClick={startMatch}>
+            <button className="retro-btn" onClick={startMatch} disabled={!resultCommitted}>
               Rejouer
             </button>
-            <button className="retro-btn" onClick={backToLobby}>
+            <button className="retro-btn" onClick={backToLobby} disabled={!resultCommitted}>
               Retour lobby
             </button>
           </div>
