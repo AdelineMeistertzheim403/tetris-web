@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useVersusSocket } from "../hooks/useVersusSocket";
 import TetrisBoard from "../../game/components/board/TetrisBoard";
@@ -1705,12 +1705,47 @@ function VersusTetrobots() {
 }
 
 export default function Versus() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const queue = (searchParams.get("queue") ?? "pvp").toLowerCase();
+  const queue = searchParams.get("queue")?.toLowerCase();
 
   if (queue === "bot") {
     return <VersusTetrobots />;
   }
 
-  return <VersusPvp />;
+  if (queue === "pvp") {
+    return <VersusPvp />;
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center text-center text-pink-300 font-['Press_Start_2P'] py-10 px-4">
+      <div
+        className="w-full max-w-xl rounded-xl border-2 border-pink-500 bg-[#130212] p-6 shadow-[0_0_20px_#ff00ff]"
+      >
+        <h1 className="text-2xl text-yellow-300 mb-4">Mode Versus</h1>
+        <p className="text-sm text-gray-200 mb-3">
+          Choisis ton type de duel avant de lancer la partie.
+        </p>
+        <p className="text-xs text-cyan-200 mb-6">
+          Une session compte comme du Versus, que tu joues contre un ami ou un Tetrobot.
+        </p>
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            className="retro-btn text-left"
+            onClick={() => navigate("/versus?queue=bot")}
+          >
+            Solo vs Tetrobots
+          </button>
+          <button
+            type="button"
+            className="retro-btn text-left"
+            onClick={() => navigate("/versus?queue=pvp")}
+          >
+            Joueur vs Joueur
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
