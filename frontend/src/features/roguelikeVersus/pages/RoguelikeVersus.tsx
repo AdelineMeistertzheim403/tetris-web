@@ -1516,7 +1516,7 @@ function RoguelikeVersusTetrobots() {
   const timelineSamplesRef = useRef<PlayerRunTimelineSample[]>([]);
   const lastTimelineHeightRef = useRef(0);
 
-  const matchOver = started && (!!playerResult || !!botResult);
+  const matchOver = started && !!playerResult && !!botResult;
   const botPersonality = getTetrobotsPersonality(botPersonalityId);
   const botBubbleAccent = getBotBubbleAccent(botPersonality);
   const playerRng = useMemo(() => createRng(roundSeed), [roundSeed]);
