@@ -105,6 +105,37 @@ function buildEnemySpatialIndex(enemies: Enemy[]) {
   return buckets;
 }
 
+function getEnemyCollisionBox(enemy: Enemy) {
+  const insetX = Math.min(6, enemy.width * 0.08);
+  const insetY = Math.min(6, enemy.height * 0.18);
+
+  return {
+    x: enemy.x + insetX,
+    y: enemy.y + insetY,
+    width: Math.max(8, enemy.width - insetX * 2),
+    height: Math.max(8, enemy.height - insetY * 2),
+  };
+}
+
+function getOverlapCenter(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number }
+) {
+  const left = Math.max(a.x, b.x);
+  const right = Math.min(a.x + a.width, b.x + b.width);
+  const top = Math.max(a.y, b.y);
+  const bottom = Math.min(a.y + a.height, b.y + b.height);
+
+  if (right <= left || bottom <= top) {
+    return null;
+  }
+
+  return {
+    x: (left + right) / 2,
+    y: (top + bottom) / 2,
+  };
+}
+
 function findBulletCollision(
   bullet: Bullet,
   buckets: Map<string, Enemy[]>,
@@ -128,7 +159,7 @@ function findBulletCollision(
 
         const liveEnemy = enemiesById.get(candidate.id);
         if (!liveEnemy) continue;
-        if (overlaps(bullet, liveEnemy)) {
+        if (overlaps(bullet, getEnemyCollisionBox(liveEnemy))) {
           return liveEnemy;
         }
       }
@@ -560,13 +591,15 @@ export function resolvePlayerHits(next: GameState) {
     }
 
     consumedEnemyIds.add(enemy.id);
+    const enemyCollisionBox = getEnemyCollisionBox(enemy);
+    const overlapCenter = getOverlapCenter(bullet, enemyCollisionBox);
     const appliedDamage = enemy.kind === "APEX" ? bullet.damage * 0.42 : bullet.damage;
     const damaged = { ...enemy, hp: enemy.hp - appliedDamage };
     impacts.push(
       createImpact(
         next.nextEntityId,
-        bullet.x + bullet.width / 2,
-        bullet.y + Math.min(bullet.height, enemy.height) / 2,
+        overlapCenter?.x ?? enemy.x + enemy.width / 2,
+        overlapCenter?.y ?? enemy.y + enemy.height / 2,
         getPlayerShotImpactType(bullet),
         bullet.visualType === "charge" ? 30 : bullet.visualType === "laser" ? 24 : 20,
         bullet.visualType === "charge" ? 0.28 : 0.2
