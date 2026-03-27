@@ -4,6 +4,16 @@ import { getAuthHeader } from "../../auth/services/authService";
 // API base URL fourni par Vite (env). Centralise toutes les routes score.
 const API_URL = import.meta.env.VITE_API_URL;
 
+export class ScoreApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ScoreApiError";
+    this.status = status;
+  }
+}
+
 export type VersusMatchPayload = {
   matchId?: string;
   players: Array<{
@@ -101,7 +111,13 @@ export async function getMyScores(mode: GameMode = "CLASSIQUE") {
     },
     credentials: "include",
   });
-  if (!res.ok) throw new Error("Erreur de récupération des scores");
+
+  if (res.status === 429) {
+    console.warn(`Rate limit atteint sur /scores/me/${mode}, retour d'une liste vide.`);
+    return [];
+  }
+
+  if (!res.ok) throw new ScoreApiError("Erreur de récupération des scores", res.status);
   return res.json();
 }
 
