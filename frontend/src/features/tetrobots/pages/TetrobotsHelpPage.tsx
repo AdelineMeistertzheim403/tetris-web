@@ -460,6 +460,25 @@ export default function TetrobotsHelpPage() {
                 <p>
                   Etat: {challenge.status} · progression {challenge.progress}/{challenge.targetCount}
                 </p>
+                <div className="tetrobots-challenge-progress">
+                  <div className="tetrobots-challenge-progress__meta">
+                    <span>Avancement</span>
+                    <strong>
+                      {Math.min(challenge.progress, challenge.targetCount)}/{challenge.targetCount}
+                    </strong>
+                  </div>
+                  <div className="tetrobots-challenge-progress__bar" aria-hidden="true">
+                    <span
+                      className="tetrobots-challenge-progress__fill"
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(100, (challenge.progress / Math.max(1, challenge.targetCount)) * 100)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
                 {challengeActionLabel && challengeActionTarget ? (
                   <button
                     type="button"
