@@ -48,6 +48,8 @@ export type TetrobotSyncStats = {
   tetrobotProgression: Record<TetrobotId, BotState>;
   tetrobotXpLedger: TetrobotXpLedger;
   tetromazeEscapesTotal: number;
+  versusMatches: number;
+  roguelikeVersusMatches: number;
   activeTetrobotChallenge: TetrobotChallengeState | null;
   lastTetrobotLevelUp: TetrobotLevelUp;
 };
@@ -55,6 +57,7 @@ export type TetrobotSyncStats = {
 export type TetrobotSyncResult = {
   changed: boolean;
   counterDeltas: Record<string, number>;
+  playerBehaviorByMode: Record<PlayerBehaviorMode, ModeBehaviorStats>;
   tetrobotProgression: Record<TetrobotId, BotState>;
   tetrobotXpLedger: TetrobotXpLedger;
   tetrobotAffinityLedger: TetrobotAffinityLedger;
@@ -849,17 +852,42 @@ function buildRecommendation(
   };
 }
 
+function normalizePlayerBehaviorByMode(
+  prev: TetrobotSyncStats
+): Record<PlayerBehaviorMode, ModeBehaviorStats> {
+  return Object.fromEntries(
+    PLAYER_BEHAVIOR_MODES.map((mode) => {
+      const current = prev.playerBehaviorByMode[mode];
+      const legacyMinimumSessions =
+        mode === "VERSUS"
+          ? prev.versusMatches
+          : mode === "ROGUELIKE_VERSUS"
+            ? prev.roguelikeVersusMatches
+            : 0;
+
+      return [
+        mode,
+        {
+          ...current,
+          sessions: Math.max(current.sessions, current.wins + current.losses, legacyMinimumSessions),
+        },
+      ];
+    })
+  ) as Record<PlayerBehaviorMode, ModeBehaviorStats>;
+}
+
 export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotSyncResult {
-  const totalSessions = Object.values(prev.playerBehaviorByMode).reduce(
+  const playerBehaviorByMode = normalizePlayerBehaviorByMode(prev);
+  const totalSessions = Object.values(playerBehaviorByMode).reduce(
     (sum, mode) => sum + mode.sessions,
     0
   );
-  const totalWins = Object.values(prev.playerBehaviorByMode).reduce(
+  const totalWins = Object.values(playerBehaviorByMode).reduce(
     (sum, mode) => sum + mode.wins,
     0
   );
   const visitedModesCount = Object.values(prev.modesVisited).filter(Boolean).length;
-  const totalLosses = Object.values(prev.playerBehaviorByMode).reduce(
+  const totalLosses = Object.values(playerBehaviorByMode).reduce(
     (sum, mode) => sum + mode.losses,
     0
   );
@@ -875,9 +903,9 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     0
   );
   const weakestModeSessions = prev.lowestWinrateMode
-    ? prev.playerBehaviorByMode[prev.lowestWinrateMode]?.sessions ?? 0
+    ? playerBehaviorByMode[prev.lowestWinrateMode]?.sessions ?? 0
     : 0;
-  const playedModes = Object.entries(prev.playerBehaviorByMode).filter(([, value]) => value.sessions > 0) as Array<
+  const playedModes = Object.entries(playerBehaviorByMode).filter(([, value]) => value.sessions > 0) as Array<
     [PlayerBehaviorMode, ModeBehaviorStats]
   >;
   const recentRunsByMode = Object.fromEntries(
@@ -948,7 +976,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
           (rightProfile.improvementTrend === "down" ? 8 : 0);
         return rightSeverity - leftSeverity || b[1].sessions - a[1].sessions;
       })[0]?.[0] ?? null;
-  const weakFocusWins = weakestModeFocus ? prev.playerBehaviorByMode[weakestModeFocus]?.wins ?? 0 : 0;
+  const weakFocusWins = weakestModeFocus ? playerBehaviorByMode[weakestModeFocus]?.wins ?? 0 : 0;
   const regularityScore = clampScore(
     Math.min(40, modeCount * 10) +
       (modeCount > 1 && maxModeSessions > 0 ? (minModeSessions / maxModeSessions) * 45 : 0) +
@@ -984,9 +1012,9 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     repeat_mistake: Math.floor(totalMistakes / 5),
     challenge_yourself:
       Math.floor(weakFocusWins / 2) +
-      prev.playerBehaviorByMode.ROGUELIKE.wins +
-      prev.playerBehaviorByMode.ROGUELIKE_VERSUS.wins +
-      prev.playerBehaviorByMode.PUZZLE.wins,
+      playerBehaviorByMode.ROGUELIKE.wins +
+      playerBehaviorByMode.ROGUELIKE_VERSUS.wins +
+      playerBehaviorByMode.PUZZLE.wins,
     avoid_weakness: weakestModeFocus
       ? Math.floor((prev.playerLongTermMemory.avoidedModes[weakestModeFocus] ?? 0) / 3)
       : Math.floor(Math.max(0, totalSessions - weakestModeSessions * 2) / 3),
@@ -1028,7 +1056,9 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   };
   let activeTetrobotChallenge = prev.activeTetrobotChallenge;
   let lastLevelUp = prev.lastTetrobotLevelUp;
-  let changed = false;
+  let changed = PLAYER_BEHAVIOR_MODES.some(
+    (mode) => playerBehaviorByMode[mode].sessions !== prev.playerBehaviorByMode[mode].sessions
+  );
   const counterDeltas: Record<string, number> = {};
   const now = Date.now();
 
@@ -1119,7 +1149,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   applyAffinity("apex", "challenge_yourself", affinityDeltas.challenge_yourself);
   applyAffinity("apex", "avoid_weakness", affinityDeltas.avoid_weakness);
 
-  const totalPlayedModes = Object.entries(prev.playerBehaviorByMode).filter(
+  const totalPlayedModes = Object.entries(playerBehaviorByMode).filter(
     ([, value]) => value.sessions > 0
   );
   const strongestModes = Object.fromEntries(
@@ -1148,7 +1178,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   );
   const avoidedModes = Object.fromEntries(
     PLAYER_BEHAVIOR_MODES.map((mode): [PlayerBehaviorMode, number] => {
-      const sessions = prev.playerBehaviorByMode[mode].sessions;
+      const sessions = playerBehaviorByMode[mode].sessions;
       return [mode, Math.max(0, totalSessions - sessions)];
     }).filter(([, count]) => count > 0)
   );
@@ -1186,9 +1216,9 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     Math.min(
       100,
       Math.round(
-        ((prev.playerBehaviorByMode.ROGUELIKE.sessions +
-          prev.playerBehaviorByMode.ROGUELIKE_VERSUS.sessions +
-          prev.playerBehaviorByMode.PUZZLE.sessions) /
+        ((playerBehaviorByMode.ROGUELIKE.sessions +
+          playerBehaviorByMode.ROGUELIKE_VERSUS.sessions +
+          playerBehaviorByMode.PUZZLE.sessions) /
           Math.max(1, totalSessions)) *
           100
       )
@@ -1207,7 +1237,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   );
   const rookieTargetMode =
     modeCount < 3
-      ? (PLAYER_BEHAVIOR_MODES.find((mode) => prev.playerBehaviorByMode[mode].sessions === 0) ?? null)
+      ? (PLAYER_BEHAVIOR_MODES.find((mode) => playerBehaviorByMode[mode].sessions === 0) ?? null)
       : (playedModes
           .slice()
           .sort((a, b) => a[1].sessions - b[1].sessions || (a[1].lastPlayedAt ?? 0) - (b[1].lastPlayedAt ?? 0))[0]?.[0] ?? null);
@@ -1230,14 +1260,14 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   const rookieRecommendation =
     regularityScore < 65 && rookieTargetMode
       ? buildRecommendation(
-          "rookie",
-          prev.playerLongTermMemory.activeRecommendations.rookie,
-          totalSessions,
-          rookieTargetMode,
-          prev.playerBehaviorByMode[rookieTargetMode].sessions,
-          modeCount < 3
-            ? `Rookie veut te voir revenir aussi sur ${rookieTargetMode}, pas seulement sur ton confort.`
-            : buildRookieRecommendationReason(
+        "rookie",
+        prev.playerLongTermMemory.activeRecommendations.rookie,
+        totalSessions,
+        rookieTargetMode,
+        playerBehaviorByMode[rookieTargetMode].sessions,
+        modeCount < 3
+          ? `Rookie veut te voir revenir aussi sur ${rookieTargetMode}, pas seulement sur ton confort.`
+          : buildRookieRecommendationReason(
                 rookieTargetMode,
                 modeProfiles[rookieTargetMode]
               ),
@@ -1252,7 +1282,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
         prev.playerLongTermMemory.activeRecommendations.pulse,
         totalSessions,
         pulseTargetMode,
-        prev.playerBehaviorByMode[pulseTargetMode].sessions,
+        playerBehaviorByMode[pulseTargetMode].sessions,
           buildPulseRecommendationReason(
             pulseTargetMode,
             modeProfiles[pulseTargetMode]
@@ -1267,7 +1297,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
         prev.playerLongTermMemory.activeRecommendations.apex,
         totalSessions,
         weakestModeFocus,
-        prev.playerBehaviorByMode[weakestModeFocus].sessions,
+        playerBehaviorByMode[weakestModeFocus].sessions,
         buildApexRecommendationReason(
           weakestModeFocus,
           modeProfiles[weakestModeFocus]
@@ -1286,7 +1316,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
           rookieRecommendation.targetMode,
           apexRecommendation.targetMode,
           totalSessions,
-          prev.playerBehaviorByMode,
+          playerBehaviorByMode,
           `Rookie veut te faire reprendre ${rookieRecommendation.targetMode} proprement, Apex veut t'y forcer sans ménagement.`,
           now
         )
@@ -1299,7 +1329,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
             pulseRecommendation.targetMode,
             rookieRecommendation.targetMode,
             totalSessions,
-            prev.playerBehaviorByMode,
+            playerBehaviorByMode,
             `Pulse veut une correction ciblée sur ${pulseRecommendation.targetMode}, Rookie préfère te renvoyer sur ${rookieRecommendation.targetMode}.`,
             now
           )
@@ -1312,7 +1342,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
               apexRecommendation.targetMode,
               pulseRecommendation.targetMode,
               totalSessions,
-              prev.playerBehaviorByMode,
+              playerBehaviorByMode,
               `Apex veut verrouiller ${apexRecommendation.targetMode}, Pulse te disperse encore sur ${pulseRecommendation.targetMode}.`,
               now
             )
@@ -1374,7 +1404,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
           alignment.objectiveTargetSessions,
           Math.max(
             0,
-            prev.playerBehaviorByMode[alignment.objectiveMode].sessions -
+            playerBehaviorByMode[alignment.objectiveMode].sessions -
               alignment.objectiveStartSessions
           )
         )
@@ -1440,14 +1470,14 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     const challengerGain = activeConflict.challengerMode
       ? Math.max(
           0,
-          prev.playerBehaviorByMode[activeConflict.challengerMode].sessions -
+          playerBehaviorByMode[activeConflict.challengerMode].sessions -
             activeConflict.challengerModeSessionsAtIssue
         )
       : 0;
     const opponentGain = activeConflict.opponentMode
       ? Math.max(
           0,
-          prev.playerBehaviorByMode[activeConflict.opponentMode].sessions -
+          playerBehaviorByMode[activeConflict.opponentMode].sessions -
             activeConflict.opponentModeSessionsAtIssue
         )
       : 0;
@@ -1495,7 +1525,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
         `Tu as choisi ${chosenBot} contre ${otherBot}. Ses lignes exclusives passent devant pour quelques sessions.`,
         now,
         activeConflict,
-        prev.playerBehaviorByMode
+        playerBehaviorByMode
       );
       playerLongTermMemory.lingeringResentment[otherBot] = Math.max(
         playerLongTermMemory.lingeringResentment[otherBot],
@@ -1706,7 +1736,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   ) {
     activeTetrobotChallenge = createApexChallenge(
       prev.lowestWinrateMode,
-      prev.playerBehaviorByMode[prev.lowestWinrateMode].sessions,
+      playerBehaviorByMode[prev.lowestWinrateMode].sessions,
       prev.counters.rage_quit_estimate ?? 0,
       progression.apex.affinity
     );
@@ -1734,7 +1764,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     activeTetrobotChallenge.status === "offered" &&
     activeTetrobotChallenge.targetMode
   ) {
-    const modeSessions = prev.playerBehaviorByMode[activeTetrobotChallenge.targetMode].sessions;
+    const modeSessions = playerBehaviorByMode[activeTetrobotChallenge.targetMode].sessions;
     if (modeSessions > activeTetrobotChallenge.startSessions) {
       activeTetrobotChallenge = {
         ...activeTetrobotChallenge,
@@ -1752,7 +1782,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     activeTetrobotChallenge.status === "active" &&
     activeTetrobotChallenge.targetMode
   ) {
-    const modeSessions = prev.playerBehaviorByMode[activeTetrobotChallenge.targetMode].sessions;
+    const modeSessions = playerBehaviorByMode[activeTetrobotChallenge.targetMode].sessions;
     const rageQuitCount = prev.counters.rage_quit_estimate ?? 0;
     const progress = Math.max(0, modeSessions - activeTetrobotChallenge.startSessions);
     const nextProgress = Math.min(activeTetrobotChallenge.targetCount, progress);
@@ -1810,6 +1840,7 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   return {
     changed,
     counterDeltas,
+    playerBehaviorByMode,
     tetrobotProgression: progression,
     tetrobotXpLedger: nextLedger,
     tetrobotAffinityLedger: nextAffinityLedger,
