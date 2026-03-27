@@ -3,16 +3,62 @@ import {
 } from "../../achievements/lib/tetrobotAchievementLogic";
 import type {
   ApexTrustState,
+  PlayerBehaviorMode,
   PlayerLongTermMemory,
+  TetrobotChallengeState,
 } from "../../achievements/types/tetrobots";
+import {
+  TETROBOT_MODE_LABELS,
+  TETROBOT_MODE_PLAY_ROUTE_MAP,
+} from "../data/tetrobotsContent";
 
 export { getApexTrustState };
 export type { ApexTrustState, PlayerLongTermMemory };
 
+export function getActiveApexChallenge(
+  challenge: TetrobotChallengeState | null | undefined
+) {
+  return challenge?.bot === "apex" ? challenge : null;
+}
+
+export function getApexChallengeTargetMode(
+  challenge: TetrobotChallengeState | null | undefined,
+  fallbackMode: PlayerBehaviorMode | null
+) {
+  return getActiveApexChallenge(challenge)?.targetMode ?? fallbackMode;
+}
+
+export function getApexChallengeActionTarget(
+  challenge: TetrobotChallengeState | null | undefined
+) {
+  const targetMode = getActiveApexChallenge(challenge)?.targetMode;
+  return targetMode ? TETROBOT_MODE_PLAY_ROUTE_MAP[targetMode] ?? null : null;
+}
+
+export function getApexChallengeActionLabel(
+  challenge: TetrobotChallengeState | null | undefined
+) {
+  const activeChallenge = getActiveApexChallenge(challenge);
+  if (!activeChallenge?.targetMode || activeChallenge.status === "completed") {
+    return null;
+  }
+
+  const modeLabel = TETROBOT_MODE_LABELS[activeChallenge.targetMode] ?? activeChallenge.targetMode;
+  return activeChallenge.status === "offered"
+    ? `Accepter et jouer ${modeLabel}`
+    : `Continuer sur ${modeLabel}`;
+}
+
 export function getApexRequirement(
   memory: PlayerLongTermMemory,
-  trustState: ApexTrustState
+  trustState: ApexTrustState,
+  challenge?: TetrobotChallengeState | null
 ) {
+  const activeChallenge = getActiveApexChallenge(challenge);
+  if (activeChallenge && activeChallenge.status !== "completed") {
+    return activeChallenge.description;
+  }
+
   if (trustState === "refusing") {
     const avoidedRoguelike = memory.avoidedModes.ROGUELIKE ?? 0;
     if (avoidedRoguelike >= 5) {

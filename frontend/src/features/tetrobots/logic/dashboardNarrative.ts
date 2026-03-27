@@ -649,6 +649,8 @@ export function getDashboardRelationChoices(
         label:
           activeChallenge?.bot === "apex" && activeChallenge.status === "offered"
             ? "J'accepte le defi"
+            : activeChallenge?.bot === "apex" && activeChallenge.status === "active"
+              ? "Continuer le defi"
             : "Voir ma faiblesse actuelle",
         action:
           activeChallenge?.bot === "apex" && activeChallenge.status === "offered"

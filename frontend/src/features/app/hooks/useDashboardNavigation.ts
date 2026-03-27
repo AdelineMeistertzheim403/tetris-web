@@ -1,7 +1,10 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { TetrobotAchievementEvent } from "../../achievements/types/tetrobots";
-import { TETROBOT_MODE_HUB_ROUTE_MAP } from "../../tetrobots/data/tetrobotsContent";
+import {
+  TETROBOT_MODE_HUB_ROUTE_MAP,
+  TETROBOT_MODE_PLAY_ROUTE_MAP,
+} from "../../tetrobots/data/tetrobotsContent";
 import type {
   DashboardBot,
   DashboardRelationChoice,
@@ -13,6 +16,7 @@ import { PATHS } from "../../../routes/paths";
 type UseDashboardNavigationArgs = {
   acceptActiveTetrobotChallenge: () => void;
   activeBot: DashboardBot;
+  activeChallengeTargetMode: string | null;
   chooseActiveTetrobotConflict: (bot: DashboardBot) => void;
   closeRelationPopup: () => void;
   lowestWinrateMode: string | null;
@@ -31,9 +35,18 @@ function getWeakestModePath(lowestWinrateMode: string | null) {
     : PATHS.tetrisHub;
 }
 
+function getChallengeModePath(mode: string | null) {
+  return mode
+    ? TETROBOT_MODE_PLAY_ROUTE_MAP[mode] ??
+        TETROBOT_MODE_HUB_ROUTE_MAP[mode] ??
+        PATHS.tetrisHub
+    : null;
+}
+
 export function useDashboardNavigation({
   acceptActiveTetrobotChallenge,
   activeBot,
+  activeChallengeTargetMode,
   chooseActiveTetrobotConflict,
   closeRelationPopup,
   lowestWinrateMode,
@@ -42,6 +55,7 @@ export function useDashboardNavigation({
   relationPopup,
 }: UseDashboardNavigationArgs) {
   const navigate = useNavigate();
+  const challengeModePath = getChallengeModePath(activeChallengeTargetMode);
 
   const openPath = useCallback((path: string) => {
     navigate(path);
@@ -102,14 +116,15 @@ export function useDashboardNavigation({
     if (choice.action === "accept_challenge") {
       acceptActiveTetrobotChallenge();
       closeRelationPopup();
-      navigate(getWeakestModePath(lowestWinrateMode));
+      navigate(challengeModePath ?? getWeakestModePath(lowestWinrateMode));
       return;
     }
 
     closeRelationPopup();
-    navigate(getWeakestModePath(lowestWinrateMode));
+    navigate(challengeModePath ?? getWeakestModePath(lowestWinrateMode));
   }, [
     acceptActiveTetrobotChallenge,
+    challengeModePath,
     chooseActiveTetrobotConflict,
     closeRelationPopup,
     lowestWinrateMode,

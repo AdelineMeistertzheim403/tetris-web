@@ -915,6 +915,44 @@ function useAchievementsValue(): UseAchievementsValue {
     );
   };
 
+  const applySyncedTetrobotProgression = useCallback(
+    (base: AchievementStats) => {
+      const next = syncTetrobotProgressionState(base);
+
+      if (
+        !next.changed &&
+        areRecordNumbersEqual(base.tetrobotXpLedger, next.tetrobotXpLedger) &&
+        areRecordNumbersEqual(base.tetrobotAffinityLedger, next.tetrobotAffinityLedger) &&
+        JSON.stringify(base.playerLongTermMemory) === JSON.stringify(next.playerLongTermMemory) &&
+        areMemoriesEqual(base.tetrobotMemories, next.tetrobotMemories) &&
+        areChallengesEqual(base.activeTetrobotChallenge, next.activeTetrobotChallenge)
+      ) {
+        return base;
+      }
+
+      return {
+        ...base,
+        counters: Object.entries(next.counterDeltas).length
+          ? Object.entries(next.counterDeltas).reduce(
+              (acc, [key, value]) => {
+                acc[key] = (acc[key] ?? 0) + value;
+                return acc;
+              },
+              { ...base.counters } as Record<string, number>
+            )
+          : base.counters,
+        tetrobotProgression: next.tetrobotProgression,
+        tetrobotXpLedger: next.tetrobotXpLedger,
+        tetrobotAffinityLedger: next.tetrobotAffinityLedger,
+        playerLongTermMemory: next.playerLongTermMemory,
+        tetrobotMemories: next.tetrobotMemories,
+        lastTetrobotLevelUp: next.lastTetrobotLevelUp,
+        activeTetrobotChallenge: next.activeTetrobotChallenge,
+      };
+    },
+    [areChallengesEqual, areMemoriesEqual, areRecordNumbersEqual]
+  );
+
   // ─────────────────────────────
   // LOAD
   // ─────────────────────────────
@@ -1738,7 +1776,7 @@ function useAchievementsValue(): UseAchievementsValue {
               return leftRate - rightRate || right.sessions - left.sessions;
             })[0] ?? null;
 
-        return {
+        return applySyncedTetrobotProgression({
           ...prev,
           playerBehaviorByMode,
           playerMistakesByMode,
@@ -1757,48 +1795,14 @@ function useAchievementsValue(): UseAchievementsValue {
             ...prev.playerLongTermMemory,
             recentRunsByMode,
           },
-        };
+        });
       }),
-    [updateStats]
+    [applySyncedTetrobotProgression, updateStats]
   );
 
   const syncTetrobotProgression = useCallback(
-    () =>
-      updateStats((prev) => {
-        const next = syncTetrobotProgressionState(prev);
-
-        if (
-          !next.changed &&
-          areRecordNumbersEqual(prev.tetrobotXpLedger, next.tetrobotXpLedger) &&
-          areRecordNumbersEqual(prev.tetrobotAffinityLedger, next.tetrobotAffinityLedger) &&
-          JSON.stringify(prev.playerLongTermMemory) === JSON.stringify(next.playerLongTermMemory) &&
-          areMemoriesEqual(prev.tetrobotMemories, next.tetrobotMemories) &&
-          areChallengesEqual(prev.activeTetrobotChallenge, next.activeTetrobotChallenge)
-        ) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          counters: Object.entries(next.counterDeltas).length
-            ? Object.entries(next.counterDeltas).reduce(
-                (acc, [key, value]) => {
-                  acc[key] = (acc[key] ?? 0) + value;
-                  return acc;
-                },
-                { ...prev.counters } as Record<string, number>
-              )
-            : prev.counters,
-          tetrobotProgression: next.tetrobotProgression,
-          tetrobotXpLedger: next.tetrobotXpLedger,
-          tetrobotAffinityLedger: next.tetrobotAffinityLedger,
-          playerLongTermMemory: next.playerLongTermMemory,
-          tetrobotMemories: next.tetrobotMemories,
-          lastTetrobotLevelUp: next.lastTetrobotLevelUp,
-          activeTetrobotChallenge: next.activeTetrobotChallenge,
-        };
-      }),
-    [updateStats]
+    () => updateStats((prev) => applySyncedTetrobotProgression(prev)),
+    [applySyncedTetrobotProgression, updateStats]
   );
 
   const setLastTetrobotTip = useCallback(
@@ -1904,7 +1908,7 @@ function useAchievementsValue(): UseAchievementsValue {
           return prev;
         }
 
-        return {
+        return applySyncedTetrobotProgression({
           ...prev,
           counters: {
             ...prev.counters,
@@ -1916,9 +1920,9 @@ function useAchievementsValue(): UseAchievementsValue {
             status: "active",
             acceptedAt: Date.now(),
           },
-        };
+        });
       }),
-    [updateStats]
+    [applySyncedTetrobotProgression, updateStats]
   );
 
   const chooseActiveTetrobotConflict = useCallback(

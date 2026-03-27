@@ -90,6 +90,10 @@ export default function Dashboard() {
   } = useDashboardNavigation({
     acceptActiveTetrobotChallenge,
     activeBot: chatbot.activeBot.bot,
+    activeChallengeTargetMode:
+      stats.activeTetrobotChallenge?.status === "completed"
+        ? null
+        : stats.activeTetrobotChallenge?.targetMode ?? null,
     chooseActiveTetrobotConflict,
     closeRelationPopup,
     lowestWinrateMode: stats.lowestWinrateMode,
