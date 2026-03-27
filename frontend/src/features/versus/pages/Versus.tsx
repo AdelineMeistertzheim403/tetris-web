@@ -670,7 +670,7 @@ function VersusTetrobots() {
 
   useMarkVersusVisited();
 
-  const matchOver = started && (!!playerResult || !!botResult);
+  const matchOver = started && !!playerResult && !!botResult;
   const botPersonality = getTetrobotsPersonality(botPersonalityId);
   const botBubbleAccent = getBotBubbleAccent(botPersonality);
 
