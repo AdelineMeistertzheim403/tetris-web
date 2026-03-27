@@ -173,9 +173,11 @@ export const MOOD_AFFINITY_BANDS: Array<{
 function createApexChallenge(
   mode: PlayerBehaviorMode,
   modeSessions: number,
-  rageQuitCount: number
+  rageQuitCount: number,
+  currentAffinity: number
 ): TetrobotChallengeState {
   const now = Date.now();
+  const rewardAffinity = getApexReconciliationReward(currentAffinity);
   return {
     id: `apex-reconciliation-${mode}-${now}`,
     bot: "apex",
@@ -186,7 +188,7 @@ function createApexChallenge(
     targetMode: mode,
     targetCount: 3,
     progress: 0,
-    rewardAffinity: 24,
+    rewardAffinity,
     rewardXp: 30,
     startSessions: modeSessions,
     startRageQuitCount: rageQuitCount,
@@ -194,6 +196,10 @@ function createApexChallenge(
     acceptedAt: null,
     resolvedAt: null,
   };
+}
+
+function getApexReconciliationReward(currentAffinity: number) {
+  return Math.max(24, -59 - currentAffinity);
 }
 
 function getLevelFromXP(xp: number): BotLevel {
@@ -1701,9 +1707,25 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
     activeTetrobotChallenge = createApexChallenge(
       prev.lowestWinrateMode,
       prev.playerBehaviorByMode[prev.lowestWinrateMode].sessions,
-      prev.counters.rage_quit_estimate ?? 0
+      prev.counters.rage_quit_estimate ?? 0,
+      progression.apex.affinity
     );
     changed = true;
+  }
+
+  if (
+    activeTetrobotChallenge &&
+    activeTetrobotChallenge.bot === "apex" &&
+    activeTetrobotChallenge.status !== "completed"
+  ) {
+    const minimumReward = getApexReconciliationReward(progression.apex.affinity);
+    if (activeTetrobotChallenge.rewardAffinity < minimumReward) {
+      activeTetrobotChallenge = {
+        ...activeTetrobotChallenge,
+        rewardAffinity: minimumReward,
+      };
+      changed = true;
+    }
   }
 
   if (

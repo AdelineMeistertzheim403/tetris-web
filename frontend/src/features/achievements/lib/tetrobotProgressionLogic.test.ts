@@ -420,7 +420,44 @@ describe("tetrobotProgressionLogic", () => {
     expect(result.tetrobotMemories.apex.some((entry) => entry.type === "trust_break")).toBe(true);
     expect(result.activeTetrobotChallenge?.bot).toBe("apex");
     expect(result.activeTetrobotChallenge?.status).toBe("offered");
+    expect(result.activeTetrobotChallenge?.rewardAffinity).toBe(24);
     expect(result.counterDeltas.apex_refusal_count).toBe(1);
+  });
+
+  it("scales Apex reconciliation reward high enough to leave refusal from -100", () => {
+    const stats = createBaseStats();
+    stats.tetrobotProgression.apex.affinity = -100;
+
+    const result = syncTetrobotProgressionState(stats);
+
+    expect(result.activeTetrobotChallenge?.rewardAffinity).toBe(41);
+  });
+
+  it("upgrades an existing Apex challenge reward if it cannot reopen the channel", () => {
+    const stats = createBaseStats();
+    stats.tetrobotProgression.apex.affinity = -100;
+    stats.activeTetrobotChallenge = {
+      id: "apex-reconciliation-legacy",
+      bot: "apex",
+      kind: "apex_reconciliation",
+      status: "active",
+      title: "Defi d'Apex",
+      description: "Joue 3 sessions utiles sur VERSUS sans rage quit pour rouvrir completement le canal.",
+      targetMode: "VERSUS",
+      targetCount: 3,
+      progress: 1,
+      rewardAffinity: 24,
+      rewardXp: 30,
+      startSessions: 0,
+      startRageQuitCount: 0,
+      createdAt: 10,
+      acceptedAt: 11,
+      resolvedAt: null,
+    };
+
+    const result = syncTetrobotProgressionState(stats);
+
+    expect(result.activeTetrobotChallenge?.rewardAffinity).toBe(41);
   });
 
   it("auto-accepts an offered Apex challenge when the player starts the target mode", () => {
@@ -487,6 +524,32 @@ describe("tetrobotProgressionLogic", () => {
     expect(result.tetrobotMemories.apex.some((entry) => entry.type === "trust_rebuild")).toBe(
       true
     );
+  });
+
+  it("reopens Apex from -100 when the reconciliation challenge is completed", () => {
+    const stats = createBaseStats();
+    stats.tetrobotProgression.apex.affinity = -100;
+
+    const offered = syncTetrobotProgressionState(stats);
+    const withChallenge = {
+      ...stats,
+      counters: { ...stats.counters, ...offered.counterDeltas },
+      tetrobotProgression: offered.tetrobotProgression,
+      tetrobotXpLedger: offered.tetrobotXpLedger,
+      tetrobotAffinityLedger: offered.tetrobotAffinityLedger,
+      playerLongTermMemory: offered.playerLongTermMemory,
+      tetrobotMemories: offered.tetrobotMemories,
+      activeTetrobotChallenge: offered.activeTetrobotChallenge,
+      playerBehaviorByMode: {
+        ...stats.playerBehaviorByMode,
+        ROGUELIKE: { ...stats.playerBehaviorByMode.ROGUELIKE, sessions: 3, wins: 1 },
+      },
+    };
+
+    const completed = syncTetrobotProgressionState(withChallenge);
+
+    expect(completed.activeTetrobotChallenge?.status).toBe("completed");
+    expect(completed.tetrobotProgression.apex.affinity).toBe(-59);
   });
 
   it("emits Pulse advice-success counter when improvement signals grow", () => {
