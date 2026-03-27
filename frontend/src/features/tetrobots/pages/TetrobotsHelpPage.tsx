@@ -1,11 +1,16 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthContext";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import {
   BOT_LEVEL_XP_BANDS,
   MOOD_AFFINITY_BANDS,
 } from "../../achievements/lib/tetrobotProgressionLogic";
+import {
+  getActiveApexChallenge,
+  getApexChallengeActionLabel,
+  getApexChallengeActionTarget,
+} from "../logic/apexTrustEngine";
 import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
 import "../../../styles/tetrobots.css";
 
@@ -146,9 +151,12 @@ function HelpSection({
 
 export default function TetrobotsHelpPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { stats, recordTetrobotEvent } = useAchievements();
-  const challenge = stats.activeTetrobotChallenge;
+  const { stats, recordTetrobotEvent, acceptActiveTetrobotChallenge } = useAchievements();
+  const challenge = getActiveApexChallenge(stats.activeTetrobotChallenge);
+  const challengeActionLabel = getApexChallengeActionLabel(challenge);
+  const challengeActionTarget = getApexChallengeActionTarget(challenge);
   const [sections, setSections] = useState<HelpSectionState>(() => readHelpSectionState());
 
   useEffect(() => {
@@ -191,6 +199,14 @@ export default function TetrobotsHelpPage() {
     setSections(
       Object.fromEntries(HELP_SECTION_IDS.map((id) => [id, open])) as HelpSectionState
     );
+  };
+
+  const handleChallengeAction = () => {
+    if (!challengeActionTarget) return;
+    if (challenge?.status === "offered") {
+      acceptActiveTetrobotChallenge();
+    }
+    navigate(challengeActionTarget);
   };
 
   return (
@@ -444,6 +460,15 @@ export default function TetrobotsHelpPage() {
                 <p>
                   Etat: {challenge.status} · progression {challenge.progress}/{challenge.targetCount}
                 </p>
+                {challengeActionLabel && challengeActionTarget ? (
+                  <button
+                    type="button"
+                    className="tetrobots-help-link"
+                    onClick={handleChallengeAction}
+                  >
+                    {challengeActionLabel}
+                  </button>
+                ) : null}
               </div>
             ) : (
               <div className="tetrobots-help__challenge">

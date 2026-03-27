@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { BotMemoryEntry, TetrobotId } from "../../achievements/types/tetrobots";
 import { getApexTrustState } from "../../achievements/lib/tetrobotAchievementLogic";
 import {
@@ -10,7 +10,13 @@ import {
   TETROBOT_MODE_PLAY_ROUTE_MAP,
   TETROBOT_RELATION_META,
 } from "../data/tetrobotsContent";
-import { getApexRequirement } from "../logic/apexTrustEngine";
+import {
+  getActiveApexChallenge,
+  getApexChallengeActionLabel,
+  getApexChallengeActionTarget,
+  getApexChallengeTargetMode,
+  getApexRequirement,
+} from "../logic/apexTrustEngine";
 import ApexLockedPanel from "./ApexLockedPanel";
 import TetrobotCard, { type TetrobotRelationProgressItem } from "./TetrobotCard";
 import { PATHS } from "../../../routes/paths";
@@ -227,17 +233,14 @@ function sortProgressItems(items: TetrobotRelationProgressItem[]) {
 function getProgressItems(
   bot: TetrobotId,
   stats: RelationsStats,
-  apexTrustState: ReturnType<typeof getApexTrustState>
+  apexTrustState: ReturnType<typeof getApexTrustState>,
+  activeApexChallenge: RelationsStats["activeTetrobotChallenge"]
 ): TetrobotRelationProgressItem[] {
   const activeExclusiveAlignment = stats.playerLongTermMemory.activeExclusiveAlignment;
   const apexChallengesLocked =
     activeExclusiveAlignment?.blockedBot === "apex" &&
     activeExclusiveAlignment.lockedAdvice.includes("punishing_challenges");
   const weakMode = stats.playerLongTermMemory.weakestModeFocus ?? stats.lowestWinrateMode;
-  const weakModeLabel = getModeLabel(weakMode);
-  const weakModeActionTarget = getModeActionTarget(weakMode);
-  const weakModeSessions = weakMode ? stats.playerBehaviorByMode[weakMode]?.sessions ?? 0 : 0;
-  const weakModeWins = weakMode ? stats.playerBehaviorByMode[weakMode]?.wins ?? 0 : 0;
 
   if (bot === "rookie") {
     const rookieRecommendation = stats.playerLongTermMemory.activeRecommendations.rookie;
@@ -417,61 +420,104 @@ function getProgressItems(
   const accepted = stats.counters.apex_challenge_accepted_count ?? 0;
   const restored = stats.counters.apex_trust_restored_count ?? 0;
   const apexCycleProgress = (accepted > 0 ? 1 : 0) + (restored > 0 ? 1 : 0);
+  const apexTargetMode = getApexChallengeTargetMode(activeApexChallenge, weakMode);
+  const apexTargetModeLabel = getModeLabel(apexTargetMode);
+  const apexTargetModeActionTarget =
+    getApexChallengeActionTarget(activeApexChallenge) ?? getModeActionTarget(apexTargetMode);
+  const apexTargetModeSessions = apexTargetMode
+    ? stats.playerBehaviorByMode[apexTargetMode]?.sessions ?? 0
+    : 0;
+  const apexTargetModeWins = apexTargetMode
+    ? stats.playerBehaviorByMode[apexTargetMode]?.wins ?? 0
+    : 0;
+  const apexChallengeProgress =
+    activeApexChallenge?.status === "active" || activeApexChallenge?.status === "completed"
+      ? activeApexChallenge.progress
+      : 0;
 
   return sortProgressItems([
     {
       id: "apex-discipline",
-      label: `Discipline: ${weakModeLabel}`,
-      current: weakModeSessions,
-      target: 3,
-      detail: weakMode
-        ? `Travaille regulierement ton mode faible: ${weakModeLabel}.`
+      label: `Discipline: ${apexTargetModeLabel}`,
+      current: activeApexChallenge ? apexChallengeProgress : apexTargetModeSessions,
+      target: activeApexChallenge?.targetCount ?? 3,
+      detail: activeApexChallenge
+        ? activeApexChallenge.description
+        : apexTargetMode
+        ? `Travaille regulierement ton mode faible: ${apexTargetModeLabel}.`
         : "Joue assez de modes pour qu'Apex identifie une vraie faiblesse.",
       stateLabel:
-        weakModeSessions >= 3
+        activeApexChallenge?.status === "offered"
+          ? "a accepter"
+          : (activeApexChallenge ? apexChallengeProgress : apexTargetModeSessions) >=
+              (activeApexChallenge?.targetCount ?? 3)
           ? "termine"
-          : weakModeSessions >= 2
+          : (activeApexChallenge ? apexChallengeProgress : apexTargetModeSessions) >=
+              Math.max(1, (activeApexChallenge?.targetCount ?? 3) - 1)
             ? "presque pret"
-            : weakModeSessions > 0
+            : (activeApexChallenge ? apexChallengeProgress : apexTargetModeSessions) > 0
               ? "en cours"
-              : weakMode
+              : apexTargetMode
               ? "bloque"
               : "en attente",
       actionLabel:
-        weakMode && weakModeActionTarget && weakModeSessions < 3
-          ? `Jouer ${weakModeLabel}`
+        activeApexChallenge?.status === "active" &&
+        apexTargetMode &&
+        apexTargetModeActionTarget &&
+        apexChallengeProgress < (activeApexChallenge.targetCount ?? 3)
+          ? `Continuer ${apexTargetModeLabel}`
+          : !activeApexChallenge &&
+              apexTargetMode &&
+              apexTargetModeActionTarget &&
+              apexTargetModeSessions < 3
+          ? `Jouer ${apexTargetModeLabel}`
           : undefined,
       actionTo:
-        weakMode && weakModeActionTarget && weakModeSessions < 3
-          ? weakModeActionTarget
+        activeApexChallenge?.status === "active" &&
+        apexTargetMode &&
+        apexTargetModeActionTarget &&
+        apexChallengeProgress < (activeApexChallenge.targetCount ?? 3)
+          ? apexTargetModeActionTarget
+          : !activeApexChallenge &&
+              apexTargetMode &&
+              apexTargetModeActionTarget &&
+              apexTargetModeSessions < 3
+          ? apexTargetModeActionTarget
           : undefined,
-      tone: weakModeSessions >= 3 ? "success" : weakMode ? "warning" : "neutral",
+      tone:
+        activeApexChallenge?.status === "completed" ||
+        (activeApexChallenge ? apexChallengeProgress : apexTargetModeSessions) >=
+          (activeApexChallenge?.targetCount ?? 3)
+          ? "success"
+          : apexTargetMode
+          ? "warning"
+          : "neutral",
     },
     {
-      id: "apex-victory",
-      label: `Face a toi-meme: ${weakModeLabel}`,
-      current: weakModeWins,
+      id: "apex-pressure",
+      label: `Face a toi-meme: ${apexTargetModeLabel}`,
+      current: apexTargetModeWins,
       target: 1,
-      detail: weakMode
-        ? `Gagne au moins une fois sur ${weakModeLabel}.`
+      detail: apexTargetMode
+        ? `Gagne au moins une fois sur ${apexTargetModeLabel}.`
         : "Aucune cible exploitable pour l'instant.",
       stateLabel:
-        weakModeWins >= 1
+        apexTargetModeWins >= 1
           ? "termine"
-          : weakModeSessions > 0
+          : apexTargetModeSessions > 0
             ? "en cours"
-            : weakMode
+            : apexTargetMode
               ? "bloque"
               : "en attente",
       actionLabel:
-        weakMode && weakModeActionTarget && weakModeWins < 1
-          ? `Tenter ${weakModeLabel}`
+        apexTargetMode && apexTargetModeActionTarget && apexTargetModeWins < 1
+          ? `Tenter ${apexTargetModeLabel}`
           : undefined,
       actionTo:
-        weakMode && weakModeActionTarget && weakModeWins < 1
-          ? weakModeActionTarget
+        apexTargetMode && apexTargetModeActionTarget && apexTargetModeWins < 1
+          ? apexTargetModeActionTarget
           : undefined,
-      tone: weakModeWins >= 1 ? "success" : weakMode ? "warning" : "neutral",
+      tone: apexTargetModeWins >= 1 ? "success" : apexTargetMode ? "warning" : "neutral",
     },
     {
       id: "apex-cycle",
@@ -517,12 +563,16 @@ export default function TetrobotRelationsPanel({
   activeBot: TetrobotId;
   highlightedGoalId?: string | null;
 }) {
-  const { stats, chooseActiveTetrobotConflict } = useAchievements();
+  const navigate = useNavigate();
+  const { stats, chooseActiveTetrobotConflict, acceptActiveTetrobotChallenge } = useAchievements();
   const apexTrustState = getApexTrustState(
     stats.playerLongTermMemory,
     stats.tetrobotProgression.apex.affinity
   );
   const activeConflict = stats.playerLongTermMemory.activeConflict;
+  const activeApexChallenge = getActiveApexChallenge(stats.activeTetrobotChallenge);
+  const apexChallengeActionLabel = getApexChallengeActionLabel(activeApexChallenge);
+  const apexChallengeActionTarget = getApexChallengeActionTarget(activeApexChallenge);
 
   useEffect(() => {
     const target = document.getElementById(`relation-${activeBot}`);
@@ -541,10 +591,18 @@ export default function TetrobotRelationsPanel({
           "punishing_challenges"
         )
         ? "La ligne exclusive actuelle reporte temporairement les defis d'Apex."
-        : getApexRequirement(stats.playerLongTermMemory, apexTrustState)
+        : getApexRequirement(stats.playerLongTermMemory, apexTrustState, activeApexChallenge)
       : recommendation?.reason
         ? recommendation.reason
         : TETROBOT_RELATION_META[bot].relationGoal;
+
+  const handleApexChallengeAction = () => {
+    if (!apexChallengeActionTarget) return;
+    if (activeApexChallenge?.status === "offered") {
+      acceptActiveTetrobotChallenge();
+    }
+    navigate(apexChallengeActionTarget);
+  };
 
   return (
     <section className="tetrobots-relations">
@@ -599,7 +657,7 @@ export default function TetrobotRelationsPanel({
           signature={state.lastTip ?? "Aucune observation recente."}
           thoughts={getThought(bot, state.affinity, memories, stats)}
           requirement={requirement}
-          progressItems={getProgressItems(bot, stats, apexTrustState)}
+          progressItems={getProgressItems(bot, stats, apexTrustState, activeApexChallenge)}
           memories={memories}
           trustState={trustState}
           highlightedGoalId={highlightedGoalId}
@@ -663,7 +721,13 @@ export default function TetrobotRelationsPanel({
       {apexTrustState === "refusing" ? (
         <ApexLockedPanel
           message="Apex considere que tu demandes encore des conseils sans accepter la vraie contrainte."
-          requirement={getApexRequirement(stats.playerLongTermMemory, apexTrustState)}
+          requirement={getApexRequirement(
+            stats.playerLongTermMemory,
+            apexTrustState,
+            activeApexChallenge
+          )}
+          actionLabel={apexChallengeActionLabel ?? undefined}
+          onAction={apexChallengeActionTarget ? handleApexChallengeAction : undefined}
         />
       ) : null}
 
