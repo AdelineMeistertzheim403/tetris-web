@@ -57,6 +57,7 @@ import {
   getMood,
   syncTetrobotProgressionState,
 } from "../lib/tetrobotProgressionLogic";
+import { estimateRageQuitFromBehaviorEvent } from "../lib/playerBehaviorEventLogic";
 import {
   applyTetrobotFinaleChoice,
   buildTetrobotAnomalyCounters,
@@ -1716,8 +1717,7 @@ function useAchievementsValue(): UseAchievementsValue {
           [event.mode]: nextLastSeen,
         };
 
-        const estimatedRageQuit =
-          event.won === false && (event.durationMs ?? 0) > 0 && (event.durationMs ?? 0) < 90_000;
+        const estimatedRageQuit = estimateRageQuitFromBehaviorEvent(event);
         const comebackWin =
           event.won === true &&
           previousModeStats.losses > previousModeStats.wins &&

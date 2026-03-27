@@ -726,6 +726,9 @@ export default function TetrobotRelationsPanel({
             apexTrustState,
             activeApexChallenge
           )}
+          progressCurrent={activeApexChallenge?.progress ?? 0}
+          progressTarget={activeApexChallenge?.targetCount ?? 0}
+          progressStatus={activeApexChallenge?.status}
           actionLabel={apexChallengeActionLabel ?? undefined}
           onAction={apexChallengeActionTarget ? handleApexChallengeAction : undefined}
         />

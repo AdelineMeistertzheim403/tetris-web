@@ -1709,6 +1709,24 @@ export function syncTetrobotProgressionState(prev: TetrobotSyncStats): TetrobotS
   if (
     activeTetrobotChallenge &&
     activeTetrobotChallenge.bot === "apex" &&
+    activeTetrobotChallenge.status === "offered" &&
+    activeTetrobotChallenge.targetMode
+  ) {
+    const modeSessions = prev.playerBehaviorByMode[activeTetrobotChallenge.targetMode].sessions;
+    if (modeSessions > activeTetrobotChallenge.startSessions) {
+      activeTetrobotChallenge = {
+        ...activeTetrobotChallenge,
+        status: "active",
+        acceptedAt: activeTetrobotChallenge.acceptedAt ?? now,
+      };
+      bumpCounter("apex_challenge_accepted_count");
+      changed = true;
+    }
+  }
+
+  if (
+    activeTetrobotChallenge &&
+    activeTetrobotChallenge.bot === "apex" &&
     activeTetrobotChallenge.status === "active" &&
     activeTetrobotChallenge.targetMode
   ) {
