@@ -35,4 +35,15 @@ describe("apexTrustEngine", () => {
     expect(getApexChallengeActionLabel(challenge)).toBe("Accepter et jouer Roguelike");
     expect(getApexChallengeActionTarget(challenge)).toBe("/roguelike");
   });
+
+  it("uses a duel-choice CTA for Versus challenges", () => {
+    const challenge = {
+      bot: "apex",
+      status: "offered",
+      targetMode: "VERSUS",
+    } as unknown as TetrobotChallengeState;
+
+    expect(getApexChallengeActionLabel(challenge)).toBe("Accepter et choisir le duel Versus");
+    expect(getApexChallengeActionTarget(challenge)).toBe("/versus");
+  });
 });

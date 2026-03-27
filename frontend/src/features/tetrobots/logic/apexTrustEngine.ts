@@ -44,6 +44,16 @@ export function getApexChallengeActionLabel(
   }
 
   const modeLabel = TETROBOT_MODE_LABELS[activeChallenge.targetMode] ?? activeChallenge.targetMode;
+  const requiresDuelChoice =
+    activeChallenge.targetMode === "VERSUS" ||
+    activeChallenge.targetMode === "ROGUELIKE_VERSUS";
+
+  if (requiresDuelChoice) {
+    return activeChallenge.status === "offered"
+      ? `Accepter et choisir le duel ${modeLabel}`
+      : `Choisir le duel ${modeLabel}`;
+  }
+
   return activeChallenge.status === "offered"
     ? `Accepter et jouer ${modeLabel}`
     : `Continuer sur ${modeLabel}`;
