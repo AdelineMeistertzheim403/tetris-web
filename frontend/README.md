@@ -43,7 +43,9 @@ features/
 
 ### Tests
 - Emplacement : `__tests__/` à côté du code concerné (ex: `features/roguelike/__tests__/...`)
-- Nommage : `*.test.ts` / `*.test.tsx`
+- Nommage :
+  - unitaires : `*.test.ts` / `*.test.tsx`
+  - intégration : `*.integration.test.ts` / `*.integration.test.tsx`
 - Structure : `describe` par module, `it` par comportement
 - Mocks : colocalisés dans `__mocks__/` si besoin
 - Données : factories simples dans `__tests__/fixtures/`
@@ -53,6 +55,10 @@ features/
 - `npm run build`
 - `npm run preview`
 - `npm run lint`
+- `npm run test`
+- `npm run test:unit`
+- `npm run test:coverage`
+- `npm run test:integration`
 
 ## Config
 Créer `frontend/.env.development` :
