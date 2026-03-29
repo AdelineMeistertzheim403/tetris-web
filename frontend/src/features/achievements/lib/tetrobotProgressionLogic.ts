@@ -49,7 +49,9 @@ export type TetrobotSyncStats = {
   tetrobotXpLedger: TetrobotXpLedger;
   tetromazeEscapesTotal: number;
   versusMatches: number;
+  versusWins: number;
   roguelikeVersusMatches: number;
+  roguelikeVersusWins: number;
   activeTetrobotChallenge: TetrobotChallengeState | null;
   lastTetrobotLevelUp: TetrobotLevelUp;
 };
@@ -864,12 +866,23 @@ function normalizePlayerBehaviorByMode(
           : mode === "ROGUELIKE_VERSUS"
             ? prev.roguelikeVersusMatches
             : 0;
+      const wins = Math.max(
+        current.wins,
+        mode === "VERSUS"
+          ? prev.versusWins
+          : mode === "ROGUELIKE_VERSUS"
+            ? prev.roguelikeVersusWins
+            : 0
+      );
+      const losses = Math.max(current.losses, Math.max(0, legacyMinimumSessions - wins));
 
       return [
         mode,
         {
           ...current,
-          sessions: Math.max(current.sessions, current.wins + current.losses, legacyMinimumSessions),
+          wins,
+          losses,
+          sessions: Math.max(current.sessions, wins + losses, legacyMinimumSessions),
         },
       ];
     })

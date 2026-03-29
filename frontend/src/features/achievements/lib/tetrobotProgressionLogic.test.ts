@@ -408,7 +408,9 @@ function createBaseStats(): TetrobotSyncStats {
     },
     tetromazeEscapesTotal: 0,
     versusMatches: 0,
+    versusWins: 0,
     roguelikeVersusMatches: 0,
+    roguelikeVersusWins: 0,
     activeTetrobotChallenge: null,
     lastTetrobotLevelUp: null,
   };
