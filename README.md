@@ -1,4 +1,7 @@
 # Tetris Web
+[![CI](https://github.com/AdelineMeistertzheim403/tetris-web/actions/workflows/ci.yml/badge.svg)](https://github.com/AdelineMeistertzheim403/tetris-web/actions/workflows/ci.yml)
+[![CD](https://github.com/AdelineMeistertzheim403/tetris-web/actions/workflows/deploy.yml/badge.svg)](https://github.com/AdelineMeistertzheim403/tetris-web/actions/workflows/deploy.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/AdelineMeistertzheim403/tetris-web/main/.github/badges/frontend-coverage.json)](https://github.com/AdelineMeistertzheim403/tetris-web/actions/workflows/ci.yml)
 
 Front-end React/Vite + back-end Express/Prisma pour un Tetris multi-modes : classique, sprint 40 lignes, versus en temps réel (WebSocket), roguelike à perks, Brickfall (solo + versus), Tetromaze et Pixel Protocol. Authentification JWT, succès, progression et classements persistés en base PostgreSQL.
 
@@ -201,4 +204,5 @@ crontab -e
 
 ## Tests
 - Backend : `npm test` (Vitest, supertest, Prisma mock).
-- Frontend : pas de tests automatisés fournis.
+- Frontend : `npm run test:unit`, `npm run test:integration`, `npm run test:coverage` (Vitest + Testing Library).
+- Coverage frontend : rapport HTML/LCOV dans `frontend/coverage/unit/` et badge JSON mis a jour dans `.github/badges/frontend-coverage.json`.

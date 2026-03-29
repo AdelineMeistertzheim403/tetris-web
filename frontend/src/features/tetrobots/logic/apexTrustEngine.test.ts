@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  getActiveApexChallenge,
   getApexChallengeProgress,
   getApexChallengeActionLabel,
   getApexChallengeActionTarget,
+  getApexChallengeTargetMode,
   getApexRequirement,
   getApexTrackedModeSessions,
   getApexTrackedModeWins,
@@ -38,6 +40,17 @@ function createBehaviorByMode() {
 }
 
 describe("apexTrustEngine", () => {
+  it("ignores non-Apex challenges and falls back to the provided mode", () => {
+    const challenge = {
+      bot: "rookie",
+      status: "active",
+      targetMode: "ROGUELIKE",
+    } as unknown as TetrobotChallengeState;
+
+    expect(getActiveApexChallenge(challenge)).toBeNull();
+    expect(getApexChallengeTargetMode(challenge, "VERSUS")).toBe("VERSUS");
+  });
+
   it("prioritizes the active Apex challenge description over generic refusal text", () => {
     const memory = {
       avoidedModes: { ROGUELIKE: 8 },
@@ -72,6 +85,17 @@ describe("apexTrustEngine", () => {
     } as unknown as TetrobotChallengeState;
 
     expect(getApexChallengeActionLabel(challenge)).toBe("Accepter et choisir le duel Versus");
+    expect(getApexChallengeActionTarget(challenge)).toBe("/versus");
+  });
+
+  it("does not expose a CTA for completed Apex challenges", () => {
+    const challenge = {
+      bot: "apex",
+      status: "completed",
+      targetMode: "VERSUS",
+    } as unknown as TetrobotChallengeState;
+
+    expect(getApexChallengeActionLabel(challenge)).toBeNull();
     expect(getApexChallengeActionTarget(challenge)).toBe("/versus");
   });
 
@@ -113,5 +137,32 @@ describe("apexTrustEngine", () => {
     expect(getApexTrackedModeSessions("VERSUS", stats)).toBe(4);
     expect(getApexTrackedModeWins("VERSUS", stats)).toBe(1);
     expect(getApexChallengeProgress(challenge, stats)).toBe(3);
+  });
+
+  it("keeps stored progress for mode-less challenges and completes finished ones", () => {
+    const stats = {
+      playerBehaviorByMode: createBehaviorByMode(),
+      versusMatches: 0,
+      versusWins: 0,
+      roguelikeVersusMatches: 0,
+      roguelikeVersusWins: 0,
+    };
+    const offeredWithoutMode = {
+      bot: "apex",
+      status: "active",
+      progress: 2,
+      targetCount: 3,
+      targetMode: null,
+    } as unknown as TetrobotChallengeState;
+    const completedChallenge = {
+      bot: "apex",
+      status: "completed",
+      progress: 1,
+      targetCount: 3,
+      targetMode: "VERSUS",
+    } as unknown as TetrobotChallengeState;
+
+    expect(getApexChallengeProgress(offeredWithoutMode, stats)).toBe(2);
+    expect(getApexChallengeProgress(completedChallenge, stats)).toBe(3);
   });
 });
