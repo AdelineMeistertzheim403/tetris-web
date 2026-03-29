@@ -564,7 +564,12 @@ export default function TetrobotRelationsPanel({
   highlightedGoalId?: string | null;
 }) {
   const navigate = useNavigate();
-  const { stats, chooseActiveTetrobotConflict, acceptActiveTetrobotChallenge } = useAchievements();
+  const {
+    stats,
+    chooseActiveTetrobotConflict,
+    acceptActiveTetrobotChallenge,
+    syncTetrobotProgression,
+  } = useAchievements();
   const apexTrustState = getApexTrustState(
     stats.playerLongTermMemory,
     stats.tetrobotProgression.apex.affinity
@@ -578,6 +583,10 @@ export default function TetrobotRelationsPanel({
     const target = document.getElementById(`relation-${activeBot}`);
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [activeBot]);
+
+  useEffect(() => {
+    syncTetrobotProgression();
+  }, [syncTetrobotProgression]);
 
   const bot = activeBot;
   const state = stats.tetrobotProgression[bot];

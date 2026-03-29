@@ -153,11 +153,20 @@ export default function TetrobotsHelpPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { stats, recordTetrobotEvent, acceptActiveTetrobotChallenge } = useAchievements();
+  const {
+    stats,
+    recordTetrobotEvent,
+    acceptActiveTetrobotChallenge,
+    syncTetrobotProgression,
+  } = useAchievements();
   const challenge = getActiveApexChallenge(stats.activeTetrobotChallenge);
   const challengeActionLabel = getApexChallengeActionLabel(challenge);
   const challengeActionTarget = getApexChallengeActionTarget(challenge);
   const [sections, setSections] = useState<HelpSectionState>(() => readHelpSectionState());
+
+  useEffect(() => {
+    syncTetrobotProgression();
+  }, [syncTetrobotProgression]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
