@@ -10,6 +10,7 @@ import {
   getActiveApexChallenge,
   getApexChallengeActionLabel,
   getApexChallengeActionTarget,
+  getApexChallengeProgress,
 } from "../logic/apexTrustEngine";
 import TetrobotsSectionNav from "../components/TetrobotsSectionNav";
 import "../../../styles/tetrobots.css";
@@ -160,6 +161,7 @@ export default function TetrobotsHelpPage() {
     syncTetrobotProgression,
   } = useAchievements();
   const challenge = getActiveApexChallenge(stats.activeTetrobotChallenge);
+  const challengeProgress = getApexChallengeProgress(challenge, stats);
   const challengeActionLabel = getApexChallengeActionLabel(challenge);
   const challengeActionTarget = getApexChallengeActionTarget(challenge);
   const [sections, setSections] = useState<HelpSectionState>(() => readHelpSectionState());
@@ -467,13 +469,13 @@ export default function TetrobotsHelpPage() {
                 <p>{challenge.title}</p>
                 <p>{challenge.description}</p>
                 <p>
-                  Etat: {challenge.status} · progression {challenge.progress}/{challenge.targetCount}
+                  Etat: {challenge.status} · progression {challengeProgress}/{challenge.targetCount}
                 </p>
                 <div className="tetrobots-challenge-progress">
                   <div className="tetrobots-challenge-progress__meta">
                     <span>Avancement</span>
                     <strong>
-                      {Math.min(challenge.progress, challenge.targetCount)}/{challenge.targetCount}
+                      {Math.min(challengeProgress, challenge.targetCount)}/{challenge.targetCount}
                     </strong>
                   </div>
                   <div className="tetrobots-challenge-progress__bar" aria-hidden="true">
@@ -482,7 +484,10 @@ export default function TetrobotsHelpPage() {
                       style={{
                         width: `${Math.max(
                           0,
-                          Math.min(100, (challenge.progress / Math.max(1, challenge.targetCount)) * 100)
+                          Math.min(
+                            100,
+                            (challengeProgress / Math.max(1, challenge.targetCount)) * 100
+                          )
                         )}%`,
                       }}
                     />

@@ -165,5 +165,7 @@ export function PixelModeProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return <PixelModeContext.Provider value={value}>{children}</PixelModeContext.Provider>;
+  return (
+    <PixelModeContext.Provider value={value}>{children}</PixelModeContext.Provider>
+  );
 }

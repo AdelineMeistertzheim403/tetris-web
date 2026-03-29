@@ -2480,8 +2480,12 @@ function useAchievementsValue(): UseAchievementsValue {
     stats.playerBehaviorByMode,
     stats.playerMistakeLastSeenByMode,
     stats.playerMistakesByMode,
+    stats.roguelikeVersusMatches,
+    stats.roguelikeVersusWins,
     stats.scoredModes,
     stats.tetromazeEscapesTotal,
+    stats.versusMatches,
+    stats.versusWins,
     updateStats,
   ]);
 

@@ -13,7 +13,10 @@ import {
 import {
   getActiveApexChallenge,
   getApexChallengeActionLabel,
+  getApexChallengeProgress,
   getApexChallengeActionTarget,
+  getApexTrackedModeSessions,
+  getApexTrackedModeWins,
   getApexChallengeTargetMode,
   getApexRequirement,
 } from "../logic/apexTrustEngine";
@@ -424,16 +427,9 @@ function getProgressItems(
   const apexTargetModeLabel = getModeLabel(apexTargetMode);
   const apexTargetModeActionTarget =
     getApexChallengeActionTarget(activeApexChallenge) ?? getModeActionTarget(apexTargetMode);
-  const apexTargetModeSessions = apexTargetMode
-    ? stats.playerBehaviorByMode[apexTargetMode]?.sessions ?? 0
-    : 0;
-  const apexTargetModeWins = apexTargetMode
-    ? stats.playerBehaviorByMode[apexTargetMode]?.wins ?? 0
-    : 0;
-  const apexChallengeProgress =
-    activeApexChallenge?.status === "active" || activeApexChallenge?.status === "completed"
-      ? activeApexChallenge.progress
-      : 0;
+  const apexTargetModeSessions = getApexTrackedModeSessions(apexTargetMode, stats);
+  const apexTargetModeWins = getApexTrackedModeWins(apexTargetMode, stats);
+  const apexChallengeProgress = getApexChallengeProgress(activeApexChallenge, stats);
 
   return sortProgressItems([
     {
@@ -576,6 +572,7 @@ export default function TetrobotRelationsPanel({
   );
   const activeConflict = stats.playerLongTermMemory.activeConflict;
   const activeApexChallenge = getActiveApexChallenge(stats.activeTetrobotChallenge);
+  const apexChallengeProgress = getApexChallengeProgress(activeApexChallenge, stats);
   const apexChallengeActionLabel = getApexChallengeActionLabel(activeApexChallenge);
   const apexChallengeActionTarget = getApexChallengeActionTarget(activeApexChallenge);
 
@@ -735,7 +732,7 @@ export default function TetrobotRelationsPanel({
             apexTrustState,
             activeApexChallenge
           )}
-          progressCurrent={activeApexChallenge?.progress ?? 0}
+          progressCurrent={apexChallengeProgress}
           progressTarget={activeApexChallenge?.targetCount ?? 0}
           progressStatus={activeApexChallenge?.status}
           actionLabel={apexChallengeActionLabel ?? undefined}

@@ -1,6 +1,7 @@
 import {
   getApexTrustState,
 } from "../../achievements/lib/tetrobotAchievementLogic";
+import type { AchievementStats } from "../../achievements/types/achievementStats";
 import type {
   ApexTrustState,
   PlayerBehaviorMode,
@@ -57,6 +58,61 @@ export function getApexChallengeActionLabel(
   return activeChallenge.status === "offered"
     ? `Accepter et jouer ${modeLabel}`
     : `Continuer sur ${modeLabel}`;
+}
+
+type ApexChallengeStatsSnapshot = Pick<
+  AchievementStats,
+  | "playerBehaviorByMode"
+  | "roguelikeVersusMatches"
+  | "roguelikeVersusWins"
+  | "versusMatches"
+  | "versusWins"
+>;
+
+export function getApexTrackedModeSessions(
+  mode: PlayerBehaviorMode | null | undefined,
+  stats: ApexChallengeStatsSnapshot
+) {
+  if (!mode) return 0;
+  const behaviorSessions = stats.playerBehaviorByMode[mode]?.sessions ?? 0;
+  const legacySessions =
+    mode === "VERSUS"
+      ? stats.versusMatches
+      : mode === "ROGUELIKE_VERSUS"
+        ? stats.roguelikeVersusMatches
+        : 0;
+  return Math.max(behaviorSessions, legacySessions);
+}
+
+export function getApexTrackedModeWins(
+  mode: PlayerBehaviorMode | null | undefined,
+  stats: ApexChallengeStatsSnapshot
+) {
+  if (!mode) return 0;
+  const behaviorWins = stats.playerBehaviorByMode[mode]?.wins ?? 0;
+  const legacyWins =
+    mode === "VERSUS"
+      ? stats.versusWins
+      : mode === "ROGUELIKE_VERSUS"
+        ? stats.roguelikeVersusWins
+        : 0;
+  return Math.max(behaviorWins, legacyWins);
+}
+
+export function getApexChallengeProgress(
+  challenge: TetrobotChallengeState | null | undefined,
+  stats: ApexChallengeStatsSnapshot
+) {
+  const activeChallenge = getActiveApexChallenge(challenge);
+  if (!activeChallenge) return 0;
+  if (activeChallenge.status === "completed") return activeChallenge.targetCount;
+  if (!activeChallenge.targetMode) return Math.min(activeChallenge.progress, activeChallenge.targetCount);
+  const trackedSessions = getApexTrackedModeSessions(activeChallenge.targetMode, stats);
+  const liveProgress = Math.max(0, trackedSessions - activeChallenge.startSessions);
+  return Math.min(
+    activeChallenge.targetCount,
+    Math.max(activeChallenge.progress, liveProgress)
+  );
 }
 
 export function getApexRequirement(
