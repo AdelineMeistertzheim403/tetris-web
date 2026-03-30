@@ -5,6 +5,7 @@ import GameLayout from "../layout/GameLayout";
 import { addScore, getScoreRunToken } from "../../services/scoreService";
 import { useTetrisGame } from "../../hooks/useTetrisGame";
 import type { GameMode } from "../../types/GameMode";
+import type { TetrisControlMode } from "../../utils/controls";
 import type { Piece } from "../../types/Piece";
 import { useLineClearFx } from "../../hooks/useLineClearFx";
 import { useSettings } from "../../../settings/context/SettingsContext";
@@ -335,7 +336,7 @@ export default function TetrisBoard({
   } = actions;
   const bombsGrantRef = useRef(0);
 
-    useKeyboardControls((dir) => {
+  useKeyboardControls((dir) => {
     if (!keyboardControlsEnabled) return;
     const effectiveDir =
       invertControls && (dir === "left" || dir === "right")
@@ -373,7 +374,7 @@ export default function TetrisBoard({
       lastRotationRef.current = now;
     }
     movePiece(effectiveDir as "left" | "right" | "down" | "rotate");
-  }, keyboardControlsEnabled);
+  }, keyboardControlsEnabled, mode as TetrisControlMode);
 
   useEffect(() => {
     if (!tetrobotsPersonalityId) return;

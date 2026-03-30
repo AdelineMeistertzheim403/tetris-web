@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { getModeKeyBindings, normalizeKey } from "../../game/utils/controls";
 import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
+import { useSettings } from "../../settings/context/SettingsContext";
 import { BRICKFALL_BALANCE } from "../shared/balance";
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -220,6 +222,11 @@ export default function BrickfallBoard({
   initialSpecialBlocks,
   guaranteedDropBlocks,
 }: BrickfallBoardProps) {
+  const { settings } = useSettings();
+  const keyBindings = useMemo(
+    () => getModeKeyBindings(settings, "BRICKFALL_SOLO"),
+    [settings.keyBindings, settings.modeKeyBindings]
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const blocksRef = useRef<number[][]>([]);
@@ -555,35 +562,36 @@ export default function BrickfallBoard({
     wrapperRef.current?.focus();
     const pressedKeys = pressedKeysRef.current;
 
-    const isLeftKey = (key: string) => key === "ArrowLeft" || key === "a" || key === "A";
-    const isRightKey = (key: string) => key === "ArrowRight" || key === "d" || key === "D";
-
     const handleKeyDown = (evt: KeyboardEvent) => {
-      if (isLeftKey(evt.key)) {
+      const key = normalizeKey(evt.key);
+
+      if (key === keyBindings.left) {
         evt.preventDefault();
         pressedKeys.left = true;
         syncPaddleVelocity();
       }
-      if (isRightKey(evt.key)) {
+      if (key === keyBindings.right) {
         evt.preventDefault();
         pressedKeys.right = true;
         syncPaddleVelocity();
       }
-      if (evt.key === " " || evt.code === "Space") {
+      if (key === keyBindings.launch) {
         evt.preventDefault();
         launchBall();
       }
     };
 
     const handleKeyUp = (evt: KeyboardEvent) => {
-      if (isLeftKey(evt.key) || isRightKey(evt.key)) {
+      const key = normalizeKey(evt.key);
+
+      if (key === keyBindings.left || key === keyBindings.right) {
         evt.preventDefault();
       }
-      if (isLeftKey(evt.key)) {
+      if (key === keyBindings.left) {
         pressedKeys.left = false;
         syncPaddleVelocity();
       }
-      if (isRightKey(evt.key)) {
+      if (key === keyBindings.right) {
         pressedKeys.right = false;
         syncPaddleVelocity();
       }
@@ -606,7 +614,7 @@ export default function BrickfallBoard({
       pressedKeys.right = false;
       paddleVelRef.current = 0;
     };
-  }, [interactive, launchBall, syncPaddleVelocity]);
+  }, [interactive, keyBindings, launchBall, syncPaddleVelocity]);
 
   useEffect(() => {
     if (!interactive) return;

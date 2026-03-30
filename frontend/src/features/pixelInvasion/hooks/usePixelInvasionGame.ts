@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getModeKeyBindings, normalizeKey } from "../../game/utils/controls";
 import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
+import { useSettings } from "../../settings/context/SettingsContext";
 import { BOARD_WIDTH, GAME_LOOP_MS, MAX_SHIELD, PLAYER_WIDTH, clamp, createMessage } from "../model";
 import type { GameState, InputState } from "../model";
 import { createInitialState, stepGame } from "../logic/pixelInvasionGame";
@@ -17,6 +19,11 @@ const INITIAL_INPUT_STATE: InputState = {
  * Il gère uniquement les inputs, le reset et la cadence du tick.
  */
 export function usePixelInvasionGame() {
+  const { settings } = useSettings();
+  const keyBindings = useMemo(
+    () => getModeKeyBindings(settings, "PIXEL_INVASION"),
+    [settings.keyBindings, settings.modeKeyBindings]
+  );
   const [game, setGame] = useState<GameState>(() => createInitialState());
   const [paused, setPaused] = useState(false);
   const inputRef = useRef<InputState>({ ...INITIAL_INPUT_STATE });
@@ -29,23 +36,6 @@ export function usePixelInvasionGame() {
     instabilityLevel,
     reportRuntimeEvent,
   } = usePixelMode();
-
-  const isLeftKey = (event: KeyboardEvent) =>
-    event.code === "ArrowLeft" || event.code === "KeyA" || event.key === "ArrowLeft" || event.key.toLowerCase() === "a";
-
-  const isRightKey = (event: KeyboardEvent) =>
-    event.code === "ArrowRight" || event.code === "KeyD" || event.key === "ArrowRight" || event.key.toLowerCase() === "d";
-
-  const isShootKey = (event: KeyboardEvent) => event.code === "Space" || event.key === " ";
-
-  const isDashKey = (event: KeyboardEvent) =>
-    event.code === "ShiftLeft" ||
-    event.code === "ShiftRight" ||
-    event.key === "Shift" ||
-    event.code === "Numpad0";
-
-  const isBombKey = (event: KeyboardEvent) =>
-    event.code === "KeyB" || event.key.toLowerCase() === "b";
 
   const clearInputs = useCallback(() => {
     inputRef.current = { ...INITIAL_INPUT_STATE };
@@ -88,32 +78,46 @@ export function usePixelInvasionGame() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.repeat && isShootKey(event)) {
+      const key = normalizeKey(event.key);
+      const isLeftKey = key === keyBindings.left;
+      const isRightKey = key === keyBindings.right;
+      const isShootKey = key === keyBindings.shoot;
+      const isDashKey = key === keyBindings.dash;
+      const isBombKey = key === keyBindings.bomb;
+
+      if (event.repeat && isShootKey) {
         event.preventDefault();
       }
 
-      if (isLeftKey(event)) inputRef.current.left = true;
-      if (isRightKey(event)) inputRef.current.right = true;
-      if (isShootKey(event)) {
+      if (isLeftKey) inputRef.current.left = true;
+      if (isRightKey) inputRef.current.right = true;
+      if (isShootKey) {
         inputRef.current.shoot = true;
         event.preventDefault();
       }
-      if (isDashKey(event) && !event.repeat) {
+      if (isDashKey && !event.repeat) {
         queuedActionsRef.current.dash = true;
         event.preventDefault();
       }
-      if (isBombKey(event) && !event.repeat) {
+      if (isBombKey && !event.repeat) {
         queuedActionsRef.current.bomb = true;
         event.preventDefault();
       }
     }
 
     function onKeyUp(event: KeyboardEvent) {
-      if (isLeftKey(event)) inputRef.current.left = false;
-      if (isRightKey(event)) inputRef.current.right = false;
-      if (isShootKey(event)) inputRef.current.shoot = false;
-      if (isDashKey(event)) event.preventDefault();
-      if (isBombKey(event)) event.preventDefault();
+      const key = normalizeKey(event.key);
+      const isLeftKey = key === keyBindings.left;
+      const isRightKey = key === keyBindings.right;
+      const isShootKey = key === keyBindings.shoot;
+      const isDashKey = key === keyBindings.dash;
+      const isBombKey = key === keyBindings.bomb;
+
+      if (isLeftKey) inputRef.current.left = false;
+      if (isRightKey) inputRef.current.right = false;
+      if (isShootKey) inputRef.current.shoot = false;
+      if (isDashKey) event.preventDefault();
+      if (isBombKey) event.preventDefault();
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -123,7 +127,7 @@ export function usePixelInvasionGame() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
+  }, [keyBindings]);
 
   useEffect(() => {
     let frameId = 0;

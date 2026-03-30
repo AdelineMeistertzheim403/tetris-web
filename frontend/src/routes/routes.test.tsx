@@ -19,6 +19,7 @@ describe("route paths", () => {
   it("matches representative application URLs", () => {
     expect(matchPath(PATHS.home, "/")).toBeTruthy();
     expect(matchPath(PATHS.dashboard, "/dashboard")).toBeTruthy();
+    expect(matchPath(PATHS.dashboardEditor, "/dashboard/editor")).toBeTruthy();
     expect(matchPath(PATHS.puzzleRun, "/puzzle/42")).toBeTruthy();
     expect(matchPath(PATHS.pixelProtocolCommunityLevel, "/pixel-protocol/community/demo")).toBeTruthy();
   });
@@ -31,6 +32,7 @@ describe("route paths", () => {
     );
 
     expect(protectedPaths.get(PATHS.dashboard)).toBe(true);
+    expect(protectedPaths.get(PATHS.dashboardEditor)).toBe(true);
     expect(protectedPaths.get(PATHS.achievements)).toBe(true);
     expect(protectedPaths.get(PATHS.settings)).toBe(true);
     expect(protectedPaths.get(PATHS.tetrobotsRelations)).toBe(true);

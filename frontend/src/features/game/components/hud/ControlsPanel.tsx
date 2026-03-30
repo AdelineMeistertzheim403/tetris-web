@@ -1,8 +1,13 @@
 ﻿import { useSettings } from "../../../settings/context/SettingsContext";
-import { formatKeyLabel } from "../../utils/controls";
+import {
+  formatKeyLabel,
+  getModeKeyBindings,
+  type TetrisControlMode,
+} from "../../utils/controls";
 
 // Panneau des contrôles dynamique (rebindings + charges disponibles).
 type Props = {
+  mode: TetrisControlMode;
   bombs: number;
   timeFreezeCharges: number;
   chaosMode: boolean;
@@ -11,6 +16,7 @@ type Props = {
 };
 
 export default function ControlsPanel({
+  mode,
   bombs,
   timeFreezeCharges,
   chaosMode,
@@ -18,7 +24,7 @@ export default function ControlsPanel({
   onTogglePause,
 }: Props) {
   const { settings } = useSettings();
-  const { keyBindings } = settings;
+  const keyBindings = getModeKeyBindings(settings, mode);
 
   return (
     <div className="controls-panel">

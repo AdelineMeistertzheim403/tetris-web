@@ -9,10 +9,23 @@
   type ReactNode,
 } from "react";
 import { COLORS } from "../../game/logic/shapes";
-import { DEFAULT_KEY_BINDINGS, normalizeKey, type KeyBindings } from "../../game/utils/controls";
+import {
+  DEFAULT_KEY_BINDINGS,
+  createDefaultModeKeyBindings,
+  normalizeKey,
+  normalizeModeKeyBindings,
+  type ControlSettingsMode,
+  type KeyBindings,
+} from "../../game/utils/controls";
 import type { Settings, UiColors, PieceColors } from "../types/Settings";
 import { useAuth } from "../../auth/context/AuthContext";
 import { fetchUserSettings, saveUserSettings } from "../services/settingsService";
+import {
+  createDefaultDashboardSettings,
+  normalizeDashboardSettings,
+  type DashboardSettings,
+  type DashboardWidgetId,
+} from "../../app/logic/dashboardWidgets";
 
 // Clé de persistance locale pour conserver les préférences utilisateur.
 const STORAGE_KEY = "tetris-user-settings";
@@ -38,13 +51,15 @@ export const DEFAULT_PIECE_COLORS: PieceColors = {
   J: COLORS.J,
 };
 
-export const DEFAULT_SETTINGS: Settings = {
+const createDefaultSettings = (): Settings => ({
   keyBindings: DEFAULT_KEY_BINDINGS,
+  modeKeyBindings: createDefaultModeKeyBindings(),
   reducedMotion: false,
   reducedNeon: false,
   uiColors: DEFAULT_UI_COLORS,
   pieceColors: DEFAULT_PIECE_COLORS,
-};
+  dashboard: createDefaultDashboardSettings(),
+});
 
 const hexToRgb = (hex: string) => {
   const normalized = hex.replace("#", "").trim();
@@ -67,10 +82,15 @@ type SettingsContextValue = {
   settings: Settings;
   setSettings: (next: Settings) => void;
   updateKeyBindings: (next: Partial<KeyBindings>) => void;
+  updateModeKeyBinding: (mode: ControlSettingsMode, action: string, key: string) => void;
+  resetModeKeyBindings: (mode: ControlSettingsMode) => void;
   updateUiColors: (next: Partial<UiColors>) => void;
   updatePieceColors: (next: Partial<PieceColors>) => void;
+  updateDashboardSettings: (next: DashboardSettings) => void;
+  updateDashboardWidgetVisibility: (widgetId: DashboardWidgetId, value: boolean) => void;
   toggleReducedMotion: (value: boolean) => void;
   toggleReducedNeon: (value: boolean) => void;
+  resetDashboardLayout: () => void;
   resetSettings: () => void;
 };
 
@@ -78,23 +98,25 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 // Fusionne des settings partiels avec les defaults (résilience aux anciennes versions).
 const mergeSettings = (raw: Partial<Settings> | null): Settings => {
-  if (!raw) return DEFAULT_SETTINGS;
+  if (!raw) return createDefaultSettings();
+  const defaults = createDefaultSettings();
+  const normalizedModeKeyBindings = normalizeModeKeyBindings(
+    raw.modeKeyBindings,
+    raw.keyBindings
+  );
   const merged = {
-    ...DEFAULT_SETTINGS,
+    ...defaults,
     ...raw,
-    keyBindings: { ...DEFAULT_SETTINGS.keyBindings, ...(raw.keyBindings ?? {}) },
-    uiColors: { ...DEFAULT_SETTINGS.uiColors, ...(raw.uiColors ?? {}) },
-    pieceColors: { ...DEFAULT_SETTINGS.pieceColors, ...(raw.pieceColors ?? {}) },
+    keyBindings: normalizedModeKeyBindings.CLASSIQUE,
+    modeKeyBindings: normalizedModeKeyBindings,
+    uiColors: { ...defaults.uiColors, ...(raw.uiColors ?? {}) },
+    pieceColors: { ...defaults.pieceColors, ...(raw.pieceColors ?? {}) },
+    dashboard: normalizeDashboardSettings(raw.dashboard),
   };
-  const normalizedKeyBindings: KeyBindings = { ...merged.keyBindings } as KeyBindings;
-  (Object.keys(normalizedKeyBindings) as Array<keyof KeyBindings>).forEach((action) => {
-    const key = normalizedKeyBindings[action];
-    normalizedKeyBindings[action] =
-      typeof key === "string" ? normalizeKey(key) : DEFAULT_SETTINGS.keyBindings[action];
-  });
   return {
     ...merged,
-    keyBindings: normalizedKeyBindings,
+    keyBindings: normalizedModeKeyBindings.CLASSIQUE,
+    modeKeyBindings: normalizedModeKeyBindings,
   };
 };
 
@@ -103,10 +125,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettingsState] = useState<Settings>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return DEFAULT_SETTINGS;
+      if (!raw) return createDefaultSettings();
       return mergeSettings(JSON.parse(raw));
     } catch {
-      return DEFAULT_SETTINGS;
+      return createDefaultSettings();
     }
   });
   const loadedUserIdRef = useRef<number | null>(null);
@@ -115,19 +137,67 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const lastRemoteSnapshotRef = useRef<string | null>(null);
 
   const setSettings = useCallback((next: Settings) => {
-    setSettingsState(next);
+    setSettingsState(mergeSettings(next));
   }, []);
 
   const updateKeyBindings = useCallback((next: Partial<KeyBindings>) => {
-    setSettingsState((prev) => ({
-      ...prev,
-      keyBindings: {
-        ...prev.keyBindings,
+    setSettingsState((prev) => {
+      const nextClassic = {
+        ...prev.modeKeyBindings.CLASSIQUE,
         ...Object.fromEntries(
           Object.entries(next).flatMap(([action, key]) =>
             typeof key === "string" ? [[action, normalizeKey(key)]] : []
           )
         ),
+      } as KeyBindings;
+
+      return {
+        ...prev,
+        keyBindings: nextClassic,
+        modeKeyBindings: {
+          ...prev.modeKeyBindings,
+          CLASSIQUE: nextClassic,
+        },
+      };
+    });
+  }, []);
+
+  const updateModeKeyBinding = useCallback(
+    (mode: ControlSettingsMode, action: string, key: string) => {
+      const normalized = normalizeKey(key);
+
+      setSettingsState((prev) => {
+        const currentModeBindings = prev.modeKeyBindings[mode];
+        if (!(action in currentModeBindings)) return prev;
+
+        const nextModeBindings = {
+          ...currentModeBindings,
+          [action]: normalized,
+        };
+
+        return {
+          ...prev,
+          keyBindings:
+            mode === "CLASSIQUE" ? (nextModeBindings as KeyBindings) : prev.keyBindings,
+          modeKeyBindings: {
+            ...prev.modeKeyBindings,
+            [mode]: nextModeBindings,
+          },
+        };
+      });
+    },
+    []
+  );
+
+  const resetModeKeyBindings = useCallback((mode: ControlSettingsMode) => {
+    const defaults = createDefaultModeKeyBindings();
+
+    setSettingsState((prev) => ({
+      ...prev,
+      keyBindings: mode === "CLASSIQUE" ? defaults.CLASSIQUE : prev.keyBindings,
+      modeKeyBindings: {
+        ...prev.modeKeyBindings,
+        [mode]: defaults[mode],
       },
     }));
   }, []);
@@ -146,6 +216,31 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const updateDashboardSettings = useCallback((next: DashboardSettings) => {
+    setSettingsState((prev) => ({
+      ...prev,
+      dashboard: normalizeDashboardSettings(next),
+    }));
+  }, []);
+
+  const updateDashboardWidgetVisibility = useCallback(
+    (widgetId: DashboardWidgetId, value: boolean) => {
+      setSettingsState((prev) => ({
+        ...prev,
+        dashboard: normalizeDashboardSettings({
+          widgets: {
+            ...prev.dashboard.widgets,
+            [widgetId]: {
+              ...prev.dashboard.widgets[widgetId],
+              visible: value,
+            },
+          },
+        }),
+      }));
+    },
+    []
+  );
+
   const toggleReducedMotion = useCallback((value: boolean) => {
     setSettingsState((prev) => ({ ...prev, reducedMotion: value }));
   }, []);
@@ -154,8 +249,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettingsState((prev) => ({ ...prev, reducedNeon: value }));
   }, []);
 
+  const resetDashboardLayout = useCallback(() => {
+    setSettingsState((prev) => ({
+      ...prev,
+      dashboard: createDefaultDashboardSettings(),
+    }));
+  }, []);
+
   const resetSettings = useCallback(() => {
-    setSettingsState(DEFAULT_SETTINGS);
+    setSettingsState(createDefaultSettings());
   }, []);
 
   useEffect(() => {
@@ -260,20 +362,30 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       settings,
       setSettings,
       updateKeyBindings,
+      updateModeKeyBinding,
+      resetModeKeyBindings,
       updateUiColors,
       updatePieceColors,
+      updateDashboardSettings,
+      updateDashboardWidgetVisibility,
       toggleReducedMotion,
       toggleReducedNeon,
+      resetDashboardLayout,
       resetSettings,
     }),
     [
       settings,
       setSettings,
       updateKeyBindings,
+      updateModeKeyBinding,
+      resetModeKeyBindings,
       updateUiColors,
       updatePieceColors,
+      updateDashboardSettings,
+      updateDashboardWidgetVisibility,
       toggleReducedMotion,
       toggleReducedNeon,
+      resetDashboardLayout,
       resetSettings,
     ]
   );

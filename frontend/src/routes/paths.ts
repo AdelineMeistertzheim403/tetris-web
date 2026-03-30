@@ -3,6 +3,7 @@ export const PATHS = {
   login: "/login",
   register: "/register",
   dashboard: "/dashboard",
+  dashboardEditor: "/dashboard/editor",
   leaderboard: "/leaderboard",
   achievements: "/achievements",
   settings: "/settings",

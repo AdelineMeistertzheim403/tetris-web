@@ -1,4 +1,6 @@
 import { memo } from "react";
+import { useSettings } from "../../settings/context/SettingsContext";
+import { formatKeyLabel, getModeKeyBindings } from "../../game/utils/controls";
 import type { PixelRuntimeEvent } from "../../pixelMode/context/pixelModeContext";
 import {
   DASH_COOLDOWN,
@@ -40,6 +42,9 @@ export const PixelInvasionLeftSidebar = memo(function PixelInvasionLeftSidebar({
   tone,
   text,
 }: PixelInvasionLeftSidebarProps) {
+  const { settings } = useSettings();
+  const keyBindings = getModeKeyBindings(settings, "PIXEL_INVASION");
+
   return (
     <aside className="pixel-invasion-sidebar pixel-invasion-sidebar--left">
       <section className={`pixel-invasion-card pixel-invasion-card--message pixel-invasion-card--${tone}`}>
@@ -51,10 +56,13 @@ export const PixelInvasionLeftSidebar = memo(function PixelInvasionLeftSidebar({
       <section className="pixel-invasion-card">
         <div className="pixel-invasion-card-title">Controles</div>
         <ul className="pixel-invasion-list">
-          <li>`A` / `D` ou fleches : deplacement</li>
-          <li>`Space` : tir</li>
-          <li>`Shift` : dash</li>
-          <li>`B` : bombe de nettoyage</li>
+          <li>
+            `{formatKeyLabel(keyBindings.left)}` / `{formatKeyLabel(keyBindings.right)}` :
+            deplacement
+          </li>
+          <li>`{formatKeyLabel(keyBindings.shoot)}` : tir</li>
+          <li>`{formatKeyLabel(keyBindings.dash)}` : dash</li>
+          <li>`{formatKeyLabel(keyBindings.bomb)}` : bombe de nettoyage</li>
         </ul>
       </section>
     </aside>

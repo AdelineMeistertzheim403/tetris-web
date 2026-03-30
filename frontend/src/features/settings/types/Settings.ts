@@ -1,5 +1,6 @@
 // Types partages utilises par ce module.
-﻿import type { KeyBindings } from "../../game/utils/controls";
+import type { DashboardSettings } from "../../app/logic/dashboardWidgets";
+import type { KeyBindings, ModeKeyBindings } from "../../game/utils/controls";
 
 export type TetrominoType = "I" | "O" | "T" | "S" | "Z" | "L" | "J";
 
@@ -18,8 +19,10 @@ export type UiColors = {
 
 export type Settings = {
   keyBindings: KeyBindings;
+  modeKeyBindings: ModeKeyBindings;
   reducedMotion: boolean;
   reducedNeon: boolean;
   uiColors: UiColors;
   pieceColors: PieceColors;
+  dashboard: DashboardSettings;
 };

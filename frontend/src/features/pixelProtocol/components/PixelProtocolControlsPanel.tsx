@@ -1,3 +1,5 @@
+import { formatKeyLabel, getModeKeyBindings } from "../../game/utils/controls";
+import { useSettings } from "../../settings/context/SettingsContext";
 import type { AbilityFlags } from "../types";
 
 type PixelProtocolControlsPanelProps = {
@@ -26,22 +28,38 @@ export function PixelProtocolControlsPanel({
   onEditor,
   statusMessage,
 }: PixelProtocolControlsPanelProps) {
+  const { settings } = useSettings();
+  const keyBindings = getModeKeyBindings(settings, "PIXEL_PROTOCOL");
+  const directionKeys = [
+    formatKeyLabel(keyBindings.left),
+    formatKeyLabel(keyBindings.right),
+    formatKeyLabel(keyBindings.up),
+    formatKeyLabel(keyBindings.down),
+  ].join(" / ");
+
   return (
     <aside className="pp-panel">
       <div className="pp-infoCard">
         <p className="pp-panelTitle">Controles</p>
-        <p>Deplacement: Fleches ou WASD</p>
-        <p>Saut: Espace, Fleche haut ou W</p>
+        <p>Deplacement: {directionKeys}</p>
+        <p>Saut: {formatKeyLabel(keyBindings.jump)}</p>
         {ability.doubleJump && <p>Double saut: actif</p>}
-        {ability.airDash && <p>Dash: Shift</p>}
-        {ability.hackWave && <p>Hack: E</p>}
-        {ability.dataGrapple && <p>Data Grapple: fleches/WASD + G, visee libre en accroche</p>}
-        {ability.phaseShift && <p>Phase Shift: F</p>}
-        {ability.pulseShock && <p>Pulse Shock: Q</p>}
-        {ability.overclockMode && <p>Overclock: C</p>}
-        {ability.timeBuffer && <p>Time Buffer: X</p>}
-        {ability.platformSpawn && <p>Platform Spawn: V</p>}
-        <p>Respawn checkpoint: R</p>
+        {ability.airDash && <p>Dash: {formatKeyLabel(keyBindings.dash)}</p>}
+        {ability.hackWave && <p>Hack: {formatKeyLabel(keyBindings.hack)}</p>}
+        {ability.dataGrapple && (
+          <p>
+            Data Grapple: {formatKeyLabel(keyBindings.grapple)} + {directionKeys}, visee libre en
+            accroche
+          </p>
+        )}
+        {ability.phaseShift && <p>Phase Shift: {formatKeyLabel(keyBindings.phaseShift)}</p>}
+        {ability.pulseShock && <p>Pulse Shock: {formatKeyLabel(keyBindings.pulseShock)}</p>}
+        {ability.overclockMode && <p>Overclock: {formatKeyLabel(keyBindings.overclock)}</p>}
+        {ability.timeBuffer && <p>Time Buffer: {formatKeyLabel(keyBindings.timeBuffer)}</p>}
+        {ability.platformSpawn && (
+          <p>Platform Spawn: {formatKeyLabel(keyBindings.platformSpawn)}</p>
+        )}
+        <p>Respawn checkpoint: {formatKeyLabel(keyBindings.respawn)}</p>
       </div>
 
       <div className="pp-infoCard">

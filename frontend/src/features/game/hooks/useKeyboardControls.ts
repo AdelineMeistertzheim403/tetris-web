@@ -1,30 +1,35 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { useSettings } from "../../settings/context/SettingsContext";
 import type { ControlAction } from "../types/Controls";
-import { normalizeKey } from "../utils/controls";
+import { getModeKeyBindings, normalizeKey, type TetrisControlMode } from "../utils/controls";
 
 /**
  * Listener unique (window) avec callback toujours à jour.
  */
 export function useKeyboardControls(
   onMove: (dir: ControlAction) => void,
-  enabled: boolean = true
+  enabled: boolean = true,
+  mode: TetrisControlMode = "CLASSIQUE"
 ) {
   const cbRef = useRef(onMove);
   const { settings } = useSettings();
+  const keyBindings = useMemo(
+    () => getModeKeyBindings(settings, mode),
+    [mode, settings.keyBindings, settings.modeKeyBindings]
+  );
 
   const actionMap = useMemo(() => {
     const map = new Map<string, ControlAction>();
-    (Object.entries(settings.keyBindings) as [ControlAction, string][]).forEach(
+    (Object.entries(keyBindings) as [ControlAction, string][]).forEach(
       ([action, key]) => {
         if (key) map.set(key, action);
       }
     );
     return map;
-  }, [settings.keyBindings]);
+  }, [keyBindings]);
 
   const actionMapRef = useRef(actionMap);
-  const holdKeyRef = useRef(normalizeKey(settings.keyBindings.hold));
+  const holdKeyRef = useRef(normalizeKey(keyBindings.hold));
   // Évite les déclenchements répétés sur une touche maintenue (notamment Hold).
   const pressedKeysRef = useRef<Set<string>>(new Set());
 
@@ -38,8 +43,8 @@ export function useKeyboardControls(
   }, [actionMap]);
 
   useEffect(() => {
-    holdKeyRef.current = normalizeKey(settings.keyBindings.hold);
-  }, [settings.keyBindings.hold]);
+    holdKeyRef.current = normalizeKey(keyBindings.hold);
+  }, [keyBindings.hold]);
 
   useEffect(() => {
     if (!enabled) return;

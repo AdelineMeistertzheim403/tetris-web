@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { PATHS } from "../../../routes/paths";
 import { useAchievements } from "../../achievements/hooks/useAchievements";
 import { useAuth } from "../../auth/context/AuthContext";
+import { getModeKeyBindings, normalizeKey } from "../../game/utils/controls";
 import { TOTAL_GAME_MODES } from "../../game/types/GameMode";
 import { usePixelMode } from "../../pixelMode/hooks/usePixelMode";
+import { useSettings } from "../../settings/context/SettingsContext";
 import { getPixelScoreFactor } from "../../pixelMode/logic/pixelMode";
 import {
   getTetromazeCampaignLevel,
@@ -722,6 +724,11 @@ function drawSprite(
 }
 
 export default function TetromazePage() {
+  const { settings } = useSettings();
+  const keyBindings = useMemo(
+    () => getModeKeyBindings(settings, "TETROMAZE"),
+    [settings.keyBindings, settings.modeKeyBindings]
+  );
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [levelIndex, setLevelIndex] = useState(1);
@@ -1007,33 +1014,22 @@ export default function TetromazePage() {
   }, []);
 
   useEffect(() => {
-    const isMoveKey = (key: string) =>
-      key === "arrowup" ||
-      key === "w" ||
-      key === "z" ||
-      key === "arrowdown" ||
-      key === "s" ||
-      key === "arrowleft" ||
-      key === "a" ||
-      key === "q" ||
-      key === "arrowright" ||
-      key === "d";
-
     const onKeyDown = (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase();
-      if (
-        key === "arrowup" ||
-        key === "arrowdown" ||
-        key === "arrowleft" ||
-        key === "arrowright"
-      ) {
+      const key = normalizeKey(event.key);
+      const isMoveKey =
+        key === keyBindings.up ||
+        key === keyBindings.down ||
+        key === keyBindings.left ||
+        key === keyBindings.right;
+
+      if (key.startsWith("Arrow")) {
         event.preventDefault();
       }
-      if (key === "arrowup" || key === "w" || key === "z") inputDirRef.current = "UP";
-      if (key === "arrowdown" || key === "s") inputDirRef.current = "DOWN";
-      if (key === "arrowleft" || key === "a" || key === "q") inputDirRef.current = "LEFT";
-      if (key === "arrowright" || key === "d") inputDirRef.current = "RIGHT";
-      if (isMoveKey(key)) {
+      if (key === keyBindings.up) inputDirRef.current = "UP";
+      if (key === keyBindings.down) inputDirRef.current = "DOWN";
+      if (key === keyBindings.left) inputDirRef.current = "LEFT";
+      if (key === keyBindings.right) inputDirRef.current = "RIGHT";
+      if (isMoveKey) {
         movementActiveRef.current = true;
       }
     };
@@ -1042,7 +1038,7 @@ export default function TetromazePage() {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, []);
+  }, [keyBindings]);
 
   useEffect(() => {
     if (pixelModeActive) return;
