@@ -19,6 +19,7 @@ export default function SidebarRight({
   return (
     <aside className="rogue-right">
       <ControlsPanel
+        mode="ROGUELIKE"
         bombs={bombs}
         timeFreezeCharges={timeFreezeCharges}
         chaosMode={chaosMode}

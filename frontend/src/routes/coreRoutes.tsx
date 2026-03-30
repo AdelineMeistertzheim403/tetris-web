@@ -4,6 +4,7 @@ import Login from "../features/auth/pages/Login";
 import Register from "../features/auth/pages/Register";
 import NotFound from "../features/app/pages/NotFound";
 import Dashboard from "../features/app/pages/Dashboard";
+import DashboardEditor from "../features/app/pages/DashboardEditor";
 import Leaderboard from "../features/game/pages/Leaderboard";
 import AchievementsPage from "../features/achievements/pages/AchievementsPage";
 import Settings from "../features/settings/pages/Settings";
@@ -21,6 +22,12 @@ export const coreRouteSpecs: AppRouteSpec[] = [
   { key: "login", path: PATHS.login, element: <Login /> },
   { key: "register", path: PATHS.register, element: <Register /> },
   { key: "dashboard", path: PATHS.dashboard, element: <Dashboard />, requiresAuth: true },
+  {
+    key: "dashboard-editor",
+    path: PATHS.dashboardEditor,
+    element: <DashboardEditor />,
+    requiresAuth: true,
+  },
   {
     key: "achievements",
     path: PATHS.achievements,

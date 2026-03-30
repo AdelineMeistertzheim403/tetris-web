@@ -120,7 +120,7 @@ export default function TetrisBoardSprint() {
       return handleHold();
     }
     movePiece(dir as "left" | "right" | "down" | "rotate");
-  });
+  }, true, "SPRINT");
 
   useEffect(() => {
     // Marque le mode Sprint comme "visité".

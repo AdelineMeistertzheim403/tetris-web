@@ -433,7 +433,7 @@ function RoguelikeVersusPvp() {
   useKeyboardControls((action) => {
     if (action !== "bomb") return;
     triggerPlayerBombAttack();
-  });
+  }, true, "ROGUELIKE_VERSUS");
 
   const resetRunTracking = () => {
     startTimeRef.current = null;
@@ -1826,7 +1826,7 @@ function RoguelikeVersusTetrobots() {
   useKeyboardControls((action) => {
     if (action !== "bomb") return;
     triggerPlayerBombAttack();
-  });
+  }, true, "ROGUELIKE_VERSUS");
 
   const applyTimed = (apply: () => void, clear: () => void, durationMs: number) => {
     apply();

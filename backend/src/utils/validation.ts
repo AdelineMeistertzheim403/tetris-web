@@ -45,6 +45,57 @@ const settingsKeyBindingsSchema = z.object({
   freeze: z.string().trim().min(1).max(32),
 });
 
+const settingsBrickfallKeyBindingsSchema = z.object({
+  left: z.string().trim().min(1).max(32),
+  right: z.string().trim().min(1).max(32),
+  launch: z.string().trim().min(1).max(32),
+});
+
+const settingsTetromazeKeyBindingsSchema = z.object({
+  up: z.string().trim().min(1).max(32),
+  down: z.string().trim().min(1).max(32),
+  left: z.string().trim().min(1).max(32),
+  right: z.string().trim().min(1).max(32),
+});
+
+const settingsPixelInvasionKeyBindingsSchema = z.object({
+  left: z.string().trim().min(1).max(32),
+  right: z.string().trim().min(1).max(32),
+  shoot: z.string().trim().min(1).max(32),
+  dash: z.string().trim().min(1).max(32),
+  bomb: z.string().trim().min(1).max(32),
+});
+
+const settingsPixelProtocolKeyBindingsSchema = z.object({
+  left: z.string().trim().min(1).max(32),
+  right: z.string().trim().min(1).max(32),
+  up: z.string().trim().min(1).max(32),
+  down: z.string().trim().min(1).max(32),
+  jump: z.string().trim().min(1).max(32),
+  dash: z.string().trim().min(1).max(32),
+  hack: z.string().trim().min(1).max(32),
+  grapple: z.string().trim().min(1).max(32),
+  phaseShift: z.string().trim().min(1).max(32),
+  pulseShock: z.string().trim().min(1).max(32),
+  overclock: z.string().trim().min(1).max(32),
+  timeBuffer: z.string().trim().min(1).max(32),
+  platformSpawn: z.string().trim().min(1).max(32),
+  respawn: z.string().trim().min(1).max(32),
+});
+
+const settingsModeKeyBindingsSchema = z.object({
+  CLASSIQUE: settingsKeyBindingsSchema,
+  SPRINT: settingsKeyBindingsSchema,
+  VERSUS: settingsKeyBindingsSchema,
+  ROGUELIKE: settingsKeyBindingsSchema,
+  ROGUELIKE_VERSUS: settingsKeyBindingsSchema,
+  PUZZLE: settingsKeyBindingsSchema,
+  BRICKFALL_SOLO: settingsBrickfallKeyBindingsSchema,
+  TETROMAZE: settingsTetromazeKeyBindingsSchema,
+  PIXEL_INVASION: settingsPixelInvasionKeyBindingsSchema,
+  PIXEL_PROTOCOL: settingsPixelProtocolKeyBindingsSchema,
+});
+
 const settingsUiColorsSchema = z.object({
   accent: hexColorSchema,
   accentSecondary: hexColorSchema,
@@ -66,12 +117,37 @@ const settingsPieceColorsSchema = z.object({
   J: hexColorSchema,
 });
 
+const dashboardWidgetIdSchema = z.enum([
+  "chatbot",
+  "tip",
+  "resume",
+  "modes",
+  "focus",
+  "progress",
+  "activity",
+  "create",
+  "community",
+]);
+
+const settingsDashboardWidgetSchema = z.object({
+  visible: z.boolean(),
+  order: z.number().int().min(0).max(50),
+  w: z.number().int().min(1).max(4),
+  h: z.number().int().min(2).max(7),
+});
+
+const settingsDashboardSchema = z.object({
+  widgets: z.record(dashboardWidgetIdSchema, settingsDashboardWidgetSchema),
+});
+
 export const userSettingsSchema = z.object({
   keyBindings: settingsKeyBindingsSchema,
+  modeKeyBindings: settingsModeKeyBindingsSchema.optional(),
   reducedMotion: z.boolean(),
   reducedNeon: z.boolean(),
   uiColors: settingsUiColorsSchema,
   pieceColors: settingsPieceColorsSchema,
+  dashboard: settingsDashboardSchema.optional(),
 });
 
 export const scoreSchema = z.object({
